@@ -617,32 +617,30 @@ export default function Eleves({ initialEleveId }) {
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* En-tête */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
-            {isMoniteur ? 'Mes Élèves' : 'Gestion des Élèves'}
-          </h2>
-          <p className="text-sm text-slate-400 mt-0.5">{filtered.length} élève{filtered.length > 1 ? 's' : ''}</p>
-        </div>
-        {!isMoniteur && (
+      {!isMoniteur && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Élèves</h2>
+            <p className="text-sm text-slate-400 mt-0.5">{filtered.length} élève{filtered.length > 1 ? 's' : ''}</p>
+          </div>
           <button onClick={() => openModal()}
             className="flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer transition-all"
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
             <i className="bi bi-plus-lg" />Nouvel élève
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Filtres */}
       <div className="bg-white rounded-2xl p-4 flex gap-3 flex-wrap" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-        <div className="flex items-center gap-2 flex-1 min-w-48 bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2 focus-within:border-[#1e3a5f] transition-all">
+        <div className="flex items-center gap-2 flex-1 min-w-48 bg-slate-50 border-2 rounded-xl px-3 py-2 focus-within:border-[#f0bb2a] transition-all" style={{ borderColor: '#d4a017' }}>
           <i className="bi bi-search text-slate-400" style={{ fontSize: '.9rem' }} />
           <input className="flex-1 bg-transparent border-0 outline-none text-sm text-slate-700 placeholder-slate-400"
             placeholder="Nom, prénom, téléphone…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select
-          className="bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer"
+          className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#f0bb2a] transition-all cursor-pointer" style={{ borderColor: '#d4a017' }}
           value={statut} onChange={e => setStatut(e.target.value)}>
           <option value="">Tous les statuts</option>
           {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -650,7 +648,23 @@ export default function Eleves({ initialEleveId }) {
       </div>
 
       {/* Tableau */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+        <div className="px-5 py-3.5 flex items-center gap-3"
+          style={{ background: 'linear-gradient(135deg,#1e3a5f 0%,#2a4f7c 100%)', borderBottom: '2px solid #142a47' }}>
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
+            <i className="bi bi-people-fill" style={{ color: '#fff', fontSize: '.9rem' }} />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-white text-sm">{isMoniteur ? 'Mes Élèves' : 'Liste des Élèves'}</div>
+            <div style={{ fontSize: '.72rem', color: 'rgba(147,197,253,.85)' }}>
+              {filtered.length} élève{filtered.length > 1 ? 's' : ''} · suivi de formation
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-xs font-bold"
+            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
+            {filtered.length}
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

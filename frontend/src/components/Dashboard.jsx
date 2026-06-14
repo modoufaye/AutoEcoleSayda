@@ -9,10 +9,10 @@ import '../landing.css'
    COMPOSANTS PARTAGÉS
 ══════════════════════════════════════════════════════════ */
 
-function StatCard({ title, value, icon, accent, sub }) {
+function StatCard({ title, value, icon, accent, sub, cardStyle }) {
   return (
-    <div className="bg-white rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-200"
-      style={{ borderLeft: `4px solid ${accent}`, boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+    <div className="bg-white rounded-2xl px-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-200"
+      style={{ borderLeft: `4px solid ${accent}`, boxShadow: '0 1px 6px rgba(0,0,0,.06)', paddingTop: 20, paddingBottom: 20, ...cardStyle }}>
       <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{ background: `${accent}18` }}>
         <i className={`bi bi-${icon}`} style={{ fontSize: '1.3rem', color: accent }} />
@@ -112,8 +112,8 @@ function DashboardMoniteur({ stats, user }) {
 
           {/* Badge taux de réussite */}
           {tauxReussite != null && (
-            <div className="rounded-2xl px-5 py-3 text-center border flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,.07)', borderColor: 'rgba(255,255,255,.12)' }}>
+            <div className="rounded-2xl px-5 text-center border flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,.07)', borderColor: 'rgba(255,255,255,.12)', paddingTop: '5px', paddingBottom: '5px' }}>
               <div className="text-xs text-blue-300 font-semibold mb-1">Taux de réussite</div>
               <div className="text-3xl font-extrabold" style={{ color: tauxReussite >= 70 ? '#4ade80' : tauxReussite >= 50 ? '#fbbf24' : '#f87171' }}>
                 {tauxReussite}%
@@ -144,10 +144,10 @@ function DashboardMoniteur({ stats, user }) {
           <div className="flex-1 h-px bg-slate-100" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total élèves"  value={loadingEleves ? '…' : eleves.length} icon="people-fill"       accent="#1e3a5f" />
-          <StatCard title="En formation"  value={loadingEleves ? '…' : enCours}       icon="person-check-fill" accent="#3b82f6" />
-          <StatCard title="Diplômés"      value={loadingEleves ? '…' : diplomes}      icon="award-fill"        accent="#10b981" />
-          <StatCard title="Suspendus"     value={loadingEleves ? '…' : suspendus}     icon="person-x-fill"     accent="#f59e0b" />
+          <StatCard title="Total élèves"  value={loadingEleves ? '…' : eleves.length} icon="people-fill"       accent="#1e3a5f" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="En formation"  value={loadingEleves ? '…' : enCours}       icon="person-check-fill" accent="#3b82f6" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Diplômés"      value={loadingEleves ? '…' : diplomes}      icon="award-fill"        accent="#10b981" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Suspendus"     value={loadingEleves ? '…' : suspendus}     icon="person-x-fill"     accent="#f59e0b" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
         </div>
       </div>
 
@@ -159,10 +159,10 @@ function DashboardMoniteur({ stats, user }) {
           <div className="flex-1 h-px bg-slate-100" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total leçons"     value={stats.totalLecons}     icon="journal-text"          accent="#1e3a5f" />
-          <StatCard title="Leçons terminées" value={stats.leconsTerminees} icon="check-circle-fill"     accent="#10b981" />
-          <StatCard title="Total examens"    value={stats.totalExamens}    icon="clipboard2-check-fill" accent="#3b82f6" />
-          <StatCard title="Admis"            value={stats.examensAdmis}    icon="emoji-smile-fill"      accent="#10b981" />
+          <StatCard title="Total leçons"     value={stats.totalLecons}     icon="journal-text"          accent="#1e3a5f" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Leçons terminées" value={stats.leconsTerminees} icon="check-circle-fill"     accent="#10b981" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Total examens"    value={stats.totalExamens}    icon="clipboard2-check-fill" accent="#3b82f6" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Admis"            value={stats.examensAdmis}    icon="emoji-smile-fill"      accent="#10b981" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
         </div>
       </div>
 

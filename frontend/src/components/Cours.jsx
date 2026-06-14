@@ -121,6 +121,7 @@ function CoursEcritCard({ c, onSelect, onEdit, onDelete }) {
 function ThemeDetail({ theme, cours, setCours, onBack }) {
   const { user } = useAuth()
   const isMoniteur   = user?.role === 'MONITEUR'
+  const isEleve      = user?.role === 'ELEVE'
   const [selected, setSelected]     = useState(null)
   const [typeFilter, setTypeFilter] = useState('TOUS')
   const [showForm, setShowForm]     = useState(false)
@@ -230,36 +231,68 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {/* Barre de navigation */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-          style={{ background: '#f1f5f9', color: '#475569' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-        >
-          <i className="bi bi-arrow-left" />
-          Retour aux thèmes
-        </button>
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-800 leading-tight">
-            {theme.emoji} {theme.label}
-          </h1>
-          {themeCours.length > 0 && (
-            <p className="text-slate-400 text-sm mt-0.5">{themeCours.length} cours disponibles</p>
+      {isEleve ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+          <div className="px-5 py-3.5 flex items-center gap-3"
+            style={{ background: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)', borderBottom: '2px solid #0f3d21' }}>
+            <button
+              onClick={onBack}
+              className="w-9 h-9 rounded-xl flex items-center justify-center border-0 cursor-pointer transition-all flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.32)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.2)'}
+              title="Retour aux thèmes"
+            >
+              <i className="bi bi-arrow-left" style={{ fontSize: '.9rem' }} />
+            </button>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,.18)' }}>
+              <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{theme.emoji}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-extrabold text-white leading-tight" style={{ fontSize: '.95rem' }}>{theme.label}</div>
+              <div style={{ fontSize: '.73rem', color: 'rgba(187,247,208,.85)' }}>
+                {theme.subtopics.length} sous-thèmes{themeCours.length > 0 ? ` · ${themeCours.length} cours disponibles` : ''}
+              </div>
+            </div>
+            <span className="px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
+              {themeCours.length > 0 ? `${themeCours.length} cours` : 'Bientôt disponible'}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-4 flex-wrap">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
+            style={{ background: '#f1f5f9', color: '#475569' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+            onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
+          >
+            <i className="bi bi-arrow-left" />
+            Retour aux thèmes
+          </button>
+          <div>
+            <h1 className="text-xl font-extrabold text-slate-800 leading-tight">
+              {theme.emoji} {theme.label}
+            </h1>
+            {themeCours.length > 0 && (
+              <p className="text-slate-400 text-sm mt-0.5">{themeCours.length} cours disponibles</p>
+            )}
+          </div>
+          {isMoniteur && (
+            <button
+              onClick={openAdd}
+              className="ml-auto flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer text-white transition-all"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}
+            >
+              <i className="bi bi-plus-lg" />
+              Ajouter un cours
+            </button>
           )}
         </div>
-        {isMoniteur && (
-          <button
-            onClick={openAdd}
-            className="ml-auto flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer text-white transition-all"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}
-          >
-            <i className="bi bi-plus-lg" />
-            Ajouter un cours
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Sous-thèmes */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
@@ -298,7 +331,9 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
                 <button key={t}
                   className="text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
                   style={{
-                    background: typeFilter === t ? 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' : '#f1f5f9',
+                    background: typeFilter === t
+                      ? (isEleve ? 'linear-gradient(135deg,#14532d,#15803d)' : 'linear-gradient(135deg,#1e3a5f,#2a4f7c)')
+                      : '#f1f5f9',
                     color: typeFilter === t ? '#fff' : '#64748b',
                   }}
                   onClick={() => setTypeFilter(t)}>
@@ -624,6 +659,8 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
 
 /* ── Vue accueil : grille des thèmes ── */
 export default function Cours() {
+  const { user } = useAuth()
+  const isEleve = user?.role === 'ELEVE'
   const [cours, setCours]           = useState([])
   const [loading, setLoading]       = useState(true)
   const [activeTheme, setActiveTheme] = useState(null)
@@ -657,17 +694,50 @@ export default function Cours() {
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {/* En-tête page */}
-      <div className="flex items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Cours Code de la Route</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Maîtrisez la théorie en {THEMES.length} grands thèmes</p>
+      {isEleve ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+          <div className="px-6 py-4 flex items-center gap-4"
+            style={{ background: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)', borderBottom: '2px solid #0f3d21' }}>
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }}>
+              <i className="bi bi-sign-turn-right-fill" style={{ color: '#fff', fontSize: '1.2rem' }} />
+            </div>
+            <div className="flex-1">
+              <div className="font-extrabold text-white leading-tight" style={{ fontSize: '1.1rem' }}>Cours Code de la Route</div>
+              <div style={{ fontSize: '.78rem', color: 'rgba(187,247,208,.85)' }}>
+                Maîtrisez la théorie en {THEMES.length} grands thèmes
+              </div>
+            </div>
+            <span className="px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
+              <i className="bi bi-book-fill me-1" />
+              {cours.length > 0 ? `${cours.length} cours` : `${THEMES.length} thèmes`}
+            </span>
+          </div>
+          <div className="px-5 py-2.5 flex items-center gap-3 flex-wrap" style={{ background: '#f0fdf4' }}>
+            <i className="bi bi-lightbulb-fill" style={{ color: '#15803d', fontSize: '.85rem' }} />
+            <span className="text-xs font-medium" style={{ color: '#14532d' }}>
+              Révisez chaque thème avant votre examen théorique
+            </span>
+            <div className="flex-1 h-px hidden sm:block" style={{ background: '#bbf7d0' }} />
+            <span className="text-xs font-semibold" style={{ color: '#15803d' }}>
+              {THEMES.length} thèmes · {cours.length} cours disponibles
+            </span>
+          </div>
         </div>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full"
-          style={{ background: '#eff6ff', color: '#1e3a5f' }}>
-          <i className="bi bi-sign-turn-right-fill" />
-          {THEMES.length} thèmes
-        </span>
-      </div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Cours Code de la Route</h1>
+            <p className="text-slate-400 text-sm mt-0.5">Maîtrisez la théorie en {THEMES.length} grands thèmes</p>
+          </div>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full"
+            style={{ background: '#eff6ff', color: '#1e3a5f' }}>
+            <i className="bi bi-sign-turn-right-fill" />
+            {THEMES.length} thèmes
+          </span>
+        </div>
+      )}
 
       {/* Grille des thèmes */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -695,7 +765,7 @@ export default function Cours() {
                 <ul className="space-y-1.5 mb-0">
                   {theme.subtopics.slice(0, 4).map((s, i) => (
                     <li key={i} className="flex items-center gap-2" style={{ fontSize: '.83rem', color: '#475569' }}>
-                      <i className="bi bi-check-circle-fill flex-shrink-0" style={{ color: '#1e3a5f', fontSize: '.72rem' }} />
+                      <i className="bi bi-check-circle-fill flex-shrink-0" style={{ color: isEleve ? '#15803d' : '#1e3a5f', fontSize: '.72rem' }} />
                       {s}
                     </li>
                   ))}
@@ -712,7 +782,7 @@ export default function Cours() {
                 <span className="text-xs text-slate-400">{theme.subtopics.length} sous-thèmes</span>
                 {count > 0
                   ? <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-                      style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>
+                      style={{ background: isEleve ? 'linear-gradient(135deg,#14532d,#15803d)' : 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>
                       <i className="bi bi-book-fill" style={{ fontSize: '.65rem' }} />
                       {count} cours
                     </span>

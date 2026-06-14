@@ -140,30 +140,6 @@ export default function MonProfil() {
           </span>
         </div>
 
-        {/* Barre infos rapides */}
-        <div className="grid border-t px-6 py-2 gap-4"
-          style={{
-            gridTemplateColumns: `repeat(${fields.slice(0, 3).length}, 1fr)`,
-            borderColor: 'rgba(255,255,255,.08)',
-            background: 'rgba(0,0,0,.15)'
-          }}>
-          {fields.slice(0, 3).map(({ key }, i) => {
-            const meta = FIELD_META[key] || {}
-            return (
-              <div key={key} className={`flex items-center gap-2 ${i > 0 ? 'border-l pl-4' : ''}`}
-                style={{ borderColor: 'rgba(255,255,255,.08)' }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,.12)' }}>
-                  <i className={`bi bi-${meta.icon}`} style={{ color: '#e2e8f0', fontSize: '.75rem' }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,.45)' }}>{meta.label}</div>
-                  <div className="text-sm font-bold text-white truncate">{form[key] || '—'}</div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
       </div>
 
       {/* ── Informations personnelles ── */}
@@ -199,19 +175,19 @@ export default function MonProfil() {
             {fields.map(({ key, editable }) => {
               const meta = FIELD_META[key] || {}
               return (
-                <div key={key} className="flex items-center gap-4 px-6 py-3.5">
+                <div key={key} className="flex items-center gap-3 px-6 py-3">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: meta.iconBg }}>
                     <i className={`bi bi-${meta.icon}`} style={{ color: meta.iconColor, fontSize: '.85rem' }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{meta.label}</div>
-                    <div className="text-sm font-semibold text-slate-700 mt-0.5">
-                      {form[key] || <span className="text-slate-300 font-normal">—</span>}
-                    </div>
-                  </div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex-1">
+                    {meta.label}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700 text-right">
+                    {form[key] || <span className="text-slate-300 font-normal">—</span>}
+                  </span>
                   {!editable && (
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0"
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 ml-2"
                       style={{ background: '#f1f5f9', color: '#94a3b8' }}>
                       Non modifiable
                     </span>
@@ -287,15 +263,13 @@ export default function MonProfil() {
 
           <div className="divide-y divide-slate-50">
             {readonlyFields.map(({ label, icon, iconBg, iconColor, value }) => (
-              <div key={label} className="flex items-center gap-4 px-6 py-3.5">
+              <div key={label} className="flex items-center gap-3 px-6 py-3">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: iconBg }}>
                   <i className={`bi bi-${icon}`} style={{ color: iconColor, fontSize: '.85rem' }} />
                 </div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</div>
-                  <div className="text-sm font-semibold text-slate-700 mt-0.5">{value}</div>
-                </div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex-1">{label}</span>
+                <span className="text-sm font-semibold text-slate-700 text-right">{value}</span>
               </div>
             ))}
           </div>

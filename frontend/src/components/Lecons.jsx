@@ -118,15 +118,13 @@ export default function Lecons() {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ── En-tête page ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-800 leading-tight">
-            {isEleve ? 'Mes Cours Conduite' : 'Gestion des Cours Conduite'}
-          </h1>
-          <p className="text-sm text-slate-400 mt-0.5">{list.length} leçon{list.length !== 1 ? 's' : ''} au total</p>
-        </div>
-        {!isEleve && (
+      {/* ── En-tête page (admin uniquement) ─────────────────── */}
+      {!isEleve && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Cours Conduite</h1>
+            <p className="text-sm text-slate-400 mt-0.5">{list.length} leçon{list.length !== 1 ? 's' : ''} au total</p>
+          </div>
           <button
             onClick={() => openModal()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
@@ -135,23 +133,31 @@ export default function Lecons() {
             <i className="bi bi-plus-lg" />
             Planifier une leçon
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Tableau ──────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
 
-        {/* En-tête tableau : gradient navy */}
+        {/* En-tête tableau */}
         <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f 0%,#2a4f7c 100%)', borderBottom: '2px solid #1e3a5f' }}>
+          style={isEleve
+            ? { background: 'linear-gradient(135deg, #78350f 0%, #b45309 100%)', borderBottom: '2px solid #4d1f04' }
+            : { background: 'linear-gradient(135deg,#1e3a5f 0%,#2a4f7c 100%)', borderBottom: '2px solid #1e3a5f' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
               style={{ background: 'rgba(255,255,255,.18)' }}>
-              <i className="bi bi-calendar2-check" style={{ color: '#fff', fontSize: '.85rem' }} />
+              <i className={`bi bi-${isEleve ? 'car-front-fill' : 'calendar2-check'}`}
+                style={{ color: '#fff', fontSize: '.85rem' }} />
             </div>
             <div>
-              <div className="font-extrabold text-sm leading-tight text-white">Cours Conduite</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(147,197,253,.85)' }}>Planning des leçons</div>
+              <div className="font-extrabold text-sm text-white leading-tight">
+                {isEleve ? 'Cours Conduite' : 'Cours Conduite'}
+              </div>
+              <div className="text-xs mt-0.5"
+                style={{ color: isEleve ? 'rgba(253,230,138,.85)' : 'rgba(147,197,253,.85)' }}>
+                {isEleve ? 'Formation pratique à la conduite' : 'Planning des leçons'}
+              </div>
             </div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"

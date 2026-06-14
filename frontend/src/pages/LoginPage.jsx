@@ -62,11 +62,19 @@ export default function LoginPage() {
       {/* ── Lien retour ── */}
       <Link
         to="/"
-        className="relative flex items-center gap-2 text-blue-300 hover:text-white text-sm font-medium transition-colors no-underline mb-8"
+        className="relative flex items-center gap-2 text-sm font-semibold no-underline transition-all mb-8"
+        style={{
+          color: '#93c5fd',
+          background: 'rgba(255,255,255,.08)',
+          border: '1px solid rgba(255,255,255,.14)',
+          padding: '8px 18px',
+          borderRadius: '999px',
+          backdropFilter: 'blur(6px)',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.16)'; e.currentTarget.style.color = '#fff' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = '#93c5fd' }}
       >
-        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 16, height: 16 }}>
-          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-        </svg>
+        <i className="bi bi-arrow-left" style={{ fontSize: '.9rem' }} />
         Retour à l'accueil
       </Link>
 

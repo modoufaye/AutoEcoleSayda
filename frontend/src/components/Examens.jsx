@@ -114,15 +114,13 @@ export default function Examens({ onEleveClick }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ── En-tête page ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-800 leading-tight">
-            {isEleve ? 'Mes Examens' : 'Gestion des Examens'}
-          </h1>
-          <p className="text-sm text-slate-400 mt-0.5">{filtered.length} examen{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}</p>
-        </div>
-        {!isEleve && (
+      {/* ── En-tête page (admin uniquement) ─────────────────── */}
+      {!isEleve && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Examens</h1>
+            <p className="text-sm text-slate-400 mt-0.5">{filtered.length} examen{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}</p>
+          </div>
           <button
             onClick={openModal}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
@@ -131,8 +129,8 @@ export default function Examens({ onEleveClick }) {
             <i className="bi bi-plus-lg" />
             Nouvel examen
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Filtres (admin uniquement) ───────────────────────── */}
       {!isEleve && (
@@ -190,21 +188,32 @@ export default function Examens({ onEleveClick }) {
       {/* ── Tableau ──────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
 
-        {/* En-tête tableau : gradient or */}
+        {/* En-tête tableau */}
         <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', borderBottom: '2px solid #b8860b' }}>
+          style={isEleve
+            ? { background: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', borderBottom: '2px solid #450a0a' }
+            : { background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', borderBottom: '2px solid #b8860b' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.25)' }}>
-              <i className="bi bi-clipboard2-check-fill" style={{ color: '#1e3a5f', fontSize: '.85rem' }} />
+              style={{ background: isEleve ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.25)' }}>
+              <i className="bi bi-clipboard2-check-fill"
+                style={{ color: isEleve ? '#fff' : '#1e3a5f', fontSize: '.85rem' }} />
             </div>
             <div>
-              <div className="font-extrabold text-sm leading-tight" style={{ color: '#1e3a5f' }}>Examens</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(30,58,95,.6)' }}>Résultats et suivi des passages</div>
+              <div className="font-extrabold text-sm leading-tight"
+                style={{ color: isEleve ? '#fff' : '#1e3a5f' }}>
+                {isEleve ? 'Mes Examens' : 'Examens'}
+              </div>
+              <div className="text-xs mt-0.5"
+                style={{ color: isEleve ? 'rgba(255,237,213,.85)' : 'rgba(30,58,95,.6)' }}>
+                {isEleve ? 'Historique de vos passages' : 'Résultats et suivi des passages'}
+              </div>
             </div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(30,58,95,.15)', color: '#1e3a5f' }}>
+            style={isEleve
+              ? { background: 'rgba(255,255,255,.18)', color: '#fff' }
+              : { background: 'rgba(30,58,95,.15)', color: '#1e3a5f' }}>
             {filtered.length}
           </span>
         </div>
