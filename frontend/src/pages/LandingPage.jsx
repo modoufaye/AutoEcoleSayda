@@ -218,8 +218,8 @@ function Hero() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-              Votre permis de conduire{' '}
-              <span className="text-[#d4a017]">en toute confiance</span>
+              LA CONFIANCE AU VOLANT,<br />
+              <span className="text-[#d4a017]">LA RÉUSSITE AU RENDEZ-VOUS</span>
             </h1>
 
             <p className="text-lg text-blue-100 leading-relaxed mb-8 max-w-xl">
@@ -549,7 +549,7 @@ function Footer() {
               </li>
               <li className="flex items-center gap-3 text-blue-200 text-sm">
                 <PhoneIcon />
-                <span>+221 77 000 00 00</span>
+                <span>+221 77 329 35 57</span>
               </li>
               <li className="flex items-center gap-3 text-blue-200 text-sm">
                 <MailIcon />

@@ -59,11 +59,15 @@ export default function LoginPage() {
         }} />
       </div>
 
-      {/* ── Lien retour ── */}
+      {/* ── Lien retour (coin haut-droit) ── */}
       <Link
         to="/"
-        className="relative flex items-center gap-2 text-sm font-semibold no-underline transition-all mb-8"
+        className="flex items-center gap-2 text-sm font-semibold no-underline transition-all"
         style={{
+          position: 'fixed',
+          top: 49,
+          right: 24,
+          zIndex: 50,
           color: '#93c5fd',
           background: 'rgba(255,255,255,.08)',
           border: '1px solid rgba(255,255,255,.14)',
@@ -89,13 +93,13 @@ export default function LoginPage() {
 
           {/* ── En-tête coloré ── */}
           <div
-            className="px-8 pt-10 pb-8 text-center"
+            className="px-8 pt-3 pb-3 text-center"
             style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4f7c 100%)' }}
           >
             {/* Icône voiture dans un cercle doré */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg"
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-2 shadow-lg"
               style={{ background: 'linear-gradient(135deg, #d4a017, #f0bb2a)' }}>
-              <svg viewBox="0 0 24 24" fill="white" style={{ width: 30, height: 30 }}>
+              <svg viewBox="0 0 24 24" fill="white" style={{ width: 24, height: 24 }}>
                 <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
               </svg>
             </div>
@@ -108,10 +112,10 @@ export default function LoginPage() {
           </div>
 
           {/* ── Corps du formulaire ── */}
-          <div className="px-8 py-8">
+          <div className="px-8 py-4">
 
-            <h2 className="text-2xl font-bold text-slate-800 mb-1">Connexion</h2>
-            <p className="text-slate-400 text-sm mb-7">Accédez à votre espace personnel</p>
+            <h2 className="text-xl font-bold text-slate-800 mb-0.5">Connexion</h2>
+            <p className="text-slate-400 text-sm mb-4">Accédez à votre espace personnel</p>
 
             {/* Message d'erreur */}
             {error && (
@@ -123,11 +127,11 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
 
               {/* Champ email */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
                   Adresse email
                 </label>
                 <div className="relative">
@@ -138,7 +142,7 @@ export default function LoginPage() {
                   </span>
                   <input
                     type="email"
-                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm placeholder-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-[#1e3a5f]"
+                    className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm placeholder-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-[#1e3a5f]"
                     placeholder="exemple@autoecole.sn"
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
@@ -149,7 +153,7 @@ export default function LoginPage() {
 
               {/* Champ mot de passe */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
                   Mot de passe
                 </label>
                 <div className="relative">
@@ -160,7 +164,7 @@ export default function LoginPage() {
                   </span>
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm placeholder-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-[#1e3a5f]"
+                    className="w-full pl-11 pr-12 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm placeholder-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-[#1e3a5f]"
                     placeholder="••••••••"
                     value={form.motDePasse}
                     onChange={e => setForm(f => ({ ...f, motDePasse: e.target.value }))}
@@ -180,7 +184,7 @@ export default function LoginPage() {
               </div>
 
               {/* Remember me */}
-              <label className="flex items-center gap-3 cursor-pointer select-none pt-1">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
                 <div className="relative flex-shrink-0">
                   <input
                     type="checkbox"
@@ -209,7 +213,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-white text-sm tracking-wide transition-all duration-200 mt-2"
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl font-bold text-white text-sm tracking-wide transition-all duration-200 mt-1"
                 style={{
                   background:   loading ? '#9ab0c8' : 'linear-gradient(135deg, #d4a017 0%, #f0bb2a 100%)',
                   cursor:       loading ? 'not-allowed' : 'pointer',
@@ -237,8 +241,8 @@ export default function LoginPage() {
             </form>
 
             {/* ── Comptes démo (discret) ── */}
-            <div className="mt-7 pt-6 border-t border-slate-100">
-              <p className="text-center text-xs text-slate-400 mb-3 uppercase tracking-widest font-semibold">
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-center text-xs text-slate-400 mb-2 uppercase tracking-widest font-semibold">
                 Accès rapide démo
               </p>
               <div className="flex gap-2">
