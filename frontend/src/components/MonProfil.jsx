@@ -54,8 +54,9 @@ export default function MonProfil() {
   }
 
   const save = async () => {
-    if (!form.nom || !form.prenom || !form.telephone) {
-      toast('Nom, prénom et téléphone sont obligatoires', 'warning'); return
+    const isAdmin = user?.role === 'SUPER_ADMIN'
+    if (!form.nom || (!isAdmin && (!form.prenom || !form.telephone))) {
+      toast(isAdmin ? 'Le nom est obligatoire' : 'Nom, prénom et téléphone sont obligatoires', 'warning'); return
     }
     setSaving(true)
     try {
@@ -82,7 +83,7 @@ export default function MonProfil() {
   const fields = user?.role === 'SUPER_ADMIN'
     ? [
         { key: 'nom',   editable: true },
-        { key: 'email', editable: false },
+        { key: 'email', editable: true },
       ]
     : [
         { key: 'prenom',    editable: true },

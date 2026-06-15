@@ -24,6 +24,7 @@ public class AdminSeeder implements CommandLineRunner {
         createIfAbsent("Fatou Ndiaye",   "fatou.ndiaye@autoecole.sn",       "Moniteur@2024", RoleUser.MONITEUR);
         createIfAbsent("Ibrahima Mbaye", "ibrahima.mbaye@autoecole.sn",     "Moniteur@2024", RoleUser.MONITEUR);
         createIfAbsent("Fatou Ndiaye",   "eleve@autoecole.sn",              "Eleve@2024",    RoleUser.ELEVE);
+        createIfAbsent("Oumar Fall",     "oumar.fall@gmail.com",            "Eleve@2024",    RoleUser.ELEVE);
     }
 
     private void createIfAbsent(String nom, String email, String motDePasse, RoleUser role) {
