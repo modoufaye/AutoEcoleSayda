@@ -7,7 +7,13 @@ import '../landing.css'
 
 const PAGE_SIZE = 10
 
-const CATS = ['A', 'A1', 'B', 'C', 'D', 'EB', 'EC']
+const CATS = [
+  { value: 'POIDS_LEGER',   label: 'Poids léger' },
+  { value: 'POIDS_LOURD',   label: 'Poids lourd' },
+  { value: 'TRANSPORT',     label: 'Transport' },
+  { value: 'C1',            label: 'C1' },
+  { value: 'INTERNATIONAL', label: 'International' },
+]
 const EMPTY = { nom: '', prenom: '', telephone: '', email: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', categoriesAutorisees: [], actif: true }
 
 /* ── Statut élève styles ──────────────────────────────────── */
@@ -280,15 +286,15 @@ export default function Moniteurs() {
               <label className={labelCls}>Catégories autorisées</label>
               <div className="flex flex-wrap gap-2 p-3 rounded-xl border-2 border-slate-100 bg-slate-50">
                 {CATS.map(c => {
-                  const sel = form.categoriesAutorisees.includes(c)
+                  const sel = form.categoriesAutorisees.includes(c.value)
                   return (
-                    <button key={c} type="button" onClick={() => toggleCat(c)}
+                    <button key={c.value} type="button" onClick={() => toggleCat(c.value)}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-0"
                       style={sel
                         ? { background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', color: '#fff', boxShadow: '0 2px 8px rgba(30,58,95,.25)' }
                         : { background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0' }
                       }>
-                      {c}
+                      {c.label}
                     </button>
                   )
                 })}

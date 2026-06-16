@@ -129,7 +129,7 @@ export default function Vehicules() {
             value={catFilter}
             onChange={e => setCatFilter(e.target.value)}>
             <option value="">Toutes catégories</option>
-            {['A', 'A1', 'B', 'C', 'D'].map(c => <option key={c}>{c}</option>)}
+            {[{v:'POIDS_LEGER',l:'Poids léger'},{v:'POIDS_LOURD',l:'Poids lourd'},{v:'TRANSPORT',l:'Transport'},{v:'C1',l:'C1'},{v:'INTERNATIONAL',l:'International'}].map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
           </select>
         </div>
         {(statutFilter || catFilter) && (
@@ -329,7 +329,7 @@ export default function Vehicules() {
                   <select className={inputCls} value={form.categorie}
                     onChange={e => setForm(f => ({ ...f, categorie: e.target.value }))}>
                     <option value="">Choisir…</option>
-                    {['A', 'A1', 'B', 'C', 'D'].map(c => <option key={c} value={c}>{c}</option>)}
+                    {[{v:'POIDS_LEGER',l:'Poids léger'},{v:'POIDS_LOURD',l:'Poids lourd'},{v:'TRANSPORT',l:'Transport'},{v:'C1',l:'C1'},{v:'INTERNATIONAL',l:'International'}].map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
                   </select>
                 </div>
                 <div>

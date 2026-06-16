@@ -74,6 +74,14 @@ public class EleveService {
                 .categoriePermis(request.getCategoriePermis())
                 .dateInscription(LocalDate.now())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutEleve.EN_COURS)
+                .docCertResidence(request.isDocCertResidence())
+                .docCniLegalisee(request.isDocCniLegalisee())
+                .docGroupeSanguin(request.isDocGroupeSanguin())
+                .docVisiteMedicale(request.isDocVisiteMedicale())
+                .docPhotos(request.isDocPhotos())
+                .docTimbre(request.isDocTimbre())
+                .docEnrolement(request.isDocEnrolement())
+                .docDelivrance(request.isDocDelivrance())
                 .build();
         eleve.setMoniteur(resolveMoniteur(request.getMoniteurId()));
         Eleve saved = eleveRepository.save(eleve);
@@ -121,6 +129,14 @@ public class EleveService {
         if (request.getStatut() != null) {
             eleve.setStatut(request.getStatut());
         }
+        eleve.setDocCertResidence(request.isDocCertResidence());
+        eleve.setDocCniLegalisee(request.isDocCniLegalisee());
+        eleve.setDocGroupeSanguin(request.isDocGroupeSanguin());
+        eleve.setDocVisiteMedicale(request.isDocVisiteMedicale());
+        eleve.setDocPhotos(request.isDocPhotos());
+        eleve.setDocTimbre(request.isDocTimbre());
+        eleve.setDocEnrolement(request.isDocEnrolement());
+        eleve.setDocDelivrance(request.isDocDelivrance());
         eleve.setMoniteur(resolveMoniteur(request.getMoniteurId()));
         return eleveRepository.save(eleve);
     }

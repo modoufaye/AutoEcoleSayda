@@ -1,13 +1,11 @@
 package sn.autoecole.enums;
 
 public enum CategoriePermis {
-    A("Motocyclettes lourdes (>125cc)"),
-    A1("Motocyclettes légères (<=125cc)"),
-    B("Voitures particulières"),
-    C("Camions et poids lourds"),
-    D("Transport en commun (bus)"),
-    EB("Voitures avec remorque légère"),
-    EC("Camions avec remorque");
+    POIDS_LEGER("Poids léger"),
+    POIDS_LOURD("Poids lourd"),
+    TRANSPORT("Transport"),
+    C1("C1"),
+    INTERNATIONAL("International");
 
     private final String description;
 

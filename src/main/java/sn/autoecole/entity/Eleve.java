@@ -65,6 +65,31 @@ public class Eleve {
     @Builder.Default
     private int nombreLeconsConduite = 0;
 
+    // ── Documents dossier ───────────────────────────────────
+    @Column(name = "doc_cert_residence", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docCertResidence = false;
+
+    @Column(name = "doc_cni_legalisee", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docCniLegalisee = false;
+
+    @Column(name = "doc_groupe_sanguin", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docGroupeSanguin = false;
+
+    @Column(name = "doc_visite_medicale", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docVisiteMedicale = false;
+
+    @Column(name = "doc_photos", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docPhotos = false;
+
+    @Column(name = "doc_timbre", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docTimbre = false;
+
+    @Column(name = "doc_enrolement", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docEnrolement = false;
+
+    @Column(name = "doc_delivrance", columnDefinition = "boolean default false")
+    @Builder.Default private boolean docDelivrance = false;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "moniteur_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "categoriesAutorisees"})

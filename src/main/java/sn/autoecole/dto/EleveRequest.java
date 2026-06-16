@@ -38,4 +38,14 @@ public class EleveRequest {
     private Long moniteurId;
 
     private BigDecimal montantAvance;
+
+    // Documents dossier
+    private boolean docCertResidence;
+    private boolean docCniLegalisee;
+    private boolean docGroupeSanguin;
+    private boolean docVisiteMedicale;
+    private boolean docPhotos;
+    private boolean docTimbre;
+    private boolean docEnrolement;
+    private boolean docDelivrance;
 }

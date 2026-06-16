@@ -9,10 +9,24 @@ import '../landing.css'
 
 const PAGE_SIZE = 10
 
+const DOCS = [
+  { key: 'docCertResidence',  label: 'Certificat de résidence' },
+  { key: 'docCniLegalisee',   label: 'Photocopie CNI légalisée' },
+  { key: 'docGroupeSanguin',  label: 'Groupe sanguin' },
+  { key: 'docVisiteMedicale', label: 'Visite médicale' },
+  { key: 'docPhotos',         label: '4 photos' },
+  { key: 'docTimbre',         label: 'Timbre' },
+  { key: 'docEnrolement',     label: 'Enrôlement' },
+  { key: 'docDelivrance',     label: 'Délivrance' },
+]
+
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', telephone: '',
   adresse: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '',
   montantAvance: '',
+  docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
+  docVisiteMedicale: false, docPhotos: false, docTimbre: false,
+  docEnrolement: false, docDelivrance: false,
 }
 
 const STATUTS = [
@@ -312,7 +326,16 @@ export default function Eleves({ initialEleveId }) {
       setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance,
         telephone: eleve.telephone, adresse: eleve.adresse || '', email: eleve.email || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
-        moniteurId: eleve.moniteur?.id || '' })
+        moniteurId: eleve.moniteur?.id || '',
+        docCertResidence: eleve.docCertResidence || false,
+        docCniLegalisee: eleve.docCniLegalisee || false,
+        docGroupeSanguin: eleve.docGroupeSanguin || false,
+        docVisiteMedicale: eleve.docVisiteMedicale || false,
+        docPhotos: eleve.docPhotos || false,
+        docTimbre: eleve.docTimbre || false,
+        docEnrolement: eleve.docEnrolement || false,
+        docDelivrance: eleve.docDelivrance || false,
+      })
     } else { setEditId(null); setForm(EMPTY) }
     setShowModal(true)
   }
@@ -388,7 +411,13 @@ export default function Eleves({ initialEleveId }) {
                   <select className={inputCls} value={form.categoriePermis}
                     onChange={e => setForm(fm => ({ ...fm, categoriePermis: e.target.value }))}>
                     <option value="">Choisir…</option>
-                    {['A','A1','B','C','D','EB','EC'].map(c => <option key={c} value={c}>{c}</option>)}
+                    {[
+                      { value: 'POIDS_LEGER',   label: 'Poids léger' },
+                      { value: 'POIDS_LOURD',   label: 'Poids lourd' },
+                      { value: 'TRANSPORT',     label: 'Transport' },
+                      { value: 'C1',            label: 'C1' },
+                      { value: 'INTERNATIONAL', label: 'International' },
+                    ].map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
                 <div className="col-md-6">
@@ -429,6 +458,34 @@ export default function Eleves({ initialEleveId }) {
                     </p>
                   </div>
                 )}
+
+                {/* Documents du dossier */}
+                <div className="col-12">
+                  <label className={labelCls}>Documents remis</label>
+                  <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                    <div className="row g-2">
+                      {DOCS.map(doc => (
+                        <div key={doc.key} className="col-6">
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', fontSize: '.82rem', fontWeight: 600, color: form[doc.key] ? '#15803d' : '#64748b' }}>
+                            <input
+                              type="checkbox"
+                              checked={form[doc.key]}
+                              onChange={e => setForm(fm => ({ ...fm, [doc.key]: e.target.checked }))}
+                              style={{ width: 16, height: 16, accentColor: '#15803d', cursor: 'pointer', flexShrink: 0 }}
+                            />
+                            <span style={{ textDecoration: form[doc.key] ? 'none' : 'none' }}>
+                              {form[doc.key] && <i className="bi bi-check-circle-fill me-1" style={{ color: '#15803d', fontSize: '.78rem' }} />}
+                              {doc.label}
+                            </span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mb-0 mt-2" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
+                      {DOCS.filter(d => form[d.key]).length}/{DOCS.length} document{DOCS.filter(d => form[d.key]).length !== 1 ? 's' : ''} remis
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
@@ -556,6 +613,41 @@ export default function Eleves({ initialEleveId }) {
                     <i className="bi bi-person-x" />Aucun moniteur assigné
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Documents du dossier */}
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fdf4ff' }}>
+                    <i className="bi bi-folder2-open" style={{ color: '#9333ea', fontSize: '.8rem' }} />
+                  </div>
+                  <span className="font-bold text-slate-700 text-sm">Documents du dossier</span>
+                </div>
+                <span style={{
+                  background: DOCS.every(d => s[d.key]) ? '#f0fdf4' : '#fef9c3',
+                  color: DOCS.every(d => s[d.key]) ? '#15803d' : '#a16207',
+                  border: `1px solid ${DOCS.every(d => s[d.key]) ? '#86efac' : '#fde68a'}`,
+                  borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
+                }}>
+                  {DOCS.filter(d => s[d.key]).length}/{DOCS.length}
+                </span>
+              </div>
+              <div className="px-5 py-3">
+                <div className="row g-1">
+                  {DOCS.map(doc => (
+                    <div key={doc.key} className="col-6">
+                      <div className="flex items-center gap-1.5 py-1">
+                        <i className={`bi bi-${s[doc.key] ? 'check-circle-fill' : 'circle'}`}
+                          style={{ color: s[doc.key] ? '#15803d' : '#cbd5e1', fontSize: '.78rem', flexShrink: 0 }} />
+                        <span style={{ fontSize: '.78rem', color: s[doc.key] ? '#1e293b' : '#94a3b8', fontWeight: s[doc.key] ? 600 : 400 }}>
+                          {doc.label}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
