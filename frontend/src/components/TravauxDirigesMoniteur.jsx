@@ -16,8 +16,9 @@ export default function TravauxDirigesMoniteur() {
   const [showForm, setShowForm]   = useState(false)
   const [imageUrl, setImageUrl]   = useState('')
   const [bonneReponse, setBonneReponse] = useState('')
-  const [uploading, setUploading] = useState(false)
-  const [saving, setSaving]       = useState(false)
+  const [uploading, setUploading]   = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [saving, setSaving]         = useState(false)
 
   useEffect(() => { charger() }, [])
 
@@ -32,10 +33,14 @@ export default function TravauxDirigesMoniteur() {
     const file = e.target.files[0]
     if (!file) return
     setUploading(true)
+    setUploadError('')
+    setImageUrl('')
     try {
       const res = await uploadFile('/moniteur/upload/image', file)
       setImageUrl(res.url)
-    } catch (e) { toast(e.message, 'danger') }
+    } catch (e) {
+      setUploadError(e.message || 'Erreur lors du chargement de l\'image')
+    }
     finally { setUploading(false) }
   }
 
@@ -76,7 +81,7 @@ export default function TravauxDirigesMoniteur() {
         <button
           className="btn fw-bold text-white"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none', padding: '.55rem 1.2rem' }}
-          onClick={() => { setShowForm(true); setImageUrl(''); setBonneReponse('') }}
+          onClick={() => { setShowForm(true); setImageUrl(''); setBonneReponse(''); setUploadError('') }}
         >
           <i className="bi bi-plus-lg me-2" />Nouvel exercice
         </button>
@@ -103,13 +108,26 @@ export default function TravauxDirigesMoniteur() {
                 disabled={uploading}
               />
               {uploading && (
-                <div className="d-flex align-items-center gap-2 mt-2 text-muted" style={{ fontSize: '.82rem' }}>
-                  <span className="spinner-border spinner-border-sm" />Chargement de l'image…
+                <div className="d-flex align-items-center gap-2 mt-2" style={{ fontSize: '.82rem', color: '#64748b' }}>
+                  <span className="spinner-border spinner-border-sm" />Chargement de l'image en cours…
+                </div>
+              )}
+              {uploadError && !uploading && (
+                <div className="d-flex align-items-center gap-2 mt-2 px-3 py-2 rounded-3"
+                  style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', color: '#dc2626', fontSize: '.82rem', fontWeight: 600 }}>
+                  <i className="bi bi-exclamation-circle-fill" />
+                  {uploadError} — Veuillez réessayer
                 </div>
               )}
               {imageUrl && !uploading && (
-                <img src={imageUrl} alt="aperçu" className="mt-3 rounded-3"
-                  style={{ maxHeight: 220, maxWidth: '100%', objectFit: 'contain', border: '1.5px solid #e2e8f0' }} />
+                <>
+                  <div className="d-flex align-items-center gap-2 mt-2 px-3 py-2 rounded-3"
+                    style={{ background: '#f0fdf4', border: '1.5px solid #86efac', color: '#15803d', fontSize: '.82rem', fontWeight: 600 }}>
+                    <i className="bi bi-check-circle-fill" />Image chargée avec succès
+                  </div>
+                  <img src={imageUrl} alt="aperçu" className="mt-2 rounded-3"
+                    style={{ maxHeight: 220, maxWidth: '100%', objectFit: 'contain', border: '1.5px solid #e2e8f0' }} />
+                </>
               )}
             </div>
 
