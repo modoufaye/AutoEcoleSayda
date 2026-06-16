@@ -19,7 +19,7 @@ public class ReponseTD {
     private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "question_id", nullable = false)
+    @JoinColumn(name = "question_id")
     private QuestionTD question;
 
     @ManyToOne(fetch = FetchType.EAGER)
