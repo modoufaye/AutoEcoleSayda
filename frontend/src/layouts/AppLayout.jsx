@@ -16,6 +16,8 @@ import SeancesEleve from '../components/SeancesEleve'
 import ElevePortail from '../components/ElevePortail'
 import MonProfil from '../components/MonProfil'
 import MesPaiements from '../components/MesPaiements'
+import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
+import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
@@ -30,6 +32,8 @@ const ALL_SECTIONS = [
   { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ELEVE'] },
   { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN'] },
   { key: 'mes-paiements',   label: 'Mes Paiements',    icon: 'cash-stack',            color: '#4ade80', roles: ['ELEVE'] },
+  { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR', 'SUPER_ADMIN'] },
+  { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR'] },
 ]
 
@@ -40,6 +44,8 @@ const COMPONENTS = {
   examens: Examens, paiements: Paiements, 'mes-paiements': MesPaiements,
   'seances-moniteur': SeancesMoniteur,
   'seances-eleve': SeancesEleve,
+  'td-moniteur': TravauxDirigesMoniteur,
+  'td-eleve': TravauxDirigesEleve,
   'mon-profil': MonProfil,
 }
 
