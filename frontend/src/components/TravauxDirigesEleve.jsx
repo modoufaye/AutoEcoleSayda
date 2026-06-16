@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 
-const REPONSES = ['A', 'B', 'C']
-
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
   B: { base: '#f59e0b', light: '#fffbeb', border: '#fde68a', text: '#b45309' },
@@ -11,11 +9,12 @@ const BTN_COLORS = {
 }
 
 export default function TravauxDirigesEleve({ onBack }) {
-  const [exercices, setExercices]     = useState([])
-  const [reponses, setReponses]       = useState({}) // exerciceId -> {reponse, estCorrecte, bonneReponse}
-  const [loading, setLoading]         = useState(true)
-  const [current, setCurrent]         = useState(0)
-  const [loadingRep, setLoadingRep]   = useState(false)
+  const [exercices, setExercices]   = useState([])
+  const [reponses, setReponses]     = useState({}) // questionId -> {reponse, estCorrecte, bonneReponse}
+  const [loading, setLoading]       = useState(true)
+  const [selected, setSelected]     = useState(null) // exercice ouvert
+  const [currentQ, setCurrentQ]     = useState(0)
+  const [loadingRep, setLoadingRep] = useState(false)
 
   useEffect(() => { charger() }, [])
 
@@ -29,25 +28,38 @@ export default function TravauxDirigesEleve({ onBack }) {
       setExercices(exs)
       const map = {}
       mes.forEach(r => {
-        map[r.exercice.id] = { reponse: r.reponse, estCorrecte: r.estCorrecte, bonneReponse: r.exercice.bonneReponse }
+        map[r.question.id] = {
+          reponse: r.reponse,
+          estCorrecte: r.estCorrecte,
+          bonneReponse: r.question.bonneReponse,
+        }
       })
       setReponses(map)
     } catch (e) { toast(e.message, 'danger') }
     finally { setLoading(false) }
   }
 
-  async function handleRepondre(exerciceId, reponse) {
+  async function handleRepondre(questionId, reponse) {
     setLoadingRep(true)
     try {
-      const res = await api('POST', `/eleve/exercices-td/${exerciceId}/repondre`, { reponse })
-      setReponses(prev => ({ ...prev, [exerciceId]: { reponse, ...res } }))
+      const res = await api('POST', `/eleve/exercices-td/questions/${questionId}/repondre`, { reponse })
+      setReponses(prev => ({ ...prev, [questionId]: { reponse, ...res } }))
     } catch (e) { toast(e.message, 'danger') }
     finally { setLoadingRep(false) }
   }
 
-  const total   = exercices.length
-  const repondus = Object.keys(reponses).length
-  const corrects = Object.values(reponses).filter(r => r.estCorrecte).length
+  function openExercice(ex) {
+    setSelected(ex)
+    setCurrentQ(0)
+  }
+
+  // Score d'un exercice
+  function scoreExercice(ex) {
+    const qs = ex.questions || []
+    const repondues = qs.filter(q => reponses[q.id])
+    const correctes = repondues.filter(q => reponses[q.id]?.estCorrecte)
+    return { total: qs.length, repondues: repondues.length, correctes: correctes.length }
+  }
 
   if (loading) return (
     <div className="text-center py-5 text-muted">
@@ -55,57 +67,144 @@ export default function TravauxDirigesEleve({ onBack }) {
     </div>
   )
 
-  if (total === 0) return (
-    <div className="text-center py-5" style={{ color: '#94a3b8' }}>
-      <i className="bi bi-journal-x" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '.75rem' }} />
-      Aucun exercice disponible pour l'instant
+  // ── Vue liste des exercices ──
+  if (!selected) return (
+    <div>
+      {onBack && (
+        <button onClick={onBack} style={{
+          display: 'inline-flex', alignItems: 'center', gap: '.45rem',
+          background: '#f1f5f9', color: '#475569',
+          border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
+          fontSize: '.8rem', fontWeight: 600,
+          padding: '.45rem 1rem', cursor: 'pointer', marginBottom: '1rem',
+        }}>
+          <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />Retour
+        </button>
+      )}
+
+      <h4 className="fw-bold mb-1" style={{ color: '#1e3a5f' }}>Travaux Dirigés</h4>
+      <p className="text-muted mb-4" style={{ fontSize: '.85rem' }}>
+        {exercices.length} exercice{exercices.length !== 1 ? 's' : ''} disponible{exercices.length !== 1 ? 's' : ''}
+      </p>
+
+      {exercices.length === 0 ? (
+        <div className="text-center py-5" style={{ color: '#94a3b8' }}>
+          <i className="bi bi-journal-x" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '.75rem' }} />
+          Aucun exercice disponible pour l'instant
+        </div>
+      ) : (
+        <div className="row g-3">
+          {exercices.map((ex, i) => {
+            const { total, repondues, correctes } = scoreExercice(ex)
+            const termine = repondues === total && total > 0
+            const pct = total > 0 ? Math.round((correctes / total) * 100) : 0
+            return (
+              <div key={ex.id} className="col-12 col-md-6 col-lg-4">
+                <div
+                  className="card border-0 shadow-sm h-100"
+                  style={{ borderRadius: '1rem', cursor: 'pointer', transition: 'transform .15s, box-shadow .15s' }}
+                  onClick={() => openExercice(ex)}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,.1)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+                >
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-start justify-content-between mb-3">
+                      <div style={{
+                        width: 40, height: 40, borderRadius: '.75rem', background: '#eff6ff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#2563eb', fontWeight: 800, fontSize: '1rem',
+                      }}>{i + 1}</div>
+                      {termine && (
+                        <span style={{
+                          background: pct >= 50 ? '#f0fdf4' : '#fef2f2',
+                          color: pct >= 50 ? '#15803d' : '#dc2626',
+                          border: `1.5px solid ${pct >= 50 ? '#86efac' : '#fca5a5'}`,
+                          borderRadius: '.5rem', padding: '.2rem .6rem',
+                          fontSize: '.72rem', fontWeight: 700,
+                        }}>{pct}%</span>
+                      )}
+                    </div>
+                    <h6 className="fw-bold mb-1" style={{ color: '#1e3a5f' }}>{ex.titre}</h6>
+                    <p className="mb-3" style={{ fontSize: '.8rem', color: '#94a3b8' }}>
+                      {total} question{total !== 1 ? 's' : ''}
+                    </p>
+
+                    {/* Barre de progression */}
+                    <div style={{ background: '#f1f5f9', borderRadius: 99, height: 6, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 99, transition: 'width .3s',
+                        width: total > 0 ? `${(repondues / total) * 100}%` : '0%',
+                        background: 'linear-gradient(90deg,#3b82f6,#6366f1)',
+                      }} />
+                    </div>
+                    <p className="mb-0 mt-1" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
+                      {repondues}/{total} répondue{repondues !== 1 ? 's' : ''}
+                      {repondues > 0 && ` · ${correctes} correcte${correctes !== 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 
-  const ex      = exercices[current]
-  const repInfo = reponses[ex?.id]
+  // ── Vue questions d'un exercice ──
+  const qs = selected.questions || []
+  const q  = qs[currentQ]
+  const rep = q ? reponses[q.id] : null
+  const options = q ? ['A', 'B', ...(q.avecOptionC ? ['C'] : [])] : []
+  const { correctes, repondues } = scoreExercice(selected)
 
   return (
     <div>
+      {/* Retour vers liste */}
+      <button onClick={() => setSelected(null)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: '.45rem',
+        background: '#f1f5f9', color: '#475569',
+        border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
+        fontSize: '.8rem', fontWeight: 600,
+        padding: '.45rem 1rem', cursor: 'pointer', marginBottom: '1rem',
+      }}>
+        <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />Retour aux exercices
+      </button>
+
       {/* En-tête */}
       <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
         <div>
-          <h4 className="fw-bold mb-0" style={{ color: '#1e3a5f' }}>Travaux Dirigés</h4>
-          <p className="text-muted mb-0" style={{ fontSize: '.85rem' }}>
-            {repondus}/{total} répondu{repondus !== 1 ? 's' : ''} — {corrects} correct{corrects !== 1 ? 's' : ''}
+          <h5 className="fw-bold mb-0" style={{ color: '#1e3a5f' }}>{selected.titre}</h5>
+          <p className="text-muted mb-0" style={{ fontSize: '.82rem' }}>
+            {repondues}/{qs.length} répondue{repondues !== 1 ? 's' : ''} — {correctes} correcte{correctes !== 1 ? 's' : ''}
           </p>
         </div>
-        {/* Score */}
-        {repondus > 0 && (
+        {repondues > 0 && (
           <div style={{
-            background: corrects === repondus ? '#f0fdf4' : '#fffbeb',
-            border: `1.5px solid ${corrects === repondus ? '#a7f3d0' : '#fde68a'}`,
+            background: correctes === repondues ? '#f0fdf4' : '#fffbeb',
+            border: `1.5px solid ${correctes === repondues ? '#a7f3d0' : '#fde68a'}`,
             borderRadius: '.75rem', padding: '.4rem 1rem',
-            color: corrects === repondus ? '#047857' : '#b45309',
+            color: correctes === repondues ? '#047857' : '#b45309',
             fontWeight: 700, fontSize: '.9rem',
           }}>
-            <i className={`bi bi-${corrects === repondus ? 'trophy-fill' : 'star-half'} me-2`} />
-            {corrects}/{repondus}
+            <i className={`bi bi-${correctes === repondues ? 'trophy-fill' : 'star-half'} me-2`} />
+            {correctes}/{repondues}
           </div>
         )}
       </div>
 
-      {/* Navigation exercices */}
+      {/* Navigation questions */}
       <div className="d-flex gap-1 flex-wrap mb-4">
-        {exercices.map((e, i) => {
-          const r = reponses[e.id]
+        {qs.map((question, i) => {
+          const r = reponses[question.id]
           let bg = '#f1f5f9', color = '#64748b', border = '#e2e8f0'
-          if (r) {
-            bg = r.estCorrecte ? '#f0fdf4' : '#fef2f2'
-            color = r.estCorrecte ? '#15803d' : '#dc2626'
-            border = r.estCorrecte ? '#86efac' : '#fca5a5'
-          }
-          if (i === current) { border = '#1e3a5f'; bg = '#1e3a5f'; color = '#fff' }
+          if (r) { bg = r.estCorrecte ? '#f0fdf4' : '#fef2f2'; color = r.estCorrecte ? '#15803d' : '#dc2626'; border = r.estCorrecte ? '#86efac' : '#fca5a5' }
+          if (i === currentQ) { bg = '#1e3a5f'; color = '#fff'; border = '#1e3a5f' }
           return (
-            <button key={e.id} onClick={() => setCurrent(i)} style={{
+            <button key={question.id} onClick={() => setCurrentQ(i)} style={{
               width: 36, height: 36, borderRadius: '.5rem', border: `2px solid ${border}`,
-              background: bg, color, fontWeight: 700, fontSize: '.82rem', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: bg, color, fontWeight: 700, fontSize: '.82rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               {r ? (r.estCorrecte ? <i className="bi bi-check-lg" /> : <i className="bi bi-x-lg" />) : i + 1}
             </button>
@@ -113,57 +212,51 @@ export default function TravauxDirigesEleve({ onBack }) {
         })}
       </div>
 
-      {/* Carte exercice courant */}
-      {ex && (
-        <div className="card border-0 shadow-sm" style={{ borderRadius: '1.25rem', overflow: 'hidden', maxWidth: 560, margin: '0 auto' }}>
+      {/* Carte question courante */}
+      {q && (
+        <div className="card border-0 shadow-sm" style={{ borderRadius: '1.25rem', overflow: 'hidden', maxWidth: 520, margin: '0 auto' }}>
           {/* Image */}
           <div style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '1.5rem', textAlign: 'center' }}>
             <span style={{
               display: 'inline-block', background: '#1e3a5f', color: '#fff',
               borderRadius: '.5rem', padding: '.2rem .7rem',
               fontSize: '.75rem', fontWeight: 700, marginBottom: '.75rem',
-            }}>Exercice {current + 1} / {total}</span>
-            <img src={ex.imageUrl} alt={`Exercice ${current + 1}`}
-              style={{ maxHeight: 260, maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+            }}>Question {currentQ + 1} / {qs.length}</span>
+            <img src={q.imageUrl} alt={`Question ${currentQ + 1}`}
+              style={{ maxHeight: 240, maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
           </div>
 
-          {/* Boutons de réponse */}
+          {/* Boutons réponse */}
           <div className="card-body p-4">
             <p className="fw-semibold mb-3" style={{ color: '#475569', fontSize: '.9rem' }}>
               Quelle est la bonne réponse ?
             </p>
             <div className="d-flex gap-3 justify-content-center mb-3">
-              {REPONSES.map(r => {
+              {options.map(r => {
                 const c = BTN_COLORS[r]
-                let bg = c.light, border = c.border, color = c.text, shadow = 'none'
-
-                if (repInfo) {
-                  if (r === repInfo.bonneReponse) {
-                    bg = '#f0fdf4'; border = '#86efac'; color = '#15803d'
-                  } else if (r === repInfo.reponse && !repInfo.estCorrecte) {
-                    bg = '#fef2f2'; border = '#fca5a5'; color = '#dc2626'
-                  }
-                } else {
-                  shadow = `0 2px 8px ${c.base}22`
+                let bg = c.light, border = c.border, color = c.text, shadow = `0 2px 8px ${c.base}22`
+                if (rep) {
+                  shadow = 'none'
+                  if (r === rep.bonneReponse) { bg = '#f0fdf4'; border = '#86efac'; color = '#15803d' }
+                  else if (r === rep.reponse && !rep.estCorrecte) { bg = '#fef2f2'; border = '#fca5a5'; color = '#dc2626' }
+                  else { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
                 }
-
                 return (
-                  <button key={r} onClick={() => !repInfo && !loadingRep && handleRepondre(ex.id, r)}
-                    disabled={!!repInfo || loadingRep}
+                  <button key={r}
+                    onClick={() => !rep && !loadingRep && handleRepondre(q.id, r)}
+                    disabled={!!rep || loadingRep}
                     style={{
-                      width: 72, height: 72, borderRadius: '1rem',
-                      fontWeight: 900, fontSize: '1.6rem',
-                      border: `2.5px solid ${border}`,
-                      background: bg, color,
-                      cursor: repInfo ? 'default' : 'pointer',
+                      width: 68, height: 68, borderRadius: '1rem',
+                      fontWeight: 900, fontSize: '1.5rem',
+                      border: `2.5px solid ${border}`, background: bg, color,
+                      cursor: rep ? 'default' : 'pointer',
                       transition: 'all .15s', boxShadow: shadow,
-                      opacity: repInfo && r !== repInfo.reponse && r !== repInfo.bonneReponse ? 0.5 : 1,
                       position: 'relative',
                     }}
                   >
                     {r}
-                    {repInfo && r === repInfo.bonneReponse && (
-                      <span style={{ position: 'absolute', top: -6, right: -6, fontSize: '.75rem' }}>✓</span>
+                    {rep && r === rep.bonneReponse && (
+                      <span style={{ position: 'absolute', top: -6, right: -6, fontSize: '.8rem' }}>✓</span>
                     )}
                   </button>
                 )
@@ -171,17 +264,17 @@ export default function TravauxDirigesEleve({ onBack }) {
             </div>
 
             {/* Feedback */}
-            {repInfo && (
+            {rep && (
               <div style={{
-                borderRadius: '.75rem', padding: '.75rem 1rem',
-                background: repInfo.estCorrecte ? '#f0fdf4' : '#fef2f2',
-                border: `1.5px solid ${repInfo.estCorrecte ? '#86efac' : '#fca5a5'}`,
-                color: repInfo.estCorrecte ? '#15803d' : '#dc2626',
-                fontWeight: 600, fontSize: '.88rem', textAlign: 'center',
+                borderRadius: '.75rem', padding: '.75rem 1rem', textAlign: 'center',
+                background: rep.estCorrecte ? '#f0fdf4' : '#fef2f2',
+                border: `1.5px solid ${rep.estCorrecte ? '#86efac' : '#fca5a5'}`,
+                color: rep.estCorrecte ? '#15803d' : '#dc2626',
+                fontWeight: 600, fontSize: '.88rem',
               }}>
-                {repInfo.estCorrecte
+                {rep.estCorrecte
                   ? <><i className="bi bi-check-circle-fill me-2" />Bonne réponse !</>
-                  : <><i className="bi bi-x-circle-fill me-2" />Mauvaise réponse. La bonne réponse était <strong>{repInfo.bonneReponse}</strong>.</>}
+                  : <><i className="bi bi-x-circle-fill me-2" />Mauvaise réponse — La bonne réponse était <strong>{rep.bonneReponse}</strong>.</>}
               </div>
             )}
 
@@ -191,26 +284,24 @@ export default function TravauxDirigesEleve({ onBack }) {
               </div>
             )}
 
-            {/* Navigation précédent / suivant */}
+            {/* Navigation */}
             <div className="d-flex justify-content-between mt-4">
-              <button
-                onClick={() => setCurrent(c => Math.max(0, c - 1))}
-                disabled={current === 0}
+              <button onClick={() => setCurrentQ(c => Math.max(0, c - 1))} disabled={currentQ === 0}
                 style={{
                   background: '#f1f5f9', color: '#475569', border: '1.5px solid #e2e8f0',
-                  borderRadius: '.6rem', padding: '.45rem 1rem', cursor: current === 0 ? 'not-allowed' : 'pointer',
-                  fontWeight: 600, fontSize: '.85rem', opacity: current === 0 ? .5 : 1,
-                }}
-              ><i className="bi bi-arrow-left me-1" />Précédent</button>
-              <button
-                onClick={() => setCurrent(c => Math.min(total - 1, c + 1))}
-                disabled={current === total - 1}
+                  borderRadius: '.6rem', padding: '.45rem 1rem', cursor: currentQ === 0 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600, fontSize: '.85rem', opacity: currentQ === 0 ? .5 : 1,
+                }}>
+                <i className="bi bi-arrow-left me-1" />Précédent
+              </button>
+              <button onClick={() => setCurrentQ(c => Math.min(qs.length - 1, c + 1))} disabled={currentQ === qs.length - 1}
                 style={{
                   background: '#f1f5f9', color: '#475569', border: '1.5px solid #e2e8f0',
-                  borderRadius: '.6rem', padding: '.45rem 1rem', cursor: current === total - 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: 600, fontSize: '.85rem', opacity: current === total - 1 ? .5 : 1,
-                }}
-              >Suivant<i className="bi bi-arrow-right ms-1" /></button>
+                  borderRadius: '.6rem', padding: '.45rem 1rem', cursor: currentQ === qs.length - 1 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600, fontSize: '.85rem', opacity: currentQ === qs.length - 1 ? .5 : 1,
+                }}>
+                Suivant<i className="bi bi-arrow-right ms-1" />
+              </button>
             </div>
           </div>
         </div>

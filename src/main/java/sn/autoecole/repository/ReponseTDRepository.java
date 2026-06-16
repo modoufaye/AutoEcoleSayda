@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface ReponseTDRepository extends JpaRepository<ReponseTD, Long> {
     List<ReponseTD> findByEleveIdOrderByCreatedAtDesc(Long eleveId);
-    Optional<ReponseTD> findByExerciceIdAndEleveId(Long exerciceId, Long eleveId);
-    void deleteByExerciceId(Long exerciceId);
+    Optional<ReponseTD> findByQuestionIdAndEleveId(Long questionId, Long eleveId);
+    void deleteByQuestionExerciceId(Long exerciceId);
 }

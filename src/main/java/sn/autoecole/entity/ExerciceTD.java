@@ -5,9 +5,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "exercices_td")
+@Table(name = "groupes_td")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
@@ -19,10 +21,12 @@ public class ExerciceTD {
     private Long id;
 
     @Column(nullable = false)
-    private String imageUrl;
+    private String titre;
 
-    @Column(nullable = false, length = 1)
-    private String bonneReponse;
+    @OneToMany(mappedBy = "exercice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("ordre ASC")
+    @Builder.Default
+    private List<QuestionTD> questions = new ArrayList<>();
 
     @Column(nullable = false)
     @Builder.Default

@@ -240,6 +240,10 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : undefined} />
             : section === 'mes-paiements'
             ? <ActiveComponent key={section} onBack={() => handleSectionChange('mon-espace')} />
+            : section === 'td-moniteur'
+            ? <TravauxDirigesMoniteur key="td-moniteur" onBack={() => handleSectionChange('dashboard')} />
+            : section === 'td-eleve'
+            ? <TravauxDirigesEleve key="td-eleve" onBack={() => handleSectionChange('mon-espace')} />
             : section === 'eleves'
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}`} initialEleveId={navigateToEleve} />
             : <ActiveComponent key={section} />}

@@ -8,11 +8,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.ExerciceTD;
+import sn.autoecole.entity.QuestionTD;
 import sn.autoecole.entity.ReponseTD;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.ExerciceTDRepository;
+import sn.autoecole.repository.QuestionTDRepository;
 import sn.autoecole.repository.ReponseTDRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +24,7 @@ import java.util.Map;
 public class ExerciceTDController {
 
     private final ExerciceTDRepository exerciceRepo;
+    private final QuestionTDRepository questionRepo;
     private final ReponseTDRepository  reponseRepo;
     private final EleveRepository      eleveRepository;
 
@@ -32,26 +36,50 @@ public class ExerciceTDController {
     }
 
     @PostMapping("/api/moniteur/exercices-td")
-    public ResponseEntity<ExerciceTD> creer(@RequestBody Map<String, String> body) {
-        String imageUrl     = body.get("imageUrl");
-        String bonneReponse = body.get("bonneReponse");
-        if (imageUrl == null || imageUrl.isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "L'image est obligatoire");
-        if (bonneReponse == null || !List.of("A", "B", "C").contains(bonneReponse))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La bonne réponse doit être A, B ou C");
+    public ResponseEntity<ExerciceTD> creer(@RequestBody Map<String, Object> body) {
+        String titre = (String) body.get("titre");
+        if (titre == null || titre.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le titre est obligatoire");
 
-        ExerciceTD ex = ExerciceTD.builder()
-                .imageUrl(imageUrl)
-                .bonneReponse(bonneReponse)
-                .build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(exerciceRepo.save(ex));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> questionsData = (List<Map<String, Object>>) body.get("questions");
+        if (questionsData == null || questionsData.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins une question est requise");
+
+        ExerciceTD exercice = ExerciceTD.builder().titre(titre).build();
+        exercice = exerciceRepo.save(exercice);
+
+        List<QuestionTD> questions = new ArrayList<>();
+        for (int i = 0; i < questionsData.size(); i++) {
+            Map<String, Object> q = questionsData.get(i);
+            String imageUrl     = (String) q.get("imageUrl");
+            String bonneReponse = (String) q.get("bonneReponse");
+            boolean avecOptionC = q.get("avecOptionC") == null || Boolean.TRUE.equals(q.get("avecOptionC"));
+
+            if (imageUrl == null || imageUrl.isBlank())
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image manquante à la question " + (i + 1));
+            if (bonneReponse == null || !List.of("A", "B", "C").contains(bonneReponse))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bonne réponse invalide à la question " + (i + 1));
+            if (!avecOptionC && "C".equals(bonneReponse))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La bonne réponse ne peut pas être C si l'option C est désactivée");
+
+            questions.add(QuestionTD.builder()
+                    .exercice(exercice)
+                    .imageUrl(imageUrl)
+                    .avecOptionC(avecOptionC)
+                    .bonneReponse(bonneReponse)
+                    .ordre(i)
+                    .build());
+        }
+        questionRepo.saveAll(questions);
+        return ResponseEntity.status(HttpStatus.CREATED).body(exerciceRepo.findById(exercice.getId()).orElseThrow());
     }
 
     @DeleteMapping("/api/moniteur/exercices-td/{id}")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         ExerciceTD ex = exerciceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice introuvable"));
-        reponseRepo.deleteByExerciceId(ex.getId());
+        reponseRepo.deleteByQuestionExerciceId(ex.getId());
         exerciceRepo.delete(ex);
         return ResponseEntity.noContent().build();
     }
@@ -63,7 +91,7 @@ public class ExerciceTDController {
         return exerciceRepo.findAllByOrderByCreatedAtDesc();
     }
 
-    @PostMapping("/api/eleve/exercices-td/{id}/repondre")
+    @PostMapping("/api/eleve/exercices-td/questions/{id}/repondre")
     public ResponseEntity<Map<String, Object>> repondre(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
@@ -76,20 +104,20 @@ public class ExerciceTDController {
         Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
 
-        ExerciceTD ex = exerciceRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice introuvable"));
+        QuestionTD question = questionRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question introuvable"));
 
-        boolean estCorrecte = ex.getBonneReponse().equals(reponse);
+        boolean estCorrecte = question.getBonneReponse().equals(reponse);
 
-        ReponseTD rep = reponseRepo.findByExerciceIdAndEleveId(id, eleve.getId())
-                .orElse(ReponseTD.builder().exercice(ex).eleve(eleve).build());
+        ReponseTD rep = reponseRepo.findByQuestionIdAndEleveId(id, eleve.getId())
+                .orElse(ReponseTD.builder().question(question).eleve(eleve).build());
         rep.setReponse(reponse);
         rep.setEstCorrecte(estCorrecte);
         reponseRepo.save(rep);
 
         return ResponseEntity.ok(Map.of(
                 "estCorrecte", estCorrecte,
-                "bonneReponse", ex.getBonneReponse()
+                "bonneReponse", question.getBonneReponse()
         ));
     }
 

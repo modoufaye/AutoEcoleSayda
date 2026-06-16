@@ -7,30 +7,34 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reponses_td")
+@Table(name = "questions_td")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 @Builder
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class ReponseTD {
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "exercice"})
+public class QuestionTD {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "question_id", nullable = false)
-    private QuestionTD question;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "eleve_id", nullable = false)
-    private Eleve eleve;
-
-    @Column(nullable = false, length = 1)
-    private String reponse;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exercice_id", nullable = false)
+    private ExerciceTD exercice;
 
     @Column(nullable = false)
-    private boolean estCorrecte;
+    private String imageUrl;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean avecOptionC = true;
+
+    @Column(nullable = false, length = 1)
+    private String bonneReponse;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int ordre = 0;
 
     @Column(nullable = false)
     @Builder.Default
