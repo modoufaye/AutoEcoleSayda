@@ -28,6 +28,10 @@ public class CategoriePermisMigrationSeeder {
             n += jdbc.update("UPDATE moniteur_categories SET categorie = 'POIDS_LEGER' WHERE categorie IN ('A','A1','B','EB')");
             n += jdbc.update("UPDATE moniteur_categories SET categorie = 'POIDS_LOURD' WHERE categorie IN ('C','EC')");
             n += jdbc.update("UPDATE moniteur_categories SET categorie = 'TRANSPORT'   WHERE categorie = 'D'");
+            dropCheckConstraints("VEHICULES", "CATEGORIE");
+            n += jdbc.update("UPDATE vehicules SET categorie = 'POIDS_LEGER' WHERE categorie IN ('A','A1','B','EB')");
+            n += jdbc.update("UPDATE vehicules SET categorie = 'POIDS_LOURD' WHERE categorie IN ('C','EC')");
+            n += jdbc.update("UPDATE vehicules SET categorie = 'TRANSPORT'   WHERE categorie = 'D'");
             if (n > 0) log.info("Migration catégories permis : {} ligne(s) mise(s) à jour", n);
         } catch (Exception e) {
             log.warn("Migration catégories permis ignorée : {}", e.getMessage());
