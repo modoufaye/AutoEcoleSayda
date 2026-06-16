@@ -336,3 +336,74 @@ WHERE telephone = '777890123' AND moniteur_id IS NULL;
 
 UPDATE eleves SET moniteur_id = (SELECT id FROM moniteurs WHERE telephone = '771234567')
 WHERE telephone = '778901234' AND moniteur_id IS NULL;
+
+-- ══════════════════════════════════════════════════════════
+-- PAIEMENTS — Élèves de Fatou Ndiaye (772345678)
+-- ══════════════════════════════════════════════════════════
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-001', '2026-02-14', 40000, (SELECT id FROM eleves WHERE telephone = '776789012'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-001');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-002', '2025-10-08', 35000, (SELECT id FROM eleves WHERE telephone = '761100001'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-002');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-003', '2025-11-18', 50000, (SELECT id FROM eleves WHERE telephone = '761100002'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-003');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-004', '2024-05-14', 40000, (SELECT id FROM eleves WHERE telephone = '761100003'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-004');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-005', '2025-09-22', 35000, (SELECT id FROM eleves WHERE telephone = '761100004'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-005');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-006', '2025-07-30', 50000, (SELECT id FROM eleves WHERE telephone = '761100005'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-006');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-007', '2026-01-10', 35000, (SELECT id FROM eleves WHERE telephone = '761100006'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-007');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-008', '2025-06-20', 40000, (SELECT id FROM eleves WHERE telephone = '761100007'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-008');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-009', '2025-12-05', 50000, (SELECT id FROM eleves WHERE telephone = '761100008'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-009');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-010', '2025-04-15', 40000, (SELECT id FROM eleves WHERE telephone = '761100009'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-010');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-011', '2026-02-28', 35000, (SELECT id FROM eleves WHERE telephone = '761100010'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-011');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-012', '2024-08-10', 50000, (SELECT id FROM eleves WHERE telephone = '761100011'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-012');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-013', '2026-03-15', 40000, (SELECT id FROM eleves WHERE telephone = '761100012'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-013');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-014', '2025-10-28', 35000, (SELECT id FROM eleves WHERE telephone = '761100013'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-014');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-015', '2024-11-05', 50000, (SELECT id FROM eleves WHERE telephone = '761100014'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-015');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-016', '2025-08-08', 40000, (SELECT id FROM eleves WHERE telephone = '761100015'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-016');
+
+INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
+SELECT 'PAY-NDI-017', '2026-05-01', 35000, (SELECT id FROM eleves WHERE telephone = '761100016'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
+WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-017');
