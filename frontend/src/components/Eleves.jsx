@@ -144,7 +144,7 @@ function TabPaiements({ paiements, totalPaye }) {
                 <td className="px-4 py-3"><Badge value={p.typePaiement} map={BADGES.type_paiement} /></td>
                 <td className="px-4 py-3 font-semibold text-slate-700">{fmtMontant(p.montant)}</td>
                 <td className="px-4 py-3"><Badge value={p.statut} map={BADGES.statut_paiement} /></td>
-                <td className="px-4 py-3 text-slate-400 text-xs">{p.notes || '—'}</td>
+                <td className="px-4 py-3 text-slate-400 text-xs">{p.description || '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -282,8 +282,8 @@ export default function Eleves({ initialEleveId }) {
     setPage(1)
   }, [search, statut, list])
 
-  const openProfile = async (eleve) => {
-    setSelected(eleve); setActiveTab('lecons'); setLoadingProfile(true)
+  const openProfile = async (eleve, initialTab = 'lecons') => {
+    setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
     try {
       const [lecons, examens, paiements, tp] = await Promise.all([
         api('GET', `/eleves/${eleve.id}/lecons`),
@@ -329,10 +329,15 @@ export default function Eleves({ initialEleveId }) {
       numeroCni: form.numeroCni || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null }
     try {
-      if (editId) { await api('PUT', `/eleves/${editId}`, data); toast('Élève modifié') }
-      else { await api('POST', '/eleves', data); toast('Élève créé') }
-      setShowModal(false); await load()
-      if (editId && selected?.id === editId) setSelected(await api('GET', `/eleves/${editId}`))
+      if (editId) {
+        await api('PUT', `/eleves/${editId}`, data); toast('Élève modifié')
+        setShowModal(false); await load()
+        if (selected?.id === editId) setSelected(await api('GET', `/eleves/${editId}`))
+      } else {
+        const created = await api('POST', '/eleves', data); toast('Élève créé')
+        setShowModal(false); await load()
+        openProfile(created, 'paiements')
+      }
     } catch (e) { toast(e.message, 'danger') }
   }
 
