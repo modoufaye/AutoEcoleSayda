@@ -105,20 +105,22 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
   )
 }
 
-export default function SeancesMoniteur() {
-  const [seances, setSeances]   = useState([])
-  const [eleves, setEleves]     = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [view, setView]         = useState('list')
-  const [editId, setEditId]     = useState(null)
-  const [form, setForm]         = useState(defaultForm())
-  const [saving, setSaving]     = useState(false)
-  const [err, setErr]           = useState('')
+export default function SeancesMoniteur({ isAdmin = false }) {
+  const [seances, setSeances]         = useState([])
+  const [eleves, setEleves]           = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [view, setView]               = useState('list')
+  const [editId, setEditId]           = useState(null)
+  const [form, setForm]               = useState(defaultForm())
+  const [saving, setSaving]           = useState(false)
+  const [err, setErr]                 = useState('')
+  const [selectedSeance, setSelectedSeance] = useState(null)
 
   const load = () => {
     setLoading(true)
+    const seancesUrl = isAdmin ? '/moniteur/seances?all=true' : '/moniteur/seances'
     Promise.all([
-      api('GET', '/moniteur/seances'),
+      api('GET', seancesUrl),
       api('GET', '/moniteur/seances/eleves'),
     ]).then(([s, e]) => { setSeances(s); setEleves(e) })
       .finally(() => setLoading(false))

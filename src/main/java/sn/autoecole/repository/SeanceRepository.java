@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface SeanceRepository extends JpaRepository<Seance, Long> {
     List<Seance> findByMoniteurOrderByCreatedAtDesc(User moniteur);
+    List<Seance> findAllByOrderByCreatedAtDesc();
     List<Seance> findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance statut, Eleve eleve);
     long countByStatut(StatutSeance statut);
 }

@@ -21,7 +21,9 @@ public class SeanceMoniteurController {
     private final SeanceService seanceService;
 
     @GetMapping
-    public List<SeanceResponse> list(@AuthenticationPrincipal UserDetails user) {
+    public List<SeanceResponse> list(@AuthenticationPrincipal UserDetails user,
+                                     @RequestParam(required = false, defaultValue = "false") boolean all) {
+        if (all) return seanceService.findAll();
         return seanceService.findByMoniteur(user.getUsername());
     }
 

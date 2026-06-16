@@ -107,7 +107,7 @@ export default function Paiements() {
 
       {/* ── Banner total encaissé ────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 8px 24px rgba(16,185,129,.25)' }}>
+        style={{ background: 'linear-gradient(135deg, #16a34a, #4ade80)', boxShadow: '0 8px 24px rgba(74,222,128,.25)' }}>
         <div className="absolute inset-0 opacity-[0.04]"
           style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '14px 14px' }} />
         <div className="relative flex items-center gap-5 px-6 py-5">
@@ -132,15 +132,15 @@ export default function Paiements() {
 
         {/* En-tête tableau navy */}
         <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderBottom: '2px solid #142a47' }}>
+          style={{ background: 'linear-gradient(135deg, #16a34a, #4ade80)', borderBottom: '2px solid #15803d' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.18)' }}>
+              style={{ background: 'rgba(255,255,255,.2)' }}>
               <i className="bi bi-receipt" style={{ color: '#fff', fontSize: '.85rem' }} />
             </div>
             <div>
               <div className="font-extrabold text-sm leading-tight" style={{ color: '#fff' }}>Paiements</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(147,197,253,.85)' }}>Historique des encaissements</div>
+              <div className="text-xs mt-0.5" style={{ color: 'rgba(187,247,208,.85)' }}>Historique des encaissements</div>
             </div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
@@ -166,7 +166,7 @@ export default function Paiements() {
                 <tr>
                   <td colSpan="8" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#1e3a5f] rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#4ade80] rounded-full animate-spin" />
                       <span className="text-sm text-slate-400 font-medium">Chargement…</span>
                     </div>
                   </td>

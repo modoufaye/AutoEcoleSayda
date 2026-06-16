@@ -349,7 +349,7 @@ export default function Eleves({ initialEleveId }) {
 
   /* ── Modal ─────────────────────────────────────────────── */
   function Modal() {
-    const inputCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
+    const inputCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
     const labelCls = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
     return (
       <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
@@ -662,14 +662,14 @@ export default function Eleves({ initialEleveId }) {
 
       {/* Filtres */}
       <div className="bg-white rounded-2xl p-4 flex gap-3 flex-wrap" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-        <div className="flex items-center gap-2 flex-1 min-w-48 bg-slate-50 border-2 rounded-xl px-3 py-2 focus-within:border-[#f0bb2a] transition-all" style={{ borderColor: '#d4a017' }}>
+        <div className="flex items-center gap-2 flex-1 min-w-48 bg-slate-50 border-2 rounded-xl px-3 py-2 focus-within:border-[#1e3a5f] transition-all" style={{ borderColor: '#e2e8f0' }}>
           <i className="bi bi-search text-slate-400" style={{ fontSize: '.9rem' }} />
           <input className="flex-1 bg-transparent border-0 outline-none text-sm text-slate-700 placeholder-slate-400"
             placeholder="Nom, prénom, téléphone…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select
-          className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#f0bb2a] transition-all cursor-pointer" style={{ borderColor: '#d4a017' }}
+          className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
           value={statut} onChange={e => setStatut(e.target.value)}>
           <option value="">Tous les statuts</option>
           {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}

@@ -81,6 +81,7 @@ export default function Moniteurs() {
   const [loadingEleves, setLoadingEl] = useState(false)
   const [elevesCount, setElevesCount] = useState({})
   const [page, setPage]               = useState(1)
+  const [pageEleves, setPageEleves]   = useState(1)
 
   const load = async () => {
     setLoading(true)
@@ -112,6 +113,7 @@ export default function Moniteurs() {
   const openProfile = async (m) => {
     setSelected(m)
     setElevesSel([])
+    setPageEleves(1)
     setLoadingEl(true)
     try {
       const eleves = await api('GET', `/moniteurs/${m.id}/eleves`)
@@ -363,12 +365,6 @@ export default function Moniteurs() {
               <i className="bi bi-pencil-fill" />
               Modifier
             </button>
-            <button onClick={() => del(selected.id)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold border-0 cursor-pointer transition-all"
-              style={{ background: 'rgba(239,68,68,.18)', color: '#fca5a5' }}>
-              <i className="bi bi-trash-fill" />
-              Supprimer
-            </button>
           </div>
         </div>
       </div>
@@ -473,11 +469,11 @@ export default function Moniteurs() {
                   </tr>
                 </thead>
                 <tbody>
-                  {elevesSelected.map((e, i) => (
+                  {elevesSelected.slice((pageEleves-1)*PAGE_SIZE, pageEleves*PAGE_SIZE).map((e, i) => (
                     <tr key={e.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
                       className="transition-colors hover:bg-blue-50/40">
                       <td className="py-3.5 px-4 text-center">
-                        <span className="text-xs font-bold text-slate-300">{i + 1}</span>
+                        <span className="text-xs font-bold text-slate-300">{(pageEleves-1)*PAGE_SIZE + i + 1}</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="text-sm font-semibold text-slate-700">{e.nom} {e.prenom}</div>
@@ -502,6 +498,7 @@ export default function Moniteurs() {
                   ))}
                 </tbody>
               </table>
+              <Pagination page={pageEleves} setPage={setPageEleves} total={elevesSelected.length} pageSize={PAGE_SIZE} />
             </div>
           )}
         </div>
@@ -545,13 +542,13 @@ export default function Moniteurs() {
       {/* Tableau */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
         <SectionHeader
-          gradient="linear-gradient(135deg, #1e3a5f 0%, #2a4f7c 100%)"
-          border="#1e3a5f"
+          gradient="linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%)"
+          border="#5b21b6"
           icon="person-badge-fill"
           iconBg="rgba(255,255,255,.18)"
           iconColor="#fff"
           title={{ text: 'Moniteurs', color: '#fff' }}
-          subtitle={{ text: 'Personnel enseignant', color: 'rgba(147,197,253,.85)' }}
+          subtitle={{ text: 'Personnel enseignant', color: 'rgba(221,214,254,.85)' }}
           badge={filtered.length}
           badgeStyle={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}
         />
@@ -559,7 +556,7 @@ export default function Moniteurs() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-4 border-slate-100 border-t-[#1e3a5f] rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-slate-100 border-t-[#7c3aed] rounded-full animate-spin" />
               <span className="text-sm text-slate-400 font-medium">Chargement…</span>
             </div>
           </div>
@@ -649,12 +646,6 @@ export default function Moniteurs() {
                           className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
                           style={{ background: '#f1f5f9', color: '#475569' }}>
                           <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
-                        <button onClick={() => del(m.id)}
-                          title="Supprimer"
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#fee2e2', color: '#dc2626' }}>
-                          <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
                         </button>
                       </div>
                     </td>

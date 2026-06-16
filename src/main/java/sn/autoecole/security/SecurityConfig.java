@@ -47,7 +47,7 @@ public class SecurityConfig {
 
                 // Routes par rôle
                 .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
-                .requestMatchers("/api/moniteur/**").hasRole("MONITEUR")
+                .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN")
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
 
                 // Toutes les autres routes nécessitent une authentification

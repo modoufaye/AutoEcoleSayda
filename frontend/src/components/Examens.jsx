@@ -212,20 +212,20 @@ export default function Examens({ onEleveClick, onBack }) {
         <div className="flex items-center justify-between px-6 py-3"
           style={isEleve
             ? { background: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', borderBottom: '2px solid #450a0a' }
-            : { background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', borderBottom: '2px solid #b8860b' }}>
+            : { background: 'linear-gradient(135deg, #ea580c, #fb923c)', borderBottom: '2px solid #c2410c' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: isEleve ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.25)' }}>
+              style={{ background: 'rgba(255,255,255,.2)' }}>
               <i className="bi bi-clipboard2-check-fill"
-                style={{ color: isEleve ? '#fff' : '#1e3a5f', fontSize: '.85rem' }} />
+                style={{ color: '#fff', fontSize: '.85rem' }} />
             </div>
             <div>
               <div className="font-extrabold text-sm leading-tight"
-                style={{ color: isEleve ? '#fff' : '#1e3a5f' }}>
+                style={{ color: '#fff' }}>
                 {isEleve ? 'Mes Examens' : 'Examens'}
               </div>
               <div className="text-xs mt-0.5"
-                style={{ color: isEleve ? 'rgba(255,237,213,.85)' : 'rgba(30,58,95,.6)' }}>
+                style={{ color: isEleve ? 'rgba(255,237,213,.85)' : 'rgba(255,237,213,.85)' }}>
                 {isEleve ? 'Historique de vos passages' : 'Résultats et suivi des passages'}
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function Examens({ onEleveClick, onBack }) {
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={isEleve
               ? { background: 'rgba(255,255,255,.18)', color: '#fff' }
-              : { background: 'rgba(30,58,95,.15)', color: '#1e3a5f' }}>
+              : { background: 'rgba(255,255,255,.18)', color: '#fff' }}>
             {filtered.length}
           </span>
         </div>
@@ -256,7 +256,7 @@ export default function Examens({ onEleveClick, onBack }) {
                 <tr>
                   <td colSpan={colSpan} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#d4a017] rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#fb923c] rounded-full animate-spin" />
                       <span className="text-sm text-slate-400 font-medium">Chargement…</span>
                     </div>
                   </td>

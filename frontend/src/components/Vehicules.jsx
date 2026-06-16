@@ -148,19 +148,19 @@ export default function Vehicules() {
 
         {/* En-tête tableau gold */}
         <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', borderBottom: '2px solid #b8860b' }}>
+          style={{ background: 'linear-gradient(135deg, #0d9488, #2dd4bf)', borderBottom: '2px solid #0f766e' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.25)' }}>
-              <i className="bi bi-car-front-fill" style={{ color: '#1e3a5f', fontSize: '.85rem' }} />
+              style={{ background: 'rgba(255,255,255,.2)' }}>
+              <i className="bi bi-car-front-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
             </div>
             <div>
-              <div className="font-extrabold text-sm leading-tight" style={{ color: '#1e3a5f' }}>Véhicules</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(30,58,95,.6)' }}>Flotte de l'auto-école</div>
+              <div className="font-extrabold text-sm leading-tight" style={{ color: '#fff' }}>Véhicules</div>
+              <div className="text-xs mt-0.5" style={{ color: 'rgba(209,250,229,.85)' }}>Flotte de l'auto-école</div>
             </div>
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(30,58,95,.15)', color: '#1e3a5f' }}>
+            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
             {filtered.length}
           </span>
         </div>
@@ -182,7 +182,7 @@ export default function Vehicules() {
                 <tr>
                   <td colSpan="8" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#1e3a5f] rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#2dd4bf] rounded-full animate-spin" />
                       <span className="text-sm text-slate-400 font-medium">Chargement…</span>
                     </div>
                   </td>

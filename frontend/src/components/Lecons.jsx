@@ -161,7 +161,7 @@ export default function Lecons({ onBack }) {
         <div className="flex items-center justify-between px-6 py-3"
           style={isEleve
             ? { background: 'linear-gradient(135deg, #78350f 0%, #b45309 100%)', borderBottom: '2px solid #4d1f04' }
-            : { background: 'linear-gradient(135deg,#1e3a5f 0%,#2a4f7c 100%)', borderBottom: '2px solid #1e3a5f' }}>
+            : { background: 'linear-gradient(135deg, #db2777, #f472b6)', borderBottom: '2px solid #be185d' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
               style={{ background: 'rgba(255,255,255,.18)' }}>
@@ -173,7 +173,7 @@ export default function Lecons({ onBack }) {
                 {isEleve ? 'Cours Conduite' : 'Cours Conduite'}
               </div>
               <div className="text-xs mt-0.5"
-                style={{ color: isEleve ? 'rgba(253,230,138,.85)' : 'rgba(147,197,253,.85)' }}>
+                style={{ color: isEleve ? 'rgba(253,230,138,.85)' : 'rgba(251,207,232,.85)' }}>
                 {isEleve ? 'Formation pratique à la conduite' : 'Planning des leçons'}
               </div>
             </div>
@@ -202,7 +202,7 @@ export default function Lecons({ onBack }) {
                 <tr>
                   <td colSpan={colSpan} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#1e3a5f] rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#f472b6] rounded-full animate-spin" />
                       <span className="text-sm text-slate-400 font-medium">Chargement…</span>
                     </div>
                   </td>

@@ -35,6 +35,13 @@ public class SeanceService {
     private final MoniteurRepository moniteurRepo;
 
     @Transactional(readOnly = true)
+    public List<SeanceResponse> findAll() {
+        return seanceRepo.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<SeanceResponse> findByMoniteur(String email) {
         User moniteur = userRepo.findByEmail(email).orElseThrow();
         return seanceRepo.findByMoniteurOrderByCreatedAtDesc(moniteur).stream()

@@ -22,13 +22,13 @@ const ALL_SECTIONS = [
   { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'MONITEUR'] },
   { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'MONITEUR'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN'] },
-  { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front',             color: '#34d399', roles: ['SUPER_ADMIN', 'MONITEUR'] },
+  { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front',             color: '#2dd4bf', roles: ['SUPER_ADMIN', 'MONITEUR'] },
   { key: 'cours',            label: 'Cours Code',       icon: 'sign-turn-right-fill',  color: '#fbbf24', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE'] },
   { key: 'lecons',           label: 'Cours Conduite',   icon: 'calendar2-check',       color: '#f472b6', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE'] },
-  { key: 'seances-moniteur', label: 'Mes Séances',      icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR'] },
+  { key: 'seances-moniteur', label: 'Séances de cours',  icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR', 'SUPER_ADMIN'] },
   { key: 'seances-eleve',    label: 'Mes Séances',      icon: 'play-circle-fill',      color: '#06b6d4', roles: ['ELEVE'] },
   { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ELEVE'] },
-  { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#f97316', roles: ['SUPER_ADMIN'] },
+  { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN'] },
   { key: 'mes-paiements',   label: 'Mes Paiements',    icon: 'cash-stack',            color: '#4ade80', roles: ['ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR'] },
 ]
@@ -60,6 +60,7 @@ export default function AppLayout() {
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role))
   const [section, setSection] = useState(sections[0]?.key || 'dashboard')
+  const [history, setHistory] = useState([])
   const [navigateToEleve, setNavigateToEleve] = useState(null)
 
   useEffect(() => {
@@ -88,8 +89,23 @@ export default function AppLayout() {
     finally { setMdpSaving(false) }
   }
 
-  const handleEleveClick    = (eleveId) => { setNavigateToEleve(eleveId); setSection('eleves') }
-  const handleSectionChange = (key)     => { setSection(key); setNavigateToEleve(null) }
+  const handleEleveClick = (eleveId) => {
+    setHistory(h => [...h, section])
+    setNavigateToEleve(eleveId)
+    setSection('eleves')
+  }
+  const handleSectionChange = (key) => {
+    setHistory(h => [...h, section])
+    setSection(key)
+    setNavigateToEleve(null)
+  }
+  const handleBack = () => {
+    setHistory(h => {
+      const prev = h[h.length - 1]
+      if (prev) { setSection(prev); setNavigateToEleve(null) }
+      return h.slice(0, -1)
+    })
+  }
 
   const activeSection = sections.find(s => s.key === section)
   const ActiveComponent = COMPONENTS[section]
@@ -185,8 +201,29 @@ export default function AppLayout() {
         </nav>
 
         <main className="main-content">
+          {user?.role === 'SUPER_ADMIN' && history.length > 0 && (
+            <div style={{ marginBottom: '1rem' }}>
+              <button
+                onClick={handleBack}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '.45rem',
+                  background: '#f1f5f9', color: '#475569',
+                  border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
+                  fontSize: '.8rem', fontWeight: 600,
+                  padding: '.45rem 1rem', cursor: 'pointer', transition: 'all .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#1e3a5f' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#475569' }}
+              >
+                <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />
+                {sections.find(s => s.key === history[history.length - 1])?.label || 'Retour'}
+              </button>
+            </div>
+          )}
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} />
+            : section === 'seances-moniteur' && user?.role === 'SUPER_ADMIN'
+            ? <SeancesMoniteur key="seances-admin" isAdmin={true} />
             : section === 'seances-eleve'
             ? <SeancesEleve key="seances-eleve" onBack={() => handleSectionChange('mon-espace')} />
             : section === 'examens'
