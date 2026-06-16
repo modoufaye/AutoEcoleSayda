@@ -142,7 +142,7 @@ function Navbar() {
               </svg>
             </div>
             <div className="leading-tight">
-              <div className="font-bold text-[#1e3a5f] text-sm sm:text-base">Auto-École Khadija</div>
+              <div className="font-bold text-[#1e3a5f] text-sm sm:text-base">Auto-École Sayda</div>
             </div>
           </a>
 
@@ -465,7 +465,7 @@ function CtaBanner() {
           Prêt à obtenir votre permis ?
         </h2>
         <p className="text-amber-100 text-lg mb-8">
-          Rejoignez l'Auto-École Khadija et bénéficiez d'un suivi personnalisé jusqu'à l'obtention de votre permis.
+          Rejoignez l'Auto-École Sayda et bénéficiez d'un suivi personnalisé jusqu'à l'obtention de votre permis.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
@@ -502,7 +502,7 @@ function Footer() {
                   <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                 </svg>
               </div>
-              <span className="font-bold text-lg">Auto-École Khadija</span>
+              <span className="font-bold text-lg">Auto-École Sayda</span>
             </div>
             <p className="text-blue-200 text-sm leading-relaxed max-w-xs mb-6">
               Votre partenaire de confiance pour l'obtention du permis de conduire à Dakar depuis 2012.
@@ -566,7 +566,7 @@ function Footer() {
 
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-blue-300">
-          <span>© 2026 Auto-École Khadija. Tous droits réservés.</span>
+          <span>© 2026 Auto-École Sayda. Tous droits réservés.</span>
           <span>Agréé par le Ministère des Transports du Sénégal</span>
         </div>
       </div>

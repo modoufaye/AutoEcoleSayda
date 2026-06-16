@@ -118,7 +118,7 @@ export default function AppLayout() {
         {/* Logo */}
         <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sections[0]?.key)}>
           <div className="brand-text">
-            <div>Auto-École Khadija</div>
+            <div>Auto-École Sayda</div>
           </div>
         </button>
 
@@ -173,7 +173,7 @@ export default function AppLayout() {
 
           <div>
             <div className="page-title">{activeSection?.label || ''}</div>
-            <div className="page-breadcrumb">Auto-École Khadija</div>
+            <div className="page-breadcrumb">Auto-École Sayda</div>
           </div>
 
           <div className="ms-auto">

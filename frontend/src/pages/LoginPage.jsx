@@ -104,7 +104,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <h1 className="text-xl font-extrabold text-white mb-1 tracking-tight">
-              Auto-École Khadija
+              Auto-École Sayda
             </h1>
             <p className="text-blue-200 text-xs uppercase tracking-[0.15em] font-medium">
               Dakar · Sénégal
@@ -268,7 +268,7 @@ export default function LoginPage() {
 
         {/* ── Pied de page sous la carte ── */}
         <p className="text-center text-blue-300/60 text-xs mt-6">
-          © 2026 Auto-École Khadija — Agréé par le Ministère des Transports
+          © 2026 Auto-École Sayda — Agréé par le Ministère des Transports
         </p>
       </div>
     </div>
