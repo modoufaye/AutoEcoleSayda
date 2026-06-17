@@ -9,6 +9,7 @@ import sn.autoecole.entity.Moniteur;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.StatutEleve;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,4 +32,7 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
 
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut")
     long countByStatut(@Param("statut") StatutEleve statut);
+
+    @Query("SELECT COUNT(e) FROM Eleve e WHERE e.dateInscription >= :debut AND e.dateInscription <= :fin")
+    long countByDateInscriptionBetween(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
 }

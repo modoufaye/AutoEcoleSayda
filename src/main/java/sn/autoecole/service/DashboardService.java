@@ -8,6 +8,8 @@ import sn.autoecole.enums.*;
 import sn.autoecole.repository.*;
 import sn.autoecole.enums.StatutSeance;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -22,11 +24,14 @@ public class DashboardService {
     private final SeanceRepository seanceRepository;
 
     public DashboardStats getStats() {
+        LocalDate debutMois = LocalDate.now().withDayOfMonth(1);
+        LocalDate finMois   = debutMois.plusMonths(1).minusDays(1);
         return DashboardStats.builder()
                 .totalEleves(eleveRepository.count())
                 .elevesEnCours(eleveRepository.countByStatut(StatutEleve.EN_COURS))
                 .elevesDiplomes(eleveRepository.countByStatut(StatutEleve.DIPLOME))
                 .elevesSuspendus(eleveRepository.countByStatut(StatutEleve.SUSPENDU))
+                .elevesNouveauxMois(eleveRepository.countByDateInscriptionBetween(debutMois, finMois))
                 .totalMoniteurs(moniteurRepository.count())
                 .moniteursActifs(moniteurRepository.findByActifTrue().size())
                 .totalVehicules(vehiculeRepository.count())

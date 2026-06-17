@@ -12,6 +12,7 @@ public class DashboardStats {
     private long elevesEnCours;
     private long elevesDiplomes;
     private long elevesSuspendus;
+    private long elevesNouveauxMois;
 
     private long totalMoniteurs;
     private long moniteursActifs;

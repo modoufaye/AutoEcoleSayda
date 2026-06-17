@@ -336,10 +336,19 @@ function DashboardAdmin({ stats, user }) {
       <div>
         <SectionTitle gradient="linear-gradient(#1e3a5f,#2a4f7c)" label="Élèves" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total élèves" value={stats.totalEleves}     icon="people-fill"       accent="#1e3a5f" />
-          <StatCard title="En formation" value={stats.elevesEnCours}   icon="person-check-fill" accent="#3b82f6" />
-          <StatCard title="Diplômés"     value={stats.elevesDiplomes}  icon="award-fill"        accent="#10b981" />
-          <StatCard title="Suspendus"    value={stats.elevesSuspendus} icon="person-x-fill"     accent="#f59e0b" />
+          <StatCard title="Total élèves" value={stats.totalEleves}        icon="people-fill"       accent="#1e3a5f" />
+          <StatCard title="En formation" value={stats.elevesEnCours}      icon="person-check-fill" accent="#3b82f6" />
+          <StatCard title="Diplômés"     value={stats.elevesDiplomes}     icon="award-fill"        accent="#10b981" />
+          <StatCard title="Suspendus"    value={stats.elevesSuspendus}    icon="person-x-fill"     accent="#f59e0b" />
+        </div>
+        <div className="mt-3">
+          <StatCard
+            title="Nouveaux ce mois"
+            value={stats.elevesNouveauxMois}
+            icon="person-plus-fill"
+            accent="#8b5cf6"
+            sub={new Date().toLocaleDateString('fr-SN', { month: 'long', year: 'numeric' })}
+          />
         </div>
 
         {/* Barre de répartition élèves */}
