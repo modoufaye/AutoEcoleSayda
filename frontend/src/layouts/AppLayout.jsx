@@ -69,6 +69,7 @@ export default function AppLayout() {
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role))
   const [section, setSection] = useState(sections[0]?.key || 'dashboard')
+  const [sectionCount, setSectionCount] = useState(0)
   const [history, setHistory] = useState([])
   const [navigateToEleve, setNavigateToEleve] = useState(null)
 
@@ -106,6 +107,7 @@ export default function AppLayout() {
   const handleSectionChange = (key) => {
     setHistory(h => [...h, section])
     setSection(key)
+    setSectionCount(c => c + 1)
     setNavigateToEleve(null)
   }
   const handleBack = () => {
@@ -250,7 +252,7 @@ export default function AppLayout() {
             : section === 'td-eleve'
             ? <TravauxDirigesEleve key="td-eleve" onBack={() => handleSectionChange('mon-espace')} />
             : section === 'eleves'
-            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}`} initialEleveId={navigateToEleve} />
+            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${sectionCount}`} initialEleveId={navigateToEleve} />
             : <ActiveComponent key={section} />}
         </main>
       </div>
