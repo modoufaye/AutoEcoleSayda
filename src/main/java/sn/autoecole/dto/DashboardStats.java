@@ -32,6 +32,8 @@ public class DashboardStats {
 
     private BigDecimal totalEncaisse;
     private long totalPaiements;
+    private BigDecimal revenusMois;
+    private long paiementsMois;
 
     private long totalSeances;
     private long seancesPubliees;

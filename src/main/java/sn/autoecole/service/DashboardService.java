@@ -47,6 +47,9 @@ public class DashboardService {
                 .totalEncaisse(paiementRepository.sumMontantPaye() != null
                         ? paiementRepository.sumMontantPaye() : java.math.BigDecimal.ZERO)
                 .totalPaiements(paiementRepository.count())
+                .revenusMois(paiementRepository.sumMontantPayeEntreDates(debutMois, finMois) != null
+                        ? paiementRepository.sumMontantPayeEntreDates(debutMois, finMois) : java.math.BigDecimal.ZERO)
+                .paiementsMois(paiementRepository.countPayeEntreDates(debutMois, finMois))
                 .totalSeances(seanceRepository.count())
                 .seancesPubliees(seanceRepository.countByStatut(StatutSeance.PUBLIE))
                 .seancesBrouillon(seanceRepository.countByStatut(StatutSeance.BROUILLON))
