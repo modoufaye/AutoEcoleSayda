@@ -2,7 +2,7 @@
 -- AUTO-ÉCOLE CONFIG
 -- ══════════════════════════════════════════════════════════
 INSERT INTO auto_ecole_config (nom, adresse, telephone, email, logo_url, signature_url, tarif_inscription, tarif_heure_code, tarif_heure_conduite)
-SELECT 'Auto-École Sayda', 'Dakar, Sénégal', '', '', '', '', 0, 0, 0
+SELECT 'Auto-École Excellence', 'Dakar, Sénégal', '', '', '', '', 0, 0, 0
 WHERE NOT EXISTS (SELECT 1 FROM auto_ecole_config);
 
 -- ══════════════════════════════════════════════════════════
