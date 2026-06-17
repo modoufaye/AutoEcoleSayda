@@ -522,6 +522,41 @@ export default function ElevePortail({ onGoSection }) {
             ))}
           </div>
 
+          {/* Documents du dossier */}
+          <div className="mx-6 mb-4 mt-1">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <i className="bi bi-folder2-open me-1" />Documents du dossier
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { key: 'docCertResidence',  label: 'Certificat de résidence' },
+                { key: 'docCniLegalisee',   label: 'CNI légalisée' },
+                { key: 'docGroupeSanguin',  label: 'Groupe sanguin' },
+                { key: 'docVisiteMedicale', label: 'Visite médicale' },
+                { key: 'docPhotos',         label: 'Photos d\'identité' },
+                { key: 'docTimbre',         label: 'Timbre fiscal' },
+                { key: 'docEnrolement',     label: 'Enrôlement' },
+                { key: 'docDelivrance',     label: 'Délivrance' },
+              ].map(({ key, label }) => {
+                const ok = !!profil[key]
+                return (
+                  <div key={key} className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl"
+                    style={{ background: ok ? '#f0fdf4' : '#f8fafc', border: `1px solid ${ok ? '#bbf7d0' : '#e2e8f0'}` }}>
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: ok ? '#16a34a' : '#e2e8f0' }}>
+                      <i className={`bi bi-${ok ? 'check-lg' : 'x-lg'}`}
+                        style={{ color: ok ? '#fff' : '#94a3b8', fontSize: '.55rem' }} />
+                    </div>
+                    <span className="text-xs font-medium truncate"
+                      style={{ color: ok ? '#15803d' : '#94a3b8' }}>
+                      {label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           {examens.length > 0 && (
             <div className="mx-6 mb-5 mt-3 p-4 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f7fa)', border: '1px solid #bae6fd' }}>
               <div className="flex items-center justify-between mb-2">
