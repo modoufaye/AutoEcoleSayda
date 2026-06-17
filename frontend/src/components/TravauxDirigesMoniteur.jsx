@@ -21,7 +21,9 @@ export default function TravauxDirigesMoniteur({ onBack }) {
   const [titre, setTitre]         = useState('')
   const [questions, setQuestions] = useState([emptyQuestion()])
   const [saving, setSaving]       = useState(false)
-  const [editingQ, setEditingQ]   = useState(null)
+  const [editingQ, setEditingQ]       = useState(null)
+  const [editingTitre, setEditingTitre] = useState(null)
+  // editingTitre = { exId, valeur, saving }
   // editingQ = { exId, qId, qIdx, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
 
   useEffect(() => { charger() }, [])
@@ -196,6 +198,30 @@ export default function TravauxDirigesMoniteur({ onBack }) {
     } catch (e) {
       toast(e.message, 'danger')
       updateEditQ('saving', false)
+    }
+  }
+
+  // ── Édition du titre ─────────────────────────────────────────────────────
+
+  function openEditTitre(ex) {
+    setEditingTitre({ exId: ex.id, valeur: ex.titre, saving: false })
+    setEditingQ(null)
+  }
+
+  async function handleSaveTitre() {
+    if (!editingTitre) return
+    if (!editingTitre.valeur.trim()) { toast('Le titre ne peut pas être vide', 'warning'); return }
+    setEditingTitre(prev => ({ ...prev, saving: true }))
+    try {
+      await api('PATCH', `/moniteur/exercices-td/${editingTitre.exId}`, { titre: editingTitre.valeur.trim() })
+      setExercices(prev => prev.map(ex =>
+        ex.id === editingTitre.exId ? { ...ex, titre: editingTitre.valeur.trim() } : ex
+      ))
+      setEditingTitre(null)
+      toast('Titre modifié')
+    } catch (e) {
+      toast(e.message, 'danger')
+      setEditingTitre(prev => ({ ...prev, saving: false }))
     }
   }
 
@@ -434,19 +460,57 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                 {/* En-tête exercice */}
                 <div className="d-flex align-items-center justify-content-between px-4 py-3"
                   style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '1rem 1rem 0 0' }}>
-                  <div className="d-flex align-items-center gap-3">
+                  <div className="d-flex align-items-center gap-3 flex-grow-1 me-3" style={{ minWidth: 0 }}>
                     <span style={{
                       background: '#1e3a5f', color: '#fff', borderRadius: '.5rem',
-                      padding: '.2rem .55rem', fontSize: '.72rem', fontWeight: 700,
+                      padding: '.2rem .55rem', fontSize: '.72rem', fontWeight: 700, flexShrink: 0,
                     }}>#{ei + 1}</span>
-                    <span className="fw-bold" style={{ color: '#1e3a5f' }}>{ex.titre}</span>
-                    <span style={{ fontSize: '.78rem', color: '#94a3b8' }}>
-                      {ex.questions?.length || 0} question{(ex.questions?.length || 0) !== 1 ? 's' : ''}
-                    </span>
+
+                    {editingTitre?.exId === ex.id ? (
+                      /* Champ d'édition inline du titre */
+                      <div className="d-flex align-items-center gap-2 flex-grow-1">
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          style={{ borderRadius: '.5rem', fontWeight: 700, color: '#1e3a5f', maxWidth: 320 }}
+                          value={editingTitre.valeur}
+                          onChange={e => setEditingTitre(prev => ({ ...prev, valeur: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') handleSaveTitre(); if (e.key === 'Escape') setEditingTitre(null) }}
+                          autoFocus
+                          disabled={editingTitre.saving}
+                        />
+                        <button onClick={handleSaveTitre} disabled={editingTitre.saving} style={{
+                          background: '#1e3a5f', color: '#fff', border: 'none',
+                          borderRadius: '.5rem', padding: '.3rem .65rem', cursor: 'pointer', fontSize: '.8rem', flexShrink: 0,
+                        }}>
+                          {editingTitre.saving
+                            ? <span className="spinner-border spinner-border-sm" />
+                            : <i className="bi bi-check-lg" />}
+                        </button>
+                        <button onClick={() => setEditingTitre(null)} style={{
+                          background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0',
+                          borderRadius: '.5rem', padding: '.3rem .65rem', cursor: 'pointer', fontSize: '.8rem', flexShrink: 0,
+                        }}><i className="bi bi-x-lg" /></button>
+                      </div>
+                    ) : (
+                      /* Affichage normal du titre avec bouton crayon */
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fw-bold" style={{ color: '#1e3a5f' }}>{ex.titre}</span>
+                        <button onClick={() => openEditTitre(ex)} title="Modifier le titre" style={{
+                          background: 'none', border: 'none', color: '#94a3b8',
+                          cursor: 'pointer', padding: '0 .25rem', fontSize: '.78rem', lineHeight: 1,
+                        }}>
+                          <i className="bi bi-pencil" />
+                        </button>
+                        <span style={{ fontSize: '.78rem', color: '#94a3b8' }}>
+                          {ex.questions?.length || 0} question{(ex.questions?.length || 0) !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => handleDelete(ex.id)} style={{
                     background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
-                    borderRadius: '.5rem', padding: '.3rem .65rem', cursor: 'pointer', fontSize: '.8rem',
+                    borderRadius: '.5rem', padding: '.3rem .65rem', cursor: 'pointer', fontSize: '.8rem', flexShrink: 0,
                   }}><i className="bi bi-trash3" /></button>
                 </div>
 

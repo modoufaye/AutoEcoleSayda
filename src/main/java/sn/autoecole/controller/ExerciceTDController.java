@@ -92,6 +92,17 @@ public class ExerciceTDController {
         return ResponseEntity.status(HttpStatus.CREATED).body(exerciceRepo.findById(exercice.getId()).orElseThrow());
     }
 
+    @PatchMapping("/api/moniteur/exercices-td/{id}")
+    public ResponseEntity<ExerciceTD> renommerExercice(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String titre = (String) body.get("titre");
+        if (titre == null || titre.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le titre est obligatoire");
+        ExerciceTD ex = exerciceRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice introuvable"));
+        ex.setTitre(titre.trim());
+        return ResponseEntity.ok(exerciceRepo.save(ex));
+    }
+
     @PutMapping("/api/moniteur/exercices-td/questions/{id}")
     public ResponseEntity<QuestionTD> modifierQuestion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         QuestionTD q = questionRepo.findById(id)
