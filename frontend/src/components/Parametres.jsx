@@ -148,7 +148,7 @@ export default function Parametres() {
               <div className="col-12">
                 <label className={labelCls}>Nom de l'auto-école</label>
                 <input className={inputCls} value={form.nom}
-                  placeholder="Ex : Auto-École Sayda"
+                  placeholder="Ex : Auto-École Excellence"
                   onChange={e => set('nom', e.target.value)} />
               </div>
               <div className="col-12">
