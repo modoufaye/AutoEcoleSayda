@@ -26,7 +26,7 @@ public class ReponseTD {
     @JoinColumn(name = "eleve_id", nullable = false)
     private Eleve eleve;
 
-    @Column(nullable = false, length = 1)
+    @Column(nullable = false)
     private String reponse;
 
     @Column(nullable = false)

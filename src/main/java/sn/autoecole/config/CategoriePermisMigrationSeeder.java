@@ -16,10 +16,19 @@ public class CategoriePermisMigrationSeeder {
     @PostConstruct
     public void migrer() {
         try {
-            // Élargir la colonne bonne_reponse si elle est encore VARCHAR(1)
+            // Élargir les colonnes VARCHAR(1) trop courtes pour les réponses combinées
             try {
                 jdbc.execute("ALTER TABLE questions_td ALTER COLUMN bonne_reponse VARCHAR(10)");
                 log.info("Colonne questions_td.bonne_reponse élargie à VARCHAR(10)");
+            } catch (Exception ignored) {}
+            try {
+                jdbc.execute("ALTER TABLE reponses_td ALTER COLUMN reponse VARCHAR(10)");
+                log.info("Colonne reponses_td.reponse élargie à VARCHAR(10)");
+            } catch (Exception ignored) {}
+            // Rendre exercice_id nullable (colonne orpheline de l'ancienne structure)
+            try {
+                jdbc.execute("ALTER TABLE reponses_td ALTER COLUMN exercice_id BIGINT NULL");
+                log.info("Colonne reponses_td.exercice_id rendue nullable");
             } catch (Exception ignored) {}
 
             // Supprimer les anciennes contraintes CHECK qui bloquent la migration
