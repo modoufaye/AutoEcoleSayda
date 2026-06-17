@@ -1,5 +1,6 @@
 package sn.autoecole.controller;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -124,6 +125,7 @@ public class ExerciceTDController {
         return ResponseEntity.ok(questionRepo.save(q));
     }
 
+    @Transactional
     @DeleteMapping("/api/moniteur/exercices-td/{id}")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         ExerciceTD ex = exerciceRepo.findById(id)
