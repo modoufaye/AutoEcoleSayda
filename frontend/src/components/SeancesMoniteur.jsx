@@ -20,9 +20,10 @@ const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUI
 
 function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }) {
   const BLOC_STYLE = {
-    TEXTE: { bg: '#eff6ff', color: '#2563eb', icon: 'pencil-fill', label: 'Texte' },
-    IMAGE: { bg: '#f0fdf4', color: '#16a34a', icon: 'image-fill',  label: 'Image' },
-    VIDEO: { bg: '#fef2f2', color: '#dc2626', icon: 'camera-video-fill', label: 'Vidéo' },
+    TEXTE:  { bg: '#eff6ff', color: '#2563eb', icon: 'pencil-fill',       label: 'Texte' },
+    IMAGE:  { bg: '#f0fdf4', color: '#16a34a', icon: 'image-fill',        label: 'Image' },
+    VIDEO:  { bg: '#fef2f2', color: '#dc2626', icon: 'camera-video-fill', label: 'Vidéo' },
+    AUDIO:  { bg: '#fdf4ff', color: '#9333ea', icon: 'music-note-beamed', label: 'Audio' },
   }
   const style = BLOC_STYLE[bloc.typeBloc] || BLOC_STYLE.TEXTE
   return (
@@ -100,12 +101,32 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
             )}
           </div>
         )}
+
+        {bloc.typeBloc === 'AUDIO' && (
+          <div>
+            <input type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/webm,audio/mp4"
+              className="w-full text-sm text-slate-500 mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700"
+              onChange={e => e.target.files[0] && onUpload(index, e.target.files[0], 'audio')} />
+            {bloc._uploading && (
+              <div className="flex items-center gap-2 text-slate-400 text-sm">
+                <div className="w-4 h-4 border-2 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin" />
+                Envoi en cours…
+              </div>
+            )}
+            {bloc.mediaUrl && !bloc._uploading && (
+              <audio controls className="w-full rounded-xl" style={{ accentColor: '#9333ea' }}>
+                <source src={bloc.mediaUrl} />
+                Votre navigateur ne supporte pas la lecture audio.
+              </audio>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-export default function SeancesMoniteur({ isAdmin = false }) {
+export default function SeancesMoniteur({ isAdmin = false, onBack }) {
   const [seances, setSeances]         = useState([])
   const [eleves, setEleves]           = useState([])
   const [loading, setLoading]         = useState(true)
@@ -400,6 +421,11 @@ export default function SeancesMoniteur({ isAdmin = false }) {
                   onClick={() => addBloc('VIDEO')}>
                   <i className="bi bi-camera-video-fill" />+ Vidéo
                 </button>
+                <button className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
+                  style={{ background: '#fdf4ff', color: '#9333ea' }}
+                  onClick={() => addBloc('AUDIO')}>
+                  <i className="bi bi-music-note-beamed" />+ Audio
+                </button>
               </div>
             </div>
           </div>
@@ -413,14 +439,26 @@ export default function SeancesMoniteur({ isAdmin = false }) {
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {/* En-tête page */}
-      <div className="flex items-center gap-4 flex-wrap">
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
+          style={{ background: '#f1f5f9', color: '#475569' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
+        >
+          <i className="bi bi-arrow-left" />
+          Tableau de bord
+        </button>
+      )}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Mes Séances</h1>
           <p className="text-slate-400 text-sm mt-0.5">Cours que vous avez créés pour vos élèves</p>
         </div>
         <button
           onClick={openCreate}
-          className="ml-auto flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer text-white transition-all"
+          className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer text-white transition-all"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}
         >
           <i className="bi bi-plus-lg" />

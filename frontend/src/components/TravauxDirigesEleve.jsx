@@ -6,17 +6,22 @@ const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
   B: { base: '#f59e0b', light: '#fffbeb', border: '#fde68a', text: '#b45309' },
   C: { base: '#10b981', light: '#f0fdf4', border: '#a7f3d0', text: '#047857' },
+  D: { base: '#8b5cf6', light: '#fdf4ff', border: '#e9d5ff', text: '#6d28d9' },
 }
 
 export default function TravauxDirigesEleve({ onBack }) {
-  const [exercices, setExercices]   = useState([])
-  const [reponses, setReponses]     = useState({}) // questionId -> {reponse, estCorrecte, bonneReponse}
-  const [loading, setLoading]       = useState(true)
-  const [selected, setSelected]     = useState(null) // exercice ouvert
-  const [currentQ, setCurrentQ]     = useState(0)
-  const [loadingRep, setLoadingRep] = useState(false)
+  const [exercices, setExercices]     = useState([])
+  const [reponses, setReponses]       = useState({}) // questionId -> {reponse, estCorrecte, bonneReponse}
+  const [loading, setLoading]         = useState(true)
+  const [selected, setSelected]       = useState(null)
+  const [currentQ, setCurrentQ]       = useState(0)
+  const [loadingRep, setLoadingRep]   = useState(false)
+  const [pending, setPending]         = useState([]) // sélections en cours pour questions à 4 options
 
   useEffect(() => { charger() }, [])
+
+  // Réinitialise les sélections pendantes quand on change de question
+  useEffect(() => { setPending([]) }, [currentQ, selected])
 
   async function charger() {
     setLoading(true)
@@ -48,12 +53,26 @@ export default function TravauxDirigesEleve({ onBack }) {
     finally { setLoadingRep(false) }
   }
 
+  // Sélection par paire : A/B sont exclusifs entre eux, C/D aussi
+  function togglePending(r) {
+    const isAB = r === 'A' || r === 'B'
+    setPending(p => {
+      const filtered = p.filter(x => isAB ? x !== 'A' && x !== 'B' : x !== 'C' && x !== 'D')
+      return p.includes(r) ? filtered : [...filtered, r]
+    })
+  }
+
+  async function validerSelections(questionId) {
+    const reponse = [...pending].sort().join(',')
+    await handleRepondre(questionId, reponse)
+    setPending([])
+  }
+
   function openExercice(ex) {
     setSelected(ex)
     setCurrentQ(0)
   }
 
-  // Score d'un exercice
   function scoreExercice(ex) {
     const qs = ex.questions || []
     const repondues = qs.filter(q => reponses[q.id])
@@ -128,8 +147,6 @@ export default function TravauxDirigesEleve({ onBack }) {
                     <p className="mb-3" style={{ fontSize: '.8rem', color: '#94a3b8' }}>
                       {total} question{total !== 1 ? 's' : ''}
                     </p>
-
-                    {/* Barre de progression */}
                     <div style={{ background: '#f1f5f9', borderRadius: 99, height: 6, overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', borderRadius: 99, transition: 'width .3s',
@@ -152,15 +169,19 @@ export default function TravauxDirigesEleve({ onBack }) {
   )
 
   // ── Vue questions d'un exercice ──
-  const qs = selected.questions || []
-  const q  = qs[currentQ]
+  const qs  = selected.questions || []
+  const q   = qs[currentQ]
   const rep = q ? reponses[q.id] : null
-  const options = q ? ['A', 'B', ...(q.avecOptionC ? ['C'] : [])] : []
+  const is4 = q?.avecOptionD
+  const options = q
+    ? ['A', 'B', ...(q.avecOptionC || is4 ? ['C'] : []), ...(is4 ? ['D'] : [])]
+    : []
+  const bonnes  = rep ? rep.bonneReponse.split(',') : []
+  const student = rep ? rep.reponse.split(',') : []
   const { correctes, repondues } = scoreExercice(selected)
 
   return (
     <div>
-      {/* Retour vers liste */}
       <button onClick={() => setSelected(null)} style={{
         display: 'inline-flex', alignItems: 'center', gap: '.45rem',
         background: '#f1f5f9', color: '#475569',
@@ -222,6 +243,15 @@ export default function TravauxDirigesEleve({ onBack }) {
               borderRadius: '.5rem', padding: '.2rem .7rem',
               fontSize: '.75rem', fontWeight: 700, marginBottom: '.75rem',
             }}>Question {currentQ + 1} / {qs.length}</span>
+            {is4 && (
+              <span style={{
+                display: 'inline-block', marginLeft: '.5rem',
+                background: '#fdf4ff', color: '#8b5cf6',
+                border: '1.5px solid #e9d5ff',
+                borderRadius: '.5rem', padding: '.2rem .7rem',
+                fontSize: '.75rem', fontWeight: 700, marginBottom: '.75rem',
+              }}>2 réponses à donner</span>
+            )}
             <img src={q.imageUrl} alt={`Question ${currentQ + 1}`}
               style={{ maxHeight: 240, maxWidth: '100%', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
           </div>
@@ -229,39 +259,130 @@ export default function TravauxDirigesEleve({ onBack }) {
           {/* Boutons réponse */}
           <div className="card-body p-4">
             <p className="fw-semibold mb-3" style={{ color: '#475569', fontSize: '.9rem' }}>
-              Quelle est la bonne réponse ?
+              {is4 ? '1 réponse parmi A/B et 1 parmi C/D :' : 'Quelle est la bonne réponse ?'}
             </p>
-            <div className="d-flex gap-3 justify-content-center mb-3">
-              {options.map(r => {
-                const c = BTN_COLORS[r]
-                let bg = c.light, border = c.border, color = c.text, shadow = `0 2px 8px ${c.base}22`
-                if (rep) {
-                  shadow = 'none'
-                  if (r === rep.bonneReponse) { bg = '#f0fdf4'; border = '#86efac'; color = '#15803d' }
-                  else if (r === rep.reponse && !rep.estCorrecte) { bg = '#fef2f2'; border = '#fca5a5'; color = '#dc2626' }
-                  else { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
-                }
-                return (
-                  <button key={r}
-                    onClick={() => !rep && !loadingRep && handleRepondre(q.id, r)}
-                    disabled={!!rep || loadingRep}
-                    style={{
-                      width: 68, height: 68, borderRadius: '1rem',
-                      fontWeight: 900, fontSize: '1.5rem',
-                      border: `2.5px solid ${border}`, background: bg, color,
-                      cursor: rep ? 'default' : 'pointer',
-                      transition: 'all .15s', boxShadow: shadow,
-                      position: 'relative',
-                    }}
-                  >
-                    {r}
-                    {rep && r === rep.bonneReponse && (
-                      <span style={{ position: 'absolute', top: -6, right: -6, fontSize: '.8rem' }}>✓</span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+
+            {is4 ? (
+              /* Mode 4 options : 2 groupes A/B et C/D */
+              <div className="d-flex flex-column gap-3 mb-3">
+                {[['A','B'], ['C','D']].map(([r1, r2], gi) => (
+                  <div key={gi}>
+                    <div className="text-center mb-2" style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                      {rep ? (gi === 0 ? 'A ou B' : 'C ou D') : (gi === 0 ? 'Choisissez entre A et B :' : 'Choisissez entre C et D :')}
+                    </div>
+                    <div className="d-flex gap-3 justify-content-center">
+                      {[r1, r2].map(r => {
+                        const c = BTN_COLORS[r]
+                        if (rep) {
+                          const isCorrect = bonnes.includes(r)
+                          const isStudentChoice = student.includes(r)
+                          let bg, border, color
+                          if (isCorrect)                      { bg = '#f0fdf4'; border = '#86efac'; color = '#15803d' }
+                          else if (isStudentChoice)           { bg = '#fef2f2'; border = '#fca5a5'; color = '#dc2626' }
+                          else                                { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
+                          return (
+                            <button key={r} disabled style={{
+                              width: 68, height: 68, borderRadius: '1rem',
+                              fontWeight: 900, fontSize: '1.5rem',
+                              border: `2.5px solid ${border}`, background: bg, color,
+                              cursor: 'default', position: 'relative',
+                            }}>
+                              {r}
+                              {isCorrect && <span style={{ position: 'absolute', top: -6, right: -6, fontSize: '.85rem' }}>✓</span>}
+                            </button>
+                          )
+                        }
+                        const sel = pending.includes(r)
+                        return (
+                          <button key={r}
+                            onClick={() => !loadingRep && togglePending(r)}
+                            disabled={loadingRep}
+                            style={{
+                              width: 68, height: 68, borderRadius: '1rem',
+                              fontWeight: 900, fontSize: '1.5rem',
+                              border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
+                              background: sel ? c.base : c.light,
+                              color: sel ? '#fff' : c.text,
+                              cursor: 'pointer', transition: 'all .15s',
+                              boxShadow: sel ? `0 4px 12px ${c.base}44` : `0 2px 8px ${c.base}22`,
+                            }}
+                          >{r}</button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Mode 2-3 options : réponse directe */
+              <div className="d-flex gap-3 justify-content-center mb-3">
+                {options.map(r => {
+                  const c = BTN_COLORS[r]
+                  if (rep) {
+                    const isCorrect = bonnes.includes(r)
+                    const isStudentChoice = student.includes(r)
+                    let bg, border, color
+                    if (isCorrect)            { bg = '#f0fdf4'; border = '#86efac'; color = '#15803d' }
+                    else if (isStudentChoice) { bg = '#fef2f2'; border = '#fca5a5'; color = '#dc2626' }
+                    else                      { bg = '#f8fafc'; border = '#e2e8f0'; color = '#cbd5e1' }
+                    return (
+                      <button key={r} disabled style={{
+                        width: 68, height: 68, borderRadius: '1rem',
+                        fontWeight: 900, fontSize: '1.5rem',
+                        border: `2.5px solid ${border}`, background: bg, color,
+                        cursor: 'default', position: 'relative',
+                      }}>
+                        {r}
+                        {isCorrect && <span style={{ position: 'absolute', top: -6, right: -6, fontSize: '.85rem' }}>✓</span>}
+                      </button>
+                    )
+                  }
+                  return (
+                    <button key={r}
+                      onClick={() => !loadingRep && handleRepondre(q.id, r)}
+                      disabled={loadingRep}
+                      style={{
+                        width: 68, height: 68, borderRadius: '1rem',
+                        fontWeight: 900, fontSize: '1.5rem',
+                        border: `2px solid ${c.border}`, background: c.light, color: c.text,
+                        cursor: 'pointer', transition: 'all .15s',
+                        boxShadow: `0 2px 8px ${c.base}22`,
+                      }}
+                    >{r}</button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Bouton Valider pour 4 options */}
+            {is4 && !rep && (
+              <div className="text-center mb-3">
+                <button
+                  onClick={() => validerSelections(q.id)}
+                  disabled={pending.length !== 2 || loadingRep}
+                  style={{
+                    background: pending.length === 2 ? 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' : '#e2e8f0',
+                    color: pending.length === 2 ? '#fff' : '#94a3b8',
+                    border: 'none', borderRadius: '.75rem',
+                    padding: '.55rem 1.5rem', fontWeight: 700, fontSize: '.9rem',
+                    cursor: pending.length === 2 ? 'pointer' : 'not-allowed',
+                    transition: 'all .2s',
+                  }}
+                >
+                  {loadingRep
+                    ? <><span className="spinner-border spinner-border-sm me-2" />Vérification…</>
+                    : pending.length === 2
+                      ? `Valider — ${pending.sort().join(' et ')}`
+                      : `Valider (${pending.length}/2 — A/B et C/D)`}
+                </button>
+              </div>
+            )}
+
+            {loadingRep && !is4 && (
+              <div className="text-center mt-2 text-muted" style={{ fontSize: '.82rem' }}>
+                <span className="spinner-border spinner-border-sm me-1" />Vérification…
+              </div>
+            )}
 
             {/* Feedback */}
             {rep && (
@@ -273,14 +394,12 @@ export default function TravauxDirigesEleve({ onBack }) {
                 fontWeight: 600, fontSize: '.88rem',
               }}>
                 {rep.estCorrecte
-                  ? <><i className="bi bi-check-circle-fill me-2" />Bonne réponse !</>
-                  : <><i className="bi bi-x-circle-fill me-2" />Mauvaise réponse — La bonne réponse était <strong>{rep.bonneReponse}</strong>.</>}
-              </div>
-            )}
-
-            {loadingRep && (
-              <div className="text-center mt-2 text-muted" style={{ fontSize: '.82rem' }}>
-                <span className="spinner-border spinner-border-sm me-1" />Vérification…
+                  ? <><i className="bi bi-check-circle-fill me-2" />{is4 ? 'Parfait ! Vous avez trouvé les 2 bonnes réponses.' : 'Bonne réponse !'}</>
+                  : <><i className="bi bi-x-circle-fill me-2" />
+                      {is4
+                        ? <>Mauvaises réponses — Les bonnes réponses étaient <strong>{bonnes.join(' et ')}</strong>.</>
+                        : <>Mauvaise réponse — La bonne réponse était <strong>{rep.bonneReponse}</strong>.</>}
+                    </>}
               </div>
             )}
 

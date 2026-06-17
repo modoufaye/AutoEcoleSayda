@@ -25,6 +25,7 @@ public class UploadController {
     public void init() throws IOException {
         Files.createDirectories(Paths.get(uploadDir, "images"));
         Files.createDirectories(Paths.get(uploadDir, "videos"));
+        Files.createDirectories(Paths.get(uploadDir, "audios"));
     }
 
     @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -37,6 +38,12 @@ public class UploadController {
     public Map<String, String> uploadVideo(@RequestParam("file") MultipartFile file) throws IOException {
         return saveFile(file, "videos",
                 List.of("video/mp4", "video/webm", "video/ogg", "video/avi", "video/quicktime"));
+    }
+
+    @PostMapping(value = "/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, String> uploadAudio(@RequestParam("file") MultipartFile file) throws IOException {
+        return saveFile(file, "audios",
+                List.of("audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/aac", "audio/webm", "audio/mp4"));
     }
 
     private Map<String, String> saveFile(MultipartFile file, String subDir, List<String> allowed) throws IOException {

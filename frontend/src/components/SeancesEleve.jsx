@@ -39,11 +39,23 @@ function BlocViewer({ bloc }) {
       </video>
     </div>
   )
+  if (bloc.typeBloc === 'AUDIO') return (
+    <div className="mb-4 px-4 py-4 rounded-2xl flex items-center gap-4" style={{ background: '#fdf4ff', border: '1.5px solid #e9d5ff' }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#9333ea' }}>
+        <i className="bi bi-music-note-beamed" style={{ color: '#fff', fontSize: '1.1rem' }} />
+      </div>
+      <audio controls className="flex-1" style={{ accentColor: '#9333ea' }}>
+        <source src={bloc.mediaUrl} />
+        Votre navigateur ne supporte pas la lecture audio.
+      </audio>
+    </div>
+  )
   return null
 }
 
 function blocIcon(blocs) {
   if (blocs.some(b => b.typeBloc === 'VIDEO')) return 'camera-video-fill'
+  if (blocs.some(b => b.typeBloc === 'AUDIO')) return 'music-note-beamed'
   if (blocs.some(b => b.typeBloc === 'IMAGE')) return 'image-fill'
   return 'file-text-fill'
 }
@@ -185,6 +197,7 @@ export default function SeancesEleve({ onBack }) {
             {seances.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((s, idx) => {
               const icon = blocIcon(s.blocs)
               const nVid  = s.blocs.filter(b => b.typeBloc === 'VIDEO').length
+              const nAud  = s.blocs.filter(b => b.typeBloc === 'AUDIO').length
               const nImg  = s.blocs.filter(b => b.typeBloc === 'IMAGE').length
               const nTxt  = s.blocs.filter(b => b.typeBloc === 'TEXTE').length
               return (
@@ -215,7 +228,7 @@ export default function SeancesEleve({ onBack }) {
                       </span>
                       <span className="flex items-center gap-1">
                         <i className="bi bi-layers" />
-                        {[nVid > 0 && `${nVid} vidéo`, nImg > 0 && `${nImg} image`, nTxt > 0 && `${nTxt} texte`].filter(Boolean).join(' · ') || `${s.blocs.length} bloc(s)`}
+                        {[nVid > 0 && `${nVid} vidéo`, nAud > 0 && `${nAud} audio`, nImg > 0 && `${nImg} image`, nTxt > 0 && `${nTxt} texte`].filter(Boolean).join(' · ') || `${s.blocs.length} bloc(s)`}
                       </span>
                     </div>
                   </div>

@@ -16,8 +16,10 @@ import sn.autoecole.repository.QuestionTDRepository;
 import sn.autoecole.repository.ReponseTDRepository;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -54,19 +56,33 @@ public class ExerciceTDController {
             Map<String, Object> q = questionsData.get(i);
             String imageUrl     = (String) q.get("imageUrl");
             String bonneReponse = (String) q.get("bonneReponse");
-            boolean avecOptionC = q.get("avecOptionC") == null || Boolean.TRUE.equals(q.get("avecOptionC"));
+            boolean avecOptionD = Boolean.TRUE.equals(q.get("avecOptionD"));
+            boolean avecOptionC = avecOptionD || q.get("avecOptionC") == null || Boolean.TRUE.equals(q.get("avecOptionC"));
 
             if (imageUrl == null || imageUrl.isBlank())
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image manquante à la question " + (i + 1));
-            if (bonneReponse == null || !List.of("A", "B", "C").contains(bonneReponse))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bonne réponse invalide à la question " + (i + 1));
-            if (!avecOptionC && "C".equals(bonneReponse))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La bonne réponse ne peut pas être C si l'option C est désactivée");
+
+            if (avecOptionD) {
+                // 4 options → 1 bonne réponse parmi A/B et 1 parmi C/D
+                String[] parts = bonneReponse != null ? bonneReponse.split(",") : new String[0];
+                if (parts.length != 2)
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question " + (i + 1) + " : choisissez 1 réponse parmi A/B et 1 parmi C/D");
+                boolean hasAB = Arrays.stream(parts).anyMatch(p -> p.trim().equals("A") || p.trim().equals("B"));
+                boolean hasCD = Arrays.stream(parts).anyMatch(p -> p.trim().equals("C") || p.trim().equals("D"));
+                if (!hasAB || !hasCD)
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question " + (i + 1) + " : 1 bonne réponse parmi A/B et 1 parmi C/D");
+                bonneReponse = normaliser(bonneReponse);
+            } else {
+                List<String> valides = avecOptionC ? List.of("A","B","C") : List.of("A","B");
+                if (bonneReponse == null || !valides.contains(bonneReponse))
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bonne réponse invalide à la question " + (i + 1));
+            }
 
             questions.add(QuestionTD.builder()
                     .exercice(exercice)
                     .imageUrl(imageUrl)
                     .avecOptionC(avecOptionC)
+                    .avecOptionD(avecOptionD)
                     .bonneReponse(bonneReponse)
                     .ordre(i)
                     .build());
@@ -98,8 +114,6 @@ public class ExerciceTDController {
             Authentication auth) {
 
         String reponse = body.get("reponse");
-        if (reponse == null || !List.of("A", "B", "C").contains(reponse))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La réponse doit être A, B ou C");
 
         Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
@@ -107,7 +121,22 @@ public class ExerciceTDController {
         QuestionTD question = questionRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question introuvable"));
 
-        boolean estCorrecte = question.getBonneReponse().equals(reponse);
+        if (question.isAvecOptionD()) {
+            String[] parts = reponse != null ? reponse.split(",") : new String[0];
+            if (parts.length != 2)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez 1 réponse parmi A/B et 1 parmi C/D");
+            boolean hasAB = Arrays.stream(parts).anyMatch(p -> p.trim().equals("A") || p.trim().equals("B"));
+            boolean hasCD = Arrays.stream(parts).anyMatch(p -> p.trim().equals("C") || p.trim().equals("D"));
+            if (!hasAB || !hasCD)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez 1 réponse parmi A/B et 1 parmi C/D");
+            reponse = normaliser(reponse);
+        } else {
+            List<String> valides = question.isAvecOptionC() ? List.of("A","B","C") : List.of("A","B");
+            if (reponse == null || !valides.contains(reponse))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La réponse doit être parmi : " + valides);
+        }
+
+        boolean estCorrecte = normaliser(question.getBonneReponse()).equals(normaliser(reponse));
 
         ReponseTD rep = reponseRepo.findByQuestionIdAndEleveId(id, eleve.getId())
                 .orElse(ReponseTD.builder().question(question).eleve(eleve).build());
@@ -126,5 +155,12 @@ public class ExerciceTDController {
         Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
         return reponseRepo.findByEleveIdOrderByCreatedAtDesc(eleve.getId());
+    }
+
+    private String normaliser(String reponse) {
+        return Arrays.stream(reponse.split(","))
+                .map(String::trim)
+                .sorted()
+                .collect(Collectors.joining(","));
     }
 }

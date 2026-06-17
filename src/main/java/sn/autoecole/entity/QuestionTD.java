@@ -29,7 +29,11 @@ public class QuestionTD {
     @Builder.Default
     private boolean avecOptionC = true;
 
-    @Column(nullable = false, length = 1)
+    @Column(name = "avec_option_d", columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean avecOptionD = false;
+
+    @Column(nullable = false)
     private String bonneReponse;
 
     @Column(nullable = false)

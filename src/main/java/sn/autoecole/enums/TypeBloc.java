@@ -1,3 +1,3 @@
 package sn.autoecole.enums;
 
-public enum TypeBloc { TEXTE, IMAGE, VIDEO }
+public enum TypeBloc { TEXTE, IMAGE, VIDEO, AUDIO }

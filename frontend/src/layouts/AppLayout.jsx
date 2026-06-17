@@ -229,7 +229,9 @@ export default function AppLayout() {
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} />
             : section === 'seances-moniteur' && user?.role === 'SUPER_ADMIN'
-            ? <SeancesMoniteur key="seances-admin" isAdmin={true} />
+            ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={() => handleSectionChange('dashboard')} />
+            : section === 'seances-moniteur'
+            ? <SeancesMoniteur key="seances-moniteur" onBack={() => handleSectionChange('dashboard')} />
             : section === 'seances-eleve'
             ? <SeancesEleve key="seances-eleve" onBack={() => handleSectionChange('mon-espace')} />
             : section === 'examens'
