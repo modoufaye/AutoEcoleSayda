@@ -171,23 +171,6 @@ export default function Parametres() {
               </div>
             </div>
 
-            {/* Logo & Signature */}
-            <div className="row g-4 mb-2">
-              <div className="col-md-6">
-                <UploadZone
-                  label="Logo"
-                  value={form.logoUrl}
-                  onUploaded={url => set('logoUrl', url)}
-                />
-              </div>
-              <div className="col-md-6">
-                <UploadZone
-                  label="Signature"
-                  value={form.signatureUrl}
-                  onUploaded={url => set('signatureUrl', url)}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
