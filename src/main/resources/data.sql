@@ -1,4 +1,11 @@
 -- ══════════════════════════════════════════════════════════
+-- SUPPRESSION DES CONTRAINTES CHECK H2 (enum évolutifs)
+-- ══════════════════════════════════════════════════════════
+ALTER TABLE paiements DROP CONSTRAINT IF EXISTS CONSTRAINT_45;
+ALTER TABLE paiements DROP CONSTRAINT IF EXISTS CONSTRAINT_455;
+ALTER TABLE blocs_contenu DROP CONSTRAINT IF EXISTS CONSTRAINT_A;
+
+-- ══════════════════════════════════════════════════════════
 -- AUTO-ÉCOLE CONFIG
 -- ══════════════════════════════════════════════════════════
 INSERT INTO auto_ecole_config (nom, adresse, telephone, email, logo_url, signature_url, tarif_inscription, tarif_heure_code, tarif_heure_conduite)
