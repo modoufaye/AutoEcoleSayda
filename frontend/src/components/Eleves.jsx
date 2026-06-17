@@ -254,6 +254,7 @@ export default function Eleves({ initialEleveId }) {
   const [filtered, setFiltered]   = useState([])
   const [search, setSearch]       = useState('')
   const [statut, setStatut]       = useState('')
+  const [nouveauMois, setNouveauMois] = useState(false)
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
@@ -292,9 +293,17 @@ export default function Eleves({ initialEleveId }) {
       r = r.filter(e => `${e.nom} ${e.prenom} ${e.telephone}`.toLowerCase().includes(t))
     }
     if (statut) r = r.filter(e => e.statut === statut)
+    if (nouveauMois) {
+      const now = new Date()
+      r = r.filter(e => {
+        if (!e.dateInscription) return false
+        const d = new Date(e.dateInscription)
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+      })
+    }
     setFiltered(r)
     setPage(1)
-  }, [search, statut, list])
+  }, [search, statut, nouveauMois, list])
 
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
@@ -766,6 +775,15 @@ export default function Eleves({ initialEleveId }) {
           <option value="">Tous les statuts</option>
           {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
+        <button
+          onClick={() => setNouveauMois(v => !v)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 cursor-pointer transition-all"
+          style={nouveauMois
+            ? { background: '#eff6ff', borderColor: '#3b82f6', color: '#2563eb' }
+            : { background: '#f8fafc', borderColor: '#e2e8f0', color: '#64748b' }}>
+          <i className="bi bi-calendar-check" style={{ fontSize: '.85rem' }} />
+          Nouveaux ce mois
+        </button>
       </div>
 
       {/* Tableau */}
