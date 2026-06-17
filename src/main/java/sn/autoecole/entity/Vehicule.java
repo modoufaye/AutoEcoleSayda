@@ -6,6 +6,8 @@ import lombok.*;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.StatutVehicule;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "vehicules")
 @Getter @Setter
@@ -46,4 +48,6 @@ public class Vehicule {
     private StatutVehicule statut = StatutVehicule.DISPONIBLE;
 
     private String observations;
+
+    private LocalDate prochainEntretien;
 }

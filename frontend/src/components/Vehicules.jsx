@@ -9,7 +9,18 @@ const PAGE_SIZE = 10
 const EMPTY = {
   immatriculation: '', marque: '', modele: '',
   annee: new Date().getFullYear(), categorie: '',
-  kilometrage: 0, statut: 'DISPONIBLE', observations: ''
+  kilometrage: 0, statut: 'DISPONIBLE', observations: '',
+  prochainEntretien: ''
+}
+
+function entretienStyle(dateStr) {
+  if (!dateStr) return null
+  const today = new Date(); today.setHours(0,0,0,0)
+  const d = new Date(dateStr)
+  const diff = Math.floor((d - today) / 86400000)
+  if (diff < 0)  return { bg: '#fee2e2', color: '#b91c1c', dot: '#dc2626', label: 'En retard' }
+  if (diff <= 30) return { bg: '#fef9c3', color: '#a16207', dot: '#ca8a04', label: 'Bientôt' }
+  return { bg: '#dcfce7', color: '#15803d', dot: '#16a34a', label: 'OK' }
 }
 
 const STATUT_V = {
@@ -62,7 +73,8 @@ export default function Vehicules() {
       setForm({
         immatriculation: v.immatriculation, marque: v.marque, modele: v.modele,
         annee: v.annee, categorie: v.categorie, kilometrage: v.kilometrage,
-        statut: v.statut, observations: v.observations || ''
+        statut: v.statut, observations: v.observations || '',
+        prochainEntretien: v.prochainEntretien || ''
       })
     } else {
       setEditId(null); setForm(EMPTY)
@@ -169,9 +181,9 @@ export default function Vehicules() {
           <table className="w-full">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Immatriculation', 'Marque / Modèle', 'Année', 'Catégorie', 'Kilométrage', 'Statut', 'Actions'].map((h, i) => (
+                {['#', 'Immatriculation', 'Marque / Modèle', 'Année', 'Catégorie', 'Kilométrage', 'Prochain entretien', 'Statut', 'Actions'].map((h, i) => (
                   <th key={h}
-                    className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 7 ? 'text-right' : i === 0 ? 'text-center w-10' : 'text-left'}`}>
+                    className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 8 ? 'text-right' : i === 0 ? 'text-center w-10' : 'text-left'}`}>
                     {h}
                   </th>
                 ))}
@@ -180,7 +192,7 @@ export default function Vehicules() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="py-16 text-center">
+                  <td colSpan="9" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-8 h-8 border-4 border-slate-100 border-t-[#2dd4bf] rounded-full animate-spin" />
                       <span className="text-sm text-slate-400 font-medium">Chargement…</span>
@@ -189,7 +201,7 @@ export default function Vehicules() {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-16 text-center">
+                  <td colSpan="9" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
                         style={{ background: '#f1f5f9' }}>
@@ -201,6 +213,7 @@ export default function Vehicules() {
                 </tr>
               ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((v, i) => {
                 const st = STATUT_V[v.statut] || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: v.statut }
+                const ent = entretienStyle(v.prochainEntretien)
                 const isEven = i % 2 === 0
                 return (
                   <tr key={v.id}
@@ -232,6 +245,24 @@ export default function Vehicules() {
                       <span className="text-sm text-slate-600">
                         {v.kilometrage.toLocaleString('fr-SN')} km
                       </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {v.prochainEntretien ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm text-slate-700 font-medium">
+                            {new Date(v.prochainEntretien).toLocaleDateString('fr-SN', { day:'2-digit', month:'short', year:'numeric' })}
+                          </span>
+                          {ent && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full w-fit"
+                              style={{ background: ent.bg, color: ent.color }}>
+                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: ent.dot }} />
+                              {ent.label}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-300 italic">Non défini</span>
+                      )}
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
@@ -329,7 +360,21 @@ export default function Vehicules() {
                       <option value="HORS_SERVICE">Hors service</option>
                     </select>
                   </div>
-                  <div className="col-12">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Prochain entretien</label>
+                    <input type="date" className={inputCls} value={form.prochainEntretien}
+                      onChange={e => setForm(f => ({ ...f, prochainEntretien: e.target.value }))} />
+                    {form.prochainEntretien && (() => {
+                      const s = entretienStyle(form.prochainEntretien)
+                      return s ? (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
+                          <span className="text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
+                        </div>
+                      ) : null
+                    })()}
+                  </div>
+                  <div className="col-md-6">
                     <label className={labelCls}>Observations</label>
                     <textarea className={inputCls} rows="2" value={form.observations}
                       style={{ resize: 'vertical' }}

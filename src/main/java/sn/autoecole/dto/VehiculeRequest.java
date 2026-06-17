@@ -5,6 +5,8 @@ import lombok.Data;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.StatutVehicule;
 
+import java.time.LocalDate;
+
 @Data
 public class VehiculeRequest {
 
@@ -29,4 +31,6 @@ public class VehiculeRequest {
     private StatutVehicule statut;
 
     private String observations;
+
+    private LocalDate prochainEntretien;
 }
