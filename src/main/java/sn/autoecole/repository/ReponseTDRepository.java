@@ -10,4 +10,5 @@ public interface ReponseTDRepository extends JpaRepository<ReponseTD, Long> {
     List<ReponseTD> findByEleveIdOrderByCreatedAtDesc(Long eleveId);
     Optional<ReponseTD> findByQuestionIdAndEleveId(Long questionId, Long eleveId);
     void deleteByQuestionExerciceId(Long exerciceId);
+    void deleteByQuestionExerciceIdAndEleveId(Long exerciceId, Long eleveId);
 }

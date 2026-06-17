@@ -196,6 +196,17 @@ public class ExerciceTDController {
         ));
     }
 
+    @Transactional
+    @DeleteMapping("/api/eleve/exercices-td/{exId}/mes-reponses")
+    public ResponseEntity<Void> reinitialiserReponses(@PathVariable Long exId, Authentication auth) {
+        Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
+        exerciceRepo.findById(exId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice introuvable"));
+        reponseRepo.deleteByQuestionExerciceIdAndEleveId(exId, eleve.getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/api/eleve/exercices-td/mes-reponses")
     public List<ReponseTD> mesReponses(Authentication auth) {
         Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
