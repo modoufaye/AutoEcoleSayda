@@ -18,6 +18,7 @@ import MonProfil from '../components/MonProfil'
 import MesPaiements from '../components/MesPaiements'
 import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
 import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
+import TravauxDirigesAdmin from '../components/TravauxDirigesAdmin'
 import Parametres from '../components/Parametres'
 
 const ALL_SECTIONS = [
@@ -33,7 +34,8 @@ const ALL_SECTIONS = [
   { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ELEVE'] },
   { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN'] },
   { key: 'mes-paiements',   label: 'Mes Paiements',    icon: 'cash-stack',            color: '#4ade80', roles: ['ELEVE'] },
-  { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR', 'SUPER_ADMIN'] },
+  { key: 'td-admin',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['SUPER_ADMIN'] },
+  { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR'] },
   { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN'] },
@@ -46,6 +48,7 @@ const COMPONENTS = {
   examens: Examens, paiements: Paiements, 'mes-paiements': MesPaiements,
   'seances-moniteur': SeancesMoniteur,
   'seances-eleve': SeancesEleve,
+  'td-admin': TravauxDirigesAdmin,
   'td-moniteur': TravauxDirigesMoniteur,
   'td-eleve': TravauxDirigesEleve,
   'mon-profil': MonProfil,
@@ -248,6 +251,8 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : undefined} />
             : section === 'mes-paiements'
             ? <ActiveComponent key={section} onBack={() => handleSectionChange('mon-espace')} />
+            : section === 'td-admin'
+            ? <TravauxDirigesAdmin key="td-admin" />
             : section === 'td-moniteur'
             ? <TravauxDirigesMoniteur key="td-moniteur" onBack={() => handleSectionChange('dashboard')} />
             : section === 'td-eleve'

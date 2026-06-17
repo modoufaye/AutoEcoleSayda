@@ -27,6 +27,9 @@ INSERT INTO moniteurs (nom, prenom, telephone, email, numero_cni, numero_permis,
 SELECT 'Mbaye', 'Ibrahima', '773456789', 'ibrahima.mbaye@autoecole.sn', '1122334455667', 'SN-C-001', '2019-06-01', true
 WHERE NOT EXISTS (SELECT 1 FROM moniteurs WHERE telephone = '773456789');
 
+-- Rattache les TDs sans moniteur au premier moniteur du système
+UPDATE groupes_td SET moniteur_id = (SELECT MIN(id) FROM moniteurs) WHERE moniteur_id IS NULL;
+
 -- Catégories des moniteurs
 INSERT INTO moniteur_categories (moniteur_id, categorie)
 SELECT m.id, 'B' FROM moniteurs m WHERE m.telephone = '771234567'

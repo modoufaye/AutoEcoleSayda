@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import '../landing.css'
 
@@ -19,6 +20,7 @@ const STATUT_CFG = {
 const PAGE_SIZE = 10
 
 export default function MesPaiements({ onBack }) {
+  const { user } = useAuth()
   const [paiements, setPaiements] = useState([])
   const [loading, setLoading]     = useState(true)
   const [page, setPage]           = useState(1)
@@ -70,10 +72,9 @@ export default function MesPaiements({ onBack }) {
             <i className="bi bi-cash-stack" style={{ color: '#fff', fontSize: '1.3rem' }} />
           </div>
           <div className="flex-1">
-            <div className="text-xl font-extrabold text-white">Mes Paiements</div>
-            <div className="text-sm mt-0.5" style={{ color: 'rgba(187,247,208,.85)' }}>
-              {paiements.length} paiement{paiements.length > 1 ? 's' : ''} enregistré{paiements.length > 1 ? 's' : ''}
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(187,247,208,.7)' }}>Mes Paiements</div>
+            <div className="text-xl font-extrabold text-white leading-tight">{user?.nom}</div>
+            {user?.email && <div className="text-sm mt-0.5" style={{ color: 'rgba(187,247,208,.85)' }}>{user.email}</div>}
           </div>
           <div className="text-right flex-shrink-0">
             <div className="text-xs font-semibold mb-0.5" style={{ color: 'rgba(187,247,208,.8)' }}>Total payé</div>

@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.ExerciceTD;
+import sn.autoecole.entity.Moniteur;
 import sn.autoecole.entity.QuestionTD;
 import sn.autoecole.entity.ReponseTD;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.ExerciceTDRepository;
+import sn.autoecole.repository.MoniteurRepository;
 import sn.autoecole.repository.QuestionTDRepository;
 import sn.autoecole.repository.ReponseTDRepository;
 
@@ -30,6 +32,7 @@ public class ExerciceTDController {
     private final QuestionTDRepository questionRepo;
     private final ReponseTDRepository  reponseRepo;
     private final EleveRepository      eleveRepository;
+    private final MoniteurRepository   moniteurRepository;
 
     // ── Moniteur / Admin ──────────────────────────────────────────────────────
 
@@ -39,7 +42,7 @@ public class ExerciceTDController {
     }
 
     @PostMapping("/api/moniteur/exercices-td")
-    public ResponseEntity<ExerciceTD> creer(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<ExerciceTD> creer(@RequestBody Map<String, Object> body, Authentication auth) {
         String titre = (String) body.get("titre");
         if (titre == null || titre.isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le titre est obligatoire");
@@ -49,7 +52,11 @@ public class ExerciceTDController {
         if (questionsData == null || questionsData.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins une question est requise");
 
-        ExerciceTD exercice = ExerciceTD.builder().titre(titre).build();
+        Moniteur moniteur = auth != null
+                ? moniteurRepository.findByEmailIgnoreCase(auth.getName()).orElse(null)
+                : null;
+
+        ExerciceTD exercice = ExerciceTD.builder().titre(titre).moniteur(moniteur).build();
         exercice = exerciceRepo.save(exercice);
 
         List<QuestionTD> questions = new ArrayList<>();
@@ -144,6 +151,36 @@ public class ExerciceTDController {
         reponseRepo.deleteByQuestionExerciceId(ex.getId());
         exerciceRepo.delete(ex);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Admin ─────────────────────────────────────────────────────────────────
+
+    @GetMapping("/api/admin/exercices-td")
+    public List<Map<String, Object>> listerPourAdmin() {
+        List<ExerciceTD> exercices = exerciceRepo.findAllByOrderByCreatedAtDesc();
+        return exercices.stream().map(ex -> {
+            List<Eleve> elevesDistincts = reponseRepo.findDistinctElevesByExerciceId(ex.getId());
+            Map<String, Object> dto = new java.util.LinkedHashMap<>();
+            dto.put("id", ex.getId());
+            dto.put("titre", ex.getTitre());
+            dto.put("nbQuestions", ex.getQuestions().size());
+            dto.put("createdAt", ex.getCreatedAt());
+            if (ex.getMoniteur() != null) {
+                dto.put("moniteur", Map.of(
+                        "id", ex.getMoniteur().getId(),
+                        "nom", ex.getMoniteur().getNom(),
+                        "prenom", ex.getMoniteur().getPrenom()
+                ));
+            } else {
+                dto.put("moniteur", null);
+            }
+            dto.put("eleves", elevesDistincts.stream().map(e -> Map.of(
+                    "id", e.getId(),
+                    "nom", e.getNom(),
+                    "prenom", e.getPrenom()
+            )).collect(Collectors.toList()));
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     // ── Élève ─────────────────────────────────────────────────────────────────

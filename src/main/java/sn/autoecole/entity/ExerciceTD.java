@@ -23,6 +23,10 @@ public class ExerciceTD {
     @Column(nullable = false)
     private String titre;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "moniteur_id")
+    private Moniteur moniteur;
+
     @OneToMany(mappedBy = "exercice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @OrderBy("ordre ASC")
     @Builder.Default
