@@ -527,12 +527,6 @@ export default function Eleves({ initialEleveId }) {
             style={{ background: 'radial-gradient(circle, #d4a017 0%, transparent 70%)' }} />
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <button onClick={closeProfile}
-                className="flex items-center gap-1.5 text-blue-200 hover:text-white text-sm font-medium transition-colors border-0 bg-transparent cursor-pointer">
-                <i className="bi bi-arrow-left" />
-                <span className="hidden sm:inline">Retour</span>
-              </button>
-              <div className="w-px h-6 bg-white/20" />
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-extrabold flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
                 {initials(s.nom, s.prenom)}
