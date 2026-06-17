@@ -91,6 +91,39 @@ public class ExerciceTDController {
         return ResponseEntity.status(HttpStatus.CREATED).body(exerciceRepo.findById(exercice.getId()).orElseThrow());
     }
 
+    @PutMapping("/api/moniteur/exercices-td/questions/{id}")
+    public ResponseEntity<QuestionTD> modifierQuestion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        QuestionTD q = questionRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question introuvable"));
+
+        boolean avecOptionD = Boolean.TRUE.equals(body.get("avecOptionD"));
+        boolean avecOptionC = avecOptionD || Boolean.TRUE.equals(body.get("avecOptionC"));
+        String bonneReponse = (String) body.get("bonneReponse");
+        String imageUrl     = (String) body.get("imageUrl");
+
+        if (avecOptionD) {
+            String[] parts = bonneReponse != null ? bonneReponse.split(",") : new String[0];
+            if (parts.length != 2)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez 1 réponse parmi A/B et 1 parmi C/D");
+            boolean hasAB = Arrays.stream(parts).anyMatch(p -> p.trim().equals("A") || p.trim().equals("B"));
+            boolean hasCD = Arrays.stream(parts).anyMatch(p -> p.trim().equals("C") || p.trim().equals("D"));
+            if (!hasAB || !hasCD)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez 1 réponse parmi A/B et 1 parmi C/D");
+            bonneReponse = normaliser(bonneReponse);
+        } else {
+            List<String> valides = avecOptionC ? List.of("A","B","C") : List.of("A","B");
+            if (bonneReponse == null || !valides.contains(bonneReponse))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bonne réponse invalide");
+        }
+
+        q.setAvecOptionC(avecOptionC);
+        q.setAvecOptionD(avecOptionD);
+        q.setBonneReponse(bonneReponse);
+        if (imageUrl != null && !imageUrl.isBlank()) q.setImageUrl(imageUrl);
+
+        return ResponseEntity.ok(questionRepo.save(q));
+    }
+
     @DeleteMapping("/api/moniteur/exercices-td/{id}")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         ExerciceTD ex = exerciceRepo.findById(id)

@@ -21,6 +21,8 @@ export default function TravauxDirigesMoniteur({ onBack }) {
   const [titre, setTitre]         = useState('')
   const [questions, setQuestions] = useState([emptyQuestion()])
   const [saving, setSaving]       = useState(false)
+  const [editingQ, setEditingQ]   = useState(null)
+  // editingQ = { exId, qId, qIdx, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
 
   useEffect(() => { charger() }, [])
 
@@ -31,23 +33,22 @@ export default function TravauxDirigesMoniteur({ onBack }) {
     finally { setLoading(false) }
   }
 
+  // ── Création ─────────────────────────────────────────────────────────────
+
   function openForm() {
     setTitre('')
     setQuestions([emptyQuestion()])
     setShowForm(true)
+    setEditingQ(null)
   }
 
   function updateQuestion(i, field, value) {
     setQuestions(qs => qs.map((q, idx) => idx === i ? { ...q, [field]: value } : q))
   }
 
-  function addQuestion() {
-    setQuestions(qs => [...qs, emptyQuestion()])
-  }
+  function addQuestion() { setQuestions(qs => [...qs, emptyQuestion()]) }
 
-  function removeQuestion(i) {
-    setQuestions(qs => qs.filter((_, idx) => idx !== i))
-  }
+  function removeQuestion(i) { setQuestions(qs => qs.filter((_, idx) => idx !== i)) }
 
   async function handleImage(i, e) {
     const file = e.target.files[0]
@@ -65,15 +66,12 @@ export default function TravauxDirigesMoniteur({ onBack }) {
     }
   }
 
-  // Sélection dans les 2 paires A/B et C/D
   function toggleBonneReponse4(i, r) {
     setQuestions(qs => qs.map((q, idx) => {
       if (idx !== i) return q
       const current = q.bonneReponse ? q.bonneReponse.split(',') : []
       const isAB = r === 'A' || r === 'B'
-      // Retire la sélection courante du même groupe
       const filtered = current.filter(x => isAB ? x !== 'A' && x !== 'B' : x !== 'C' && x !== 'D')
-      // Toggle : si déjà sélectionné → désélectionner, sinon → sélectionner
       const next = current.includes(r) ? filtered : [...filtered, r].sort()
       return { ...q, bonneReponse: next.join(',') }
     }))
@@ -116,8 +114,92 @@ export default function TravauxDirigesMoniteur({ onBack }) {
       await api('DELETE', `/moniteur/exercices-td/${id}`)
       toast('Exercice supprimé')
       setExercices(prev => prev.filter(e => e.id !== id))
+      if (editingQ?.exId === id) setEditingQ(null)
     } catch (e) { toast(e.message, 'danger') }
   }
+
+  // ── Édition d'une question ────────────────────────────────────────────────
+
+  function openEdit(exId, q, qIdx) {
+    if (editingQ?.qId === q.id) { setEditingQ(null); return }
+    setEditingQ({
+      exId, qIdx, qId: q.id,
+      avecOptionC: q.avecOptionC,
+      avecOptionD: q.avecOptionD,
+      bonneReponse: q.bonneReponse,
+      imageUrl: q.imageUrl,
+      uploading: false, uploadError: '', saving: false,
+    })
+  }
+
+  function updateEditQ(field, value) {
+    setEditingQ(prev => prev ? { ...prev, [field]: value } : prev)
+  }
+
+  function toggleBonneReponse4Edit(r) {
+    setEditingQ(prev => {
+      if (!prev) return prev
+      const current = prev.bonneReponse ? prev.bonneReponse.split(',') : []
+      const isAB = r === 'A' || r === 'B'
+      const filtered = current.filter(x => isAB ? x !== 'A' && x !== 'B' : x !== 'C' && x !== 'D')
+      const next = current.includes(r) ? filtered : [...filtered, r].sort()
+      return { ...prev, bonneReponse: next.join(',') }
+    })
+  }
+
+  async function handleEditImage(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    updateEditQ('uploading', true)
+    updateEditQ('uploadError', '')
+    try {
+      const res = await uploadFile('/moniteur/upload/image', file)
+      updateEditQ('imageUrl', res.url)
+    } catch (err) {
+      updateEditQ('uploadError', err.message || 'Erreur upload')
+    } finally {
+      updateEditQ('uploading', false)
+    }
+  }
+
+  async function handleEditSave() {
+    if (!editingQ) return
+    if (editingQ.avecOptionD) {
+      const parts = editingQ.bonneReponse ? editingQ.bonneReponse.split(',') : []
+      if (parts.length !== 2) { toast('Choisissez 1 réponse parmi A/B et 1 parmi C/D', 'warning'); return }
+    } else {
+      if (!editingQ.bonneReponse) { toast('Choisissez la bonne réponse', 'warning'); return }
+    }
+    updateEditQ('saving', true)
+    try {
+      await api('PUT', `/moniteur/exercices-td/questions/${editingQ.qId}`, {
+        avecOptionC: editingQ.avecOptionD ? true : editingQ.avecOptionC,
+        avecOptionD: editingQ.avecOptionD,
+        bonneReponse: editingQ.bonneReponse,
+        imageUrl: editingQ.imageUrl,
+      })
+      toast('Question modifiée')
+      setExercices(prev => prev.map(ex => {
+        if (ex.id !== editingQ.exId) return ex
+        return {
+          ...ex,
+          questions: ex.questions.map(q => q.id !== editingQ.qId ? q : {
+            ...q,
+            avecOptionC: editingQ.avecOptionD ? true : editingQ.avecOptionC,
+            avecOptionD: editingQ.avecOptionD,
+            bonneReponse: editingQ.bonneReponse,
+            imageUrl: editingQ.imageUrl,
+          }),
+        }
+      }))
+      setEditingQ(null)
+    } catch (e) {
+      toast(e.message, 'danger')
+      updateEditQ('saving', false)
+    }
+  }
+
+  // ── Rendu ─────────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -158,7 +240,6 @@ export default function TravauxDirigesMoniteur({ onBack }) {
               <i className="bi bi-pencil-square me-2 text-warning" />Nouvel exercice
             </h6>
 
-            {/* Titre */}
             <div className="mb-4">
               <label className="form-label fw-semibold" style={{ fontSize: '.85rem', color: '#475569' }}>
                 Titre de l'exercice <span className="text-danger">*</span>
@@ -170,23 +251,17 @@ export default function TravauxDirigesMoniteur({ onBack }) {
               />
             </div>
 
-            {/* Questions */}
             <div className="mb-3">
               <label className="form-label fw-semibold" style={{ fontSize: '.85rem', color: '#475569' }}>
                 Questions
               </label>
 
               {questions.map((q, i) => {
-                const options4 = q.avecOptionD ? ['A','B','C','D'] : null
-                const options3 = !q.avecOptionD ? ['A','B','C'] : null
                 const selected4 = q.avecOptionD ? (q.bonneReponse ? q.bonneReponse.split(',') : []) : []
-
                 return (
                   <div key={i} className="mb-4 p-3 rounded-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
                     <div className="d-flex align-items-center justify-content-between mb-3">
-                      <span className="fw-bold" style={{ color: '#1e3a5f', fontSize: '.85rem' }}>
-                        Question {i + 1}
-                      </span>
+                      <span className="fw-bold" style={{ color: '#1e3a5f', fontSize: '.85rem' }}>Question {i + 1}</span>
                       {questions.length > 1 && (
                         <button onClick={() => removeQuestion(i)} style={{
                           background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
@@ -197,7 +272,6 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                       )}
                     </div>
 
-                    {/* Upload image */}
                     <div className="mb-3">
                       <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#64748b' }}>
                         Image <span className="text-danger">*</span>
@@ -228,9 +302,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                       )}
                     </div>
 
-                    {/* Options */}
                     <div className="mb-3 d-flex flex-wrap gap-3">
-                      {/* Option C */}
                       <div className="d-flex align-items-center gap-2">
                         <input type="checkbox" id={`optionC-${i}`}
                           checked={q.avecOptionD ? true : q.avecOptionC}
@@ -243,11 +315,8 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                         <label htmlFor={`optionC-${i}`} style={{
                           fontSize: '.82rem', color: q.avecOptionD ? '#94a3b8' : '#475569',
                           fontWeight: 600, cursor: q.avecOptionD ? 'not-allowed' : 'pointer', marginBottom: 0,
-                        }}>
-                          Inclure l'option C
-                        </label>
+                        }}>Inclure l'option C</label>
                       </div>
-                      {/* Option D */}
                       <div className="d-flex align-items-center gap-2">
                         <input type="checkbox" id={`optionD-${i}`} checked={q.avecOptionD}
                           onChange={e => {
@@ -256,70 +325,39 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                             updateQuestion(i, 'bonneReponse', '')
                           }}
                           style={{ width: 16, height: 16, cursor: 'pointer' }} />
-                        <label htmlFor={`optionD-${i}`} style={{
-                          fontSize: '.82rem', color: '#475569', fontWeight: 600, cursor: 'pointer', marginBottom: 0,
-                        }}>
+                        <label htmlFor={`optionD-${i}`} style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, cursor: 'pointer', marginBottom: 0 }}>
                           Inclure l'option D
                         </label>
-                        {q.avecOptionD && (
-                          <span style={{ fontSize: '.75rem', color: '#8b5cf6', fontWeight: 600 }}>→ 2 bonnes réponses</span>
-                        )}
+                        {q.avecOptionD && <span style={{ fontSize: '.75rem', color: '#8b5cf6', fontWeight: 600 }}>→ 2 bonnes réponses</span>}
                       </div>
                     </div>
 
-                    {/* Bonne(s) réponse(s) */}
                     <div>
                       <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#64748b' }}>
                         {q.avecOptionD ? 'Bonnes réponses (choisissez 2)' : 'Bonne réponse'} <span className="text-danger">*</span>
                       </label>
-
                       {q.avecOptionD ? (
-                        /* Mode 4 options : 1 réponse parmi A/B + 1 parmi C/D */
                         <div className="d-flex flex-column gap-3">
-                          {/* Paire A / B */}
-                          <div>
-                            <div className="mb-1" style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                              Entre A et B :
+                          {[['A','B'], ['C','D']].map(([r1, r2], gi) => (
+                            <div key={gi}>
+                              <div className="mb-1" style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 600 }}>Entre {r1} et {r2} :</div>
+                              <div className="d-flex gap-2">
+                                {[r1, r2].map(r => {
+                                  const c = BTN_COLORS[r]
+                                  const sel = selected4.includes(r)
+                                  return (
+                                    <button key={r} onClick={() => toggleBonneReponse4(i, r)} style={{
+                                      width: 48, height: 48, borderRadius: '.75rem', fontWeight: 800, fontSize: '1.1rem',
+                                      border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
+                                      background: sel ? c.base : c.light, color: sel ? '#fff' : c.text,
+                                      cursor: 'pointer', transition: 'all .15s',
+                                      boxShadow: sel ? `0 4px 10px ${c.base}44` : 'none',
+                                    }}>{r}</button>
+                                  )
+                                })}
+                              </div>
                             </div>
-                            <div className="d-flex gap-2">
-                              {['A','B'].map(r => {
-                                const c = BTN_COLORS[r]
-                                const sel = selected4.includes(r)
-                                return (
-                                  <button key={r} onClick={() => toggleBonneReponse4(i, r)} style={{
-                                    width: 48, height: 48, borderRadius: '.75rem', fontWeight: 800, fontSize: '1.1rem',
-                                    border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
-                                    background: sel ? c.base : c.light,
-                                    color: sel ? '#fff' : c.text,
-                                    cursor: 'pointer', transition: 'all .15s',
-                                    boxShadow: sel ? `0 4px 10px ${c.base}44` : 'none',
-                                  }}>{r}</button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                          {/* Paire C / D */}
-                          <div>
-                            <div className="mb-1" style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                              Entre C et D :
-                            </div>
-                            <div className="d-flex gap-2">
-                              {['C','D'].map(r => {
-                                const c = BTN_COLORS[r]
-                                const sel = selected4.includes(r)
-                                return (
-                                  <button key={r} onClick={() => toggleBonneReponse4(i, r)} style={{
-                                    width: 48, height: 48, borderRadius: '.75rem', fontWeight: 800, fontSize: '1.1rem',
-                                    border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
-                                    background: sel ? c.base : c.light,
-                                    color: sel ? '#fff' : c.text,
-                                    cursor: 'pointer', transition: 'all .15s',
-                                    boxShadow: sel ? `0 4px 10px ${c.base}44` : 'none',
-                                  }}>{r}</button>
-                                )
-                              })}
-                            </div>
-                          </div>
+                          ))}
                           {selected4.length === 2 && (
                             <div style={{ fontSize: '.78rem', color: '#8b5cf6', fontWeight: 600 }}>
                               <i className="bi bi-check-circle-fill me-1" />Bonnes réponses : {selected4.join(' et ')}
@@ -327,7 +365,6 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                           )}
                         </div>
                       ) : (
-                        /* Mode 2 ou 3 options : sélection unique */
                         <div className="d-flex gap-2">
                           {['A', 'B', ...(q.avecOptionC ? ['C'] : [])].map(r => {
                             const c = BTN_COLORS[r]
@@ -336,8 +373,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                               <button key={r} onClick={() => updateQuestion(i, 'bonneReponse', r)} style={{
                                 width: 48, height: 48, borderRadius: '.75rem', fontWeight: 800, fontSize: '1.1rem',
                                 border: selected ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
-                                background: selected ? c.base : c.light,
-                                color: selected ? '#fff' : c.text,
+                                background: selected ? c.base : c.light, color: selected ? '#fff' : c.text,
                                 cursor: 'pointer', transition: 'all .15s',
                                 boxShadow: selected ? `0 4px 10px ${c.base}44` : 'none',
                               }}>{r}</button>
@@ -394,6 +430,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
           {exercices.map((ex, ei) => (
             <div key={ex.id} className="card border-0 shadow-sm" style={{ borderRadius: '1rem' }}>
               <div className="card-body p-0">
+
                 {/* En-tête exercice */}
                 <div className="d-flex align-items-center justify-content-between px-4 py-3"
                   style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '1rem 1rem 0 0' }}>
@@ -413,39 +450,195 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                   }}><i className="bi bi-trash3" /></button>
                 </div>
 
-                {/* Questions */}
+                {/* Questions miniatures */}
                 <div className="d-flex gap-3 p-3 flex-wrap">
                   {(ex.questions || []).map((q, qi) => {
                     const bonnes = q.bonneReponse ? q.bonneReponse.split(',') : []
+                    const isEditing = editingQ?.qId === q.id
                     return (
                       <div key={q.id} style={{
-                        background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
-                        overflow: 'hidden', width: 140, flexShrink: 0,
+                        background: isEditing ? '#eff6ff' : '#fff',
+                        border: `1.5px solid ${isEditing ? '#3b82f6' : '#e2e8f0'}`,
+                        borderRadius: '.75rem', overflow: 'hidden', width: 140, flexShrink: 0,
+                        transition: 'border-color .15s, background .15s',
                       }}>
                         <img src={q.imageUrl} alt={`Q${qi + 1}`}
                           style={{ width: '100%', height: 90, objectFit: 'contain', background: '#f8fafc', padding: '.5rem' }} />
-                        <div className="d-flex align-items-center justify-content-between px-2 py-1.5">
+                        <div className="d-flex align-items-center justify-content-between px-2 py-1" style={{ gap: 4 }}>
                           <span style={{ fontSize: '.72rem', color: '#94a3b8', fontWeight: 600 }}>Q{qi + 1}</span>
                           <div className="d-flex gap-1 align-items-center">
-                            {!q.avecOptionC && !q.avecOptionD && (
-                              <span style={{ fontSize: '.65rem', color: '#94a3b8' }}>A/B</span>
-                            )}
                             {bonnes.map(b => {
                               const c = BTN_COLORS[b] || BTN_COLORS.A
                               return (
                                 <span key={b} style={{
-                                  width: 22, height: 22, borderRadius: '.35rem', display: 'flex',
+                                  width: 20, height: 20, borderRadius: '.3rem', display: 'flex',
                                   alignItems: 'center', justifyContent: 'center',
-                                  background: c.base, color: '#fff', fontWeight: 800, fontSize: '.75rem',
+                                  background: c.base, color: '#fff', fontWeight: 800, fontSize: '.7rem',
                                 }}>{b}</span>
                               )
                             })}
+                            {/* Bouton crayon */}
+                            <button
+                              onClick={() => openEdit(ex.id, q, qi)}
+                              title="Modifier les choix"
+                              style={{
+                                background: isEditing ? '#3b82f6' : '#f1f5f9',
+                                color: isEditing ? '#fff' : '#64748b',
+                                border: 'none', borderRadius: '.3rem',
+                                width: 22, height: 22, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: 0, fontSize: '.68rem', transition: 'all .15s',
+                              }}
+                            >
+                              <i className={`bi bi-${isEditing ? 'x-lg' : 'pencil-fill'}`} />
+                            </button>
                           </div>
                         </div>
                       </div>
                     )
                   })}
                 </div>
+
+                {/* Panneau d'édition inline */}
+                {editingQ && editingQ.exId === ex.id && (() => {
+                  const sel4 = editingQ.bonneReponse ? editingQ.bonneReponse.split(',') : []
+                  return (
+                    <div className="px-3 pb-3">
+                      <div className="p-3 rounded-3" style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe' }}>
+                        <div className="fw-bold mb-3" style={{ color: '#1e3a5f', fontSize: '.85rem' }}>
+                          <i className="bi bi-pencil-square me-2" style={{ color: '#3b82f6' }} />
+                          Modifier Question {editingQ.qIdx + 1}
+                        </div>
+
+                        {/* Image (optionnel — conserver ou remplacer) */}
+                        <div className="mb-3">
+                          <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#64748b' }}>
+                            Image (optionnel — laisser vide pour garder l'actuelle)
+                          </label>
+                          <div className="d-flex align-items-center gap-3 mb-2 flex-wrap">
+                            <img src={editingQ.imageUrl} alt=""
+                              style={{ height: 60, maxWidth: 100, objectFit: 'contain', borderRadius: '.5rem', border: '1.5px solid #e2e8f0', background: '#f8fafc', padding: 4 }} />
+                            <input type="file" accept="image/*" className="form-control form-control-sm"
+                              style={{ borderRadius: '.6rem', maxWidth: 260 }}
+                              onChange={handleEditImage} disabled={editingQ.uploading} />
+                          </div>
+                          {editingQ.uploading && (
+                            <div className="text-muted" style={{ fontSize: '.8rem' }}>
+                              <span className="spinner-border spinner-border-sm me-1" />Chargement…
+                            </div>
+                          )}
+                          {editingQ.uploadError && (
+                            <div style={{ color: '#dc2626', fontSize: '.8rem' }}>{editingQ.uploadError}</div>
+                          )}
+                        </div>
+
+                        {/* Options C / D */}
+                        <div className="mb-3 d-flex flex-wrap gap-3">
+                          <div className="d-flex align-items-center gap-2">
+                            <input type="checkbox" id="edit-optC"
+                              checked={editingQ.avecOptionD ? true : editingQ.avecOptionC}
+                              disabled={editingQ.avecOptionD}
+                              onChange={e => {
+                                updateEditQ('avecOptionC', e.target.checked)
+                                if (!e.target.checked && editingQ.bonneReponse === 'C') updateEditQ('bonneReponse', '')
+                              }}
+                              style={{ width: 16, height: 16, cursor: editingQ.avecOptionD ? 'not-allowed' : 'pointer' }} />
+                            <label htmlFor="edit-optC" style={{
+                              fontSize: '.82rem', color: editingQ.avecOptionD ? '#94a3b8' : '#475569',
+                              fontWeight: 600, cursor: editingQ.avecOptionD ? 'not-allowed' : 'pointer', marginBottom: 0,
+                            }}>Inclure l'option C</label>
+                          </div>
+                          <div className="d-flex align-items-center gap-2">
+                            <input type="checkbox" id="edit-optD" checked={editingQ.avecOptionD}
+                              onChange={e => {
+                                updateEditQ('avecOptionD', e.target.checked)
+                                if (e.target.checked) updateEditQ('avecOptionC', true)
+                                updateEditQ('bonneReponse', '')
+                              }}
+                              style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                            <label htmlFor="edit-optD" style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, cursor: 'pointer', marginBottom: 0 }}>
+                              Inclure l'option D
+                            </label>
+                            {editingQ.avecOptionD && (
+                              <span style={{ fontSize: '.75rem', color: '#8b5cf6', fontWeight: 600 }}>→ 2 bonnes réponses</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bonne(s) réponse(s) */}
+                        <div className="mb-3">
+                          <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#64748b' }}>
+                            {editingQ.avecOptionD ? 'Bonnes réponses' : 'Bonne réponse'} <span className="text-danger">*</span>
+                          </label>
+                          {editingQ.avecOptionD ? (
+                            <div className="d-flex flex-column gap-2">
+                              {[['A','B'], ['C','D']].map(([r1, r2], gi) => (
+                                <div key={gi}>
+                                  <div className="mb-1" style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                                    Entre {r1} et {r2} :
+                                  </div>
+                                  <div className="d-flex gap-2">
+                                    {[r1, r2].map(r => {
+                                      const c = BTN_COLORS[r]
+                                      const sel = sel4.includes(r)
+                                      return (
+                                        <button key={r} onClick={() => toggleBonneReponse4Edit(r)} style={{
+                                          width: 44, height: 44, borderRadius: '.75rem', fontWeight: 800, fontSize: '1rem',
+                                          border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
+                                          background: sel ? c.base : c.light, color: sel ? '#fff' : c.text,
+                                          cursor: 'pointer', transition: 'all .15s',
+                                          boxShadow: sel ? `0 4px 10px ${c.base}44` : 'none',
+                                        }}>{r}</button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                              {sel4.length === 2 && (
+                                <div style={{ fontSize: '.78rem', color: '#8b5cf6', fontWeight: 600 }}>
+                                  <i className="bi bi-check-circle-fill me-1" />Bonnes réponses : {sel4.join(' et ')}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="d-flex gap-2">
+                              {['A', 'B', ...(editingQ.avecOptionC ? ['C'] : [])].map(r => {
+                                const c = BTN_COLORS[r]
+                                const sel = editingQ.bonneReponse === r
+                                return (
+                                  <button key={r} onClick={() => updateEditQ('bonneReponse', r)} style={{
+                                    width: 44, height: 44, borderRadius: '.75rem', fontWeight: 800, fontSize: '1rem',
+                                    border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
+                                    background: sel ? c.base : c.light, color: sel ? '#fff' : c.text,
+                                    cursor: 'pointer', transition: 'all .15s',
+                                    boxShadow: sel ? `0 4px 10px ${c.base}44` : 'none',
+                                  }}>{r}</button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="d-flex gap-2">
+                          <button className="btn btn-light btn-sm fw-semibold" style={{ borderRadius: '.6rem' }}
+                            onClick={() => setEditingQ(null)}>Annuler</button>
+                          <button
+                            className="btn btn-sm fw-bold text-white"
+                            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.6rem', border: 'none' }}
+                            onClick={handleEditSave}
+                            disabled={editingQ.saving || editingQ.uploading}
+                          >
+                            {editingQ.saving
+                              ? <><span className="spinner-border spinner-border-sm me-1" />Enregistrement…</>
+                              : <><i className="bi bi-check-lg me-1" />Sauvegarder</>}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
               </div>
             </div>
           ))}
