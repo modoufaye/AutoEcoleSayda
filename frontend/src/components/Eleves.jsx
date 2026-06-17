@@ -126,44 +126,121 @@ function TabExamens({ examens }) {
 }
 
 /* ─── Onglet Paiements ──────────────────────────────────── */
-function TabPaiements({ paiements, totalPaye }) {
-  if (!paiements.length) return (
-    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-      <i className="bi bi-receipt-cutoff" style={{ fontSize: '2rem' }} />
-      <div className="mt-2 text-sm">Aucun paiement enregistré</div>
-    </div>
-  )
+const EMPTY_PAY = { date: new Date().toISOString().slice(0,10), montant: '', typePaiement: '', statut: 'PAYE', description: '' }
+
+function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm]         = useState(EMPTY_PAY)
+  const [saving, setSaving]     = useState(false)
+
+  const save = async () => {
+    if (!form.date || !form.montant || !form.typePaiement) { toast('Remplissez tous les champs obligatoires', 'warning'); return }
+    setSaving(true)
+    try {
+      await api('POST', '/paiements', { ...form, eleveId, montant: parseFloat(form.montant) })
+      toast('Versement ajouté')
+      setShowForm(false); setForm(EMPTY_PAY)
+      onRefresh()
+    } catch (e) { toast(e.message, 'danger') }
+    finally { setSaving(false) }
+  }
+
   return (
     <>
-      <div className="px-5 pt-4 pb-2">
+      {/* En-tête : total + bouton ajouter */}
+      <div className="px-5 pt-4 pb-2 flex items-center justify-between flex-wrap gap-2">
         <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold px-4 py-2 rounded-xl">
           <i className="bi bi-cash-coin" />
           Total encaissé : {fmtMontant(totalPaye)}
         </span>
+        <button onClick={() => setShowForm(v => !v)}
+          className="flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-xl border-0 cursor-pointer"
+          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
+          <i className={`bi bi-${showForm ? 'x-lg' : 'plus-lg'}`} />
+          {showForm ? 'Annuler' : 'Nouveau versement'}
+        </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50">
-              {['Réf.','Date','Type','Montant','Statut','Notes'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {paiements.map(p => (
-              <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-slate-400 text-xs">{p.reference}</td>
-                <td className="px-4 py-3 text-slate-500">{fmtDate(p.date)}</td>
-                <td className="px-4 py-3"><Badge value={p.typePaiement} map={BADGES.type_paiement} /></td>
-                <td className="px-4 py-3 font-semibold text-slate-700">{fmtMontant(p.montant)}</td>
-                <td className="px-4 py-3"><Badge value={p.statut} map={BADGES.statut_paiement} /></td>
-                <td className="px-4 py-3 text-slate-400 text-xs">{p.description || '—'}</td>
+
+      {/* Formulaire inline */}
+      {showForm && (
+        <div className="mx-5 mb-3 p-4 rounded-xl" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+          <div className="row g-2">
+            <div className="col-md-3">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Date *</label>
+              <input type="date" className="form-control form-control-sm" value={form.date}
+                onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+            </div>
+            <div className="col-md-3">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Montant (FCFA) *</label>
+              <input type="number" className="form-control form-control-sm" placeholder="0" value={form.montant}
+                onChange={e => setForm(f => ({ ...f, montant: e.target.value }))} />
+            </div>
+            <div className="col-md-3">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Type *</label>
+              <select className="form-select form-select-sm" value={form.typePaiement}
+                onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
+                <option value="">Choisir…</option>
+                <option value="TARIF_INSCRIPTION">Tarif inscription</option>
+                <option value="TARIF_CODE">Tarif code</option>
+                <option value="TARIF_CONDUITE">Tarif conduite</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Statut</label>
+              <select className="form-select form-select-sm" value={form.statut}
+                onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
+                <option value="PAYE">Payé</option>
+                <option value="EN_ATTENTE">En attente</option>
+                <option value="ANNULE">Annulé</option>
+              </select>
+            </div>
+            <div className="col-12">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Notes</label>
+              <input className="form-control form-control-sm" placeholder="Optionnel" value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="col-12 d-flex justify-content-end">
+              <button className="btn btn-sm fw-bold text-white px-4" disabled={saving}
+                style={{ background: 'linear-gradient(135deg,#10b981,#059669)', borderRadius: '.6rem', border: 'none' }}
+                onClick={save}>
+                {saving ? <><span className="spinner-border spinner-border-sm me-1" />Enregistrement…</> : <><i className="bi bi-check-lg me-1" />Enregistrer</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tableau */}
+      {paiements.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+          <i className="bi bi-receipt-cutoff" style={{ fontSize: '2rem' }} />
+          <div className="mt-2 text-sm">Aucun paiement enregistré</div>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50">
+                {['Réf.','Date','Type','Montant','Statut','Notes'].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {paiements.map(p => (
+                <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 text-slate-400 text-xs">{p.reference}</td>
+                  <td className="px-4 py-3 text-slate-500">{fmtDate(p.date)}</td>
+                  <td className="px-4 py-3"><Badge value={p.typePaiement} map={BADGES.type_paiement} /></td>
+                  <td className="px-4 py-3 font-semibold text-slate-700">{fmtMontant(p.montant)}</td>
+                  <td className="px-4 py-3"><Badge value={p.statut} map={BADGES.statut_paiement} /></td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">{p.description || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </>
   )
 }
@@ -724,7 +801,7 @@ export default function Eleves({ initialEleveId }) {
                 <>
                   {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} />}
                   {activeTab === 'examens'   && <TabExamens   examens={profileData.examens} />}
-                  {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} />}
+                  {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} eleveId={s.id} onRefresh={() => openProfile(s, 'paiements')} />}
                 </>
               )}
             </div>
