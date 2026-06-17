@@ -473,7 +473,7 @@ export default function Eleves({ initialEleveId }) {
                               onChange={e => setForm(fm => ({ ...fm, [doc.key]: e.target.checked }))}
                               style={{ width: 16, height: 16, accentColor: '#15803d', cursor: 'pointer', flexShrink: 0 }}
                             />
-                            <span style={{ textDecoration: form[doc.key] ? 'none' : 'none' }}>
+                            <span>
                               {form[doc.key] && <i className="bi bi-check-circle-fill me-1" style={{ color: '#15803d', fontSize: '.78rem' }} />}
                               {doc.label}
                             </span>
