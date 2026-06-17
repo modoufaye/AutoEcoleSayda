@@ -26,11 +26,14 @@ public class DashboardService {
     public DashboardStats getStats() {
         LocalDate debutMois = LocalDate.now().withDayOfMonth(1);
         LocalDate finMois   = debutMois.plusMonths(1).minusDays(1);
+        long enCours   = eleveRepository.countByStatut(StatutEleve.EN_COURS);
+        long diplomes  = eleveRepository.countByStatut(StatutEleve.DIPLOME);
+        long suspendus = eleveRepository.countByStatut(StatutEleve.SUSPENDU);
         return DashboardStats.builder()
-                .totalEleves(eleveRepository.count())
-                .elevesEnCours(eleveRepository.countByStatut(StatutEleve.EN_COURS))
-                .elevesDiplomes(eleveRepository.countByStatut(StatutEleve.DIPLOME))
-                .elevesSuspendus(eleveRepository.countByStatut(StatutEleve.SUSPENDU))
+                .totalEleves(enCours + diplomes + suspendus)
+                .elevesEnCours(enCours)
+                .elevesDiplomes(diplomes)
+                .elevesSuspendus(suspendus)
                 .elevesNouveauxMois(eleveRepository.countByDateInscriptionBetween(debutMois, finMois))
                 .totalMoniteurs(moniteurRepository.count())
                 .moniteursActifs(moniteurRepository.findByActifTrue().size())
