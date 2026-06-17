@@ -140,7 +140,7 @@ export default function Lecons({ onBack }) {
       {!isEleve && (
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Cours Conduite</h1>
+            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Cours Conduite</h2>
             <p className="text-sm text-slate-400 mt-0.5">{list.length} leçon{list.length !== 1 ? 's' : ''} au total</p>
           </div>
           <button
@@ -307,113 +307,95 @@ export default function Lecons({ onBack }) {
 
       {/* ── Modal planifier / modifier ───────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
-          style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-white w-full max-w-2xl overflow-hidden" style={{ borderRadius: '1.25rem', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
-
-            {/* Header modal */}
-            <div className="flex items-center justify-between px-6 py-4"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderBottom: '2px solid #1e3a5f' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,.18)' }}>
-                  <i className="bi bi-calendar2-plus" style={{ color: '#fff', fontSize: '.85rem' }} />
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
+                    <i className="bi bi-calendar2-plus" />
+                  </div>
+                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
+                    {editId ? 'Modifier la leçon' : 'Planifier une leçon'}
+                  </h5>
                 </div>
-                <span className="font-extrabold text-white text-sm">
-                  {editId ? 'Modifier la leçon' : 'Planifier une leçon'}
-                </span>
+                <button className="btn-close" onClick={() => setShowModal(false)} />
               </div>
-              <button onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>
-                <i className="bi bi-x-lg" style={{ fontSize: '.85rem' }} />
-              </button>
-            </div>
-
-            {/* Body modal */}
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className={labelCls}>Date <span className="text-red-400 normal-case">*</span></label>
-                  <input type="date" className={inputCls} value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Heure début <span className="text-red-400 normal-case">*</span></label>
-                  <input type="time" className={inputCls} value={form.heureDebut}
-                    onChange={e => setForm(f => ({ ...f, heureDebut: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Heure fin <span className="text-red-400 normal-case">*</span></label>
-                  <input type="time" className={inputCls} value={form.heureFin}
-                    onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Type <span className="text-red-400 normal-case">*</span></label>
-                  <select className={inputCls} value={form.type}
-                    onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    <option value="CODE">Code</option>
-                    <option value="CONDUITE">Conduite</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Élève <span className="text-red-400 normal-case">*</span></label>
-                  <select className={inputCls} value={form.eleveId}
-                    onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
-                    <option value="">Choisir un élève…</option>
-                    {eleves.map(e => (
-                      <option key={e.id} value={e.id}>{e.nom} {e.prenom} ({e.categoriePermis})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Moniteur <span className="text-red-400 normal-case">*</span></label>
-                  <select className={inputCls} value={form.moniteurId}
-                    onChange={e => setForm(f => ({ ...f, moniteurId: e.target.value }))}>
-                    <option value="">Choisir un moniteur…</option>
-                    {moniteurs.map(m => (
-                      <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
-                    ))}
-                  </select>
-                </div>
-                <div style={{ opacity: form.type === 'CODE' ? 0.5 : 1 }}>
-                  <label className={labelCls}>
-                    Véhicule {form.type === 'CONDUITE' && <span className="text-red-400 normal-case">*</span>}
-                  </label>
-                  <select className={inputCls} value={form.vehiculeId}
-                    onChange={e => setForm(f => ({ ...f, vehiculeId: e.target.value }))}>
-                    <option value="">Aucun / Non applicable</option>
-                    {vehicules.map(v => (
-                      <option key={v.id} value={v.id}>{v.immatriculation} – {v.marque} {v.modele} ({v.categorie})</option>
-                    ))}
-                  </select>
+              <div className="modal-body px-6 py-4">
+                <div className="row g-3">
+                  <div className="col-md-4">
+                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="date" className={inputCls} value={form.date}
+                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className={labelCls}>Heure début <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="time" className={inputCls} value={form.heureDebut}
+                      onChange={e => setForm(f => ({ ...f, heureDebut: e.target.value }))} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className={labelCls}>Heure fin <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="time" className={inputCls} value={form.heureFin}
+                      onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Type <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.type}
+                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                      <option value="">Choisir…</option>
+                      <option value="CODE">Code</option>
+                      <option value="CONDUITE">Conduite</option>
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.eleveId}
+                      onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
+                      <option value="">Choisir un élève…</option>
+                      {eleves.map(e => (
+                        <option key={e.id} value={e.id}>{e.nom} {e.prenom} ({e.categoriePermis})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.moniteurId}
+                      onChange={e => setForm(f => ({ ...f, moniteurId: e.target.value }))}>
+                      <option value="">Choisir un moniteur…</option>
+                      {moniteurs.map(m => (
+                        <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6" style={{ opacity: form.type === 'CODE' ? 0.5 : 1 }}>
+                    <label className={labelCls}>
+                      Véhicule {form.type === 'CONDUITE' && <span className="text-red-500 ml-0.5">*</span>}
+                    </label>
+                    <select className={inputCls} value={form.vehiculeId}
+                      onChange={e => setForm(f => ({ ...f, vehiculeId: e.target.value }))}>
+                      <option value="">Aucun / Non applicable</option>
+                      {vehicules.map(v => (
+                        <option key={v.id} value={v.id}>{v.immatriculation} – {v.marque} {v.modele} ({v.categorie})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Observations</label>
+                    <textarea className={inputCls} rows={2} value={form.observations}
+                      onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <label className={labelCls}>Observations</label>
-                <textarea className={inputCls} rows={2} value={form.observations}
-                  onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setShowModal(false)}>Annuler</button>
+                <button className="btn fw-bold text-white px-5" style={{
+                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
+                  onClick={save}>
+                  <i className="bi bi-check-lg me-1" />Enregistrer
+                </button>
               </div>
-            </div>
-
-            {/* Footer modal */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
-              <button onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                Annuler
-              </button>
-              <button onClick={save}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
-                <i className="bi bi-check-lg" />
-                Enregistrer
-              </button>
             </div>
           </div>
         </div>

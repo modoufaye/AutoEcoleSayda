@@ -8,12 +8,13 @@ import '../landing.css'
 const PAGE_SIZE = 10
 
 const CATS = [
-  { value: 'POIDS_LEGER',   label: 'Poids léger' },
-  { value: 'POIDS_LOURD',   label: 'Poids lourd' },
-  { value: 'TRANSPORT',     label: 'Transport' },
-  { value: 'C1',            label: 'C1' },
-  { value: 'INTERNATIONAL', label: 'International' },
+  { value: 'POIDS_LEGER',   label: 'Poids léger',   bg: '#dbeafe', color: '#1d4ed8' },
+  { value: 'POIDS_LOURD',   label: 'Poids lourd',   bg: '#fce7f3', color: '#be185d' },
+  { value: 'TRANSPORT',     label: 'Transport',      bg: '#d1fae5', color: '#065f46' },
+  { value: 'C1',            label: 'C1',             bg: '#fef9c3', color: '#854d0e' },
+  { value: 'INTERNATIONAL', label: 'International',  bg: '#ede9fe', color: '#6d28d9' },
 ]
+const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
 const EMPTY = { nom: '', prenom: '', telephone: '', email: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', categoriesAutorisees: [], actif: true }
 
 /* ── Statut élève styles ──────────────────────────────────── */
@@ -88,6 +89,13 @@ export default function Moniteurs() {
   const [elevesCount, setElevesCount] = useState({})
   const [page, setPage]               = useState(1)
   const [pageEleves, setPageEleves]   = useState(1)
+
+  useEffect(() => {
+    if (!showModal) return
+    const handler = (e) => { if (e.key === 'Escape') setShowModal(false) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showModal])
 
   const load = async () => {
     setLoading(true)
@@ -193,128 +201,113 @@ export default function Moniteurs() {
 
   /* ══ MODAL ═══════════════════════════════════════════════════ */
   function renderModal() {
+    const iCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
+    const lCls = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-        <div className="bg-white w-full max-w-2xl overflow-hidden"
-          style={{ borderRadius: '1.25rem', boxShadow: '0 24px 64px rgba(15,34,64,.35)', maxHeight: '92vh', overflowY: 'auto' }}>
+      <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
 
-          {/* En-tête modal */}
-          <div className="flex items-center justify-between px-6 py-4"
-            style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', borderBottom: '2px solid #1e3a5f' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,.18)' }}>
-                <i className="bi bi-person-badge-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-              </div>
-              <div>
-                <div className="font-extrabold text-sm text-white leading-tight">
+            {/* En-tête */}
+            <div className="modal-header border-0 px-6 pt-5 pb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
+                  <i className="bi bi-person-badge-fill" />
+                </div>
+                <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
                   {editId ? 'Modifier le moniteur' : 'Nouveau moniteur'}
-                </div>
-                <div className="text-xs mt-0.5" style={{ color: 'rgba(147,197,253,.85)' }}>
-                  {editId ? 'Mettre à jour les informations' : 'Enregistrer un nouveau moniteur'}
-                </div>
+                </h5>
               </div>
+              <button className="btn-close" onClick={() => setShowModal(false)} />
             </div>
-            <button onClick={() => setShowModal(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-              style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: 'none', cursor: 'pointer' }}>
-              <i className="bi bi-x-lg" style={{ fontSize: '.85rem' }} />
-            </button>
-          </div>
 
-          {/* Corps modal */}
-          <div className="px-6 py-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Nom <span style={{ color: '#ef4444' }}>*</span></label>
-                <input className={inputCls} placeholder="Nom de famille"
-                  value={form.nom} onChange={e => setForm(f => ({ ...f, nom: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>Prénom <span style={{ color: '#ef4444' }}>*</span></label>
-                <input className={inputCls} placeholder="Prénom"
-                  value={form.prenom} onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>Téléphone <span style={{ color: '#ef4444' }}>*</span></label>
-                <input className={inputCls} placeholder="77 000 00 00"
-                  value={form.telephone} onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>Email</label>
-                <input type="email" className={inputCls} placeholder="email@exemple.com"
-                  value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>Numéro CNI</label>
-                <input className={inputCls} placeholder="N° CNI"
-                  value={form.numeroCni} onChange={e => setForm(f => ({ ...f, numeroCni: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>N° Permis</label>
-                <input className={inputCls} placeholder="Numéro de permis"
-                  value={form.numeroPermis} onChange={e => setForm(f => ({ ...f, numeroPermis: e.target.value }))} />
-              </div>
-              <div>
-                <label className={labelCls}>Date d'embauche</label>
-                <input type="date" className={inputCls}
-                  value={form.dateEmbauche} onChange={e => setForm(f => ({ ...f, dateEmbauche: e.target.value }))} />
-              </div>
-              <div className="flex flex-col justify-end pb-1">
-                <label className={labelCls}>Statut</label>
-                <button type="button"
-                  onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all cursor-pointer"
-                  style={{
-                    background: form.actif ? '#f0fdf4' : '#f8fafc',
-                    borderColor: form.actif ? '#86efac' : '#e2e8f0',
-                    color: form.actif ? '#15803d' : '#64748b',
-                  }}>
-                  <div className="relative w-10 h-5 rounded-full transition-all flex-shrink-0"
-                    style={{ background: form.actif ? '#22c55e' : '#cbd5e1' }}>
-                    <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
-                      style={{ left: form.actif ? '1.25rem' : '0.125rem' }} />
+            {/* Corps */}
+            <div className="modal-body px-6 py-4">
+              <div className="row g-3">
+                {[
+                  { key: 'nom',         label: 'Nom',         req: true,  type: 'text',  ph: 'Nom de famille' },
+                  { key: 'prenom',      label: 'Prénom',      req: true,  type: 'text',  ph: 'Prénom' },
+                  { key: 'telephone',   label: 'Téléphone',   req: true,  type: 'text',  ph: '77 000 00 00' },
+                  { key: 'email',       label: 'Email',       req: false, type: 'email', ph: 'email@exemple.com' },
+                  { key: 'numeroCni',   label: 'Numéro CNI',  req: false, type: 'text',  ph: 'N° CNI' },
+                  { key: 'numeroPermis',label: 'N° Permis',   req: false, type: 'text',  ph: 'Numéro de permis' },
+                ].map(f => (
+                  <div key={f.key} className="col-md-6">
+                    <label className={lCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
+                    <input type={f.type} className={iCls} placeholder={f.ph}
+                      value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} />
                   </div>
-                  <span className="text-sm font-semibold">{form.actif ? 'Moniteur actif' : 'Inactif'}</span>
-                </button>
+                ))}
+
+                <div className="col-md-6">
+                  <label className={lCls}>Date d'embauche</label>
+                  <input type="date" className={iCls}
+                    value={form.dateEmbauche} onChange={e => setForm(f => ({ ...f, dateEmbauche: e.target.value }))} />
+                </div>
+
+                <div className="col-md-6">
+                  <label className={lCls}>Statut</label>
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all cursor-pointer"
+                    style={{
+                      background: form.actif ? '#f0fdf4' : '#f8fafc',
+                      borderColor: form.actif ? '#86efac' : '#e2e8f0',
+                      color: form.actif ? '#15803d' : '#64748b',
+                    }}>
+                    <div className="relative w-10 h-5 rounded-full transition-all flex-shrink-0"
+                      style={{ background: form.actif ? '#22c55e' : '#cbd5e1' }}>
+                      <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
+                        style={{ left: form.actif ? '1.25rem' : '0.125rem' }} />
+                    </div>
+                    <span className="text-sm font-semibold">{form.actif ? 'Moniteur actif' : 'Inactif'}</span>
+                  </button>
+                </div>
+
+                {/* Catégories */}
+                <div className="col-12">
+                  <label className={lCls}>Catégories autorisées</label>
+                  <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                    <div className="row g-2">
+                      {CATS.map(c => {
+                        const sel = form.categoriesAutorisees.includes(c.value)
+                        return (
+                          <div key={c.value} className="col-6">
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', fontSize: '.82rem', fontWeight: 600, color: sel ? '#1e3a5f' : '#64748b' }}>
+                              <input
+                                type="checkbox"
+                                checked={sel}
+                                onChange={() => toggleCat(c.value)}
+                                style={{ width: 16, height: 16, accentColor: '#1e3a5f', cursor: 'pointer', flexShrink: 0 }}
+                              />
+                              <span>
+                                {sel && <i className="bi bi-check-circle-fill me-1" style={{ color: '#1e3a5f', fontSize: '.78rem' }} />}
+                                {c.label}
+                              </span>
+                            </label>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="mb-0 mt-2" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
+                      {form.categoriesAutorisees.length}/{CATS.length} catégorie{form.categoriesAutorisees.length !== 1 ? 's' : ''} sélectionnée{form.categoriesAutorisees.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Catégories */}
-            <div>
-              <label className={labelCls}>Catégories autorisées</label>
-              <div className="flex flex-wrap gap-2 p-3 rounded-xl border-2 border-slate-100 bg-slate-50">
-                {CATS.map(c => {
-                  const sel = form.categoriesAutorisees.includes(c.value)
-                  return (
-                    <button key={c.value} type="button" onClick={() => toggleCat(c.value)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border-0"
-                      style={sel
-                        ? { background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', color: '#fff', boxShadow: '0 2px 8px rgba(30,58,95,.25)' }
-                        : { background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0' }
-                      }>
-                      {c.label}
-                    </button>
-                  )
-                })}
-              </div>
+            {/* Pied */}
+            <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+              <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                onClick={() => setShowModal(false)}>Annuler</button>
+              <button className="btn fw-bold text-white px-5" style={{
+                background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
+                onClick={save}>
+                <i className="bi bi-check-lg me-1" />Enregistrer
+              </button>
             </div>
-          </div>
-
-          {/* Pied modal */}
-          <div className="flex gap-3 px-6 py-4 border-t border-slate-100">
-            <button onClick={() => setShowModal(false)}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all"
-              style={{ background: '#f1f5f9', color: '#64748b' }}>
-              Annuler
-            </button>
-            <button onClick={save}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-              <i className="bi bi-check-lg" />
-              Enregistrer
-            </button>
           </div>
         </div>
       </div>
@@ -422,12 +415,15 @@ export default function Moniteurs() {
               <div className="pt-3 pb-4">
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Catégories autorisées</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {selected.categoriesAutorisees.map(c => (
-                    <span key={c} className="text-xs font-bold px-2.5 py-1 rounded-lg text-white"
-                      style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)' }}>
-                      {c}
-                    </span>
-                  ))}
+                  {selected.categoriesAutorisees.map(c => {
+                    const cat = CAT_MAP[c] || { label: c, bg: '#f1f5f9', color: '#475569' }
+                    return (
+                      <span key={c} className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                        style={{ background: cat.bg, color: cat.color }}>
+                        {cat.label}
+                      </span>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -521,7 +517,7 @@ export default function Moniteurs() {
       {/* En-tête page */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Moniteurs</h1>
+          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Moniteurs</h2>
           <p className="text-sm text-slate-400 mt-0.5">
             {filtered.length} moniteur{filtered.length !== 1 ? 's' : ''} enregistré{filtered.length !== 1 ? 's' : ''}
           </p>
@@ -608,12 +604,15 @@ export default function Moniteurs() {
 
                     <td className="py-3.5 px-4">
                       <div className="flex flex-wrap gap-1">
-                        {(m.categoriesAutorisees || []).map(c => (
-                          <span key={c} className="text-xs font-bold px-2 py-0.5 rounded-md text-white"
-                            style={{ background: '#334155' }}>
-                            {c}
-                          </span>
-                        ))}
+                        {(m.categoriesAutorisees || []).map(c => {
+                          const cat = CAT_MAP[c] || { label: c, bg: '#f1f5f9', color: '#475569' }
+                          return (
+                            <span key={c} className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                              style={{ background: cat.bg, color: cat.color }}>
+                              {cat.label}
+                            </span>
+                          )
+                        })}
                         {!m.categoriesAutorisees?.length && <span className="text-slate-300 text-xs">—</span>}
                       </div>
                     </td>

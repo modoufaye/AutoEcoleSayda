@@ -18,6 +18,7 @@ import MonProfil from '../components/MonProfil'
 import MesPaiements from '../components/MesPaiements'
 import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
 import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
+import Parametres from '../components/Parametres'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
@@ -35,6 +36,7 @@ const ALL_SECTIONS = [
   { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR', 'SUPER_ADMIN'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR'] },
+  { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN'] },
 ]
 
 const COMPONENTS = {
@@ -47,6 +49,7 @@ const COMPONENTS = {
   'td-moniteur': TravauxDirigesMoniteur,
   'td-eleve': TravauxDirigesEleve,
   'mon-profil': MonProfil,
+  'parametres': Parametres,
 }
 
 const ROLE_LABELS = {

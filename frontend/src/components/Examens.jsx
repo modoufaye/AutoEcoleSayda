@@ -138,7 +138,7 @@ export default function Examens({ onEleveClick, onBack }) {
       {!isEleve && (
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Examens</h1>
+            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Examens</h2>
             <p className="text-sm text-slate-400 mt-0.5">{filtered.length} examen{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}</p>
           </div>
           <button
@@ -351,89 +351,75 @@ export default function Examens({ onEleveClick, onBack }) {
 
       {/* ── Modal nouvel examen ───────────────────────────────── */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
-          style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-white w-full max-w-lg overflow-hidden" style={{ borderRadius: '1.25rem', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4"
-              style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', borderBottom: '2px solid #b8860b' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,.25)' }}>
-                  <i className="bi bi-clipboard2-plus-fill" style={{ color: '#1e3a5f', fontSize: '.85rem' }} />
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
+                    <i className="bi bi-clipboard2-plus-fill" />
+                  </div>
+                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>Nouvel examen</h5>
                 </div>
-                <span className="font-extrabold text-sm" style={{ color: '#1e3a5f' }}>Nouvel examen</span>
+                <button className="btn-close" onClick={() => setShowModal(false)} />
               </div>
-              <button onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                style={{ background: 'rgba(30,58,95,.12)', color: '#1e3a5f' }}>
-                <i className="bi bi-x-lg" style={{ fontSize: '.85rem' }} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Date <span className="text-red-400 normal-case">*</span></label>
-                  <input type="date" className={inputCls} value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Élève <span className="text-red-400 normal-case">*</span></label>
-                  <select className={inputCls} value={form.eleveId}
-                    onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
-                    <option value="">Choisir un élève…</option>
-                    {eleves.map(e => (
-                      <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Type <span className="text-red-400 normal-case">*</span></label>
-                  <select className={inputCls} value={form.type}
-                    onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    <option value="CODE">Code</option>
-                    <option value="CONDUITE">Conduite</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Résultat</label>
-                  <select className={inputCls} value={form.resultat}
-                    onChange={e => setForm(f => ({ ...f, resultat: e.target.value }))}>
-                    <option value="EN_ATTENTE">En attente</option>
-                    <option value="ADMIS">Admis</option>
-                    <option value="REFUSE">Refusé</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Score (/100)</label>
-                  <input type="number" className={inputCls} value={form.score} min="0" max="100"
-                    onChange={e => setForm(f => ({ ...f, score: e.target.value }))} />
+              <div className="modal-body px-6 py-4">
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="date" className={inputCls} value={form.date}
+                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.eleveId}
+                      onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
+                      <option value="">Choisir un élève…</option>
+                      {eleves.map(e => (
+                        <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Type <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.type}
+                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                      <option value="">Choisir…</option>
+                      <option value="CODE">Code</option>
+                      <option value="CONDUITE">Conduite</option>
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Résultat</label>
+                    <select className={inputCls} value={form.resultat}
+                      onChange={e => setForm(f => ({ ...f, resultat: e.target.value }))}>
+                      <option value="EN_ATTENTE">En attente</option>
+                      <option value="ADMIS">Admis</option>
+                      <option value="REFUSE">Refusé</option>
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Score (/100)</label>
+                    <input type="number" className={inputCls} value={form.score} min="0" max="100"
+                      onChange={e => setForm(f => ({ ...f, score: e.target.value }))} />
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Observations</label>
+                    <textarea className={inputCls} rows={2} value={form.observations}
+                      onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className={labelCls}>Observations</label>
-                <textarea className={inputCls} rows={2} value={form.observations}
-                  onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setShowModal(false)}>Annuler</button>
+                <button className="btn fw-bold text-white px-5" style={{
+                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
+                  onClick={save}>
+                  <i className="bi bi-check-lg me-1" />Enregistrer
+                </button>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
-              <button onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                Annuler
-              </button>
-              <button onClick={save}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
-                <i className="bi bi-check-lg" />
-                Enregistrer
-              </button>
             </div>
           </div>
         </div>
@@ -441,63 +427,51 @@ export default function Examens({ onEleveClick, onBack }) {
 
       {/* ── Modal résultat (petit) ───────────────────────────── */}
       {showResModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4"
-          style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-white w-full max-w-sm overflow-hidden" style={{ borderRadius: '1.25rem', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4"
-              style={{ background: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', borderBottom: '2px solid #bbf7d0' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: '#bbf7d0' }}>
-                  <i className="bi bi-clipboard2-check-fill" style={{ color: '#15803d', fontSize: '.85rem' }} />
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(21,128,61,.1)', color: '#15803d' }}>
+                    <i className="bi bi-clipboard2-check-fill" />
+                  </div>
+                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>Mettre à jour le résultat</h5>
                 </div>
-                <span className="font-extrabold text-sm text-slate-700">Mettre à jour le résultat</span>
+                <button className="btn-close" onClick={() => setShowResModal(false)} />
               </div>
-              <button onClick={() => setShowResModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                style={{ background: '#d1fae5', color: '#15803d' }}>
-                <i className="bi bi-x-lg" style={{ fontSize: '.85rem' }} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-5 py-5 space-y-4">
-              <div>
-                <label className={labelCls}>Résultat <span className="text-red-400 normal-case">*</span></label>
-                <select className={inputCls} value={resForm.resultat}
-                  onChange={e => setResForm(f => ({ ...f, resultat: e.target.value }))}>
-                  <option value="EN_ATTENTE">En attente</option>
-                  <option value="ADMIS">Admis</option>
-                  <option value="REFUSE">Refusé</option>
-                </select>
+              <div className="modal-body px-6 py-4">
+                <div className="row g-3">
+                  <div className="col-12">
+                    <label className={labelCls}>Résultat <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={resForm.resultat}
+                      onChange={e => setResForm(f => ({ ...f, resultat: e.target.value }))}>
+                      <option value="EN_ATTENTE">En attente</option>
+                      <option value="ADMIS">Admis</option>
+                      <option value="REFUSE">Refusé</option>
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Score (/100)</label>
+                    <input type="number" className={inputCls} value={resForm.score} min="0" max="100"
+                      onChange={e => setResForm(f => ({ ...f, score: e.target.value }))} />
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Observations</label>
+                    <textarea className={inputCls} rows={2} value={resForm.observations}
+                      onChange={e => setResForm(f => ({ ...f, observations: e.target.value }))} />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className={labelCls}>Score (/100)</label>
-                <input type="number" className={inputCls} value={resForm.score} min="0" max="100"
-                  onChange={e => setResForm(f => ({ ...f, score: e.target.value }))} />
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setShowResModal(false)}>Annuler</button>
+                <button className="btn fw-bold text-white px-5" style={{
+                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
+                  onClick={saveResultat}>
+                  <i className="bi bi-check-lg me-1" />Valider
+                </button>
               </div>
-              <div>
-                <label className={labelCls}>Observations</label>
-                <textarea className={inputCls} rows={2} value={resForm.observations}
-                  onChange={e => setResForm(f => ({ ...f, observations: e.target.value }))} />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-slate-100">
-              <button onClick={() => setShowResModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                Annuler
-              </button>
-              <button onClick={saveResultat}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer"
-                style={{ background: 'linear-gradient(135deg,#15803d,#16a34a)', boxShadow: '0 4px 12px rgba(21,128,61,.3)' }}>
-                <i className="bi bi-check-lg" />
-                Valider
-              </button>
             </div>
           </div>
         </div>

@@ -58,7 +58,7 @@ public class ExerciceTDController {
             String imageUrl     = (String) q.get("imageUrl");
             String bonneReponse = (String) q.get("bonneReponse");
             boolean avecOptionD = Boolean.TRUE.equals(q.get("avecOptionD"));
-            boolean avecOptionC = avecOptionD || q.get("avecOptionC") == null || Boolean.TRUE.equals(q.get("avecOptionC"));
+            boolean avecOptionC = avecOptionD || Boolean.TRUE.equals(q.get("avecOptionC"));
 
             if (imageUrl == null || imageUrl.isBlank())
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image manquante à la question " + (i + 1));

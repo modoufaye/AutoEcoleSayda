@@ -11,7 +11,7 @@ const BTN_COLORS = {
 
 const emptyQuestion = () => ({
   imageUrl: '', uploadError: '', uploading: false,
-  avecOptionC: true, avecOptionD: false, bonneReponse: '',
+  avecOptionC: false, avecOptionD: false, bonneReponse: '',
 })
 
 export default function TravauxDirigesMoniteur({ onBack }) {
@@ -21,10 +21,12 @@ export default function TravauxDirigesMoniteur({ onBack }) {
   const [titre, setTitre]         = useState('')
   const [questions, setQuestions] = useState([emptyQuestion()])
   const [saving, setSaving]       = useState(false)
-  const [editingQ, setEditingQ]       = useState(null)
+  const [editingQ, setEditingQ]         = useState(null)
   const [editingTitre, setEditingTitre] = useState(null)
+  const [addingQ, setAddingQ]           = useState(null)
   // editingTitre = { exId, valeur, saving }
-  // editingQ = { exId, qId, qIdx, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
+  // editingQ     = { exId, qId, qIdx, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
+  // addingQ      = { exId, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
 
   useEffect(() => { charger() }, [])
 
@@ -201,6 +203,86 @@ export default function TravauxDirigesMoniteur({ onBack }) {
     }
   }
 
+  // ── Suppression d'une question ───────────────────────────────────────────
+
+  async function handleDeleteQuestion(exId, qId) {
+    if (!window.confirm('Supprimer cette question ?')) return
+    try {
+      await api('DELETE', `/moniteur/exercices-td/questions/${qId}`)
+      setExercices(prev => prev.map(ex => ex.id !== exId ? ex : {
+        ...ex, questions: ex.questions.filter(q => q.id !== qId),
+      }))
+      if (editingQ?.qId === qId) setEditingQ(null)
+      toast('Question supprimée')
+    } catch (e) { toast(e.message, 'danger') }
+  }
+
+  // ── Ajout d'une question à un exercice existant ───────────────────────────
+
+  function openAddQuestion(exId) {
+    setAddingQ({ exId, avecOptionC: false, avecOptionD: false, bonneReponse: '', imageUrl: '', uploading: false, uploadError: '', saving: false })
+    setEditingQ(null)
+  }
+
+  function updateAddQ(field, value) {
+    setAddingQ(prev => prev ? { ...prev, [field]: value } : prev)
+  }
+
+  async function handleAddQImage(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    updateAddQ('uploading', true)
+    updateAddQ('uploadError', '')
+    try {
+      const res = await uploadFile('/moniteur/upload/image', file)
+      updateAddQ('imageUrl', res.url)
+    } catch (err) {
+      updateAddQ('uploadError', err.message || 'Erreur upload')
+    } finally {
+      updateAddQ('uploading', false)
+    }
+  }
+
+  function toggleBonneReponse4Add(r) {
+    setAddingQ(prev => {
+      if (!prev) return prev
+      const current = prev.bonneReponse ? prev.bonneReponse.split(',') : []
+      const isAB = r === 'A' || r === 'B'
+      const filtered = current.filter(x => isAB ? x !== 'A' && x !== 'B' : x !== 'C' && x !== 'D')
+      const next = current.includes(r) ? filtered : [...filtered, r].sort()
+      return { ...prev, bonneReponse: next.join(',') }
+    })
+  }
+
+  async function handleAddQSave() {
+    if (!addingQ) return
+    if (!addingQ.imageUrl) { toast('Image obligatoire', 'warning'); return }
+    if (addingQ.avecOptionD) {
+      const parts = addingQ.bonneReponse ? addingQ.bonneReponse.split(',') : []
+      if (parts.length !== 2) { toast('Choisissez 1 réponse parmi A/B et 1 parmi C/D', 'warning'); return }
+    } else {
+      if (!addingQ.bonneReponse) { toast('Choisissez la bonne réponse', 'warning'); return }
+    }
+    updateAddQ('saving', true)
+    try {
+      const newQ = await api('POST', `/moniteur/exercices-td/${addingQ.exId}/questions`, {
+        imageUrl: addingQ.imageUrl,
+        avecOptionC: addingQ.avecOptionD ? true : addingQ.avecOptionC,
+        avecOptionD: addingQ.avecOptionD,
+        bonneReponse: addingQ.bonneReponse,
+        ordre: exercices.find(e => e.id === addingQ.exId)?.questions?.length || 0,
+      })
+      setExercices(prev => prev.map(ex => ex.id !== addingQ.exId ? ex : {
+        ...ex, questions: [...(ex.questions || []), newQ],
+      }))
+      setAddingQ(null)
+      toast('Question ajoutée')
+    } catch (e) {
+      toast(e.message, 'danger')
+      updateAddQ('saving', false)
+    }
+  }
+
   // ── Édition du titre ─────────────────────────────────────────────────────
 
   function openEditTitre(ex) {
@@ -229,18 +311,6 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
   return (
     <div>
-      {onBack && (
-        <button onClick={onBack} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '.45rem',
-          background: '#f1f5f9', color: '#475569',
-          border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
-          fontSize: '.8rem', fontWeight: 600,
-          padding: '.45rem 1rem', cursor: 'pointer', marginBottom: '1rem',
-        }}>
-          <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />Retour
-        </button>
-      )}
-
       {/* En-tête */}
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
@@ -556,11 +626,41 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                             >
                               <i className={`bi bi-${isEditing ? 'x-lg' : 'pencil-fill'}`} />
                             </button>
+                            {/* Bouton supprimer question */}
+                            <button
+                              onClick={() => handleDeleteQuestion(ex.id, q.id)}
+                              title="Supprimer cette question"
+                              style={{
+                                background: '#fef2f2', color: '#dc2626',
+                                border: 'none', borderRadius: '.3rem',
+                                width: 22, height: 22, cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                padding: 0, fontSize: '.68rem',
+                              }}
+                            >
+                              <i className="bi bi-trash3-fill" />
+                            </button>
                           </div>
                         </div>
                       </div>
                     )
                   })}
+
+                  {/* Bouton ajouter une question */}
+                  <button
+                    onClick={() => openAddQuestion(ex.id)}
+                    title="Ajouter une question"
+                    style={{
+                      width: 140, height: 120, flexShrink: 0, borderRadius: '.75rem',
+                      border: '1.5px dashed #7dd3fc', background: addingQ?.exId === ex.id ? '#f0f9ff' : '#fff',
+                      color: '#0369a1', cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      gap: '.3rem', fontSize: '.78rem', fontWeight: 600, transition: 'all .15s',
+                    }}
+                  >
+                    <i className="bi bi-plus-lg" style={{ fontSize: '1.2rem' }} />
+                    Ajouter
+                  </button>
                 </div>
 
                 {/* Panneau d'édition inline */}
@@ -696,6 +796,130 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                             {editingQ.saving
                               ? <><span className="spinner-border spinner-border-sm me-1" />Enregistrement…</>
                               : <><i className="bi bi-check-lg me-1" />Sauvegarder</>}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Panneau ajout de question */}
+                {addingQ && addingQ.exId === ex.id && (() => {
+                  const sel4 = addingQ.bonneReponse ? addingQ.bonneReponse.split(',') : []
+                  return (
+                    <div className="px-3 pb-3">
+                      <div className="p-3 rounded-3" style={{ background: '#f0fdf4', border: '1.5px solid #86efac' }}>
+                        <div className="fw-bold mb-3" style={{ color: '#065f46', fontSize: '.85rem' }}>
+                          <i className="bi bi-plus-circle-fill me-2" style={{ color: '#16a34a' }} />
+                          Nouvelle question
+                        </div>
+
+                        <div className="mb-3">
+                          <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#64748b' }}>
+                            Image <span className="text-danger">*</span>
+                          </label>
+                          <input type="file" accept="image/*" className="form-control form-control-sm"
+                            style={{ borderRadius: '.6rem' }}
+                            onChange={handleAddQImage} disabled={addingQ.uploading} />
+                          {addingQ.uploading && (
+                            <div className="text-muted mt-1" style={{ fontSize: '.8rem' }}>
+                              <span className="spinner-border spinner-border-sm me-1" />Chargement…
+                            </div>
+                          )}
+                          {addingQ.uploadError && (
+                            <div style={{ color: '#dc2626', fontSize: '.8rem' }}>{addingQ.uploadError}</div>
+                          )}
+                          {addingQ.imageUrl && !addingQ.uploading && (
+                            <img src={addingQ.imageUrl} alt="" className="mt-2 rounded-3"
+                              style={{ maxHeight: 120, maxWidth: '100%', objectFit: 'contain', border: '1.5px solid #e2e8f0' }} />
+                          )}
+                        </div>
+
+                        <div className="mb-3 d-flex flex-wrap gap-3">
+                          <div className="d-flex align-items-center gap-2">
+                            <input type="checkbox" id="add-optC"
+                              checked={addingQ.avecOptionD ? true : addingQ.avecOptionC}
+                              disabled={addingQ.avecOptionD}
+                              onChange={e => {
+                                updateAddQ('avecOptionC', e.target.checked)
+                                if (!e.target.checked && addingQ.bonneReponse === 'C') updateAddQ('bonneReponse', '')
+                              }}
+                              style={{ width: 16, height: 16 }} />
+                            <label htmlFor="add-optC" style={{ fontSize: '.82rem', color: addingQ.avecOptionD ? '#94a3b8' : '#475569', fontWeight: 600, marginBottom: 0 }}>
+                              Inclure l'option C
+                            </label>
+                          </div>
+                          <div className="d-flex align-items-center gap-2">
+                            <input type="checkbox" id="add-optD" checked={addingQ.avecOptionD}
+                              onChange={e => {
+                                updateAddQ('avecOptionD', e.target.checked)
+                                if (e.target.checked) updateAddQ('avecOptionC', true)
+                                updateAddQ('bonneReponse', '')
+                              }}
+                              style={{ width: 16, height: 16 }} />
+                            <label htmlFor="add-optD" style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, marginBottom: 0 }}>
+                              Inclure l'option D
+                            </label>
+                            {addingQ.avecOptionD && <span style={{ fontSize: '.75rem', color: '#8b5cf6', fontWeight: 600 }}>→ 2 bonnes réponses</span>}
+                          </div>
+                        </div>
+
+                        <div className="mb-3">
+                          <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#64748b' }}>
+                            {addingQ.avecOptionD ? 'Bonnes réponses (2)' : 'Bonne réponse'} <span className="text-danger">*</span>
+                          </label>
+                          {addingQ.avecOptionD ? (
+                            <div className="d-flex flex-column gap-2">
+                              {[['A','B'], ['C','D']].map(([r1, r2], gi) => (
+                                <div key={gi}>
+                                  <div className="mb-1" style={{ fontSize: '.75rem', color: '#94a3b8', fontWeight: 600 }}>Entre {r1} et {r2} :</div>
+                                  <div className="d-flex gap-2">
+                                    {[r1, r2].map(r => {
+                                      const c = BTN_COLORS[r]
+                                      const sel = sel4.includes(r)
+                                      return (
+                                        <button key={r} onClick={() => toggleBonneReponse4Add(r)} style={{
+                                          width: 44, height: 44, borderRadius: '.75rem', fontWeight: 800, fontSize: '1rem',
+                                          border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
+                                          background: sel ? c.base : c.light, color: sel ? '#fff' : c.text,
+                                          cursor: 'pointer', transition: 'all .15s',
+                                        }}>{r}</button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="d-flex gap-2">
+                              {['A', 'B', ...(addingQ.avecOptionC ? ['C'] : [])].map(r => {
+                                const c = BTN_COLORS[r]
+                                const sel = addingQ.bonneReponse === r
+                                return (
+                                  <button key={r} onClick={() => updateAddQ('bonneReponse', r)} style={{
+                                    width: 44, height: 44, borderRadius: '.75rem', fontWeight: 800, fontSize: '1rem',
+                                    border: sel ? `2.5px solid ${c.base}` : `2px solid ${c.border}`,
+                                    background: sel ? c.base : c.light, color: sel ? '#fff' : c.text,
+                                    cursor: 'pointer', transition: 'all .15s',
+                                  }}>{r}</button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="d-flex gap-2">
+                          <button className="btn btn-light btn-sm fw-semibold" style={{ borderRadius: '.6rem' }}
+                            onClick={() => setAddingQ(null)}>Annuler</button>
+                          <button
+                            className="btn btn-sm fw-bold text-white"
+                            style={{ background: 'linear-gradient(135deg,#16a34a,#15803d)', borderRadius: '.6rem', border: 'none' }}
+                            onClick={handleAddQSave}
+                            disabled={addingQ.saving || addingQ.uploading}
+                          >
+                            {addingQ.saving
+                              ? <><span className="spinner-border spinner-border-sm me-1" />Enregistrement…</>
+                              : <><i className="bi bi-plus-lg me-1" />Ajouter la question</>}
                           </button>
                         </div>
                       </div>

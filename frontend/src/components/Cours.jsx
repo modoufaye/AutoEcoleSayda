@@ -274,9 +274,9 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
             Retour aux thèmes
           </button>
           <div>
-            <h1 className="text-xl font-extrabold text-slate-800 leading-tight">
+            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
               {theme.emoji} {theme.label}
-            </h1>
+            </h2>
             {themeCours.length > 0 && (
               <p className="text-slate-400 text-sm mt-0.5">{themeCours.length} cours disponibles</p>
             )}
@@ -742,7 +742,7 @@ export default function Cours({ onBack }) {
       ) : (
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Cours Code de la Route</h1>
+            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Cours Code de la Route</h2>
             <p className="text-slate-400 text-sm mt-0.5">Maîtrisez la théorie en {THEMES.length} grands thèmes</p>
           </div>
           <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full"

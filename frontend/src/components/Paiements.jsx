@@ -11,10 +11,9 @@ const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = { date: today(), eleveId: '', montant: '', typePaiement: '', statut: 'PAYE', description: '' }
 
 const TYPE_P = {
-  INSCRIPTION: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: 'Inscription' },
-  LECON:       { bg: '#eff6ff', color: '#2563eb', dot: '#3b82f6', label: 'Leçon' },
-  EXAMEN:      { bg: '#fef9c3', color: '#a16207', dot: '#ca8a04', label: 'Examen' },
-  AUTRE:       { bg: '#f8fafc', color: '#64748b', dot: '#94a3b8', label: 'Autre' },
+  TARIF_INSCRIPTION: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: 'Tarif inscription' },
+  TARIF_CODE:        { bg: '#eff6ff', color: '#2563eb', dot: '#3b82f6', label: 'Tarif code' },
+  TARIF_CONDUITE:    { bg: '#fef9c3', color: '#a16207', dot: '#ca8a04', label: 'Tarif conduite' },
 }
 
 const STATUT_P = {
@@ -93,7 +92,7 @@ export default function Paiements() {
       {/* ── En-tête de page ─────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Gestion des Paiements</h1>
+          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Paiements</h2>
           <p className="text-sm text-slate-400 mt-0.5">{list.length} paiement{list.length !== 1 ? 's' : ''} enregistré{list.length !== 1 ? 's' : ''}</p>
         </div>
         <button
@@ -256,106 +255,80 @@ export default function Paiements() {
 
       {/* ── Modal ────────────────────────────────────────────── */}
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-
-          <div className="w-full max-w-lg bg-white overflow-hidden"
-            style={{ borderRadius: '1.25rem', boxShadow: '0 24px 64px rgba(15,34,64,.25)' }}>
-
-            {/* Header modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
-                  <i className="bi bi-receipt" style={{ color: '#fff', fontSize: '.9rem' }} />
-                </div>
-                <div>
-                  <div className="font-extrabold text-slate-800 text-base leading-tight">
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
+                    <i className="bi bi-receipt" />
+                  </div>
+                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
                     {editId ? 'Modifier le paiement' : 'Nouveau paiement'}
+                  </h5>
+                </div>
+                <button className="btn-close" onClick={() => setShowModal(false)} />
+              </div>
+              <div className="modal-body px-6 py-4">
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="date" className={inputCls} value={form.date}
+                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {editId ? 'Mettre à jour les informations' : 'Enregistrer un encaissement'}
+                  <div className="col-md-6">
+                    <label className={labelCls}>Statut</label>
+                    <select className={inputCls} value={form.statut}
+                      onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
+                      <option value="PAYE">Payé</option>
+                      <option value="EN_ATTENTE">En attente</option>
+                      <option value="ANNULE">Annulé</option>
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.eleveId}
+                      onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
+                      <option value="">Choisir un élève…</option>
+                      {eleves.map(e => (
+                        <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Montant (FCFA) <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="number" className={inputCls} value={form.montant} min="1"
+                      placeholder="Ex: 50000"
+                      onChange={e => setForm(f => ({ ...f, montant: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Type <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.typePaiement}
+                      onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
+                      <option value="">Choisir…</option>
+                      <option value="TARIF_INSCRIPTION">Tarif inscription</option>
+                      <option value="TARIF_CODE">Tarif code</option>
+                      <option value="TARIF_CONDUITE">Tarif conduite</option>
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Description</label>
+                    <input className={inputCls} value={form.description}
+                      placeholder="Ex: Paiement mensuel…"
+                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                <i className="bi bi-x-lg" style={{ fontSize: '.8rem' }} />
-              </button>
-            </div>
-
-            {/* Body modal */}
-            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Date <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <input type="date" className={inputCls} value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Statut</label>
-                  <select className={inputCls} value={form.statut}
-                    onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
-                    <option value="PAYE">Payé</option>
-                    <option value="EN_ATTENTE">En attente</option>
-                    <option value="ANNULE">Annulé</option>
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className={labelCls}>Élève <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <select className={inputCls} value={form.eleveId}
-                    onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
-                    <option value="">Choisir un élève…</option>
-                    {eleves.map(e => (
-                      <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Montant (FCFA) <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <input type="number" className={inputCls} value={form.montant} min="1"
-                    placeholder="Ex: 50000"
-                    onChange={e => setForm(f => ({ ...f, montant: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Type <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <select className={inputCls} value={form.typePaiement}
-                    onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    <option value="INSCRIPTION">Inscription</option>
-                    <option value="LECON">Leçon</option>
-                    <option value="EXAMEN">Examen</option>
-                    <option value="AUTRE">Autre</option>
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className={labelCls}>Description</label>
-                  <input className={inputCls} value={form.description}
-                    placeholder="Ex: Paiement mensuel…"
-                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-                </div>
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setShowModal(false)}>Annuler</button>
+                <button className="btn fw-bold text-white px-5" style={{
+                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
+                  onClick={save}>
+                  <i className="bi bi-check-lg me-1" />Enregistrer
+                </button>
               </div>
-            </div>
-
-            {/* Footer modal */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                Annuler
-              </button>
-              <button
-                onClick={save}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
-                <i className="bi bi-check-lg" style={{ fontSize: '.9rem' }} />
-                Enregistrer
-              </button>
             </div>
           </div>
         </div>

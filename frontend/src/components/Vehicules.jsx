@@ -95,8 +95,8 @@ export default function Vehicules() {
       {/* ── En-tête de page ─────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Gestion des Véhicules</h1>
-          <p className="text-sm text-slate-400 mt-0.5">{filtered.length} véhicule{filtered.length !== 1 ? 's' : ''} enregistré{filtered.length !== 1 ? 's' : ''}</p>
+          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Véhicules</h2>
+          <p className="text-sm text-slate-400 mt-0.5">Gérez votre flotte de véhicules et leur entretien</p>
         </div>
         <button
           onClick={() => openModal()}
@@ -269,108 +269,83 @@ export default function Vehicules() {
 
       {/* ── Modal ────────────────────────────────────────────── */}
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-
-          <div className="w-full max-w-lg bg-white overflow-hidden"
-            style={{ borderRadius: '1.25rem', boxShadow: '0 24px 64px rgba(15,34,64,.25)' }}>
-
-            {/* Header modal */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
-                  <i className="bi bi-car-front-fill" style={{ color: '#fff', fontSize: '.9rem' }} />
-                </div>
-                <div>
-                  <div className="font-extrabold text-slate-800 text-base leading-tight">
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
+                    <i className="bi bi-car-front-fill" />
+                  </div>
+                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
                     {editId ? 'Modifier le véhicule' : 'Nouveau véhicule'}
+                  </h5>
+                </div>
+                <button className="btn-close" onClick={() => setShowModal(false)} />
+              </div>
+              <div className="modal-body px-6 py-4">
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Immatriculation <span className="text-red-500 ml-0.5">*</span></label>
+                    <input className={inputCls} value={form.immatriculation} placeholder="DK-XXXX-AB"
+                      onChange={e => setForm(f => ({ ...f, immatriculation: e.target.value }))} />
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {editId ? 'Mettre à jour les informations' : 'Ajouter un véhicule à la flotte'}
+                  <div className="col-md-6">
+                    <label className={labelCls}>Marque <span className="text-red-500 ml-0.5">*</span></label>
+                    <input className={inputCls} value={form.marque} placeholder="Toyota"
+                      onChange={e => setForm(f => ({ ...f, marque: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Modèle <span className="text-red-500 ml-0.5">*</span></label>
+                    <input className={inputCls} value={form.modele} placeholder="Corolla"
+                      onChange={e => setForm(f => ({ ...f, modele: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Année <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="number" className={inputCls} value={form.annee} min="1990" max="2030"
+                      onChange={e => setForm(f => ({ ...f, annee: parseInt(e.target.value) }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Catégorie <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.categorie}
+                      onChange={e => setForm(f => ({ ...f, categorie: e.target.value }))}>
+                      <option value="">Choisir…</option>
+                      {[{v:'POIDS_LEGER',l:'Poids léger'},{v:'POIDS_LOURD',l:'Poids lourd'},{v:'TRANSPORT',l:'Transport'},{v:'C1',l:'C1'},{v:'INTERNATIONAL',l:'International'}].map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Kilométrage</label>
+                    <input type="number" className={inputCls} value={form.kilometrage} min="0"
+                      onChange={e => setForm(f => ({ ...f, kilometrage: parseInt(e.target.value) || 0 }))} />
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Statut</label>
+                    <select className={inputCls} value={form.statut}
+                      onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
+                      <option value="DISPONIBLE">Disponible</option>
+                      <option value="EN_COURS">En cours</option>
+                      <option value="EN_MAINTENANCE">En maintenance</option>
+                      <option value="HORS_SERVICE">Hors service</option>
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Observations</label>
+                    <textarea className={inputCls} rows="2" value={form.observations}
+                      style={{ resize: 'vertical' }}
+                      onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                <i className="bi bi-x-lg" style={{ fontSize: '.8rem' }} />
-              </button>
-            </div>
-
-            {/* Body modal */}
-            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Immatriculation <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <input className={inputCls} value={form.immatriculation} placeholder="DK-XXXX-AB"
-                    onChange={e => setForm(f => ({ ...f, immatriculation: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Marque <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <input className={inputCls} value={form.marque} placeholder="Toyota"
-                    onChange={e => setForm(f => ({ ...f, marque: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Modèle <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <input className={inputCls} value={form.modele} placeholder="Corolla"
-                    onChange={e => setForm(f => ({ ...f, modele: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Année <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <input type="number" className={inputCls} value={form.annee} min="1990" max="2030"
-                    onChange={e => setForm(f => ({ ...f, annee: parseInt(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Catégorie <span className="text-red-400 normal-case font-normal">*</span></label>
-                  <select className={inputCls} value={form.categorie}
-                    onChange={e => setForm(f => ({ ...f, categorie: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    {[{v:'POIDS_LEGER',l:'Poids léger'},{v:'POIDS_LOURD',l:'Poids lourd'},{v:'TRANSPORT',l:'Transport'},{v:'C1',l:'C1'},{v:'INTERNATIONAL',l:'International'}].map(c => <option key={c.v} value={c.v}>{c.l}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Kilométrage</label>
-                  <input type="number" className={inputCls} value={form.kilometrage} min="0"
-                    onChange={e => setForm(f => ({ ...f, kilometrage: parseInt(e.target.value) || 0 }))} />
-                </div>
-                <div className="col-span-2">
-                  <label className={labelCls}>Statut</label>
-                  <select className={inputCls} value={form.statut}
-                    onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
-                    <option value="DISPONIBLE">Disponible</option>
-                    <option value="EN_COURS">En cours</option>
-                    <option value="EN_MAINTENANCE">En maintenance</option>
-                    <option value="HORS_SERVICE">Hors service</option>
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className={labelCls}>Observations</label>
-                  <textarea className={inputCls} rows="2" value={form.observations}
-                    style={{ resize: 'vertical' }}
-                    onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-                </div>
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setShowModal(false)}>Annuler</button>
+                <button className="btn fw-bold text-white px-5" style={{
+                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
+                  onClick={save}>
+                  <i className="bi bi-check-lg me-1" />Enregistrer
+                </button>
               </div>
-            </div>
-
-            {/* Footer modal */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold border-0 cursor-pointer transition-all"
-                style={{ background: '#f1f5f9', color: '#64748b' }}>
-                Annuler
-              </button>
-              <button
-                onClick={save}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-                style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
-                <i className="bi bi-check-lg" style={{ fontSize: '.9rem' }} />
-                Enregistrer
-              </button>
             </div>
           </div>
         </div>

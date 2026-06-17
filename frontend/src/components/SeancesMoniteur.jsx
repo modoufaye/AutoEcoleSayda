@@ -268,9 +268,9 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
           Retour
         </button>
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800 leading-tight">
+          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
             {editId ? 'Modifier la séance' : 'Nouvelle séance'}
-          </h1>
+          </h2>
         </div>
         <div className="ml-auto flex gap-3">
           <button
@@ -453,7 +453,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
       )}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 leading-tight">Mes Séances</h1>
+          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Mes Séances</h2>
           <p className="text-slate-400 text-sm mt-0.5">Cours que vous avez créés pour vos élèves</p>
         </div>
         <button

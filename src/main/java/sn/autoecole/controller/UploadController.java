@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/moniteur/upload")
 public class UploadController {
 
     @Value("${upload.dir:uploads}")
@@ -28,19 +27,25 @@ public class UploadController {
         Files.createDirectories(Paths.get(uploadDir, "audios"));
     }
 
-    @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/api/moniteur/upload/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> uploadImage(@RequestParam("file") MultipartFile file) throws IOException {
         return saveFile(file, "images",
                 List.of("image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"));
     }
 
-    @PostMapping(value = "/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/api/admin/upload/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, String> uploadAdminImage(@RequestParam("file") MultipartFile file) throws IOException {
+        return saveFile(file, "images",
+                List.of("image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"));
+    }
+
+    @PostMapping(value = "/api/moniteur/upload/video", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> uploadVideo(@RequestParam("file") MultipartFile file) throws IOException {
         return saveFile(file, "videos",
                 List.of("video/mp4", "video/webm", "video/ogg", "video/avi", "video/quicktime"));
     }
 
-    @PostMapping(value = "/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/api/moniteur/upload/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> uploadAudio(@RequestParam("file") MultipartFile file) throws IOException {
         return saveFile(file, "audios",
                 List.of("audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/aac", "audio/webm", "audio/mp4"));
