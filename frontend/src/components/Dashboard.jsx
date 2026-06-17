@@ -558,11 +558,10 @@ function DashboardAdmin({ stats, user }) {
             </div>
           </div>
 
-          {/* Finance x3 */}
-          <div className="lg:col-span-2 grid sm:grid-cols-3 gap-4">
-            <FinanceCard value={fmtMontant(stats.totalEncaisse)} label="Total encaissé"        icon="cash-coin"   accent="#10b981" />
+          {/* Finance x2 */}
+          <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
+            <FinanceCard value={fmtMontant(stats.totalEncaisse)} label="Total encaissé"      icon="cash-coin"    accent="#10b981" />
             <FinanceCard value={fmtMontant(stats.revenusMois)}   label={`Revenus ${new Date().toLocaleDateString('fr-SN', { month: 'long' })}`} icon="graph-up-arrow" accent="#8b5cf6" />
-            <FinanceCard value={stats.totalPaiements}            label="Paiements enregistrés" icon="receipt"     accent="#1e3a5f" />
           </div>
         </div>
       </div>
