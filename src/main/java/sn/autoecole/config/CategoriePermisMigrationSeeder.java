@@ -16,6 +16,12 @@ public class CategoriePermisMigrationSeeder {
     @PostConstruct
     public void migrer() {
         try {
+            // Élargir la colonne bonne_reponse si elle est encore VARCHAR(1)
+            try {
+                jdbc.execute("ALTER TABLE questions_td ALTER COLUMN bonne_reponse VARCHAR(10)");
+                log.info("Colonne questions_td.bonne_reponse élargie à VARCHAR(10)");
+            } catch (Exception ignored) {}
+
             // Supprimer les anciennes contraintes CHECK qui bloquent la migration
             dropCheckConstraints("ELEVES", "CATEGORIE_PERMIS");
             dropCheckConstraints("MONITEUR_CATEGORIES", "CATEGORIE");
