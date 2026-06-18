@@ -15,6 +15,11 @@ public interface ReponseTDRepository extends JpaRepository<ReponseTD, Long> {
     void deleteByQuestionExerciceId(Long exerciceId);
     void deleteByQuestionExerciceIdAndEleveId(Long exerciceId, Long eleveId);
 
+    void deleteByQuestionId(Long questionId);
+
     @Query("SELECT DISTINCT r.eleve FROM ReponseTD r WHERE r.question.exercice.id = :exerciceId")
     List<Eleve> findDistinctElevesByExerciceId(@Param("exerciceId") Long exerciceId);
+
+    @Query("SELECT COUNT(r) FROM ReponseTD r WHERE r.eleve.id = :eleveId AND r.question.exercice.id = :exerciceId AND r.estCorrecte = true")
+    long countBonnesReponses(@Param("eleveId") Long eleveId, @Param("exerciceId") Long exerciceId);
 }

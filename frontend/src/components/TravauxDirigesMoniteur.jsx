@@ -24,6 +24,16 @@ export default function TravauxDirigesMoniteur({ onBack }) {
   const [editingQ, setEditingQ]         = useState(null)
   const [editingTitre, setEditingTitre] = useState(null)
   const [addingQ, setAddingQ]           = useState(null)
+  const [stats, setStats]     = useState([])
+  const [confirm, setConfirm] = useState(null)
+
+  useEffect(() => {
+    if (!confirm) return
+    const handler = e => { if (e.key === 'Escape') setConfirm(null) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [confirm])
+  // confirm = { message, onConfirm }
   // editingTitre = { exId, valeur, saving }
   // editingQ     = { exId, qId, qIdx, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
   // addingQ      = { exId, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
@@ -32,7 +42,14 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
   async function charger() {
     setLoading(true)
-    try { setExercices(await api('GET', '/moniteur/exercices-td')) }
+    try {
+      const [exs, st] = await Promise.all([
+        api('GET', '/moniteur/exercices-td'),
+        api('GET', '/moniteur/exercices-td/stats'),
+      ])
+      setExercices(exs)
+      setStats(st)
+    }
     catch (e) { toast(e.message, 'danger') }
     finally { setLoading(false) }
   }
@@ -112,14 +129,20 @@ export default function TravauxDirigesMoniteur({ onBack }) {
     finally { setSaving(false) }
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Supprimer cet exercice et toutes ses questions ?')) return
-    try {
-      await api('DELETE', `/moniteur/exercices-td/${id}`)
-      toast('Exercice supprimé')
-      setExercices(prev => prev.filter(e => e.id !== id))
-      if (editingQ?.exId === id) setEditingQ(null)
-    } catch (e) { toast(e.message, 'danger') }
+  function handleDelete(id) {
+    setConfirm({
+      message: 'Supprimer cet exercice et toutes ses questions ?',
+      icon: 'trash3-fill',
+      color: '#dc2626',
+      onConfirm: async () => {
+        try {
+          await api('DELETE', `/moniteur/exercices-td/${id}`)
+          toast('Exercice supprimé')
+          setExercices(prev => prev.filter(e => e.id !== id))
+          if (editingQ?.exId === id) setEditingQ(null)
+        } catch (e) { toast(e.message, 'danger') }
+      },
+    })
   }
 
   // ── Édition d'une question ────────────────────────────────────────────────
@@ -205,16 +228,22 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
   // ── Suppression d'une question ───────────────────────────────────────────
 
-  async function handleDeleteQuestion(exId, qId) {
-    if (!window.confirm('Supprimer cette question ?')) return
-    try {
-      await api('DELETE', `/moniteur/exercices-td/questions/${qId}`)
-      setExercices(prev => prev.map(ex => ex.id !== exId ? ex : {
-        ...ex, questions: ex.questions.filter(q => q.id !== qId),
-      }))
-      if (editingQ?.qId === qId) setEditingQ(null)
-      toast('Question supprimée')
-    } catch (e) { toast(e.message, 'danger') }
+  function handleDeleteQuestion(exId, qId) {
+    setConfirm({
+      message: 'Supprimer cette question ?',
+      icon: 'image-fill',
+      color: '#dc2626',
+      onConfirm: async () => {
+        try {
+          await api('DELETE', `/moniteur/exercices-td/questions/${qId}`)
+          setExercices(prev => prev.map(ex => ex.id !== exId ? ex : {
+            ...ex, questions: ex.questions.filter(q => q.id !== qId),
+          }))
+          if (editingQ?.qId === qId) setEditingQ(null)
+          toast('Question supprimée')
+        } catch (e) { toast(e.message, 'danger') }
+      },
+    })
   }
 
   // ── Ajout d'une question à un exercice existant ───────────────────────────
@@ -927,9 +956,75 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                   )
                 })()}
 
+                {/* Élèves + scores */}
+                {(() => {
+                  const exStats = stats.find(s => s.id === ex.id)
+                  const eleves = exStats?.eleves || []
+                  return (
+                    <div style={{ borderTop: '1px dashed #e2e8f0', padding: '0.75rem 1rem 1rem' }}>
+                      <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '.5rem' }}>
+                        <i className="bi bi-people me-1" />Élèves ayant participé
+                      </div>
+                      {eleves.length === 0 ? (
+                        <span style={{ fontSize: '.8rem', color: '#cbd5e1', fontStyle: 'italic' }}>Aucun élève n'a encore répondu</span>
+                      ) : (
+                        <div className="d-flex flex-wrap gap-2">
+                          {eleves.map(e => {
+                            const pct = e.total > 0 ? Math.round(e.bonnes / e.total * 100) : 0
+                            const scoreColor  = pct >= 70 ? '#15803d' : pct >= 40 ? '#b45309' : '#b91c1c'
+                            const scoreBg     = pct >= 70 ? '#f0fdf4' : pct >= 40 ? '#fefce8' : '#fef2f2'
+                            const scoreBorder = pct >= 70 ? '#bbf7d0' : pct >= 40 ? '#fde68a' : '#fecaca'
+                            return (
+                              <span key={e.id} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                fontSize: '.75rem', fontWeight: 600, padding: '.3rem .7rem',
+                                borderRadius: '999px', border: `1px solid ${scoreBorder}`,
+                                background: scoreBg, color: scoreColor,
+                              }}>
+                                <i className="bi bi-person-fill" style={{ fontSize: '.65rem' }} />
+                                {e.prenom} {e.nom}
+                                <span style={{ fontWeight: 800 }}>{e.bonnes}/{e.total}</span>
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal de confirmation */}
+      {confirm && (
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 400 }}>
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-body px-6 py-5 text-center">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                  style={{ background: '#fef2f2', width: 56, height: 56, borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                  <i className={`bi bi-${confirm.icon}`} style={{ fontSize: '1.5rem', color: confirm.color }} />
+                </div>
+                <h6 className="fw-bold mb-2" style={{ color: '#1e293b' }}>Confirmer la suppression</h6>
+                <p className="text-muted mb-0" style={{ fontSize: '.9rem' }}>{confirm.message}</p>
+              </div>
+              <div className="modal-footer border-0 px-6 pb-5 pt-0 gap-2 justify-content-center">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setConfirm(null)}>
+                  Annuler
+                </button>
+                <button className="btn fw-bold text-white px-4" style={{
+                  background: 'linear-gradient(135deg,#dc2626,#b91c1c)', borderRadius: '.75rem', border: 'none' }}
+                  onClick={() => { setConfirm(null); confirm.onConfirm() }}>
+                  <i className="bi bi-trash3 me-2" />Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

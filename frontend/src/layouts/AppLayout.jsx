@@ -246,9 +246,13 @@ export default function AppLayout() {
             : section === 'examens'
             ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : undefined} />
             : section === 'lecons'
-            ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
             : section === 'cours'
-            ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
+            : section === 'vehicules'
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
+            : section === 'mon-profil'
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
             : section === 'mes-paiements'
             ? <ActiveComponent key={section} onBack={() => handleSectionChange('mon-espace')} />
             : section === 'td-admin'

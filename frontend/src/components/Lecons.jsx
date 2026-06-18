@@ -122,8 +122,7 @@ export default function Lecons({ onBack }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ── Bouton retour (élève) ────────────────────────────── */}
-      {isEleve && onBack && (
+      {onBack && (
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
@@ -132,7 +131,7 @@ export default function Lecons({ onBack }) {
           onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
         >
           <i className="bi bi-arrow-left" />
-          Mon Espace
+          {isEleve ? 'Mon Espace' : 'Tableau de bord'}
         </button>
       )}
 

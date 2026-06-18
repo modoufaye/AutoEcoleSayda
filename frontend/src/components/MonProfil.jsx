@@ -25,7 +25,7 @@ function initials(nom = '', prenom = '') {
   return ((prenom[0] || '') + (nom[0] || '')).toUpperCase()
 }
 
-export default function MonProfil() {
+export default function MonProfil({ onBack }) {
   const { user } = useAuth()
   const [profil, setProfil]   = useState(null)
   const [loading, setLoading] = useState(true)
@@ -107,6 +107,16 @@ export default function MonProfil() {
 
   return (
     <div className="space-y-5 max-w-2xl mx-auto" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {onBack && (
+        <button onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
+          style={{ background: '#f1f5f9', color: '#475569' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}>
+          <i className="bi bi-arrow-left" />Tableau de bord
+        </button>
+      )}
 
       {/* ── Bannière ── */}
       <div className="rounded-2xl overflow-hidden relative"

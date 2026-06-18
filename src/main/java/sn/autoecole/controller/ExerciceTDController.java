@@ -99,6 +99,47 @@ public class ExerciceTDController {
         return ResponseEntity.status(HttpStatus.CREATED).body(exerciceRepo.findById(exercice.getId()).orElseThrow());
     }
 
+    @PostMapping("/api/moniteur/exercices-td/{id}/questions")
+    public ResponseEntity<QuestionTD> ajouterQuestion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        ExerciceTD ex = exerciceRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice introuvable"));
+
+        String imageUrl     = (String) body.get("imageUrl");
+        String bonneReponse = (String) body.get("bonneReponse");
+        boolean avecOptionD = Boolean.TRUE.equals(body.get("avecOptionD"));
+        boolean avecOptionC = avecOptionD || Boolean.TRUE.equals(body.get("avecOptionC"));
+        int ordre = body.get("ordre") instanceof Number n ? n.intValue() : ex.getQuestions().size();
+
+        if (imageUrl == null || imageUrl.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image obligatoire");
+
+        if (avecOptionD) {
+            String[] parts = bonneReponse != null ? bonneReponse.split(",") : new String[0];
+            if (parts.length != 2)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez 1 réponse parmi A/B et 1 parmi C/D");
+            boolean hasAB = Arrays.stream(parts).anyMatch(p -> p.trim().equals("A") || p.trim().equals("B"));
+            boolean hasCD = Arrays.stream(parts).anyMatch(p -> p.trim().equals("C") || p.trim().equals("D"));
+            if (!hasAB || !hasCD)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choisissez 1 réponse parmi A/B et 1 parmi C/D");
+            bonneReponse = normaliser(bonneReponse);
+        } else {
+            List<String> valides = avecOptionC ? List.of("A","B","C") : List.of("A","B");
+            if (bonneReponse == null || !valides.contains(bonneReponse))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bonne réponse invalide");
+        }
+
+        QuestionTD q = QuestionTD.builder()
+                .exercice(ex)
+                .imageUrl(imageUrl)
+                .avecOptionC(avecOptionC)
+                .avecOptionD(avecOptionD)
+                .bonneReponse(bonneReponse)
+                .ordre(ordre)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(questionRepo.save(q));
+    }
+
     @PatchMapping("/api/moniteur/exercices-td/{id}")
     public ResponseEntity<ExerciceTD> renommerExercice(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         String titre = (String) body.get("titre");
@@ -144,6 +185,16 @@ public class ExerciceTDController {
     }
 
     @Transactional
+    @DeleteMapping("/api/moniteur/exercices-td/questions/{id}")
+    public ResponseEntity<Void> supprimerQuestion(@PathVariable Long id) {
+        QuestionTD q = questionRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question introuvable"));
+        reponseRepo.deleteByQuestionId(id);
+        questionRepo.delete(q);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Transactional
     @DeleteMapping("/api/moniteur/exercices-td/{id}")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         ExerciceTD ex = exerciceRepo.findById(id)
@@ -157,13 +208,24 @@ public class ExerciceTDController {
 
     @GetMapping("/api/admin/exercices-td")
     public List<Map<String, Object>> listerPourAdmin() {
-        List<ExerciceTD> exercices = exerciceRepo.findAllByOrderByCreatedAtDesc();
+        return buildStatsDto(exerciceRepo.findAllByOrderByCreatedAtDesc());
+    }
+
+    // ── Moniteur stats ────────────────────────────────────────────────────────
+
+    @GetMapping("/api/moniteur/exercices-td/stats")
+    public List<Map<String, Object>> statsMoniteur() {
+        return buildStatsDto(exerciceRepo.findAllByOrderByCreatedAtDesc());
+    }
+
+    private List<Map<String, Object>> buildStatsDto(List<ExerciceTD> exercices) {
         return exercices.stream().map(ex -> {
+            int total = ex.getQuestions().size();
             List<Eleve> elevesDistincts = reponseRepo.findDistinctElevesByExerciceId(ex.getId());
             Map<String, Object> dto = new java.util.LinkedHashMap<>();
             dto.put("id", ex.getId());
             dto.put("titre", ex.getTitre());
-            dto.put("nbQuestions", ex.getQuestions().size());
+            dto.put("nbQuestions", total);
             dto.put("createdAt", ex.getCreatedAt());
             if (ex.getMoniteur() != null) {
                 dto.put("moniteur", Map.of(
@@ -174,11 +236,26 @@ public class ExerciceTDController {
             } else {
                 dto.put("moniteur", null);
             }
-            dto.put("eleves", elevesDistincts.stream().map(e -> Map.of(
-                    "id", e.getId(),
-                    "nom", e.getNom(),
-                    "prenom", e.getPrenom()
-            )).collect(Collectors.toList()));
+            dto.put("questions", ex.getQuestions().stream().map(q -> {
+                Map<String, Object> qDto = new java.util.LinkedHashMap<>();
+                qDto.put("id", q.getId());
+                qDto.put("imageUrl", q.getImageUrl());
+                qDto.put("bonneReponse", q.getBonneReponse());
+                qDto.put("avecOptionC", q.isAvecOptionC());
+                qDto.put("avecOptionD", q.isAvecOptionD());
+                qDto.put("ordre", q.getOrdre());
+                return qDto;
+            }).collect(Collectors.toList()));
+            dto.put("eleves", elevesDistincts.stream().map(e -> {
+                long bonnes = reponseRepo.countBonnesReponses(e.getId(), ex.getId());
+                Map<String, Object> eDto = new java.util.LinkedHashMap<>();
+                eDto.put("id", e.getId());
+                eDto.put("nom", e.getNom());
+                eDto.put("prenom", e.getPrenom());
+                eDto.put("bonnes", bonnes);
+                eDto.put("total", total);
+                return eDto;
+            }).collect(Collectors.toList()));
             return dto;
         }).collect(Collectors.toList());
     }

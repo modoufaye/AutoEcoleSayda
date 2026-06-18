@@ -37,7 +37,7 @@ const CAT_STYLE = {
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
-export default function Vehicules() {
+export default function Vehicules({ onBack }) {
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [statutFilter, setStatutFilter] = useState('')
@@ -103,6 +103,16 @@ export default function Vehicules() {
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {onBack && (
+        <button onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
+          style={{ background: '#f1f5f9', color: '#475569' }}
+          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}>
+          <i className="bi bi-arrow-left" />Tableau de bord
+        </button>
+      )}
 
       {/* ── En-tête de page ─────────────────────────────────── */}
       <div className="flex items-center justify-between">
