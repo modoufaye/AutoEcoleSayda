@@ -134,7 +134,7 @@ export default function AppLayout() {
         <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sections[0]?.key)}>
           <i className="bi bi-car-front-fill" style={{ fontSize: '1.2rem', color: '#f0bb2a', flexShrink: 0 }} />
           <div className="brand-text">
-            <div>Auto-École Excellence</div>
+            <div>Auto-École Khadija</div>
           </div>
         </button>
 
@@ -189,7 +189,7 @@ export default function AppLayout() {
 
           <div>
             <div className="page-title">{activeSection?.label || ''}</div>
-            <div className="page-breadcrumb">Auto-École Excellence</div>
+            <div className="page-breadcrumb">Auto-École Khadija</div>
           </div>
 
           <div className="ms-auto">
