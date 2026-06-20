@@ -75,7 +75,7 @@ function StatutBadge({ statut }) {
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
-export default function Moniteurs() {
+export default function Moniteurs({ onProfilChange }) {
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [search, setSearch]           = useState('')
@@ -126,6 +126,7 @@ export default function Moniteurs() {
   /* ── Ouvrir le profil ──────────────────────────────────── */
   const openProfile = async (m) => {
     setSelected(m)
+    onProfilChange?.(true)
     setElevesSel([])
     setPageEleves(1)
     setLoadingEl(true)
@@ -136,7 +137,7 @@ export default function Moniteurs() {
     finally { setLoadingEl(false) }
   }
 
-  const closeProfile = () => { setSelected(null); setElevesSel([]) }
+  const closeProfile = () => { setSelected(null); setElevesSel([]); onProfilChange?.(false) }
 
   /* ── Modal création / modification ────────────────────── */
   const openModal = (m = null) => {
@@ -373,7 +374,7 @@ export default function Moniteurs() {
         className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
         style={{ background: '#f1f5f9', color: '#475569' }}>
         <i className="bi bi-arrow-left" />
-        Retour à la liste
+        Retour
       </button>
 
       {/* Grid 3 colonnes */}

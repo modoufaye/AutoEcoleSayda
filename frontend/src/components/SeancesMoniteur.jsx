@@ -448,7 +448,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
           onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
         >
           <i className="bi bi-arrow-left" />
-          Tableau de bord
+          Retour
         </button>
       )}
       <div className="flex items-center justify-between gap-4 flex-wrap">

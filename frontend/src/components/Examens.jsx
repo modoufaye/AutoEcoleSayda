@@ -130,7 +130,7 @@ export default function Examens({ onEleveClick, onBack }) {
           onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
         >
           <i className="bi bi-arrow-left" />
-          Mon Espace
+          Retour
         </button>
       )}
 

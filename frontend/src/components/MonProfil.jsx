@@ -114,7 +114,7 @@ export default function MonProfil({ onBack }) {
           style={{ background: '#f1f5f9', color: '#475569' }}
           onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
           onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}>
-          <i className="bi bi-arrow-left" />Tableau de bord
+          <i className="bi bi-arrow-left" />Retour
         </button>
       )}
 

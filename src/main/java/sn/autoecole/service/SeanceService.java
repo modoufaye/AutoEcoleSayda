@@ -78,6 +78,11 @@ public class SeanceService {
         return eleveRepo.findByMoniteur(moniteur);
     }
 
+    @Transactional(readOnly = true)
+    public List<Eleve> findAllEleves() {
+        return eleveRepo.findAll();
+    }
+
     public SeanceResponse create(SeanceRequest req, String moniteurEmail) {
         User moniteur = userRepo.findByEmail(moniteurEmail).orElseThrow();
         Seance s = new Seance();

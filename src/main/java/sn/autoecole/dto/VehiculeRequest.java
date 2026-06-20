@@ -33,4 +33,12 @@ public class VehiculeRequest {
     private String observations;
 
     private LocalDate prochainEntretien;
+
+    private LocalDate dateAssurance;
+
+    private Integer montantAssurance;
+
+    private Integer dureeAssurance;
+
+    private LocalDate dateVisiteTechnique;
 }

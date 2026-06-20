@@ -463,20 +463,32 @@ export default function Eleves({ initialEleveId }) {
     return (
       <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
         <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-            <div className="modal-header border-0 px-6 pt-5 pb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(212,160,23,.12)', color: '#d4a017' }}>
-                  <i className="bi bi-person-plus-fill" />
+          <div className="modal-content border-0" style={{ borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,.25)' }}>
+            <div className="px-6 pt-6 pb-5 relative" style={{ background: 'linear-gradient(135deg,#142a47 0%,#1e3a5f 50%,#2a4f7c 100%)' }}>
+              <button className="btn-close btn-close-white position-absolute top-4 end-4" onClick={() => setShowModal(false)} />
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,.2)' }}>
+                  <i className="bi bi-person-plus-fill" style={{ fontSize: '1.6rem', color: '#fff' }} />
                 </div>
-                <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
-                  {editId ? "Modifier l'élève" : 'Nouvel élève'}
-                </h5>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>
+                    {editId ? "Modifier l'élève" : 'Nouvel élève'}
+                  </div>
+                  {editId ? (
+                    <>
+                      <div className="text-2xl font-extrabold text-white leading-tight">
+                        {form.nom} {form.prenom}
+                      </div>
+                      {form.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{form.telephone}</div>}
+                    </>
+                  ) : (
+                    <div className="text-xl font-extrabold text-white leading-tight">Ajouter un élève</div>
+                  )}
+                </div>
               </div>
-              <button className="btn-close" onClick={() => setShowModal(false)} />
             </div>
-            <div className="modal-body px-6 py-4">
+            <div className="modal-body px-6 py-4" style={{ background: '#f8fafc' }}>
               <div className="row g-3">
                 {[
                   { key: 'nom',           label: 'Nom',             req: true,  type: 'text' },
@@ -574,7 +586,7 @@ export default function Eleves({ initialEleveId }) {
                 </div>
               </div>
             </div>
-            <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+            <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2" style={{ background: '#f8fafc' }}>
               <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
                 onClick={() => setShowModal(false)}>Annuler</button>
               <button className="btn fw-bold text-white px-5" style={{
@@ -695,77 +707,11 @@ export default function Eleves({ initialEleveId }) {
                 )}
               </div>
             </div>
-
-            {/* Documents du dossier */}
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fdf4ff' }}>
-                    <i className="bi bi-folder2-open" style={{ color: '#9333ea', fontSize: '.8rem' }} />
-                  </div>
-                  <span className="font-bold text-slate-700 text-sm">Documents du dossier</span>
-                </div>
-                <span style={{
-                  background: DOCS.every(d => s[d.key]) ? '#f0fdf4' : '#fef9c3',
-                  color: DOCS.every(d => s[d.key]) ? '#15803d' : '#a16207',
-                  border: `1px solid ${DOCS.every(d => s[d.key]) ? '#86efac' : '#fde68a'}`,
-                  borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
-                }}>
-                  {DOCS.filter(d => s[d.key]).length}/{DOCS.length}
-                </span>
-              </div>
-              <div className="px-5 py-3">
-                <div className="row g-1">
-                  {DOCS.map(doc => (
-                    <div key={doc.key} className="col-6">
-                      <div className="flex items-center gap-1.5 py-1">
-                        <i className={`bi bi-${s[doc.key] ? 'check-circle-fill' : 'circle'}`}
-                          style={{ color: s[doc.key] ? '#15803d' : '#cbd5e1', fontSize: '.78rem', flexShrink: 0 }} />
-                        <span style={{ fontSize: '.78rem', color: s[doc.key] ? '#1e293b' : '#94a3b8', fontWeight: s[doc.key] ? 600 : 400 }}>
-                          {doc.label}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Suivi formation */}
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                  <i className="bi bi-bar-chart-fill" style={{ color: '#16a34a', fontSize: '.8rem' }} />
-                </div>
-                <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
-              </div>
-              <div className="grid grid-cols-3 divide-x divide-slate-100 text-center py-4">
-                {[
-                  { val: s.nombreLeconsCode,      label: 'Code',     color: '#1e3a5f' },
-                  { val: s.nombreLeconsConduite,   label: 'Conduite', color: '#10b981' },
-                  { val: s.nombreLeconsCode + s.nombreLeconsConduite, label: 'Total', color: '#6366f1' },
-                ].map(({ val, label, color }) => (
-                  <div key={label}>
-                    <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{label}</div>
-                  </div>
-                ))}
-              </div>
-              {!loadingProfile && !isMoniteur && (
-                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
-                  <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Compte élève */}
-            {!isMoniteur && <CompteEleveCard eleve={s} />}
           </div>
 
           {/* Colonne droite — onglets */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)', minHeight: '480px' }}>
               {/* Onglets */}
               <div className="flex border-b border-slate-100 px-2 pt-2">
                 {[
@@ -806,6 +752,76 @@ export default function Eleves({ initialEleveId }) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Ligne du bas : Documents, Suivi formation, Compte élève */}
+        <div className="grid lg:grid-cols-3 gap-5">
+
+          {/* Documents du dossier */}
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fdf4ff' }}>
+                  <i className="bi bi-folder2-open" style={{ color: '#9333ea', fontSize: '.8rem' }} />
+                </div>
+                <span className="font-bold text-slate-700 text-sm">Documents du dossier</span>
+              </div>
+              <span style={{
+                background: DOCS.every(d => s[d.key]) ? '#f0fdf4' : '#fef9c3',
+                color: DOCS.every(d => s[d.key]) ? '#15803d' : '#a16207',
+                border: `1px solid ${DOCS.every(d => s[d.key]) ? '#86efac' : '#fde68a'}`,
+                borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
+              }}>
+                {DOCS.filter(d => s[d.key]).length}/{DOCS.length}
+              </span>
+            </div>
+            <div className="px-5 py-3">
+              <div className="row g-1">
+                {DOCS.map(doc => (
+                  <div key={doc.key} className="col-6">
+                    <div className="flex items-center gap-1.5 py-1">
+                      <i className={`bi bi-${s[doc.key] ? 'check-circle-fill' : 'circle'}`}
+                        style={{ color: s[doc.key] ? '#15803d' : '#cbd5e1', fontSize: '.78rem', flexShrink: 0 }} />
+                      <span style={{ fontSize: '.78rem', color: s[doc.key] ? '#1e293b' : '#94a3b8', fontWeight: s[doc.key] ? 600 : 400 }}>
+                        {doc.label}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Suivi formation */}
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
+              <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                <i className="bi bi-bar-chart-fill" style={{ color: '#16a34a', fontSize: '.8rem' }} />
+              </div>
+              <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-slate-100 text-center py-4">
+              {[
+                { val: s.nombreLeconsCode,      label: 'Code',     color: '#1e3a5f' },
+                { val: s.nombreLeconsConduite,   label: 'Conduite', color: '#10b981' },
+                { val: s.nombreLeconsCode + s.nombreLeconsConduite, label: 'Total', color: '#6366f1' },
+              ].map(({ val, label, color }) => (
+                <div key={label}>
+                  <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
+                  <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+                </div>
+              ))}
+            </div>
+            {!loadingProfile && !isMoniteur && (
+              <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
+                <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Compte élève */}
+          {!isMoniteur && <CompteEleveCard eleve={s} />}
         </div>
 
         {showModal && Modal()}

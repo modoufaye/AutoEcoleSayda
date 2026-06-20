@@ -702,7 +702,7 @@ export default function Cours({ onBack }) {
           onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
         >
           <i className="bi bi-arrow-left" />
-          {isEleve ? 'Mon Espace' : 'Tableau de bord'}
+          Retour
         </button>
       )}
 

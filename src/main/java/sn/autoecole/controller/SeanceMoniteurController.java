@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import sn.autoecole.dto.SeanceRequest;
 import sn.autoecole.dto.SeanceResponse;
-import sn.autoecole.entity.User;
+import sn.autoecole.entity.Eleve;
 import sn.autoecole.service.SeanceService;
 
 import java.util.List;
@@ -45,10 +45,15 @@ public class SeanceMoniteurController {
         seanceService.delete(id, user.getUsername());
     }
 
-    /** Élèves assignés à ce moniteur — pré-sélectionnés par défaut dans une nouvelle séance */
+    /** Élèves : tous si admin, sinon ceux du moniteur connecté */
     @GetMapping("/eleves")
     public List<Map<String, Object>> getEleves(@AuthenticationPrincipal UserDetails user) {
-        return seanceService.findElevesByMoniteur(user.getUsername()).stream()
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        List<Eleve> eleves = isAdmin
+                ? seanceService.findAllEleves()
+                : seanceService.findElevesByMoniteur(user.getUsername());
+        return eleves.stream()
                 .map(e -> Map.<String, Object>of(
                         "id",    e.getId(),
                         "nom",   e.getNom() + " " + e.getPrenom(),

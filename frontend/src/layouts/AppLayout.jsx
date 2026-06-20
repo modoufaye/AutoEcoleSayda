@@ -75,6 +75,7 @@ export default function AppLayout() {
   const [sectionCount, setSectionCount] = useState(0)
   const [history, setHistory] = useState([])
   const [navigateToEleve, setNavigateToEleve] = useState(null)
+  const [moniteurEnProfil, setMoniteurEnProfil] = useState(false)
 
   useEffect(() => {
     const handler = (e) => {
@@ -133,7 +134,7 @@ export default function AppLayout() {
         <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sections[0]?.key)}>
           <i className="bi bi-car-front-fill" style={{ fontSize: '1.2rem', color: '#f0bb2a', flexShrink: 0 }} />
           <div className="brand-text">
-            <div>Auto-École Khadija</div>
+            <div>Auto-École Excellence</div>
           </div>
         </button>
 
@@ -188,7 +189,7 @@ export default function AppLayout() {
 
           <div>
             <div className="page-title">{activeSection?.label || ''}</div>
-            <div className="page-breadcrumb">Auto-École Khadija</div>
+            <div className="page-breadcrumb">Auto-École Excellence</div>
           </div>
 
           <div className="ms-auto">
@@ -216,7 +217,7 @@ export default function AppLayout() {
         </nav>
 
         <main className="main-content">
-          {user?.role === 'SUPER_ADMIN' && history.length > 0 && (
+          {user?.role === 'SUPER_ADMIN' && history.length > 0 && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && moniteurEnProfil) && (
             <div style={{ marginBottom: '1rem' }}>
               <button
                 onClick={handleBack}
@@ -238,31 +239,33 @@ export default function AppLayout() {
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} />
             : section === 'seances-moniteur' && user?.role === 'SUPER_ADMIN'
-            ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={() => handleSectionChange('dashboard')} />
+            ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={handleBack} />
             : section === 'seances-moniteur'
-            ? <SeancesMoniteur key="seances-moniteur" onBack={() => handleSectionChange('dashboard')} />
+            ? <SeancesMoniteur key="seances-moniteur" onBack={handleBack} />
             : section === 'seances-eleve'
-            ? <SeancesEleve key="seances-eleve" onBack={() => handleSectionChange('mon-espace')} />
+            ? <SeancesEleve key="seances-eleve" onBack={handleBack} />
             : section === 'examens'
-            ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : undefined} />
+            ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? handleBack : undefined} />
             : section === 'lecons'
-            ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined} />
             : section === 'cours'
-            ? <ActiveComponent key={section} onBack={user?.role === 'ELEVE' ? () => handleSectionChange('mon-espace') : user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined} />
             : section === 'vehicules'
-            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
             : section === 'mon-profil'
-            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? () => handleSectionChange('dashboard') : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
             : section === 'mes-paiements'
-            ? <ActiveComponent key={section} onBack={() => handleSectionChange('mon-espace')} />
+            ? <ActiveComponent key={section} onBack={handleBack} />
             : section === 'td-admin'
             ? <TravauxDirigesAdmin key="td-admin" />
             : section === 'td-moniteur'
-            ? <TravauxDirigesMoniteur key="td-moniteur" onBack={() => handleSectionChange('dashboard')} />
+            ? <TravauxDirigesMoniteur key="td-moniteur" onBack={handleBack} />
             : section === 'td-eleve'
-            ? <TravauxDirigesEleve key="td-eleve" onBack={() => handleSectionChange('mon-espace')} />
+            ? <TravauxDirigesEleve key="td-eleve" onBack={handleBack} />
             : section === 'eleves'
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${sectionCount}`} initialEleveId={navigateToEleve} />
+            : section === 'moniteurs'
+            ? <Moniteurs key="moniteurs" onProfilChange={setMoniteurEnProfil} />
             : <ActiveComponent key={section} />}
         </main>
       </div>

@@ -55,6 +55,10 @@ public class VehiculeService {
                 .statut(request.getStatut() != null ? request.getStatut() : StatutVehicule.DISPONIBLE)
                 .observations(request.getObservations())
                 .prochainEntretien(request.getProchainEntretien())
+                .dateAssurance(request.getDateAssurance())
+                .montantAssurance(request.getMontantAssurance())
+                .dureeAssurance(request.getDureeAssurance())
+                .dateVisiteTechnique(request.getDateVisiteTechnique())
                 .build();
         return vehiculeRepository.save(vehicule);
     }
@@ -74,6 +78,10 @@ public class VehiculeService {
         vehicule.setKilometrage(request.getKilometrage());
         vehicule.setObservations(request.getObservations());
         vehicule.setProchainEntretien(request.getProchainEntretien());
+        vehicule.setDateAssurance(request.getDateAssurance());
+        vehicule.setMontantAssurance(request.getMontantAssurance());
+        vehicule.setDureeAssurance(request.getDureeAssurance());
+        vehicule.setDateVisiteTechnique(request.getDateVisiteTechnique());
         if (request.getStatut() != null) {
             vehicule.setStatut(request.getStatut());
         }
