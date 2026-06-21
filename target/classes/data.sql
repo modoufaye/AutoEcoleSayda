@@ -1,4 +1,18 @@
 -- ══════════════════════════════════════════════════════════
+-- SUPPRESSION DES CONTRAINTES CHECK H2 (enum évolutifs)
+-- ══════════════════════════════════════════════════════════
+ALTER TABLE paiements DROP CONSTRAINT IF EXISTS CONSTRAINT_45;
+ALTER TABLE paiements DROP CONSTRAINT IF EXISTS CONSTRAINT_455;
+ALTER TABLE blocs_contenu DROP CONSTRAINT IF EXISTS CONSTRAINT_A;
+
+-- ══════════════════════════════════════════════════════════
+-- AUTO-ÉCOLE CONFIG
+-- ══════════════════════════════════════════════════════════
+INSERT INTO auto_ecole_config (nom, adresse, telephone, email, logo_url, signature_url, tarif_inscription, tarif_heure_code, tarif_heure_conduite)
+SELECT 'Auto-École Excellence', 'Dakar, Sénégal', '', '', '', '', 0, 0, 0
+WHERE NOT EXISTS (SELECT 1 FROM auto_ecole_config);
+
+-- ══════════════════════════════════════════════════════════
 -- MONITEURS (3)
 -- ══════════════════════════════════════════════════════════
 INSERT INTO moniteurs (nom, prenom, telephone, email, numero_cni, numero_permis, date_embauche, actif)
@@ -12,6 +26,9 @@ WHERE NOT EXISTS (SELECT 1 FROM moniteurs WHERE telephone = '772345678');
 INSERT INTO moniteurs (nom, prenom, telephone, email, numero_cni, numero_permis, date_embauche, actif)
 SELECT 'Mbaye', 'Ibrahima', '773456789', 'ibrahima.mbaye@autoecole.sn', '1122334455667', 'SN-C-001', '2019-06-01', true
 WHERE NOT EXISTS (SELECT 1 FROM moniteurs WHERE telephone = '773456789');
+
+-- Rattache les TDs sans moniteur au premier moniteur du système
+UPDATE groupes_td SET moniteur_id = (SELECT MIN(id) FROM moniteurs) WHERE moniteur_id IS NULL;
 
 -- Catégories des moniteurs
 INSERT INTO moniteur_categories (moniteur_id, categorie)
@@ -407,3 +424,63 @@ WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-016');
 INSERT INTO paiements (reference, date, montant, eleve_id, type_paiement, statut, description)
 SELECT 'PAY-NDI-017', '2026-05-01', 35000, (SELECT id FROM eleves WHERE telephone = '761100016'), 'INSCRIPTION', 'PAYE', 'Frais de formation'
 WHERE NOT EXISTS (SELECT 1 FROM paiements WHERE reference = 'PAY-NDI-017');
+
+-- ══════════════════════════════════════════════════════════
+-- SÉANCES DE COURS DE CODE
+-- Chaque élève doit avoir au moins 2 séances avec son moniteur
+-- ══════════════════════════════════════════════════════════
+
+-- 1) Compléter la séance "Introduction aux feux" de Mamadou Diallo avec les élèves manquants
+INSERT INTO seance_eleve_profiles (seance_id, eleve_id)
+SELECT s.id, e.id
+FROM seances s, eleves e
+WHERE s.titre = 'Introduction aux feux de signalisation'
+  AND e.id IN (44, 45, 46, 47, 48, 49, 50, 51, 52, 87)
+  AND NOT EXISTS (SELECT 1 FROM seance_eleve_profiles sep WHERE sep.seance_id = s.id AND sep.eleve_id = e.id);
+
+-- 2) Ajouter l'élève manquant (85) à la séance "Comprendre les panneaux" de Fatou Ndiaye
+INSERT INTO seance_eleve_profiles (seance_id, eleve_id)
+SELECT s.id, e.id
+FROM seances s, eleves e
+WHERE s.titre = 'Comprendre les panneaux de signalisation'
+  AND e.id = 85
+  AND NOT EXISTS (SELECT 1 FROM seance_eleve_profiles sep WHERE sep.seance_id = s.id AND sep.eleve_id = e.id);
+
+-- 3) Créer une 2e séance pour Fatou Ndiaye
+INSERT INTO seances (titre, theme, statut, moniteur_id, date_heure, created_at)
+SELECT 'Conduite de nuit et visibilité', 'CONDUITE_NUIT', 'PUBLIE', u.id, '2026-06-10 14:00:00', CURRENT_TIMESTAMP
+FROM users u WHERE u.email = 'fatou.ndiaye@autoecole.sn'
+AND NOT EXISTS (SELECT 1 FROM seances s WHERE s.titre = 'Conduite de nuit et visibilité');
+
+INSERT INTO seance_eleve_profiles (seance_id, eleve_id)
+SELECT s.id, e.id
+FROM seances s, eleves e
+WHERE s.titre = 'Conduite de nuit et visibilité'
+  AND e.id IN (2, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 85)
+  AND NOT EXISTS (SELECT 1 FROM seance_eleve_profiles sep WHERE sep.seance_id = s.id AND sep.eleve_id = e.id);
+
+-- 4) Créer la 1re séance pour Ibrahima Mbaye
+INSERT INTO seances (titre, theme, statut, moniteur_id, date_heure, created_at)
+SELECT 'Introduction à la signalisation routière', 'PANNEAUX_SIGNALISATION', 'PUBLIE', u.id, '2026-05-20 09:00:00', CURRENT_TIMESTAMP
+FROM users u WHERE u.email = 'ibrahima.mbaye@autoecole.sn'
+AND NOT EXISTS (SELECT 1 FROM seances s WHERE s.titre = 'Introduction à la signalisation routière');
+
+INSERT INTO seance_eleve_profiles (seance_id, eleve_id)
+SELECT s.id, e.id
+FROM seances s, eleves e
+WHERE s.titre = 'Introduction à la signalisation routière'
+  AND e.id IN (3, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84)
+  AND NOT EXISTS (SELECT 1 FROM seance_eleve_profiles sep WHERE sep.seance_id = s.id AND sep.eleve_id = e.id);
+
+-- 5) Créer la 2e séance pour Ibrahima Mbaye
+INSERT INTO seances (titre, theme, statut, moniteur_id, date_heure, created_at)
+SELECT 'Règles de priorité et stationnement', 'REGLES_PRIORITE', 'PUBLIE', u.id, '2026-06-03 09:00:00', CURRENT_TIMESTAMP
+FROM users u WHERE u.email = 'ibrahima.mbaye@autoecole.sn'
+AND NOT EXISTS (SELECT 1 FROM seances s WHERE s.titre = 'Règles de priorité et stationnement');
+
+INSERT INTO seance_eleve_profiles (seance_id, eleve_id)
+SELECT s.id, e.id
+FROM seances s, eleves e
+WHERE s.titre = 'Règles de priorité et stationnement'
+  AND e.id IN (3, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84)
+  AND NOT EXISTS (SELECT 1 FROM seance_eleve_profiles sep WHERE sep.seance_id = s.id AND sep.eleve_id = e.id);
