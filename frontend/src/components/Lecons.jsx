@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtTime } from '../utils'
+import { fmtDate, fmtTime, BADGES } from '../utils'
+import Badge from './Badge'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
@@ -10,6 +11,12 @@ const PAGE_SIZE = 10
 
 const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: '', eleveId: '', moniteurId: '', vehiculeId: '', observations: '' }
+
+const SITES = [
+  { value: 'MAZALIK_JINAN', label: 'Mazalik Jinan' },
+  { value: 'GUEDIAWAYE',    label: 'Guédiawaye' },
+  { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
+]
 
 const TYPE_STYLE = {
   CODE:     { bg: '#eff6ff', color: '#2563eb', dot: '#2563eb', label: 'Code' },
@@ -31,6 +38,7 @@ export default function Lecons({ onBack }) {
   const isEleve = user?.role === 'ELEVE'
 
   const [list, setList]           = useState([])
+  const [site, setSite]           = useState('')
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
@@ -52,6 +60,7 @@ export default function Lecons({ onBack }) {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => { setPage(1) }, [site])
 
   const openModal = async (l = null) => {
     const [ev, mo, ve] = await Promise.all([
@@ -117,7 +126,9 @@ export default function Lecons({ onBack }) {
     catch (e) { toast(e.message, 'danger') }
   }
 
-  const colSpan = isEleve ? 6 : 8
+  const filtered = site ? list.filter(l => l.eleve?.site === site) : list
+
+  const colSpan = isEleve ? 6 : 9
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -137,11 +148,17 @@ export default function Lecons({ onBack }) {
 
       {/* ── En-tête page (admin uniquement) ─────────────────── */}
       {!isEleve && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Cours Conduite</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{list.length} leçon{list.length !== 1 ? 's' : ''} au total</p>
+            <p className="text-sm text-slate-400 mt-0.5">{filtered.length} leçon{filtered.length !== 1 ? 's' : ''} au total</p>
           </div>
+          <select
+            className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
+            value={site} onChange={e => setSite(e.target.value)}>
+            <option value="">Tous les sites</option>
+            {SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </select>
           <button
             onClick={() => openModal()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
@@ -179,16 +196,16 @@ export default function Lecons({ onBack }) {
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {list.length}
+            {filtered.length}
           </span>
         </div>
 
         {/* Tableau */}
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-cards">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Date & Horaire', ...(!isEleve ? ['Élève'] : []), 'Moniteur', 'Véhicule', 'Type', 'Statut', ...(!isEleve ? ['Actions'] : [])].map((h, i) => (
+                {['#', 'Date & Horaire', ...(!isEleve ? ['Élève', 'Site'] : []), 'Moniteur', 'Véhicule', 'Type', 'Statut', ...(!isEleve ? ['Actions'] : [])].map((h, i) => (
                   <th key={h + i}
                     className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 0 ? 'text-center w-10' : h === 'Actions' ? 'text-right' : 'text-left'}`}>
                     {h}
@@ -206,7 +223,7 @@ export default function Lecons({ onBack }) {
                     </div>
                   </td>
                 </tr>
-              ) : list.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={colSpan}>
                     <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -218,7 +235,7 @@ export default function Lecons({ onBack }) {
                     </div>
                   </td>
                 </tr>
-              ) : list.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((l, i) => {
+              ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((l, i) => {
                 const editable   = l.statut === 'PLANIFIEE'
                 const terminable = l.statut === 'PLANIFIEE' || l.statut === 'EN_COURS'
                 const typeSt     = TYPE_STYLE[l.type]   || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: l.type }
@@ -227,36 +244,42 @@ export default function Lecons({ onBack }) {
                 return (
                   <tr key={l.id} style={{ background: isEven ? '#fff' : '#fafbfc' }}
                     className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center cell-hide">
                       <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    {/* Côté élève la date fait office de titre ; côté admin c'est le nom de l'élève. */}
+                    <td className={`py-3.5 px-4${isEleve ? ' cell-title' : ''}`} data-label="Date & Horaire">
                       <div className="text-sm font-semibold text-slate-700">{fmtDate(l.date)}</div>
                       <div className="text-xs text-slate-400 mt-0.5">
                         {l.heureDebut ? `${l.heureDebut.slice(0,5)} – ${l.heureFin?.slice(0,5)}` : '—'}
                       </div>
                     </td>
                     {!isEleve && (
-                      <td className="py-3.5 px-4 text-sm text-slate-600 font-medium">
+                      <td className="py-3.5 px-4 text-sm text-slate-600 font-medium cell-title">
                         {l.eleve ? `${l.eleve.nom} ${l.eleve.prenom}` : '—'}
                       </td>
                     )}
-                    <td className="py-3.5 px-4 text-sm text-slate-600">
+                    {!isEleve && (
+                      <td className="py-3.5 px-4" data-label="Site">
+                        {l.eleve?.site ? <Badge value={l.eleve.site} map={BADGES.site} /> : <span className="text-slate-300">—</span>}
+                      </td>
+                    )}
+                    <td className="py-3.5 px-4 text-sm text-slate-600" data-label="Moniteur">
                       {l.moniteur ? `${l.moniteur.nom} ${l.moniteur.prenom}` : '—'}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Véhicule">
                       {l.vehicule
                         ? <span className="text-xs font-mono font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg">{l.vehicule.immatriculation}</span>
                         : <span className="text-slate-300 text-sm">—</span>}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Type">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: typeSt.bg, color: typeSt.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: typeSt.dot }} />
                         {typeSt.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Statut">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: statutSt.bg, color: statutSt.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: statutSt.dot }} />
@@ -264,7 +287,7 @@ export default function Lecons({ onBack }) {
                       </span>
                     </td>
                     {!isEleve && (
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 cell-actions">
                         <div className="flex items-center justify-end gap-1">
                           {terminable && (
                             <button onClick={() => terminer(l.id)} title="Terminer"
@@ -301,7 +324,7 @@ export default function Lecons({ onBack }) {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} setPage={setPage} total={list.length} pageSize={PAGE_SIZE} />
+        <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
       {/* ── Modal planifier / modifier ───────────────────────── */}

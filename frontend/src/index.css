@@ -234,3 +234,187 @@ body {
 .search-input { max-width: 300px; }
 .btn-action { padding: .2rem .45rem; }
 .section-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #cbd5e1; margin: .25rem 0; }
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE — la sidebar devient un tiroir sous 768px
+   ═══════════════════════════════════════════════════════ */
+
+/* Voile sombre derrière le tiroir ouvert */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 34, 64, .55);
+  backdrop-filter: blur(2px);
+  z-index: 1040;
+  border: none;
+  padding: 0;
+  animation: overlay-in .2s ease;
+}
+
+@keyframes overlay-in { from { opacity: 0 } to { opacity: 1 } }
+
+@media (max-width: 768px) {
+  .sidebar-overlay { display: block; }
+
+  /* Tiroir hors écran par défaut, ramené par .mobile-open */
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    width: 280px;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform .28s cubic-bezier(.4, 0, .2, 1);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  #sidebar.mobile-open { transform: translateX(0); }
+
+  /* En mobile le tiroir affiche toujours les libellés :
+     on neutralise l'état « replié » du bureau. */
+  #sidebar.collapsed { width: 280px; }
+  #sidebar.collapsed .brand-text,
+  #sidebar.collapsed .nav-text,
+  #sidebar.collapsed .section-title { display: revert; }
+
+  /* Cibles tactiles : 44px minimum */
+  .sidebar-menu .nav-link { padding: .85rem 1.1rem; font-size: .9rem; }
+  .sidebar-brand { padding: 1.1rem; }
+
+  .top-bar {
+    padding: 0 .9rem;
+    padding-left: max(.9rem, env(safe-area-inset-left));
+    padding-right: max(.9rem, env(safe-area-inset-right));
+  }
+  .top-bar .toggle-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+  }
+  .page-title { font-size: .9rem; }
+  .page-breadcrumb { display: none; }
+
+  .main-content {
+    padding: 1rem .85rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  /* Les en-têtes de section passent en colonne */
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .75rem;
+  }
+  .search-input { max-width: none; width: 100%; }
+
+  /* Boutons et champs confortables au pouce */
+  .btn { min-height: 40px; }
+  .btn-action { min-width: 38px; min-height: 38px; padding: .35rem .5rem; }
+  .form-control, .form-select { min-height: 44px; font-size: 16px; } /* 16px = pas de zoom auto iOS */
+
+  /* Modales collées aux bords de l'écran */
+  .modal-dialog { margin: .5rem; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE — tableaux transformés en cartes empilées
+   Marche-à-suivre dans le JSX :
+     <table className="table table-cards">
+     <td data-label="Téléphone">…</td>   → libellé + valeur
+     <td className="cell-title">…</td>   → titre de la carte
+     <td className="cell-actions">…</td> → barre d'actions en pied
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .table-cards,
+  .table-cards tbody { display: block; width: 100%; }
+
+  .table-cards thead { display: none; }
+
+  /* Colonne flex : .cell-title remonte en tête et .cell-actions passe en pied,
+     quel que soit l'ordre des colonnes dans le tableau d'origine. */
+  .table-cards tbody tr {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #e5e9f0;
+    border-radius: .85rem;
+    padding: .9rem 1rem;
+    margin-bottom: .75rem;
+    box-shadow: 0 1px 3px rgba(15, 34, 64, .06);
+  }
+
+  /* Paire libellé / valeur */
+  .table-cards tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .45rem 0;
+    border: none;
+    text-align: right;
+    font-size: .875rem;
+    color: #374151;
+  }
+
+  .table-cards tbody td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    text-align: left;
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #94a3b8;
+  }
+
+  /* Titre de carte : pleine largeur, souligné */
+  .table-cards tbody td.cell-title {
+    order: -1;
+    display: block;
+    text-align: left;
+    padding: 0 0 .65rem;
+    margin-bottom: .45rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  /* Actions : regroupées en pied de carte */
+  .table-cards tbody td.cell-actions {
+    order: 1;
+    justify-content: flex-end;
+    gap: .5rem;
+    padding: .7rem 0 0;
+    margin-top: .45rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  /* Colonnes sans intérêt en carte (numéro de ligne, cases à cocher…) */
+  .table-cards tbody td.cell-hide { display: none; }
+
+  /* Cellules sans libellé : pas de préfixe vide */
+  .table-cards tbody td.cell-title::before,
+  .table-cards tbody td.cell-actions::before,
+  .table-cards tbody td:not([data-label])::before { content: none; }
+
+  /* Une ligne « aucun résultat » reste centrée */
+  .table-cards tbody td[colspan] {
+    display: block;
+    text-align: center;
+    padding: 1.25rem 0;
+  }
+  .table-cards tbody td[colspan]::before { content: none; }
+}
+
+/* Pas d'effet de survol sur écran tactile : il resterait collé après un tap */
+@media (hover: none) {
+  .table-hover tbody tr:hover { background: transparent; }
+  .sidebar-menu .nav-link:hover { background: transparent; color: rgba(255,255,255,.6); }
+  .sidebar-menu .nav-link.active:hover { background: rgba(212,160,23,.12); color: var(--gold-light); }
+}

@@ -1,0 +1,9 @@
+target/
+data/
+uploads/
+frontend/
+*.log
+.git/
+.idea/
+.vscode/
+.DS_Store

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { ROLE_BASE } from '../utils'
 import { useToastManager, ToastContainer } from '../components/Toast'
 import { api } from '../api'
 import { toast } from '../components/Toast'
@@ -55,35 +57,78 @@ const COMPONENTS = {
   'parametres': Parametres,
 }
 
-const ROLE_LABELS = {
-  SUPER_ADMIN: 'Administrateur',
-  MONITEUR:    'Moniteur',
-  ELEVE:       'Élève',
-}
+const MOBILE_QUERY = '(max-width: 768px)'
 
-function initials(nom = '') {
-  return nom.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+/* Suit le passage bureau ⇄ mobile pour que le bouton hamburger
+   replie la sidebar (bureau) ou ouvre le tiroir (mobile). */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia(MOBILE_QUERY).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY)
+    const handler = e => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
 }
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
   const { toasts } = useToastManager()
-  const [collapsed, setCollapsed] = useState(false)
+  const navigate = useNavigate()
+  const params = useParams()
+  const isMobile = useIsMobile()
+
+  const [collapsed, setCollapsed]   = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role))
-  const [section, setSection] = useState(sections[0]?.key || 'dashboard')
-  const [sectionCount, setSectionCount] = useState(0)
-  const [history, setHistory] = useState([])
-  const [navigateToEleve, setNavigateToEleve] = useState(null)
+  const defaultSection = sections[0]?.key || 'dashboard'
+  const base = ROLE_BASE[user?.role] || '/dashboard'
+
+  /* La section et l'élève ouvert vivent désormais dans l'URL :
+     /dashboard/admin/eleves/42 → section « eleves », élève 42. */
+  const [rawSection, rawEleveId] = (params['*'] || '').split('/')
+  const section = sections.some(s => s.key === rawSection) ? rawSection : defaultSection
+  const navigateToEleve = section === 'eleves' && rawEleveId ? rawEleveId : null
+
+  /* URL absente ou section inconnue → on réécrit l'URL sans polluer l'historique. */
+  useEffect(() => {
+    if (rawSection !== section) navigate(`${base}/${section}`, { replace: true })
+  }, [rawSection, section, base, navigate])
+
   const [moniteurEnProfil, setMoniteurEnProfil] = useState(false)
+
+  /* Le bouton Retour ne doit s'afficher que s'il reste une étape INTERNE où
+     revenir. react-router numérote les entrées d'historique dans
+     window.history.state.idx : on mémorise l'index d'entrée dans le tableau de
+     bord, et on compare. Sans ça, `navigate(-1)` finit par sortir de l'app
+     (retour sur /login ou sur la page vitrine).
+     useParams() provoque déjà un rendu à chaque navigation : l'index relu ici
+     est donc toujours à jour. */
+  const historyIdx = window.history.state?.idx ?? 0
+  const [entryIdx] = useState(() => window.history.state?.idx ?? 0)
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') document.querySelector('.modal.show .btn-close')?.click()
+      if (e.key !== 'Escape') return
+      const modal = document.querySelector('.modal.show .btn-close')
+      if (modal) modal.click()
+      else setDrawerOpen(false)
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [])
+
+  /* Le tiroir n'existe qu'en mobile : on dérive l'état plutôt que de le
+     réinitialiser au retour sur grand écran. */
+  const showDrawer = isMobile && drawerOpen
+
+  /* Tiroir ouvert : on bloque le défilement de la page derrière. */
+  useEffect(() => {
+    document.body.style.overflow = showDrawer ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [showDrawer])
 
   const [showMdp, setShowMdp]     = useState(false)
   const [mdpForm, setMdpForm]     = useState({ ancien: '', nouveau: '', confirm: '' })
@@ -103,32 +148,41 @@ export default function AppLayout() {
     finally { setMdpSaving(false) }
   }
 
+  /* Chaque navigation empile une entrée d'historique : le bouton Retour
+     du navigateur — et celui d'Android en PWA — fonctionne nativement. */
   const handleEleveClick = (eleveId) => {
-    setHistory(h => [...h, section])
-    setNavigateToEleve(eleveId)
-    setSection('eleves')
+    setDrawerOpen(false)
+    navigate(`${base}/eleves/${eleveId}`)
   }
   const handleSectionChange = (key) => {
-    setHistory(h => [...h, section])
-    setSection(key)
-    setSectionCount(c => c + 1)
-    setNavigateToEleve(null)
+    setDrawerOpen(false)
+    navigate(`${base}/${key}`)
   }
-  const handleBack = () => {
-    setHistory(h => {
-      const prev = h[h.length - 1]
-      if (prev) { setSection(prev); setNavigateToEleve(null) }
-      return h.slice(0, -1)
-    })
-  }
+  const handleBack = () => navigate(-1)
 
+  const canGoBack = historyIdx > entryIdx
   const activeSection = sections.find(s => s.key === section)
   const ActiveComponent = COMPONENTS[section]
 
   return (
     <>
-      {/* ── Sidebar ── */}
-      <div id="sidebar" className={collapsed ? 'collapsed' : ''}>
+      {/* Voile tactile : un tap hors du tiroir le referme */}
+      {showDrawer && (
+        <button
+          className="sidebar-overlay"
+          aria-label="Fermer le menu"
+          onClick={() => setDrawerOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar (tiroir sous 768px) ── */}
+      <div
+        id="sidebar"
+        className={`${collapsed ? 'collapsed' : ''}${showDrawer ? ' mobile-open' : ''}`}
+        /* `inert` (et non aria-hidden) : le tiroir fermé sort aussi de l'ordre
+           de tabulation, sinon on peut tabuler dans un menu hors écran. */
+        inert={isMobile && !showDrawer}
+      >
 
         {/* Logo */}
         <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sections[0]?.key)}>
@@ -183,7 +237,12 @@ export default function AppLayout() {
 
         {/* Top bar */}
         <nav className="top-bar">
-          <button className="toggle-btn" onClick={() => setCollapsed(c => !c)}>
+          <button
+            className="toggle-btn"
+            aria-label={isMobile ? 'Ouvrir le menu' : 'Replier le menu'}
+            aria-expanded={isMobile ? showDrawer : !collapsed}
+            onClick={() => isMobile ? setDrawerOpen(o => !o) : setCollapsed(c => !c)}
+          >
             <i className="bi bi-list"></i>
           </button>
 
@@ -217,7 +276,7 @@ export default function AppLayout() {
         </nav>
 
         <main className="main-content">
-          {user?.role === 'SUPER_ADMIN' && history.length > 0 && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && moniteurEnProfil) && (
+          {user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && moniteurEnProfil) && (
             <div style={{ marginBottom: '1rem' }}>
               <button
                 onClick={handleBack}
@@ -232,7 +291,7 @@ export default function AppLayout() {
                 onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#475569' }}
               >
                 <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />
-                {sections.find(s => s.key === history[history.length - 1])?.label || 'Retour'}
+                Retour
               </button>
             </div>
           )}
@@ -246,6 +305,8 @@ export default function AppLayout() {
             ? <SeancesEleve key="seances-eleve" onBack={handleBack} />
             : section === 'examens'
             ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? handleBack : undefined} />
+            : section === 'paiements'
+            ? <Paiements key="paiements" onEleveClick={handleEleveClick} />
             : section === 'lecons'
             ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined} />
             : section === 'cours'
@@ -263,7 +324,7 @@ export default function AppLayout() {
             : section === 'td-eleve'
             ? <TravauxDirigesEleve key="td-eleve" onBack={handleBack} />
             : section === 'eleves'
-            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${sectionCount}`} initialEleveId={navigateToEleve} />
+            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}`} initialEleveId={navigateToEleve} />
             : section === 'moniteurs'
             ? <Moniteurs key="moniteurs" onProfilChange={setMoniteurEnProfil} />
             : <ActiveComponent key={section} />}

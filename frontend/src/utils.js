@@ -1,3 +1,11 @@
+/* Racine d'URL du tableau de bord selon le rôle.
+   Sert à la redirection après connexion et à la navigation entre sections. */
+export const ROLE_BASE = {
+  SUPER_ADMIN: '/dashboard/admin',
+  MONITEUR:    '/dashboard/moniteur',
+  ELEVE:       '/dashboard/eleve',
+}
+
 export function fmtDate(s) {
   if (!s) return '-'
   const [y, m, d] = s.split('-')
@@ -21,6 +29,7 @@ export const BADGES = {
   type_lecon:      { CODE: 'secondary', CONDUITE: 'primary' },
   statut_paiement: { PAYE: 'success', EN_ATTENTE: 'warning text-dark', ANNULE: 'secondary' },
   type_paiement:   { INSCRIPTION: 'info text-dark', LECON: 'primary', EXAMEN: 'secondary', AUTRE: 'secondary' },
+  site:            { MAZALIK_JINAN: 'primary', GUEDIAWAYE: 'success', KEUR_MASSAR: 'warning text-dark' },
 }
 
 export const LABELS = {
@@ -31,5 +40,6 @@ export const LABELS = {
   CODE: 'Code', CONDUITE: 'Conduite',
   PAYE: 'Payé', ANNULE: 'Annulé',
   INSCRIPTION: 'Inscription', LECON: 'Leçon', EXAMEN: 'Examen', AUTRE: 'Autre',
+  MAZALIK_JINAN: 'Mazalik Jinan', GUEDIAWAYE: 'Guédiawaye', KEUR_MASSAR: 'Keur Massar',
 }
 

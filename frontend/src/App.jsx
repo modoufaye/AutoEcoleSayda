@@ -9,9 +9,12 @@ import Forbidden from './pages/Forbidden'
 function DashboardRouter() {
   return (
     <Routes>
-      <Route path="admin"    element={<PrivateRoute roles={['SUPER_ADMIN']}><AppLayout /></PrivateRoute>} />
-      <Route path="moniteur" element={<PrivateRoute roles={['MONITEUR']}><AppLayout /></PrivateRoute>} />
-      <Route path="eleve"    element={<PrivateRoute roles={['ELEVE']}><AppLayout /></PrivateRoute>} />
+      {/* Le splat « /* » laisse AppLayout lire la section courante dans l'URL
+          (ex. /dashboard/admin/eleves/42) — indispensable pour que le bouton
+          Retour du navigateur et d'Android navigue au lieu de quitter l'app. */}
+      <Route path="admin/*"    element={<PrivateRoute roles={['SUPER_ADMIN']}><AppLayout /></PrivateRoute>} />
+      <Route path="moniteur/*" element={<PrivateRoute roles={['MONITEUR']}><AppLayout /></PrivateRoute>} />
+      <Route path="eleve/*"    element={<PrivateRoute roles={['ELEVE']}><AppLayout /></PrivateRoute>} />
       <Route path="*"        element={<Navigate to="/login" replace />} />
     </Routes>
   )

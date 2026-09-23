@@ -12,11 +12,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Redirige vers /login si 401
+// Session expirée (401) → on purge et on renvoie vers la connexion.
+// Exception : l'échec de la connexion elle-même renvoie aussi 401 ; le
+// rediriger rechargerait la page et effacerait le message d'erreur avant
+// que l'utilisateur ait pu le lire.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const estRequeteConnexion = err.config?.url?.includes('/auth/login')
+    if (err.response?.status === 401 && !estRequeteConnexion) {
       ;['token','role','nom','email'].forEach(k => localStorage.removeItem(k))
       window.location.href = '/login'
     }

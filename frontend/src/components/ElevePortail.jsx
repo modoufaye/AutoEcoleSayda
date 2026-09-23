@@ -44,7 +44,7 @@ function TableLecons({ lecons, empty }) {
   )
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full table-cards">
         <thead>
           <tr style={{ background: '#f8fafc' }}>
             {['#', 'Date', 'Horaire', 'Moniteur', 'Statut', 'Observations'].map((h, i) => (
@@ -58,30 +58,30 @@ function TableLecons({ lecons, empty }) {
             return (
               <tr key={l.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
                 className="transition-colors hover:bg-blue-50/40">
-                <td className="py-3.5 px-4 text-center">
+                <td className="py-3.5 px-4 text-center cell-hide">
                   <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                 </td>
-                <td className="py-3.5 px-4">
+                <td className="py-3.5 px-4 cell-title">
                   <span className="text-sm font-semibold text-slate-700">{fmtDate(l.date)}</span>
                 </td>
-                <td className="py-3.5 px-4 whitespace-nowrap">
+                <td className="py-3.5 px-4 whitespace-nowrap" data-label="Horaire">
                   <span className="text-xs font-medium text-slate-500">
                     {l.heureDebut ? `${l.heureDebut.slice(0,5)} – ${l.heureFin?.slice(0,5)}` : '—'}
                   </span>
                 </td>
-                <td className="py-3.5 px-4">
+                <td className="py-3.5 px-4" data-label="Moniteur">
                   <span className="text-xs text-slate-500">
                     {l.moniteur ? `${l.moniteur.prenom} ${l.moniteur.nom}` : '—'}
                   </span>
                 </td>
-                <td className="py-3.5 px-4">
+                <td className="py-3.5 px-4" data-label="Statut">
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                     style={{ background: st.bg, color: st.color }}>
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
                     {st.label}
                   </span>
                 </td>
-                <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[160px] truncate">{l.observations || '—'}</td>
+                <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[160px] truncate" data-label="Observations">{l.observations || '—'}</td>
               </tr>
             )
           })}
@@ -602,7 +602,7 @@ export default function ElevePortail({ onGoSection }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-cards">
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
                   {['#', 'Date', 'Type', 'Résultat', 'Observations'].map((h, i) => (
@@ -617,23 +617,23 @@ export default function ElevePortail({ onGoSection }) {
                   return (
                     <tr key={ex.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
                       className="transition-colors hover:bg-red-50/20">
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center cell-hide">
                         <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 cell-title">
                         <span className="text-sm font-semibold text-slate-700">{fmtDate(ex.date)}</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Type">
                         <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: ts.bg, color: ts.color }}>{ts.label}</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Résultat">
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                           style={{ background: rs.bg, color: rs.color }}>
                           <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: rs.dot }} />
                           {rs.label}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[180px] truncate">{ex.observations || '—'}</td>
+                      <td className="py-3.5 px-4 text-xs text-slate-400 max-w-[180px] truncate" data-label="Observations">{ex.observations || '—'}</td>
                     </tr>
                   )
                 })}

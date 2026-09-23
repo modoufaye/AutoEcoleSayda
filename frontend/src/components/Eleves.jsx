@@ -22,7 +22,7 @@ const DOCS = [
 
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', telephone: '',
-  adresse: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '',
+  adresse: '', site: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '',
   montantAvance: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
   docVisiteMedicale: false, docPhotos: false, docTimbre: false,
@@ -34,6 +34,12 @@ const STATUTS = [
   { value: 'DIPLOME',   label: 'Diplômé' },
   { value: 'SUSPENDU',  label: 'Suspendu' },
   { value: 'ABANDONNE', label: 'Abandonné' },
+]
+
+const SITES = [
+  { value: 'MAZALIK_JINAN', label: 'Mazalik Jinan' },
+  { value: 'GUEDIAWAYE',    label: 'Guédiawaye' },
+  { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
 ]
 
 const STATUT_STYLE = {
@@ -65,7 +71,7 @@ function TabLecons({ lecons }) {
   )
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-cards">
         <thead>
           <tr className="bg-slate-50">
             {['Date','Horaire','Type','Moniteur','Statut','Observations'].map(h => (
@@ -76,12 +82,12 @@ function TabLecons({ lecons }) {
         <tbody className="divide-y divide-slate-50">
           {lecons.map(l => (
             <tr key={l.id} className="hover:bg-slate-50 transition-colors">
-              <td className="px-4 py-3 text-slate-500">{fmtDate(l.date)}</td>
-              <td className="px-4 py-3 text-slate-600">{fmtTime(l.heureDebut)} – {fmtTime(l.heureFin)}</td>
-              <td className="px-4 py-3"><Badge value={l.type} map={BADGES.type_lecon} /></td>
-              <td className="px-4 py-3 text-slate-500 text-xs">{l.moniteur ? `${l.moniteur.nom} ${l.moniteur.prenom}` : '—'}</td>
-              <td className="px-4 py-3"><Badge value={l.statut} map={BADGES.statut_lecon} /></td>
-              <td className="px-4 py-3 text-slate-400 text-xs">{l.observations || '—'}</td>
+              <td className="px-4 py-3 text-slate-500 cell-title">{fmtDate(l.date)}</td>
+              <td className="px-4 py-3 text-slate-600" data-label="Horaire">{fmtTime(l.heureDebut)} – {fmtTime(l.heureFin)}</td>
+              <td className="px-4 py-3" data-label="Type"><Badge value={l.type} map={BADGES.type_lecon} /></td>
+              <td className="px-4 py-3 text-slate-500 text-xs" data-label="Moniteur">{l.moniteur ? `${l.moniteur.nom} ${l.moniteur.prenom}` : '—'}</td>
+              <td className="px-4 py-3" data-label="Statut"><Badge value={l.statut} map={BADGES.statut_lecon} /></td>
+              <td className="px-4 py-3 text-slate-400 text-xs" data-label="Observations">{l.observations || '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -100,7 +106,7 @@ function TabExamens({ examens }) {
   )
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-cards">
         <thead>
           <tr className="bg-slate-50">
             {['Date','Type','Résultat','Score','Tentative','Observations'].map(h => (
@@ -111,12 +117,12 @@ function TabExamens({ examens }) {
         <tbody className="divide-y divide-slate-50">
           {examens.map(e => (
             <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-              <td className="px-4 py-3 text-slate-500">{fmtDate(e.date)}</td>
-              <td className="px-4 py-3"><Badge value={e.type} map={BADGES.type_lecon} /></td>
-              <td className="px-4 py-3"><Badge value={e.resultat} map={BADGES.resultat} /></td>
-              <td className="px-4 py-3 text-slate-600 font-medium">{e.score != null ? `${e.score}/100` : '—'}</td>
-              <td className="px-4 py-3 text-slate-400 text-xs">#{e.tentative}</td>
-              <td className="px-4 py-3 text-slate-400 text-xs">{e.observations || '—'}</td>
+              <td className="px-4 py-3 text-slate-500 cell-title">{fmtDate(e.date)}</td>
+              <td className="px-4 py-3" data-label="Type"><Badge value={e.type} map={BADGES.type_lecon} /></td>
+              <td className="px-4 py-3" data-label="Résultat"><Badge value={e.resultat} map={BADGES.resultat} /></td>
+              <td className="px-4 py-3 text-slate-600 font-medium" data-label="Score">{e.score != null ? `${e.score}/100` : '—'}</td>
+              <td className="px-4 py-3 text-slate-400 text-xs" data-label="Tentative">#{e.tentative}</td>
+              <td className="px-4 py-3 text-slate-400 text-xs" data-label="Observations">{e.observations || '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -218,7 +224,7 @@ function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-cards">
             <thead>
               <tr className="bg-slate-50">
                 {['Réf.','Date','Type','Montant','Statut','Notes'].map(h => (
@@ -229,12 +235,12 @@ function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
             <tbody className="divide-y divide-slate-50">
               {paiements.map(p => (
                 <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-slate-400 text-xs">{p.reference}</td>
-                  <td className="px-4 py-3 text-slate-500">{fmtDate(p.date)}</td>
-                  <td className="px-4 py-3"><Badge value={p.typePaiement} map={BADGES.type_paiement} /></td>
-                  <td className="px-4 py-3 font-semibold text-slate-700">{fmtMontant(p.montant)}</td>
-                  <td className="px-4 py-3"><Badge value={p.statut} map={BADGES.statut_paiement} /></td>
-                  <td className="px-4 py-3 text-slate-400 text-xs">{p.description || '—'}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs cell-title">{p.reference}</td>
+                  <td className="px-4 py-3 text-slate-500" data-label="Date">{fmtDate(p.date)}</td>
+                  <td className="px-4 py-3" data-label="Type"><Badge value={p.typePaiement} map={BADGES.type_paiement} /></td>
+                  <td className="px-4 py-3 font-semibold text-slate-700" data-label="Montant">{fmtMontant(p.montant)}</td>
+                  <td className="px-4 py-3" data-label="Statut"><Badge value={p.statut} map={BADGES.statut_paiement} /></td>
+                  <td className="px-4 py-3 text-slate-400 text-xs" data-label="Notes">{p.description || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -331,6 +337,7 @@ export default function Eleves({ initialEleveId }) {
   const [filtered, setFiltered]   = useState([])
   const [search, setSearch]       = useState('')
   const [statut, setStatut]       = useState('')
+  const [site, setSite]           = useState('')
   const [nouveauMois, setNouveauMois] = useState(false)
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
@@ -370,6 +377,7 @@ export default function Eleves({ initialEleveId }) {
       r = r.filter(e => `${e.nom} ${e.prenom} ${e.telephone}`.toLowerCase().includes(t))
     }
     if (statut) r = r.filter(e => e.statut === statut)
+    if (site) r = r.filter(e => e.site === site)
     if (nouveauMois) {
       const now = new Date()
       r = r.filter(e => {
@@ -380,7 +388,7 @@ export default function Eleves({ initialEleveId }) {
     }
     setFiltered(r)
     setPage(1)
-  }, [search, statut, nouveauMois, list])
+  }, [search, statut, site, nouveauMois, list])
 
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
@@ -410,7 +418,7 @@ export default function Eleves({ initialEleveId }) {
     if (eleve) {
       setEditId(eleve.id)
       setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance,
-        telephone: eleve.telephone, adresse: eleve.adresse || '', email: eleve.email || '',
+        telephone: eleve.telephone, adresse: eleve.adresse || '', site: eleve.site || '', email: eleve.email || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '',
         docCertResidence: eleve.docCertResidence || false,
@@ -427,8 +435,8 @@ export default function Eleves({ initialEleveId }) {
   }
 
   const save = async () => {
-    const { nom, prenom, telephone, categoriePermis, dateNaissance } = form
-    if (!nom || !prenom || !telephone || !categoriePermis || !dateNaissance) {
+    const { nom, prenom, telephone, categoriePermis, dateNaissance, site } = form
+    if (!nom || !prenom || !telephone || !categoriePermis || !dateNaissance || !site) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
     }
     if (!editId && (!form.montantAvance || parseFloat(form.montantAvance) <= 0)) {
@@ -516,6 +524,14 @@ export default function Eleves({ initialEleveId }) {
                       { value: 'C1',            label: 'C1' },
                       { value: 'INTERNATIONAL', label: 'International' },
                     ].map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className={labelCls}>Site <span className="text-red-500">*</span></label>
+                  <select className={inputCls} value={form.site}
+                    onChange={e => setForm(fm => ({ ...fm, site: e.target.value }))}>
+                    <option value="">Choisir…</option>
+                    {SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div className="col-md-6">
@@ -628,6 +644,7 @@ export default function Eleves({ initialEleveId }) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold px-3 py-1 rounded-full"
                 style={{ background: st.bg, color: st.color }}>{st.label}</span>
+              {s.site && <Badge value={s.site} map={BADGES.site} />}
               {!isMoniteur && (
                 <>
                   <select className="text-xs font-semibold px-3 py-1.5 rounded-xl border-0 outline-none cursor-pointer"
@@ -666,6 +683,7 @@ export default function Eleves({ initialEleveId }) {
               <div className="divide-y divide-slate-50">
                 {[
                   { label: 'Téléphone', value: s.telephone },
+                  { label: 'Site',      value: s.site ? LABELS[s.site] : null },
                   { label: 'CNI',       value: s.numeroCni },
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
@@ -862,6 +880,12 @@ export default function Eleves({ initialEleveId }) {
           <option value="">Tous les statuts</option>
           {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
+        <select
+          className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
+          value={site} onChange={e => setSite(e.target.value)}>
+          <option value="">Tous les sites</option>
+          {SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
         <button
           onClick={() => setNouveauMois(v => !v)}
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 cursor-pointer transition-all"
@@ -892,21 +916,21 @@ export default function Eleves({ initialEleveId }) {
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-cards">
             <thead>
               <tr className="bg-slate-50">
-                {['#','Nom & Prénom','Téléphone','Moniteur','Catégorie','Leçons','Statut','Inscription',''].map((h, i) => (
-                  <th key={i} className={`px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 8 ? 'text-right' : 'text-left'}`}>{h}</th>
+                {['#','Nom & Prénom','Téléphone','Site','Moniteur','Catégorie','Leçons','Statut','Inscription',''].map((h, i) => (
+                  <th key={i} className={`px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 9 ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="9" className="text-center py-12">
+                <tr><td colSpan="10" className="text-center py-12">
                   <div className="w-8 h-8 border-4 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin mx-auto" />
                 </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="9">
+                <tr><td colSpan="10">
                   <div className="flex flex-col items-center justify-center py-14 text-slate-400">
                     <i className="bi bi-inbox" style={{ fontSize: '2.5rem' }} />
                     <div className="mt-2 text-sm font-medium">Aucun élève enregistré</div>
@@ -916,8 +940,8 @@ export default function Eleves({ initialEleveId }) {
                 const st = STATUT_STYLE[e.statut] || { bg: '#f1f5f9', color: '#64748b', label: e.statut }
                 return (
                   <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 text-slate-400 text-xs">{i + 1}</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-slate-400 text-xs cell-hide">{i + 1}</td>
+                    <td className="px-4 py-3.5 cell-title">
                       <button className="text-left border-0 bg-transparent cursor-pointer p-0"
                         onClick={() => openProfile(e)}>
                         <div className="flex items-center gap-2.5">
@@ -932,33 +956,36 @@ export default function Eleves({ initialEleveId }) {
                         </div>
                       </button>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-600 text-sm">{e.telephone}</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-slate-600 text-sm" data-label="Téléphone">{e.telephone}</td>
+                    <td className="px-4 py-3.5" data-label="Site">
+                      {e.site ? <Badge value={e.site} map={BADGES.site} /> : <span className="text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3.5" data-label="Moniteur">
                       {e.moniteur
                         ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#eff6ff', color: '#1e3a5f' }}>
                             {e.moniteur.nom} {e.moniteur.prenom}
                           </span>
                         : <span className="text-slate-300">—</span>}
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5" data-label="Catégorie">
                       <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', color: '#475569' }}>
                         {e.categoriePermis}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5" data-label="Leçons">
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <span><i className="bi bi-book me-1" />{e.nombreLeconsCode}</span>
                         <span><i className="bi bi-car-front me-1" />{e.nombreLeconsConduite}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5" data-label="Statut">
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: st.bg, color: st.color }}>
                         {st.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-400 text-xs">{fmtDate(e.dateInscription)}</td>
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-4 py-3.5 text-slate-400 text-xs" data-label="Inscription">{fmtDate(e.dateInscription)}</td>
+                    <td className="px-4 py-3.5 text-right cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
                         <button onClick={() => openProfile(e)} title="Voir profil"
                           className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"

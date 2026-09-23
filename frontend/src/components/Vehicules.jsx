@@ -200,7 +200,7 @@ export default function Vehicules({ onBack }) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-cards">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
                 {['#', 'Immatriculation', 'Marque / Modèle', 'Assurance', 'Prochain entretien', 'Visite technique', 'Catégorie', 'Statut', 'Actions'].map((h, i) => (
@@ -248,10 +248,10 @@ export default function Vehicules({ onBack }) {
                   <tr key={v.id}
                     style={{ background: isEven ? '#fff' : '#fafbfc' }}
                     className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center cell-hide">
                       <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 cell-title">
                       <button onClick={() => setProfil(v)} className="border-0 bg-transparent p-0 cursor-pointer"
                         style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
                         <span className="font-bold text-sm text-[#1e3a5f] hover:text-[#0d9488] transition-colors">
@@ -259,13 +259,13 @@ export default function Vehicules({ onBack }) {
                         </span>
                       </button>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Marque / Modèle">
                       <div className="text-sm font-semibold text-slate-800">{v.marque}</div>
                       <div className="text-xs text-slate-400 mt-0.5">{v.modele}</div>
                     </td>
 
                     {/* Assurance — date d'expiration uniquement */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Assurance">
                       {assuranceExpiry ? (
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-slate-700 font-medium whitespace-nowrap">
@@ -285,7 +285,7 @@ export default function Vehicules({ onBack }) {
                     </td>
 
                     {/* Prochain entretien */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Prochain entretien">
                       {v.prochainEntretien ? (
                         <div className="flex flex-col gap-0.5">
                           <span className="text-xs text-slate-700 font-medium">
@@ -305,7 +305,7 @@ export default function Vehicules({ onBack }) {
                     </td>
 
                     {/* Visite technique */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Visite technique">
                       {v.dateVisiteTechnique ? (
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-slate-700 font-medium whitespace-nowrap">
@@ -324,20 +324,20 @@ export default function Vehicules({ onBack }) {
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Catégorie">
                       <span className="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full"
                         style={{ background: CAT_STYLE.bg, color: CAT_STYLE.color }}>
                         {v.categorie}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Statut">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: st.bg, color: st.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
                         {st.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setProfil(v)}

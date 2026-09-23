@@ -461,7 +461,7 @@ export default function Moniteurs({ onProfilChange }) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-cards">
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
                     {['#', 'Nom & Prénom', 'Téléphone', 'Catégorie', 'Statut', 'Inscription'].map((h, i) => (
@@ -475,26 +475,26 @@ export default function Moniteurs({ onProfilChange }) {
                   {elevesSelected.slice((pageEleves-1)*PAGE_SIZE, pageEleves*PAGE_SIZE).map((e, i) => (
                     <tr key={e.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
                       className="transition-colors hover:bg-blue-50/40">
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-3.5 px-4 text-center cell-hide">
                         <span className="text-xs font-bold text-slate-300">{(pageEleves-1)*PAGE_SIZE + i + 1}</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 cell-title">
                         <div className="text-sm font-semibold text-slate-700">{e.nom} {e.prenom}</div>
                         {e.email && <div className="text-xs text-slate-400 mt-0.5">{e.email}</div>}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Téléphone">
                         <span className="text-sm text-slate-600">{e.telephone}</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Catégorie">
                         <span className="text-xs font-bold px-2.5 py-1 rounded-lg text-white"
                           style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)' }}>
                           {e.categoriePermis}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Statut">
                         <StatutBadge statut={e.statut} />
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4" data-label="Inscription">
                         <span className="text-xs text-slate-500">{fmtDate(e.dateInscription)}</span>
                       </td>
                     </tr>
@@ -572,7 +572,7 @@ export default function Moniteurs({ onProfilChange }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-cards">
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
                   {['#', 'Nom & Prénom', 'Téléphone', 'Catégories', 'Élèves', 'Permis', 'Statut', 'Embauche', ''].map((h, i) => (
@@ -587,11 +587,11 @@ export default function Moniteurs({ onProfilChange }) {
                   <tr key={m.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
                     className="transition-colors hover:bg-blue-50/40">
 
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center cell-hide">
                       <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 cell-title">
                       <button className="text-left border-0 bg-transparent p-0 cursor-pointer"
                         onClick={() => openProfile(m)}>
                         <div className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{m.nom} {m.prenom}</div>
@@ -599,11 +599,11 @@ export default function Moniteurs({ onProfilChange }) {
                       </button>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Téléphone">
                       <span className="text-sm text-slate-600">{m.telephone}</span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Catégories">
                       <div className="flex flex-wrap gap-1">
                         {(m.categoriesAutorisees || []).map(c => {
                           const cat = CAT_MAP[c] || { label: c, bg: '#f1f5f9', color: '#475569' }
@@ -618,7 +618,7 @@ export default function Moniteurs({ onProfilChange }) {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Élèves">
                       <button onClick={() => openProfile(m)}
                         className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer transition-all"
                         style={{ background: '#dbeafe', color: '#1d4ed8' }}>
@@ -627,19 +627,19 @@ export default function Moniteurs({ onProfilChange }) {
                       </button>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Permis">
                       <span className="text-xs text-slate-500">{m.numeroPermis || '—'}</span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Statut">
                       <StatutBadge statut={m.actif} />
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Embauche">
                       <span className="text-xs text-slate-500">{fmtDate(m.dateEmbauche)}</span>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
                         <button onClick={() => toggleActif(m.id)}
                           title={m.actif ? 'Désactiver' : 'Activer'}

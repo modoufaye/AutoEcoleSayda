@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { ROLE_BASE } from '../utils'
 import '../landing.css'
 
 const SAVED_EMAIL_KEY = 'rememberedEmail'
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { user, login } = useAuth()
   const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY) || ''
   const [form, setForm]       = useState({ email: savedEmail, motDePasse: '' })
   const [remember, setRemember]     = useState(!!savedEmail)
@@ -14,16 +15,33 @@ export default function LoginPage() {
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
 
+  /* L'app installée démarre sur /login (start_url du manifeste). Un utilisateur
+     dont la session est encore valide doit filer droit à son tableau de bord
+     plutôt que de ressaisir ses identifiants à chaque ouverture. */
+  if (user) return <Navigate to={ROLE_BASE[user.role] || '/dashboard/admin'} replace />
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await login(form.email, form.motDePasse)
-      if (remember) localStorage.setItem(SAVED_EMAIL_KEY, form.email)
+      /* Le backend cherche l'email tel quel : une majuscule (clavier iOS,
+         QuickType, remplissage auto) ou un espace final fait échouer la
+         connexion. On normalise avant l'envoi. */
+      const email = form.email.trim().toLowerCase()
+      await login(email, form.motDePasse)
+      if (remember) localStorage.setItem(SAVED_EMAIL_KEY, email)
       else          localStorage.removeItem(SAVED_EMAIL_KEY)
     } catch (err) {
-      setError(err.response?.data?.message || 'Email ou mot de passe incorrect')
+      /* Ne pas tout ramener à « identifiants incorrects » : une erreur de
+         validation (400, champ `erreurs`) ou une panne réseau donnaient le
+         même message, ce qui rendait le diagnostic impossible. */
+      const data = err.response?.data
+      setError(
+        data?.message
+        || (data?.erreurs && Object.values(data.erreurs).join(' · '))
+        || (err.response ? `Erreur ${err.response.status}` : 'Serveur injoignable — vérifiez votre connexion')
+      )
     } finally {
       setLoading(false)
     }
@@ -142,6 +160,11 @@ export default function LoginPage() {
                   </span>
                   <input
                     type="email"
+                    inputMode="email"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm placeholder-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-[#1e3a5f]"
                     placeholder="exemple@autoecole.sn"
                     value={form.email}

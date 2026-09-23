@@ -25,7 +25,7 @@ const STATUT_P = {
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
-export default function Paiements() {
+export default function Paiements({ onEleveClick }) {
   const [list, setList]               = useState([])
   const [totalEncaisse, setTotalEncaisse] = useState(null)
   const [form, setForm]               = useState(EMPTY)
@@ -149,7 +149,7 @@ export default function Paiements() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-cards">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
                 {['#', 'Référence', 'Date', 'Élève', 'Montant', 'Type', 'Statut', 'Actions'].map((h, i) => (
@@ -190,43 +190,49 @@ export default function Paiements() {
                   <tr key={p.id}
                     style={{ background: isEven ? '#fff' : '#fafbfc' }}
                     className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center cell-hide">
                       <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Référence">
                       <span className="text-xs text-slate-400"
                         style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
                         {p.reference}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Date">
                       <span className="text-sm font-semibold text-slate-700">{fmtDate(p.date)}</span>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="text-sm text-slate-700">
-                        {p.eleve ? `${p.eleve.nom} ${p.eleve.prenom}` : '—'}
-                      </span>
+                    <td className="py-3.5 px-4 cell-title">
+                      {p.eleve
+                        ? onEleveClick
+                          ? <button
+                              onClick={() => onEleveClick(p.eleve.id)}
+                              className="text-sm font-semibold text-[#1e3a5f] underline-offset-2 hover:underline bg-transparent border-0 cursor-pointer p-0 text-left">
+                              {p.eleve.nom} {p.eleve.prenom}
+                            </button>
+                          : <span className="text-sm text-slate-700">{p.eleve.nom} {p.eleve.prenom}</span>
+                        : <span className="text-sm text-slate-700">—</span>}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Montant">
                       <span className="text-sm font-bold" style={{ color: '#059669' }}>
                         {fmtMontant(p.montant)}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Type">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: tp.bg, color: tp.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tp.dot }} />
                         {tp.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Statut">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: st.bg, color: st.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
                         {st.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => openModal(p)}

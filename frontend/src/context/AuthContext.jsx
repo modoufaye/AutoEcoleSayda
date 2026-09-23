@@ -1,14 +1,9 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/authService'
+import { ROLE_BASE } from '../utils'
 
 const AuthContext = createContext(null)
-
-const ROLE_REDIRECT = {
-  SUPER_ADMIN: '/dashboard/admin',
-  MONITEUR:    '/dashboard/moniteur',
-  ELEVE:       '/dashboard/eleve',
-}
 
 export function AuthProvider({ children }) {
   const navigate = useNavigate()
@@ -28,7 +23,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('nom',   data.nom)
     localStorage.setItem('email', data.email)
     setUser(data)
-    navigate(ROLE_REDIRECT[data.role] || '/dashboard/admin')
+    navigate(ROLE_BASE[data.role] || '/dashboard/admin')
   }, [navigate])
 
   const logout = useCallback(() => {

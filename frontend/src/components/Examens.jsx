@@ -240,7 +240,7 @@ export default function Examens({ onEleveClick, onBack }) {
 
         {/* Tableau */}
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-cards">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
                 {['#', 'Date', ...(!isEleve ? ['Élève'] : []), 'Type', 'Résultat', 'Score', 'Tentative', ...(!isEleve ? ['Actions'] : [])].map((h, i) => (
@@ -280,14 +280,16 @@ export default function Examens({ onEleveClick, onBack }) {
                 return (
                   <tr key={e.id} style={{ background: isEven ? '#fff' : '#fafbfc' }}
                     className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center cell-hide">
                       <span className="text-xs font-bold text-slate-300">{i + 1}</span>
                     </td>
-                    <td className="py-3.5 px-4 text-sm font-semibold text-slate-700">
+                    {/* Côté élève la date fait office de titre ; côté admin c'est le nom de l'élève. */}
+                    <td className={`py-3.5 px-4 text-sm font-semibold text-slate-700${isEleve ? ' cell-title' : ''}`}
+                      data-label="Date">
                       {fmtDate(e.date)}
                     </td>
                     {!isEleve && (
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 cell-title">
                         {e.eleve
                           ? onEleveClick
                             ? <button
@@ -299,33 +301,33 @@ export default function Examens({ onEleveClick, onBack }) {
                           : <span className="text-slate-300">—</span>}
                       </td>
                     )}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Type">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: typeSt.bg, color: typeSt.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: typeSt.dot }} />
                         {typeSt.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Résultat">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: resSt.bg, color: resSt.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: resSt.dot }} />
                         {resSt.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Score">
                       {e.score != null
                         ? <><span className="text-sm font-bold text-slate-700">{e.score}</span><span className="text-xs text-slate-400">/100</span></>
                         : <span className="text-slate-300">—</span>}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" data-label="Tentative">
                       <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
                         style={{ background: '#f1f5f9', color: '#475569' }}>
                         {e.tentative}
                       </span>
                     </td>
                     {!isEleve && (
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 cell-actions">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openResultat(e)} title="Saisir le résultat"
                             className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all hover:opacity-80"
