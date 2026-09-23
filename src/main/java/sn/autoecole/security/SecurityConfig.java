@@ -63,7 +63,26 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        /*
+         * Origines de DÉVELOPPEMENT uniquement.
+         *   - localhost/127.0.0.1 sur n'importe quel port : `vite dev` (5173)
+         *     comme `vite preview` (4173).
+         *   - plages d'IP privées : indispensable pour tester depuis un vrai
+         *     téléphone sur le Wi-Fi local (ex. http://192.168.1.12:4173).
+         *
+         * En production, nginx sert le frontend ET relaie /api sur la même
+         * origine : les requêtes sont same-origin et ne passent donc jamais
+         * par ce filtre. Ces motifs n'élargissent pas la surface exposée.
+         *
+         * setAllowedOriginPatterns (et non setAllowedOrigins) : les jokers
+         * sont interdits par la spec avec allowCredentials(true).
+         */
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*",
+                "http://10.*.*.*:*"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

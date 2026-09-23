@@ -2,6 +2,7 @@ package sn.autoecole.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,6 +37,21 @@ public class GlobalExceptionHandler {
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("erreurs", erreurs);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /**
+     * Identifiants invalides : c'est une erreur du client, pas une panne serveur.
+     * Couvre BadCredentialsException (mauvais mot de passe) et
+     * InternalAuthenticationServiceException (qui encapsule UsernameNotFoundException
+     * quand l'email est inconnu) — les deux héritent d'AuthenticationException.
+     *
+     * Le message reste volontairement identique dans les deux cas : indiquer
+     * « email inconnu » plutôt que « mot de passe incorrect » permettrait
+     * d'énumérer les comptes existants.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect");
     }
 
     @ExceptionHandler(Exception.class)

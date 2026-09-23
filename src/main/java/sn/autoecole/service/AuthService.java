@@ -26,12 +26,15 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        // Email canonique en base : la casse et les espaces parasites de saisie
+        // ne doivent pas créer de comptes en double.
+        String email = normaliserEmail(request.getEmail());
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new BusinessException("Un compte avec cet email existe déjà");
         }
         User user = User.builder()
                 .nom(request.getNom())
-                .email(request.getEmail())
+                .email(email)
                 .motDePasse(passwordEncoder.encode(request.getMotDePasse()))
                 .role(request.getRole())
                 .build();
@@ -41,21 +44,32 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request) {
+        String email = normaliserEmail(request.getEmail());
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getMotDePasse())
+                new UsernamePasswordAuthenticationToken(email, request.getMotDePasse())
         );
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new BusinessException("Utilisateur introuvable"));
         String token = jwtUtil.generateToken(user);
 
         // Pour les élèves, utiliser le nom réel de l'entité Eleve
         String nomAffiche = user.getNom();
         if (user.getRole() == RoleUser.ELEVE) {
-            nomAffiche = eleveRepository.findByEmailIgnoreCase(request.getEmail())
+            nomAffiche = eleveRepository.findByEmailIgnoreCase(email)
                     .map(e -> e.getPrenom() + " " + e.getNom())
                     .orElse(user.getNom());
         }
 
         return new AuthResponse(token, nomAffiche, user.getEmail(), user.getRole());
+    }
+
+    /**
+     * Retire les espaces parasites et ramène l'email en minuscules.
+     * Les claviers mobiles (majuscule automatique, suggestions, remplissage
+     * auto) produisent très facilement « Admin@… » ou un espace final, qui
+     * faisaient échouer la connexion.
+     */
+    private String normaliserEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase();
     }
 }
