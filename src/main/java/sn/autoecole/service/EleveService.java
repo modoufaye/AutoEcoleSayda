@@ -11,6 +11,7 @@ import sn.autoecole.entity.Paiement;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.RoleUser;
+import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 import sn.autoecole.enums.StatutPaiement;
 import sn.autoecole.enums.TypePaiement;
@@ -57,6 +58,10 @@ public class EleveService {
         return eleveRepository.findByCategoriePermis(categorie);
     }
 
+    public List<Eleve> listerParSite(Site site) {
+        return eleveRepository.findBySite(site);
+    }
+
     public Eleve creer(EleveRequest request) {
         if (request.getNumeroCni() != null && !request.getNumeroCni().isBlank()) {
             eleveRepository.findByNumeroCni(request.getNumeroCni()).ifPresent(e -> {
@@ -69,6 +74,7 @@ public class EleveService {
                 .dateNaissance(request.getDateNaissance())
                 .telephone(request.getTelephone())
                 .adresse(request.getAdresse())
+                .site(request.getSite())
                 .email(request.getEmail())
                 .numeroCni(request.getNumeroCni())
                 .categoriePermis(request.getCategoriePermis())
@@ -123,6 +129,7 @@ public class EleveService {
         eleve.setDateNaissance(request.getDateNaissance());
         eleve.setTelephone(request.getTelephone());
         eleve.setAdresse(request.getAdresse());
+        eleve.setSite(request.getSite());
         eleve.setEmail(request.getEmail());
         eleve.setNumeroCni(request.getNumeroCni());
         eleve.setCategoriePermis(request.getCategoriePermis());

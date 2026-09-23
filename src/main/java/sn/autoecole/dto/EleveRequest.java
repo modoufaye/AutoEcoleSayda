@@ -3,6 +3,7 @@ package sn.autoecole.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import sn.autoecole.enums.CategoriePermis;
+import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.math.BigDecimal;
@@ -24,6 +25,9 @@ public class EleveRequest {
     private String telephone;
 
     private String adresse;
+
+    @NotNull(message = "Le site est obligatoire")
+    private Site site;
 
     @Email(message = "Format d'email invalide")
     private String email;

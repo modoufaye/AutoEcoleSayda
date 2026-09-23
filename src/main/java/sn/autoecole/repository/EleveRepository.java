@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Moniteur;
 import sn.autoecole.enums.CategoriePermis;
+import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.time.LocalDate;
@@ -21,6 +22,8 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
     List<Eleve> findByStatut(StatutEleve statut);
 
     List<Eleve> findByCategoriePermis(CategoriePermis categorie);
+
+    List<Eleve> findBySite(Site site);
 
     Optional<Eleve> findByNumeroCni(String numeroCni);
 

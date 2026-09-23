@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import sn.autoecole.enums.CategoriePermis;
+import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.time.LocalDate;
@@ -37,6 +38,10 @@ public class Eleve {
     private String telephone;
 
     private String adresse;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "site")
+    private Site site;
 
     @Email(message = "Format d'email invalide")
     private String email;
