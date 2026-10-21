@@ -343,8 +343,10 @@ async function ouvrirPiece(eleveId, doc) {
  *  - eleveId fourni : envoi immédiat (modification, fiche élève) ;
  *  - eleveId absent (création) : les fichiers sont mis en attente dans `attente`,
  *    puis envoyés par le parent une fois l'élève créé.
+ *  - seulDossier : uniquement le dossier Service des Mines (pas de choix de type, un seul fichier,
+ *    un nouveau remplace l'ancien — côté serveur aussi).
  */
-function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSupprimer }) {
+function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSupprimer, seulDossier = false }) {
   const [docs, setDocs]       = useState([])
   const [type, setType]       = useState('DOSSIER')
   const [envoi, setEnvoi]     = useState(false)
@@ -364,12 +366,15 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
     })
     if (!valides.length) return
     onTypeAjoute?.(type)
-    if (!eleveId) { setAttente(a => [...a, ...valides.map(file => ({ file, type }))]); return }
+    if (!eleveId) {
+      setAttente(a => seulDossier ? [{ file: valides[0], type }] : [...a, ...valides.map(file => ({ file, type }))])
+      return
+    }
     setEnvoi(true)
     try {
       for (const f of valides) {
         const doc = await uploadFile(`/eleves/${eleveId}/documents`, f, { type })
-        setDocs(d => [doc, ...d])
+        setDocs(d => [doc, ...(type === 'DOSSIER' ? d.filter(x => x.type !== 'DOSSIER') : d)])
       }
       toast(valides.length > 1 ? 'Fichiers ajoutés' : 'Fichier ajouté')
     } catch (err) { toast(err.message, 'danger') }
@@ -383,22 +388,26 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
   }
 
   const lignes = eleveId
-    ? docs.map(d => ({ key: d.id, nom: d.nomFichier, type: d.type, taille: d.taille, pdf: d.contentType === 'application/pdf', doc: d }))
+    ? docs.filter(d => !seulDossier || d.type === 'DOSSIER').map(d => ({ key: d.id, nom: d.nomFichier, type: d.type, taille: d.taille, pdf: d.contentType === 'application/pdf', doc: d }))
     : attente.map((a, i) => ({ key: i, nom: a.file.name, type: a.type, taille: a.file.size, pdf: a.file.type === 'application/pdf', idx: i }))
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <select value={type} onChange={e => setType(e.target.value)}
-          className="flex-1 min-w-0 px-3 py-2 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f]">
-          {TYPES_PIECE.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+        {!seulDossier && (
+          <select value={type} onChange={e => setType(e.target.value)}
+            className="flex-1 min-w-0 px-3 py-2 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f]">
+            {TYPES_PIECE.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        )}
         <label className={`btn btn-sm fw-semibold text-white mb-0 ${envoi ? 'disabled' : ''}`}
           style={{ background: '#1e3a5f', borderRadius: '.65rem', whiteSpace: 'nowrap' }}>
           {envoi
             ? <><span className="spinner-border spinner-border-sm me-1" />Envoi…</>
-            : <><i className="bi bi-paperclip me-1" />Joindre un fichier</>}
-          <input type="file" accept={ACCEPT_PIECE} multiple hidden onChange={choisir} disabled={envoi} />
+            : seulDossier
+              ? <><i className={`bi bi-${lignes.length ? 'arrow-repeat' : 'paperclip'} me-1`} />{lignes.length ? 'Remplacer le dossier' : 'Joindre le dossier'}</>
+              : <><i className="bi bi-paperclip me-1" />Joindre un fichier</>}
+          <input type="file" accept={ACCEPT_PIECE} multiple={!seulDossier} hidden onChange={choisir} disabled={envoi} />
         </label>
       </div>
       {lignes.length > 0 ? (
@@ -911,16 +920,12 @@ export default function Eleves({ initialEleveId }) {
                   </div>
                 </div>
 
-                {/* Pièces jointes : image ou PDF */}
+                {/* Dossier de l'élève (Service des Mines) : image ou PDF */}
                 <div className="col-12">
-                  <label className={labelCls}>Pièces jointes (image ou PDF)</label>
+                  <label className={labelCls}>Dossier de l'élève (Service des Mines)</label>
                   <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
                     <PiecesJointes eleveId={editId} attente={piecesAttente} setAttente={setPiecesAttente}
-                      peutSupprimer={!isMoniteur}
-                      onTypeAjoute={t => {
-                        const d = DOCS.find(x => x.type === t)
-                        if (d) setForm(fm => ({ ...fm, [d.key]: true }))
-                      }} />
+                      peutSupprimer={!isMoniteur} seulDossier />
                   </div>
                 </div>
               </div>
