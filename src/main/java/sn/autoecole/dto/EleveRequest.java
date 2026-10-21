@@ -26,7 +26,7 @@ public class EleveRequest {
 
     private String adresse;
 
-    @NotNull(message = "Le site est obligatoire")
+    @NotNull(message = "Le bureau est obligatoire")
     private Site site;
 
     @Email(message = "Format d'email invalide")

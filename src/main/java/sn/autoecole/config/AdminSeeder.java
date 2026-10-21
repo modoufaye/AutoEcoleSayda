@@ -84,24 +84,20 @@ public class AdminSeeder implements CommandLineRunner {
         createIfAbsent("Khady Diagne",     "khady.diagne@test.sn",          "Eleve@2024",    RoleUser.ELEVE);
     }
 
+    /**
+     * Crée le compte s'il n'existe pas, sans jamais toucher à un compte existant : réécrire
+     * le mot de passe à chaque démarrage annulait tout changement (mot de passe admin,
+     * identifiants envoyés par le message de bienvenue) et rétablissait des mots de passe
+     * publiés dans le README.
+     */
     private void createIfAbsent(String nom, String email, String motDePasse, RoleUser role) {
-        userRepository.findByEmail(email).ifPresentOrElse(
-            user -> {
-                if (!passwordEncoder.matches(motDePasse, user.getMotDePasse())) {
-                    user.setMotDePasse(passwordEncoder.encode(motDePasse));
-                    userRepository.save(user);
-                    log.info("Mot de passe réinitialisé pour : {}", email);
-                }
-            },
-            () -> {
-                userRepository.save(User.builder()
-                        .nom(nom)
-                        .email(email)
-                        .motDePasse(passwordEncoder.encode(motDePasse))
-                        .role(role)
-                        .build());
-                log.info("Compte {} créé : {} / {}", role, email, motDePasse);
-            }
-        );
+        if (userRepository.findByEmail(email).isPresent()) return;
+        userRepository.save(User.builder()
+                .nom(nom)
+                .email(email)
+                .motDePasse(passwordEncoder.encode(motDePasse))
+                .role(role)
+                .build());
+        log.info("Compte {} créé : {}", role, email);
     }
 }

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
-import { api } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS } from '../utils'
+import { useEffect, useRef, useState } from 'react'
+import { api, uploadFile, fetchBlob } from '../api'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, waLink } from '../utils'
+import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
@@ -10,15 +11,25 @@ import '../landing.css'
 const PAGE_SIZE = 10
 
 const DOCS = [
-  { key: 'docCertResidence',  label: 'Certificat de résidence' },
-  { key: 'docCniLegalisee',   label: 'Photocopie CNI légalisée' },
-  { key: 'docGroupeSanguin',  label: 'Groupe sanguin' },
-  { key: 'docVisiteMedicale', label: 'Visite médicale' },
-  { key: 'docPhotos',         label: '4 photos' },
-  { key: 'docTimbre',         label: 'Timbre' },
-  { key: 'docEnrolement',     label: 'Enrôlement' },
-  { key: 'docDelivrance',     label: 'Délivrance' },
+  { key: 'docCertResidence',  label: 'Certificat de résidence', type: 'CERT_RESIDENCE' },
+  { key: 'docCniLegalisee',   label: 'Photocopie CNI légalisée', type: 'CNI' },
+  { key: 'docGroupeSanguin',  label: 'Groupe sanguin', type: 'GROUPE_SANGUIN' },
+  { key: 'docVisiteMedicale', label: 'Visite médicale', type: 'VISITE_MEDICALE' },
+  { key: 'docPhotos',         label: '4 photos', type: 'PHOTO' },
+  { key: 'docTimbre',         label: 'Timbre', type: 'TIMBRE' },
+  { key: 'docEnrolement',     label: 'Enrôlement', type: 'ENROLEMENT' },
+  { key: 'docDelivrance',     label: 'Délivrance', type: 'DELIVRANCE' },
 ]
+
+const TYPES_PIECE = [
+  { value: 'DOSSIER', label: "Dossier de l'élève (Service des Mines)" },
+  ...DOCS.map(d => ({ value: d.type, label: d.label })),
+  { value: 'AUTRE', label: 'Autre document' },
+]
+const typeLabel = t => TYPES_PIECE.find(x => x.value === t)?.label || 'Document'
+const tailleLisible = o => o < 1024 * 1024 ? `${Math.max(1, Math.round(o / 1024))} Ko` : `${(o / 1024 / 1024).toFixed(1)} Mo`
+const TAILLE_MAX = 10 * 1024 * 1024
+const ACCEPT_PIECE = 'image/*,application/pdf'
 
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', telephone: '',
@@ -36,11 +47,6 @@ const STATUTS = [
   { value: 'ABANDONNE', label: 'Abandonné' },
 ]
 
-const SITES = [
-  { value: 'MAZALIK_JINAN', label: 'Mazalik Jinan' },
-  { value: 'GUEDIAWAYE',    label: 'Guédiawaye' },
-  { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
-]
 
 const STATUT_STYLE = {
   EN_COURS:  { bg: '#eff6ff', color: '#1d4ed8', label: 'En cours' },
@@ -251,7 +257,270 @@ function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
   )
 }
 
+/* ─── Message de bienvenue WhatsApp ─────────────────────── */
+/* Chaque envoi génère de nouveaux identifiants (création du compte ou nouveau mot de passe).
+   WhatsApp s'ouvre depuis un lien de la fenêtre de confirmation et non directement après
+   l'appel API : les navigateurs mobiles bloquent un window.open qui suit un await. */
+function BienvenueWhatsApp({ eleve, ecole }) {
+  const [loading, setLoading] = useState(false)
+  const [creds, setCreds]     = useState(null)
+
+  if (!waLink(eleve.telephone)) return null
+
+  const generer = async () => {
+    if (!eleve.email) { toast("Renseignez l'email de l'élève : il sert d'identifiant", 'warning'); return }
+    if (!confirm(`Générer un nouveau mot de passe pour ${eleve.prenom} ?\nS'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus.`)) return
+    setLoading(true)
+    try { setCreds(await api('POST', `/eleves/${eleve.id}/identifiants`)) }
+    catch (e) { toast(e.message, 'danger') }
+    finally { setLoading(false) }
+  }
+
+  const message = creds && msgBienvenue(eleve, ecole, creds)
+
+  return (
+    <div className="px-5 py-3 border-t border-slate-100">
+      <button onClick={generer} disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold border-0 cursor-pointer"
+        style={{ background: '#25d366', color: '#fff', opacity: loading ? .7 : 1 }}>
+        {loading
+          ? <span className="spinner-border spinner-border-sm" style={{ width: 14, height: 14 }} />
+          : <i className="bi bi-whatsapp" />}
+        Message de bienvenue
+      </button>
+
+      {creds && (
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
+                  {creds.compteCree ? 'Compte créé' : 'Nouveau mot de passe généré'}
+                </h5>
+                <button className="btn-close" onClick={() => setCreds(null)} />
+              </div>
+              <div className="modal-body px-6 py-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm mb-3">
+                  <div>Identifiant : <code className="bg-white px-1 rounded">{creds.identifiant}</code></div>
+                  <div className="mt-1">Mot de passe : <code className="bg-white px-1 rounded">{creds.motDePasse}</code></div>
+                </div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Aperçu du message</div>
+                <div className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3" style={{ whiteSpace: 'pre-wrap' }}>{message}</div>
+              </div>
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setCreds(null)}>Fermer</button>
+                <a href={waLink(eleve.telephone, message)} target="_blank" rel="noopener noreferrer"
+                  onClick={() => setTimeout(() => setCreds(null), 300)}
+                  className="btn fw-bold text-white px-4 d-inline-flex align-items-center gap-2"
+                  style={{ background: '#25d366', borderRadius: '.75rem', border: 'none' }}>
+                  <i className="bi bi-whatsapp" />Envoyer sur WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ─── Compte élève ──────────────────────────────────────── */
+/* Ouvre une pièce jointe dans un nouvel onglet. L'onglet est ouvert AVANT le téléchargement :
+   après un await, Safari iOS bloque window.open comme une popup. */
+async function ouvrirPiece(eleveId, doc) {
+  const w = window.open('', '_blank')
+  try {
+    const url = URL.createObjectURL(await fetchBlob(`/eleves/${eleveId}/documents/${doc.id}/fichier`))
+    if (w) w.location.href = url
+    else Object.assign(document.createElement('a'), { href: url, download: doc.nomFichier }).click()
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (e) { w?.close(); toast(e.message, 'danger') }
+}
+
+/*
+ * Pièces jointes du dossier (image ou PDF).
+ *  - eleveId fourni : envoi immédiat (modification, fiche élève) ;
+ *  - eleveId absent (création) : les fichiers sont mis en attente dans `attente`,
+ *    puis envoyés par le parent une fois l'élève créé.
+ */
+function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSupprimer }) {
+  const [docs, setDocs]       = useState([])
+  const [type, setType]       = useState('DOSSIER')
+  const [envoi, setEnvoi]     = useState(false)
+
+  useEffect(() => {
+    if (!eleveId) return
+    api('GET', `/eleves/${eleveId}/documents`).then(setDocs).catch(() => {})
+  }, [eleveId])
+
+  const choisir = async (e) => {
+    const files = [...e.target.files]
+    e.target.value = ''
+    const valides = files.filter(f => {
+      if (!(f.type.startsWith('image/') || f.type === 'application/pdf')) { toast(`${f.name} : image ou PDF uniquement`, 'warning'); return false }
+      if (f.size > TAILLE_MAX) { toast(`${f.name} : 10 Mo maximum`, 'warning'); return false }
+      return true
+    })
+    if (!valides.length) return
+    onTypeAjoute?.(type)
+    if (!eleveId) { setAttente(a => [...a, ...valides.map(file => ({ file, type }))]); return }
+    setEnvoi(true)
+    try {
+      for (const f of valides) {
+        const doc = await uploadFile(`/eleves/${eleveId}/documents`, f, { type })
+        setDocs(d => [doc, ...d])
+      }
+      toast(valides.length > 1 ? 'Fichiers ajoutés' : 'Fichier ajouté')
+    } catch (err) { toast(err.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+
+  const supprimer = async (doc) => {
+    if (!confirm(`Supprimer « ${doc.nomFichier} » ?`)) return
+    try { await api('DELETE', `/eleves/${eleveId}/documents/${doc.id}`); setDocs(d => d.filter(x => x.id !== doc.id)) }
+    catch (e) { toast(e.message, 'danger') }
+  }
+
+  const lignes = eleveId
+    ? docs.map(d => ({ key: d.id, nom: d.nomFichier, type: d.type, taille: d.taille, pdf: d.contentType === 'application/pdf', doc: d }))
+    : attente.map((a, i) => ({ key: i, nom: a.file.name, type: a.type, taille: a.file.size, pdf: a.file.type === 'application/pdf', idx: i }))
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select value={type} onChange={e => setType(e.target.value)}
+          className="flex-1 min-w-0 px-3 py-2 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f]">
+          {TYPES_PIECE.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+        </select>
+        <label className={`btn btn-sm fw-semibold text-white mb-0 ${envoi ? 'disabled' : ''}`}
+          style={{ background: '#1e3a5f', borderRadius: '.65rem', whiteSpace: 'nowrap' }}>
+          {envoi
+            ? <><span className="spinner-border spinner-border-sm me-1" />Envoi…</>
+            : <><i className="bi bi-paperclip me-1" />Joindre un fichier</>}
+          <input type="file" accept={ACCEPT_PIECE} multiple hidden onChange={choisir} disabled={envoi} />
+        </label>
+      </div>
+      {lignes.length > 0 ? (
+        <ul className="list-unstyled mb-0 mt-2 space-y-1.5">
+          {lignes.map(l => (
+            <li key={l.key} className="flex items-center gap-2 bg-white rounded-lg px-2.5 py-1.5" style={{ border: '1px solid #e2e8f0' }}>
+              <i className={`bi bi-file-earmark-${l.pdf ? 'pdf-fill' : 'image-fill'}`}
+                style={{ color: l.pdf ? '#dc2626' : '#2563eb', fontSize: '1.1rem', flexShrink: 0 }} />
+              <div className="min-w-0 flex-1">
+                {l.doc
+                  ? <button type="button" onClick={() => ouvrirPiece(eleveId, l.doc)}
+                      className="block w-full text-left truncate text-sm font-semibold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0">{l.nom}</button>
+                  : <div className="truncate text-sm font-semibold text-slate-700">{l.nom}</div>}
+                <div className="text-xs text-slate-400">{typeLabel(l.type)} · {tailleLisible(l.taille)}{!l.doc && ' · envoyé à l\'enregistrement'}</div>
+              </div>
+              {(!l.doc || peutSupprimer) && (
+                <button type="button" title="Retirer"
+                  onClick={() => l.doc ? supprimer(l.doc) : setAttente(a => a.filter((_, i) => i !== l.idx))}
+                  className="btn btn-sm btn-link text-danger p-1"><i className="bi bi-x-lg" /></button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-0 mt-2" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
+          Photo ou scan (JPG, PNG, PDF — 10 Mo max). Sur téléphone, vous pouvez prendre la photo directement.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/* Fiche élève (admin) : le dossier complet déposé au Service des Mines. Un seul fichier ;
+   en envoyer un nouveau remplace l'ancien (côté serveur). */
+function DossierEleve({ eleveId }) {
+  const [dossier, setDossier] = useState(undefined)   // undefined = chargement, null = aucun
+  const [envoi, setEnvoi]     = useState(false)
+
+  useEffect(() => {
+    api('GET', `/eleves/${eleveId}/documents`)
+      .then(docs => setDossier(docs.find(d => d.type === 'DOSSIER') || null))
+      .catch(() => setDossier(null))
+  }, [eleveId])
+
+  const choisir = async (e) => {
+    const f = e.target.files[0]
+    e.target.value = ''
+    if (!f) return
+    if (!(f.type.startsWith('image/') || f.type === 'application/pdf')) { toast('Image ou PDF uniquement', 'warning'); return }
+    if (f.size > TAILLE_MAX) { toast('10 Mo maximum', 'warning'); return }
+    if (dossier && !confirm(`Remplacer « ${dossier.nomFichier} » par « ${f.name} » ?`)) return
+    setEnvoi(true)
+    try {
+      setDossier(await uploadFile(`/eleves/${eleveId}/documents`, f, { type: 'DOSSIER' }))
+      toast(dossier ? 'Dossier remplacé' : 'Dossier ajouté')
+    } catch (err) { toast(err.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+
+  const bouton = (label, icon, style) => (
+    <label className={`btn btn-sm fw-semibold mb-0 ${envoi ? 'disabled' : ''}`} style={{ borderRadius: '.65rem', whiteSpace: 'nowrap', ...style }}>
+      {envoi ? <><span className="spinner-border spinner-border-sm me-1" />Envoi…</> : <><i className={`bi bi-${icon} me-1`} />{label}</>}
+      <input type="file" accept={ACCEPT_PIECE} hidden onChange={choisir} disabled={envoi} />
+    </label>
+  )
+
+  const pdf = dossier?.contentType === 'application/pdf'
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fdf4ff' }}>
+            <i className="bi bi-folder2-open" style={{ color: '#9333ea', fontSize: '.8rem' }} />
+          </div>
+          <div>
+            <div className="font-bold text-slate-700 text-sm leading-tight">Dossier de l'élève</div>
+            <div className="text-xs text-slate-400">Service des Mines</div>
+          </div>
+        </div>
+        {dossier !== undefined && (
+          <span style={{
+            background: dossier ? '#f0fdf4' : '#fef9c3', color: dossier ? '#15803d' : '#a16207',
+            border: `1px solid ${dossier ? '#86efac' : '#fde68a'}`,
+            borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
+          }}>{dossier ? 'Fourni' : 'Manquant'}</span>
+        )}
+      </div>
+      <div className="px-5 py-4">
+        {dossier === undefined ? (
+          <div className="w-6 h-6 border-4 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin mx-auto" />
+        ) : dossier ? (
+          <>
+            <div className="flex items-center gap-3">
+              <i className={`bi bi-file-earmark-${pdf ? 'pdf-fill' : 'image-fill'}`}
+                style={{ color: pdf ? '#dc2626' : '#2563eb', fontSize: '1.8rem', flexShrink: 0 }} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-slate-700">{dossier.nomFichier}</div>
+                <div className="text-xs text-slate-400">
+                  {tailleLisible(dossier.taille)} · ajouté le {fmtDate(dossier.dateAjout?.slice(0, 10))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button type="button" onClick={() => ouvrirPiece(eleveId, dossier)}
+                className="btn btn-sm fw-semibold text-white flex-1" style={{ background: '#1e3a5f', borderRadius: '.65rem' }}>
+                <i className="bi bi-eye-fill me-1" />Voir
+              </button>
+              {bouton('Remplacer', 'arrow-repeat', { background: '#f1f5f9', color: '#475569' })}
+            </div>
+          </>
+        ) : (
+          <div className="text-center">
+            <p className="text-sm text-slate-400 mb-3">Aucun dossier joint pour le moment.</p>
+            {bouton('Joindre le dossier', 'paperclip', { background: '#1e3a5f', color: '#fff' })}
+            <p className="mb-0 mt-2" style={{ fontSize: '.72rem', color: '#94a3b8' }}>PDF ou photo, 10 Mo maximum</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CompteEleveCard({ eleve }) {
   const [statut, setStatut]   = useState(null)
   const [loading, setLoading] = useState(true)
@@ -339,6 +608,8 @@ export default function Eleves({ initialEleveId }) {
   const [statut, setStatut]       = useState('')
   const [site, setSite]           = useState('')
   const [nouveauMois, setNouveauMois] = useState(false)
+  const [archives, setArchives]   = useState(false)
+  const loadReq = useRef(0)
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
@@ -348,20 +619,29 @@ export default function Eleves({ initialEleveId }) {
   const [profileData, setProfileData] = useState({ lecons: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
+  const [ecole, setEcole]         = useState('')
+  const [piecesAttente, setPiecesAttente] = useState([])
+
+  useEffect(() => {
+    if (!isMoniteur) api('GET', '/config').then(c => setEcole(c.nom || '')).catch(() => {})
+  }, [])
 
   const load = async () => {
+    // Bascule rapide Actifs/Archivés : seule la dernière réponse doit s'afficher.
+    const req = ++loadReq.current
     setLoading(true)
     try {
-      const data = isMoniteur ? await api('GET', '/moniteur/mes-eleves') : await api('GET', '/eleves')
+      const data = isMoniteur ? await api('GET', '/moniteur/mes-eleves') : await api('GET', `/eleves${archives ? '?archives=true' : ''}`)
+      if (req !== loadReq.current) return
       setList(data); setFiltered(data)
     } catch { toast('Erreur chargement élèves', 'danger') }
-    finally { setLoading(false) }
+    finally { if (req === loadReq.current) setLoading(false) }
     if (!isMoniteur) {
       try { setMoniteurs(await api('GET', '/moniteurs')) } catch { /* optionnel */ }
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [archives])
 
   useEffect(() => {
     if (!initialEleveId) return
@@ -431,6 +711,7 @@ export default function Eleves({ initialEleveId }) {
         docDelivrance: eleve.docDelivrance || false,
       })
     } else { setEditId(null); setForm(EMPTY) }
+    setPiecesAttente([])
     setShowModal(true)
   }
 
@@ -451,17 +732,43 @@ export default function Eleves({ initialEleveId }) {
         setShowModal(false); await load()
         if (selected?.id === editId) setSelected(await api('GET', `/eleves/${editId}`))
       } else {
-        const created = await api('POST', '/eleves', data); toast('Élève créé')
+        const created = await api('POST', '/eleves', data)
+        // L'élève existe : un échec d'envoi n'annule pas la création, on le signale seulement.
+        let echecs = 0
+        for (const p of piecesAttente) {
+          try { await uploadFile(`/eleves/${created.id}/documents`, p.file, { type: p.type }) } catch { echecs++ }
+        }
+        toast(echecs ? `Élève créé, mais ${echecs} fichier(s) non envoyé(s) : ajoutez-les depuis sa fiche` : 'Élève créé',
+          echecs ? 'warning' : undefined)
+        setPiecesAttente([])
         setShowModal(false); await load()
         openProfile(created, 'paiements')
       }
     } catch (e) { toast(e.message, 'danger') }
   }
 
+  // Suppression définitive : seulement depuis les archives, et refusée par le serveur si l'élève a un historique.
   const del = async (id) => {
-    if (!confirm('Supprimer cet élève définitivement ?')) return
+    if (!confirm('Supprimer cet élève DÉFINITIVEMENT ?\n\nPossible uniquement pour une fiche créée par erreur (sans paiement ni leçon).')) return
     try { await api('DELETE', `/eleves/${id}`); toast('Élève supprimé'); closeProfile(); load() }
     catch (e) { toast(e.message, 'danger') }
+  }
+
+  const archiver = async (eleve) => {
+    if (!confirm(`Archiver ${eleve.prenom} ${eleve.nom} ?\n\nIl disparaît de la liste et ne peut plus se connecter. Ses paiements et son historique sont conservés : vous pourrez le réactiver à tout moment.`)) return
+    try {
+      const maj = await api('PATCH', `/eleves/${eleve.id}/archiver`)
+      toast('Élève archivé'); await load()
+      if (selected?.id === eleve.id) setSelected(maj)
+    } catch (e) { toast(e.message, 'danger') }
+  }
+
+  const reactiver = async (eleve) => {
+    try {
+      const maj = await api('PATCH', `/eleves/${eleve.id}/reactiver`)
+      toast(`${eleve.prenom} est de retour`); await load()
+      if (selected?.id === eleve.id) setSelected(maj)
+    } catch (e) { toast(e.message, 'danger') }
   }
 
   /* ── Modal ─────────────────────────────────────────────── */
@@ -527,11 +834,14 @@ export default function Eleves({ initialEleveId }) {
                   </select>
                 </div>
                 <div className="col-md-6">
-                  <label className={labelCls}>Site <span className="text-red-500">*</span></label>
+                  <label className={labelCls}>Bureau <span className="text-red-500">*</span></label>
                   <select className={inputCls} value={form.site}
                     onChange={e => setForm(fm => ({ ...fm, site: e.target.value }))}>
                     <option value="">Choisir…</option>
-                    {SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    {form.site && !BUREAUX.some(b => b.value === form.site) && (
+                      <option value={form.site} disabled>{LABELS[form.site] || form.site}</option>
+                    )}
                   </select>
                 </div>
                 <div className="col-md-6">
@@ -600,6 +910,19 @@ export default function Eleves({ initialEleveId }) {
                     </p>
                   </div>
                 </div>
+
+                {/* Pièces jointes : image ou PDF */}
+                <div className="col-12">
+                  <label className={labelCls}>Pièces jointes (image ou PDF)</label>
+                  <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                    <PiecesJointes eleveId={editId} attente={piecesAttente} setAttente={setPiecesAttente}
+                      peutSupprimer={!isMoniteur}
+                      onTypeAjoute={t => {
+                        const d = DOCS.find(x => x.type === t)
+                        if (d) setForm(fm => ({ ...fm, [d.key]: true }))
+                      }} />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2" style={{ background: '#f8fafc' }}>
@@ -644,8 +967,27 @@ export default function Eleves({ initialEleveId }) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold px-3 py-1 rounded-full"
                 style={{ background: st.bg, color: st.color }}>{st.label}</span>
+              {s.archive && (
+                <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#e2e8f0', color: '#475569' }}>
+                  <i className="bi bi-archive-fill me-1" />Archivé{s.dateArchivage ? ` le ${fmtDate(s.dateArchivage)}` : ''}
+                </span>
+              )}
               {s.site && <Badge value={s.site} map={BADGES.site} />}
-              {!isMoniteur && (
+              {!isMoniteur && s.archive && (
+                <>
+                  <button onClick={() => reactiver(s)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
+                    style={{ background: '#d4a017', color: '#1e3a5f' }}>
+                    <i className="bi bi-arrow-counterclockwise" />Réactiver
+                  </button>
+                  <button onClick={() => del(s.id)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
+                    style={{ background: 'rgba(239,68,68,.2)', color: '#fca5a5' }}>
+                    <i className="bi bi-trash-fill" />Supprimer définitivement
+                  </button>
+                </>
+              )}
+              {!isMoniteur && !s.archive && (
                 <>
                   <select className="text-xs font-semibold px-3 py-1.5 rounded-xl border-0 outline-none cursor-pointer"
                     style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}
@@ -657,10 +999,10 @@ export default function Eleves({ initialEleveId }) {
                     style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>
                     <i className="bi bi-pencil-fill" />Modifier
                   </button>
-                  <button onClick={() => del(s.id)}
+                  <button onClick={() => archiver(s)}
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
-                    style={{ background: 'rgba(239,68,68,.2)', color: '#fca5a5' }}>
-                    <i className="bi bi-trash-fill" />Supprimer
+                    style={{ background: 'rgba(255,255,255,.15)', color: '#fde68a' }}>
+                    <i className="bi bi-archive-fill" />Archiver
                   </button>
                 </>
               )}
@@ -683,7 +1025,7 @@ export default function Eleves({ initialEleveId }) {
               <div className="divide-y divide-slate-50">
                 {[
                   { label: 'Téléphone', value: s.telephone },
-                  { label: 'Site',      value: s.site ? LABELS[s.site] : null },
+                  { label: 'Bureau',    value: s.site ? LABELS[s.site] : null },
                   { label: 'CNI',       value: s.numeroCni },
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
@@ -696,6 +1038,7 @@ export default function Eleves({ initialEleveId }) {
                   </div>
                 ) : null)}
               </div>
+              {!isMoniteur && !s.archive && <BienvenueWhatsApp eleve={s} ecole={ecole} />}
             </div>
 
             {/* Moniteur assigné */}
@@ -775,8 +1118,11 @@ export default function Eleves({ initialEleveId }) {
         {/* Ligne du bas : Documents, Suivi formation, Compte élève */}
         <div className="grid lg:grid-cols-3 gap-5">
 
-          {/* Documents du dossier */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+          {/* Dossier de l'élève : le fichier déposé au Service des Mines (admin) */}
+          {!isMoniteur && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
+
+          {/* Documents du dossier (vue moniteur) */}
+          {isMoniteur && <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fdf4ff' }}>
@@ -808,7 +1154,11 @@ export default function Eleves({ initialEleveId }) {
                 ))}
               </div>
             </div>
-          </div>
+            <div className="px-5 py-3 border-t border-slate-100">
+              <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">Pièces jointes</div>
+              <PiecesJointes key={`${s.id}-${showModal}`} eleveId={s.id} peutSupprimer={!isMoniteur} />
+            </div>
+          </div>}
 
           {/* Suivi formation */}
           <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
@@ -866,6 +1216,36 @@ export default function Eleves({ initialEleveId }) {
         </div>
       )}
 
+      {/* Actifs / Archivés : deux onglets explicites (un simple bouton bascule ne montrait pas clairement
+          dans quelle liste on se trouvait, ni comment en sortir). Les filtres s'appliquent à la liste affichée. */}
+      {!isMoniteur && (
+        <div className="flex gap-1 p-1 rounded-xl bg-slate-200/70 w-full sm:w-fit">
+          {[
+            { val: false, icon: 'people-fill', label: 'Élèves actifs' },
+            { val: true,  icon: 'archive-fill', label: 'Archivés' },
+          ].map(o => (
+            <button key={o.label} onClick={() => setArchives(o.val)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border-0 cursor-pointer transition-all"
+              style={archives === o.val
+                ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' }
+                : { background: 'transparent', color: '#64748b' }}>
+              <i className={`bi bi-${o.icon}`} style={{ fontSize: '.85rem' }} />{o.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {archives && (
+        <div className="flex items-center gap-3 flex-wrap rounded-xl px-4 py-3"
+          style={{ background: '#f1f5f9', border: '1.5px solid #cbd5e1', color: '#334155' }}>
+          <i className="bi bi-archive-fill" />
+          <span className="text-sm flex-1 min-w-48">Vous consultez les <strong>élèves archivés</strong>. Ils ne peuvent pas se connecter ; leur historique est conservé.</span>
+          <button onClick={() => setArchives(false)}
+            className="text-sm font-bold border-0 bg-transparent cursor-pointer p-0" style={{ color: '#1e3a5f' }}>
+            <i className="bi bi-arrow-left me-1" />Retour aux élèves actifs
+          </button>
+        </div>
+      )}
+
       {/* Filtres */}
       <div className="bg-white rounded-2xl p-4 flex gap-3 flex-wrap" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
         <div className="flex items-center gap-2 flex-1 min-w-48 bg-slate-50 border-2 rounded-xl px-3 py-2 focus-within:border-[#1e3a5f] transition-all" style={{ borderColor: '#e2e8f0' }}>
@@ -883,8 +1263,8 @@ export default function Eleves({ initialEleveId }) {
         <select
           className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
           value={site} onChange={e => setSite(e.target.value)}>
-          <option value="">Tous les sites</option>
-          {SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          <option value="">Tous les bureaux</option>
+          {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <button
           onClick={() => setNouveauMois(v => !v)}
@@ -905,7 +1285,7 @@ export default function Eleves({ initialEleveId }) {
             <i className="bi bi-people-fill" style={{ color: '#fff', fontSize: '.9rem' }} />
           </div>
           <div className="flex-1">
-            <div className="font-bold text-white text-sm">{isMoniteur ? 'Mes Élèves' : 'Liste des Élèves'}</div>
+            <div className="font-bold text-white text-sm">{isMoniteur ? 'Mes Élèves' : archives ? 'Élèves archivés' : 'Liste des Élèves'}</div>
             <div style={{ fontSize: '.72rem', color: 'rgba(147,197,253,.85)' }}>
               {filtered.length} élève{filtered.length > 1 ? 's' : ''} · suivi de formation
             </div>
@@ -919,7 +1299,7 @@ export default function Eleves({ initialEleveId }) {
           <table className="w-full text-sm table-cards">
             <thead>
               <tr className="bg-slate-50">
-                {['#','Nom & Prénom','Téléphone','Site','Moniteur','Catégorie','Leçons','Statut','Inscription',''].map((h, i) => (
+                {['#','Nom & Prénom','Téléphone','Bureau','Moniteur','Catégorie','Leçons','Statut','Inscription',''].map((h, i) => (
                   <th key={i} className={`px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 9 ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
@@ -933,7 +1313,7 @@ export default function Eleves({ initialEleveId }) {
                 <tr><td colSpan="10">
                   <div className="flex flex-col items-center justify-center py-14 text-slate-400">
                     <i className="bi bi-inbox" style={{ fontSize: '2.5rem' }} />
-                    <div className="mt-2 text-sm font-medium">Aucun élève enregistré</div>
+                    <div className="mt-2 text-sm font-medium">{archives ? 'Aucun élève archivé' : 'Aucun élève enregistré'}</div>
                   </div>
                 </td></tr>
               ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((e, i) => {
@@ -957,7 +1337,7 @@ export default function Eleves({ initialEleveId }) {
                       </button>
                     </td>
                     <td className="px-4 py-3.5 text-slate-600 text-sm" data-label="Téléphone">{e.telephone}</td>
-                    <td className="px-4 py-3.5" data-label="Site">
+                    <td className="px-4 py-3.5" data-label="Bureau">
                       {e.site ? <Badge value={e.site} map={BADGES.site} /> : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3.5" data-label="Moniteur">
@@ -992,13 +1372,25 @@ export default function Eleves({ initialEleveId }) {
                           style={{ background: '#eff6ff', color: '#1e3a5f' }}>
                           <i className="bi bi-eye-fill" style={{ fontSize: '.8rem' }} />
                         </button>
-                        {!isMoniteur && <>
+                        {!isMoniteur && !e.archive && <>
                           <button onClick={() => openModal(e)} title="Modifier"
                             className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
                             style={{ background: '#f8fafc', color: '#64748b' }}>
                             <i className="bi bi-pencil-fill" style={{ fontSize: '.8rem' }} />
                           </button>
-                          <button onClick={() => del(e.id)} title="Supprimer"
+                          <button onClick={() => archiver(e)} title="Archiver"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
+                            style={{ background: '#fefce8', color: '#a16207' }}>
+                            <i className="bi bi-archive-fill" style={{ fontSize: '.8rem' }} />
+                          </button>
+                        </>}
+                        {!isMoniteur && e.archive && <>
+                          <button onClick={() => reactiver(e)} title="Réactiver"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
+                            style={{ background: '#f0fdf4', color: '#15803d' }}>
+                            <i className="bi bi-arrow-counterclockwise" style={{ fontSize: '.85rem' }} />
+                          </button>
+                          <button onClick={() => del(e.id)} title="Supprimer définitivement"
                             className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
                             style={{ background: '#fef2f2', color: '#dc2626' }}>
                             <i className="bi bi-trash-fill" style={{ fontSize: '.8rem' }} />

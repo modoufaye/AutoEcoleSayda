@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate } from '../utils'
+import { fmtDate, waLink } from '../utils'
 import { useAuth } from '../context/AuthContext'
 import { toast } from './Toast'
 import '../landing.css'
@@ -521,6 +521,23 @@ export default function ElevePortail({ onGoSection }) {
               </div>
             ))}
           </div>
+
+          {/* Contacter le moniteur sur WhatsApp */}
+          {(() => {
+            const m = profil.moniteur
+            const lien = m && waLink(m.telephone,
+              `Bonjour ${m.prenom}, c'est ${profil.prenom} ${profil.nom}, votre élève à l'Auto-École Khadija.`)
+            return lien && (
+              <div className="mx-6 mb-4">
+                <a href={lien} target="_blank" rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold no-underline"
+                  style={{ background: '#25d366', color: '#fff', boxShadow: '0 4px 12px rgba(37,211,102,.3)' }}>
+                  <i className="bi bi-whatsapp" style={{ fontSize: '1rem' }} />
+                  Écrire à {m.prenom} sur WhatsApp
+                </a>
+              </div>
+            )
+          })()}
 
           {/* Documents du dossier */}
           <div className="mx-6 mb-4 mt-1">

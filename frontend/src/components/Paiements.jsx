@@ -22,6 +22,11 @@ const STATUT_P = {
   ANNULE:     { bg: '#fee2e2', color: '#b91c1c', dot: '#dc2626', label: 'Annulé' },
 }
 
+const MOYEN_P = {
+  WAVE:         { label: 'Wave',         color: '#0284c7' },
+  ORANGE_MONEY: { label: 'Orange Money', color: '#ea580c' },
+}
+
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
@@ -80,6 +85,20 @@ export default function Paiements({ onEleveClick }) {
     } catch (e) { toast(e.message, 'danger') }
   }
 
+  const changerStatut = async (p, statut) => {
+    const msg = statut === 'PAYE'
+      ? `Valider ce paiement de ${fmtMontant(p.montant)} ? Vérifiez d'abord la transaction ${p.transactionId || ''} dans votre application.`
+      : 'Refuser ce paiement ?'
+    if (!confirm(msg)) return
+    try {
+      await api('PATCH', `/paiements/${p.id}/statut`, { statut })
+      toast(statut === 'PAYE' ? 'Paiement validé' : 'Paiement refusé')
+      load()
+    } catch (e) { toast(e.message, 'danger') }
+  }
+
+  const enAttente = list.filter(p => p.statut === 'EN_ATTENTE').length
+
   const del = async (id) => {
     if (!confirm('Supprimer ce paiement ?')) return
     try { await api('DELETE', `/paiements/${id}`); toast('Paiement supprimé'); load() }
@@ -93,7 +112,10 @@ export default function Paiements({ onEleveClick }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Paiements</h2>
-          <p className="text-sm text-slate-400 mt-0.5">{list.length} paiement{list.length !== 1 ? 's' : ''} enregistré{list.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-slate-400 mt-0.5">
+            {list.length} paiement{list.length !== 1 ? 's' : ''} enregistré{list.length !== 1 ? 's' : ''}
+            {enAttente > 0 && <span className="font-semibold" style={{ color: '#a16207' }}> · {enAttente} à valider</span>}
+          </p>
         </div>
         <button
           onClick={() => openModal()}
@@ -198,6 +220,13 @@ export default function Paiements({ onEleveClick }) {
                         style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
                         {p.reference}
                       </span>
+                      {p.moyenPaiement && MOYEN_P[p.moyenPaiement] && (
+                        <div className="text-xs mt-0.5 font-semibold" style={{ color: MOYEN_P[p.moyenPaiement].color }}>
+                          {MOYEN_P[p.moyenPaiement].label}
+                          {p.transactionId && <span className="text-slate-500 font-normal"
+                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}> · {p.transactionId}</span>}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-4" data-label="Date">
                       <span className="text-sm font-semibold text-slate-700">{fmtDate(p.date)}</span>
@@ -234,6 +263,22 @@ export default function Paiements({ onEleveClick }) {
                     </td>
                     <td className="py-3.5 px-4 cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
+                        {p.statut === 'EN_ATTENTE' && <>
+                          <button
+                            onClick={() => changerStatut(p, 'PAYE')}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
+                            style={{ background: '#dcfce7', color: '#15803d' }}
+                            title="Valider">
+                            <i className="bi bi-check-lg" style={{ fontSize: '.9rem' }} />
+                          </button>
+                          <button
+                            onClick={() => changerStatut(p, 'ANNULE')}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
+                            style={{ background: '#fef3c7', color: '#b45309' }}
+                            title="Refuser">
+                            <i className="bi bi-x-lg" style={{ fontSize: '.8rem' }} />
+                          </button>
+                        </>}
                         <button
                           onClick={() => openModal(p)}
                           className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"

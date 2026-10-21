@@ -75,12 +75,12 @@ public class SeanceService {
     public List<Eleve> findElevesByMoniteur(String moniteurEmail) {
         Moniteur moniteur = moniteurRepo.findByEmailIgnoreCase(moniteurEmail).orElse(null);
         if (moniteur == null) return List.of();
-        return eleveRepo.findByMoniteur(moniteur);
+        return eleveRepo.findByMoniteurAndArchiveFalse(moniteur);
     }
 
     @Transactional(readOnly = true)
     public List<Eleve> findAllEleves() {
-        return eleveRepo.findAll();
+        return eleveRepo.findByArchiveFalse();
     }
 
     public SeanceResponse create(SeanceRequest req, String moniteurEmail) {

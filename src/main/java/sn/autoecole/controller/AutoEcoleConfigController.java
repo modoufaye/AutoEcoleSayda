@@ -3,6 +3,7 @@ package sn.autoecole.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import sn.autoecole.entity.AutoEcoleConfig;
+import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
 
 import java.math.BigDecimal;
@@ -40,6 +41,8 @@ public class AutoEcoleConfigController {
         if (body.containsKey("email"))        cfg.setEmail((String) body.get("email"));
         if (body.containsKey("logoUrl"))      cfg.setLogoUrl((String) body.get("logoUrl"));
         if (body.containsKey("signatureUrl")) cfg.setSignatureUrl((String) body.get("signatureUrl"));
+        if (body.containsKey("lienWave"))        cfg.setLienWave(lienPaiement(body.get("lienWave")));
+        if (body.containsKey("lienOrangeMoney")) cfg.setLienOrangeMoney(lienPaiement(body.get("lienOrangeMoney")));
 
         if (body.containsKey("tarifInscription"))
             cfg.setTarifInscription(toBD(body.get("tarifInscription")));
@@ -49,6 +52,15 @@ public class AutoEcoleConfigController {
             cfg.setTarifHeureConduite(toBD(body.get("tarifHeureConduite")));
 
         return repo.save(cfg);
+    }
+
+    /** Le lien est rendu tel quel dans un href côté élève : on n'accepte que du https. */
+    private String lienPaiement(Object v) {
+        String s = v == null ? "" : v.toString().trim();
+        if (s.isEmpty()) return null;
+        if (!s.startsWith("https://"))
+            throw new BusinessException("Le lien de paiement doit commencer par https://");
+        return s;
     }
 
     private BigDecimal toBD(Object v) {

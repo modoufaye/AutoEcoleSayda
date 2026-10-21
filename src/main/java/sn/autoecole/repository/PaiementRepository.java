@@ -20,6 +20,8 @@ public interface PaiementRepository extends JpaRepository<Paiement, Long> {
 
     Optional<Paiement> findByReference(String reference);
 
+    boolean existsByTransactionIdIgnoreCase(String transactionId);
+
     List<Paiement> findByStatut(StatutPaiement statut);
 
     List<Paiement> findByTypePaiement(TypePaiement type);

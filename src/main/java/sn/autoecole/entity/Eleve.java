@@ -95,6 +95,13 @@ public class Eleve {
     @Column(name = "doc_delivrance", columnDefinition = "boolean default false")
     @Builder.Default private boolean docDelivrance = false;
 
+    // ── Archivage ── l'élève sort des listes mais tout son historique (paiements, leçons…) est conservé.
+    @Column(name = "archive", columnDefinition = "boolean default false")
+    @Builder.Default private boolean archive = false;
+
+    @Column(name = "date_archivage")
+    private LocalDate dateArchivage;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "moniteur_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "categoriesAutorisees"})

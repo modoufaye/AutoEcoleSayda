@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.autoecole.dto.PaiementRequest;
 import sn.autoecole.entity.Paiement;
+import sn.autoecole.enums.StatutPaiement;
 import sn.autoecole.service.PaiementService;
 
 import java.math.BigDecimal;
@@ -53,6 +54,12 @@ public class PaiementController {
     @PutMapping("/{id}")
     public ResponseEntity<Paiement> modifier(@PathVariable Long id, @Valid @RequestBody PaiementRequest request) {
         return ResponseEntity.ok(paiementService.modifier(id, request));
+    }
+
+    /** Validation (PAYE) ou refus (ANNULE) d'un paiement déclaré par un élève. */
+    @PatchMapping("/{id}/statut")
+    public ResponseEntity<Paiement> changerStatut(@PathVariable Long id, @RequestBody Map<String, StatutPaiement> body) {
+        return ResponseEntity.ok(paiementService.changerStatut(id, body.get("statut")));
     }
 
     @DeleteMapping("/{id}")

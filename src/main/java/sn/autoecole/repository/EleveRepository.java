@@ -17,23 +17,31 @@ import java.util.Optional;
 @Repository
 public interface EleveRepository extends JpaRepository<Eleve, Long> {
 
-    List<Eleve> findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(String nom, String prenom);
+    // Les listes ne montrent que les élèves non archivés ; les archivés ont leur propre liste.
+    List<Eleve> findByArchiveFalse();
 
-    List<Eleve> findByStatut(StatutEleve statut);
+    List<Eleve> findByArchiveTrue();
 
-    List<Eleve> findByCategoriePermis(CategoriePermis categorie);
+    @Query("SELECT e FROM Eleve e WHERE e.archive = false AND (LOWER(e.nom) LIKE LOWER(CONCAT('%', :terme, '%')) OR LOWER(e.prenom) LIKE LOWER(CONCAT('%', :terme, '%')))")
+    List<Eleve> rechercherActifs(@Param("terme") String terme);
 
-    List<Eleve> findBySite(Site site);
+    List<Eleve> findByStatutAndArchiveFalse(StatutEleve statut);
+
+    List<Eleve> findByCategoriePermisAndArchiveFalse(CategoriePermis categorie);
+
+    List<Eleve> findBySiteAndArchiveFalse(Site site);
 
     Optional<Eleve> findByNumeroCni(String numeroCni);
 
     Optional<Eleve> findByEmailIgnoreCase(String email);
 
-    List<Eleve> findByMoniteur(Moniteur moniteur);
+    boolean existsByEmailIgnoreCase(String email);
 
-    List<Eleve> findByMoniteurId(Long moniteurId);
+    List<Eleve> findByMoniteurAndArchiveFalse(Moniteur moniteur);
 
-    @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut")
+    List<Eleve> findByMoniteurIdAndArchiveFalse(Long moniteurId);
+
+    @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut AND e.archive = false")
     long countByStatut(@Param("statut") StatutEleve statut);
 
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.dateInscription >= :debut AND e.dateInscription <= :fin")

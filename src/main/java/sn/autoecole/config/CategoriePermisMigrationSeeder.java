@@ -34,6 +34,9 @@ public class CategoriePermisMigrationSeeder {
             // Supprimer les anciennes contraintes CHECK qui bloquent la migration
             dropCheckConstraints("ELEVES", "CATEGORIE_PERMIS");
             dropCheckConstraints("MONITEUR_CATEGORIES", "CATEGORIE");
+            // Le CHECK généré par Hibernate fige la liste des TypeDocument : ddl-auto=update ne le met
+            // pas à jour, donc tout nouveau type (ex. DOSSIER) serait refusé. L'enum Java suffit.
+            dropCheckConstraints("DOCUMENTS_ELEVES", "TYPE");
 
             // Migrer les anciennes valeurs vers les nouvelles
             int n = 0;

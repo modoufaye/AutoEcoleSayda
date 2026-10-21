@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtTime, BADGES } from '../utils'
+import { fmtDate, fmtTime, BADGES, BUREAUX } from '../utils'
 import Badge from './Badge'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
@@ -12,11 +12,6 @@ const PAGE_SIZE = 10
 const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: '', eleveId: '', moniteurId: '', vehiculeId: '', observations: '' }
 
-const SITES = [
-  { value: 'MAZALIK_JINAN', label: 'Mazalik Jinan' },
-  { value: 'GUEDIAWAYE',    label: 'Guédiawaye' },
-  { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
-]
 
 const TYPE_STYLE = {
   CODE:     { bg: '#eff6ff', color: '#2563eb', dot: '#2563eb', label: 'Code' },
@@ -156,8 +151,8 @@ export default function Lecons({ onBack }) {
           <select
             className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
             value={site} onChange={e => setSite(e.target.value)}>
-            <option value="">Tous les sites</option>
-            {SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            <option value="">Tous les bureaux</option>
+            {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <button
             onClick={() => openModal()}
@@ -205,7 +200,7 @@ export default function Lecons({ onBack }) {
           <table className="w-full table-cards">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Date & Horaire', ...(!isEleve ? ['Élève', 'Site'] : []), 'Moniteur', 'Véhicule', 'Type', 'Statut', ...(!isEleve ? ['Actions'] : [])].map((h, i) => (
+                {['#', 'Date & Horaire', ...(!isEleve ? ['Élève', 'Bureau'] : []), 'Moniteur', 'Véhicule', 'Type', 'Statut', ...(!isEleve ? ['Actions'] : [])].map((h, i) => (
                   <th key={h + i}
                     className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 0 ? 'text-center w-10' : h === 'Actions' ? 'text-right' : 'text-left'}`}>
                     {h}
@@ -260,7 +255,7 @@ export default function Lecons({ onBack }) {
                       </td>
                     )}
                     {!isEleve && (
-                      <td className="py-3.5 px-4" data-label="Site">
+                      <td className="py-3.5 px-4" data-label="Bureau">
                         {l.eleve?.site ? <Badge value={l.eleve.site} map={BADGES.site} /> : <span className="text-slate-300">—</span>}
                       </td>
                     )}

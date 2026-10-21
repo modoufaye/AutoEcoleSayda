@@ -68,6 +68,7 @@ export default function Parametres() {
     nom: '', adresse: '', telephone: '', email: '',
     logoUrl: '', signatureUrl: '',
     tarifInscription: '', tarifHeureCode: '', tarifHeureConduite: '',
+    lienWave: '', lienOrangeMoney: '',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -84,6 +85,8 @@ export default function Parametres() {
         tarifInscription:  data.tarifInscription  ?? '',
         tarifHeureCode:    data.tarifHeureCode    ?? '',
         tarifHeureConduite:data.tarifHeureConduite ?? '',
+        lienWave:          data.lienWave          || '',
+        lienOrangeMoney:   data.lienOrangeMoney   || '',
       }))
       .catch(e => toast(e.message, 'danger'))
       .finally(() => setLoading(false))
@@ -219,6 +222,43 @@ export default function Parametres() {
                     onChange={e => set('tarifHeureConduite', e.target.value)} />
                   <span className="input-group-text" style={{ fontSize: '.8rem', color: '#64748b' }}>FCFA</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section : Paiement mobile */}
+      <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '1.1rem' }}>
+        <div className="card-body p-0">
+
+          <div className="d-flex align-items-center gap-3 px-5 py-4"
+            style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <div className="d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ background: 'rgba(29,200,255,.15)', color: '#0284c7', width: 38, height: 38, borderRadius: '.75rem' }}>
+              <i className="bi bi-phone" />
+            </div>
+            <div>
+              <div className="fw-bold" style={{ color: '#1e293b' }}>Paiement mobile</div>
+              <div className="text-slate-400" style={{ fontSize: '.82rem' }}>
+                Liens marchands proposés aux élèves dans « Mes Paiements ». Laisser vide pour masquer.
+              </div>
+            </div>
+          </div>
+
+          <div className="px-5 py-4">
+            <div className="row g-3">
+              <div className="col-12">
+                <label className={labelCls}>Lien de paiement Wave</label>
+                <input type="url" className={inputCls} value={form.lienWave}
+                  placeholder="https://pay.wave.com/m/…"
+                  onChange={e => set('lienWave', e.target.value)} />
+              </div>
+              <div className="col-12">
+                <label className={labelCls}>Lien de paiement Orange Money</label>
+                <input type="url" className={inputCls} value={form.lienOrangeMoney}
+                  placeholder="https://…"
+                  onChange={e => set('lienOrangeMoney', e.target.value)} />
               </div>
             </div>
           </div>

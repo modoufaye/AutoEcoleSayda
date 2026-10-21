@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import sn.autoecole.enums.MoyenPaiement;
 import sn.autoecole.enums.StatutPaiement;
 import sn.autoecole.enums.TypePaiement;
 
@@ -51,6 +52,14 @@ public class Paiement {
 
     @Column(length = 300)
     private String description;
+
+    /** Renseigné pour les paiements mobiles déclarés par l'élève ; null pour les saisies admin historiques. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "moyen_paiement")
+    private MoyenPaiement moyenPaiement;
+
+    @Column(name = "transaction_id", length = 100)
+    private String transactionId;
 
     @PrePersist
     private void prePersist() {

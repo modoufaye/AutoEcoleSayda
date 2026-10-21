@@ -17,6 +17,16 @@ export function fmtMontant(n) {
   return new Intl.NumberFormat('fr-SN').format(n) + ' FCFA'
 }
 
+/* Lien wa.me vers un numéro saisi librement ("77 123 45 67", "+221…", "00221…").
+   Un numéro local à 9 chiffres est considéré sénégalais (+221). null si inexploitable. */
+export function waLink(telephone, message = '') {
+  let n = (telephone || '').replace(/\D/g, '')
+  if (n.startsWith('00')) n = n.slice(2)
+  if (n.length === 9) n = '221' + n
+  if (n.length < 10) return null
+  return `https://wa.me/${n}${message ? '?text=' + encodeURIComponent(message) : ''}`
+}
+
 export function fmtTime(t) {
   return t ? t.substring(0, 5) : ''
 }
@@ -29,7 +39,7 @@ export const BADGES = {
   type_lecon:      { CODE: 'secondary', CONDUITE: 'primary' },
   statut_paiement: { PAYE: 'success', EN_ATTENTE: 'warning text-dark', ANNULE: 'secondary' },
   type_paiement:   { INSCRIPTION: 'info text-dark', LECON: 'primary', EXAMEN: 'secondary', AUTRE: 'secondary' },
-  site:            { MAZALIK_JINAN: 'primary', GUEDIAWAYE: 'success', KEUR_MASSAR: 'warning text-dark' },
+  site:            { MAZALIK_JINAN: 'primary', GUEDIAWAYE: 'secondary', KEUR_MASSAR: 'warning text-dark' },
 }
 
 export const LABELS = {
@@ -40,6 +50,12 @@ export const LABELS = {
   CODE: 'Code', CONDUITE: 'Conduite',
   PAYE: 'Payé', ANNULE: 'Annulé',
   INSCRIPTION: 'Inscription', LECON: 'Leçon', EXAMEN: 'Examen', AUTRE: 'Autre',
-  MAZALIK_JINAN: 'Mazalik Jinan', GUEDIAWAYE: 'Guédiawaye', KEUR_MASSAR: 'Keur Massar',
+  MAZALIK_JINAN: 'Massalikoul Djinane', GUEDIAWAYE: 'Guédiawaye (fermé)', KEUR_MASSAR: 'Keur Massar',
 }
+
+/* Bureaux de rattachement des élèves (champ `site` côté API). Guédiawaye, fermé, n'est plus proposé. */
+export const BUREAUX = [
+  { value: 'MAZALIK_JINAN', label: 'Massalikoul Djinane' },
+  { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
+]
 

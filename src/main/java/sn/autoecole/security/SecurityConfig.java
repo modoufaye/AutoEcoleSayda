@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -16,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -41,6 +43,9 @@ public class SecurityConfig {
                 // Routes publiques
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                // Page d'erreur Spring : sinon un 403/500 est réécrit en 401 lors du forward
+                // vers /error, et le frontend déconnecte l'utilisateur à tort.
+                .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Fichiers uploadés — publics (UUID dans l'URL, pas de données sensibles)
                 .requestMatchers("/uploads/**").permitAll()
@@ -49,10 +54,27 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN")
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
+                // Gestion des paiements réservée à l'admin : sinon un élève pourrait
+                // valider lui-même un paiement déclaré (PATCH /statut).
+                .requestMatchers("/api/paiements/**").hasRole("SUPER_ADMIN")
+                // Réinitialise un mot de passe élève : admin uniquement.
+                .requestMatchers(HttpMethod.POST, "/api/eleves/*/identifiants").hasRole("SUPER_ADMIN")
+                // Archiver / réactiver un élève : admin uniquement.
+                .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/archiver", "/api/eleves/*/reactiver").hasRole("SUPER_ADMIN")
+                // Supprimer un élève (et son compte de connexion) : admin uniquement.
+                .requestMatchers(HttpMethod.DELETE, "/api/eleves/**").hasRole("SUPER_ADMIN")
+                // Gestion des élèves (liste, fiches, comptes) : jamais pour un élève,
+                // qui passe par /api/eleve/** (au singulier) pour ses propres données.
+                .requestMatchers("/api/eleves/**").hasAnyRole("SUPER_ADMIN", "MONITEUR")
+                // Statistiques globales (dont le total encaissé) : pas pour les élèves.
+                .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "MONITEUR")
 
                 // Toutes les autres routes nécessitent une authentification
                 .anyRequest().authenticated()
             )
+            // Token absent/expiré → 401 (et non 403 par défaut), pour que le
+            // frontend purge la session et redirige vers /login.
+            .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
             .headers(h -> h.frameOptions(f -> f.sameOrigin()))
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

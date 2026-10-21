@@ -73,6 +73,6 @@ public class MoniteurController {
 
     @GetMapping("/{id}/eleves")
     public ResponseEntity<List<Eleve>> listerEleves(@PathVariable Long id) {
-        return ResponseEntity.ok(eleveRepository.findByMoniteurId(id));
+        return ResponseEntity.ok(eleveRepository.findByMoniteurIdAndArchiveFalse(id));
     }
 }

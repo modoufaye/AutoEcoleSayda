@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate } from '../utils'
+import { fmtDate, waLink } from '../utils'
+import { msgRappelExamen, joursAvant } from '../messages'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
@@ -57,7 +58,22 @@ export default function Examens({ onEleveClick, onBack }) {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  const [ecole, setEcole] = useState('')
+
+  useEffect(() => {
+    load()
+    if (!isEleve) api('GET', '/config').then(c => setEcole(c.nom || '')).catch(() => {})
+  }, [])
+
+  /* Lien de rappel WhatsApp : seulement pour un examen à venir, sans résultat, avec un numéro exploitable. */
+  const lienRappel = (e) =>
+    e.resultat === 'EN_ATTENTE' && joursAvant(e.date) >= 0 && e.eleve
+      ? waLink(e.eleve.telephone, msgRappelExamen(e, ecole))
+      : null
+
+  const aRappeler = list
+    .filter(e => e.resultat === 'EN_ATTENTE' && joursAvant(e.date) >= 0 && joursAvant(e.date) <= 7)
+    .sort((a, b) => a.date.localeCompare(b.date))
 
   const openModal = async () => {
     const ev = await api('GET', '/eleves')
@@ -149,6 +165,52 @@ export default function Examens({ onEleveClick, onBack }) {
             <i className="bi bi-plus-lg" />
             Nouvel examen
           </button>
+        </div>
+      )}
+
+      {/* ── Rappels à envoyer : examens des 7 prochains jours (admin) ── */}
+      {!isEleve && aRappeler.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#dcfce7' }}>
+              <i className="bi bi-whatsapp" style={{ color: '#16a34a', fontSize: '.95rem' }} />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-sm text-slate-800">Rappels à envoyer</div>
+              <div className="text-xs text-slate-400">Examens des 7 prochains jours</div>
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#dcfce7', color: '#15803d' }}>
+              {aRappeler.length}
+            </span>
+          </div>
+          <div className="divide-y divide-slate-50">
+            {aRappeler.map(e => {
+              const lien = lienRappel(e)
+              const j = joursAvant(e.date)
+              return (
+                <div key={e.id} className="flex items-center gap-3 px-5 py-2.5">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-slate-700 truncate">{e.eleve?.prenom} {e.eleve?.nom}</div>
+                    <div className="text-xs text-slate-400">
+                      {(TYPE_STYLE[e.type]?.label) || e.type} · {fmtDate(e.date)}
+                      <span className="font-semibold" style={{ color: j <= 1 ? '#dc2626' : '#a16207' }}>
+                        {' '}· {j === 0 ? "aujourd'hui" : j === 1 ? 'demain' : `dans ${j} jours`}
+                      </span>
+                    </div>
+                  </div>
+                  {lien ? (
+                    <a href={lien} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold no-underline flex-shrink-0"
+                      style={{ background: '#25d366', color: '#fff' }}>
+                      <i className="bi bi-whatsapp" />Rappeler
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400 flex-shrink-0">Pas de numéro</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -329,6 +391,13 @@ export default function Examens({ onEleveClick, onBack }) {
                     {!isEleve && (
                       <td className="py-3.5 px-4 cell-actions">
                         <div className="flex items-center justify-end gap-1">
+                          {lienRappel(e) && (
+                            <a href={lienRappel(e)} target="_blank" rel="noopener noreferrer" title="Rappel WhatsApp"
+                              className="w-8 h-8 rounded-lg flex items-center justify-center no-underline transition-all hover:opacity-80"
+                              style={{ background: '#dcfce7', color: '#16a34a' }}>
+                              <i className="bi bi-whatsapp" style={{ fontSize: '.85rem' }} />
+                            </a>
+                          )}
                           <button onClick={() => openResultat(e)} title="Saisir le résultat"
                             className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all hover:opacity-80"
                             style={{ background: '#eff6ff', color: '#2563eb' }}>

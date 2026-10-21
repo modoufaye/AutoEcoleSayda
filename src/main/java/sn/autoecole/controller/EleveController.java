@@ -2,28 +2,34 @@ package sn.autoecole.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import sn.autoecole.dto.EleveRequest;
+import sn.autoecole.entity.DocumentEleve;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Examen;
 import sn.autoecole.entity.Lecon;
 import sn.autoecole.entity.Paiement;
-import sn.autoecole.entity.User;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
+import sn.autoecole.enums.TypeDocument;
 import sn.autoecole.repository.UserRepository;
+import sn.autoecole.service.DocumentEleveService;
 import sn.autoecole.service.EleveService;
 import sn.autoecole.service.ExamenService;
 import sn.autoecole.service.LeconService;
 import sn.autoecole.service.PaiementService;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -37,12 +43,12 @@ public class EleveController {
     private final LeconService    leconService;
     private final ExamenService   examenService;
     private final PaiementService paiementService;
+    private final DocumentEleveService documentService;
     private final UserRepository  userRepository;
-    private final PasswordEncoder passwordEncoder;
 
     @GetMapping
-    public ResponseEntity<List<Eleve>> listerTous() {
-        return ResponseEntity.ok(eleveService.listerTous());
+    public ResponseEntity<List<Eleve>> listerTous(@RequestParam(defaultValue = "false") boolean archives) {
+        return ResponseEntity.ok(archives ? eleveService.listerArchives() : eleveService.listerTous());
     }
 
     @GetMapping("/{id}")
@@ -86,6 +92,17 @@ public class EleveController {
         return ResponseEntity.ok(eleveService.changerStatut(id, statut));
     }
 
+    /** Archiver / réactiver : réservé à l'admin (SecurityConfig). */
+    @PatchMapping("/{id}/archiver")
+    public ResponseEntity<Eleve> archiver(@PathVariable Long id) {
+        return ResponseEntity.ok(eleveService.archiver(id));
+    }
+
+    @PatchMapping("/{id}/reactiver")
+    public ResponseEntity<Eleve> reactiver(@PathVariable Long id) {
+        return ResponseEntity.ok(eleveService.reactiver(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         eleveService.supprimer(id);
@@ -112,6 +129,37 @@ public class EleveController {
         return ResponseEntity.ok(Map.of("totalPaye", paiementService.totalEncaisseParEleve(id)));
     }
 
+    // ── Pièces jointes du dossier (images / PDF) ── suppression : admin uniquement (SecurityConfig)
+
+    @GetMapping("/{id}/documents")
+    public ResponseEntity<List<DocumentEleve>> listerDocuments(@PathVariable Long id) {
+        return ResponseEntity.ok(documentService.lister(id));
+    }
+
+    @PostMapping(value = "/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentEleve> ajouterDocument(@PathVariable Long id,
+                                                         @RequestParam("file") MultipartFile file,
+                                                         @RequestParam(value = "type", required = false) TypeDocument type) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(documentService.ajouter(id, file, type));
+    }
+
+    @GetMapping("/{id}/documents/{docId}/fichier")
+    public ResponseEntity<Resource> telechargerDocument(@PathVariable Long id, @PathVariable Long docId) {
+        DocumentEleve doc = documentService.trouver(id, docId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(doc.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+                        .filename(doc.getNomFichier(), StandardCharsets.UTF_8).build().toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                .body(documentService.fichier(doc));
+    }
+
+    @DeleteMapping("/{id}/documents/{docId}")
+    public ResponseEntity<Void> supprimerDocument(@PathVariable Long id, @PathVariable Long docId) {
+        documentService.supprimer(id, docId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/creer-compte")
     public ResponseEntity<?> creerCompte(@PathVariable Long id) {
         Eleve eleve = eleveService.trouverParId(id);
@@ -119,14 +167,14 @@ public class EleveController {
             return ResponseEntity.badRequest().body(Map.of("erreur", "L'élève n'a pas d'email renseigné"));
         if (userRepository.existsByEmail(eleve.getEmail()))
             return ResponseEntity.badRequest().body(Map.of("erreur", "Un compte existe déjà pour cet email"));
-        String motDePasse = "Eleve@" + LocalDate.now().getYear();
-        userRepository.save(User.builder()
-                .nom(eleve.getNom() + " " + eleve.getPrenom())
-                .email(eleve.getEmail())
-                .motDePasse(passwordEncoder.encode(motDePasse))
-                .role(RoleUser.ELEVE)
-                .build());
-        return ResponseEntity.ok(Map.of("email", eleve.getEmail(), "motDePasse", motDePasse));
+        Map<String, Object> ids = eleveService.genererIdentifiants(id);
+        return ResponseEntity.ok(Map.of("email", ids.get("identifiant"), "motDePasse", ids.get("motDePasse")));
+    }
+
+    /** Message de bienvenue : (re)génère les identifiants de l'élève. Réservé à l'admin (SecurityConfig). */
+    @PostMapping("/{id}/identifiants")
+    public ResponseEntity<Map<String, Object>> genererIdentifiants(@PathVariable Long id) {
+        return ResponseEntity.ok(eleveService.genererIdentifiants(id));
     }
 
     @GetMapping("/{id}/compte")
@@ -145,7 +193,6 @@ public class EleveController {
                     m.put("id", u.getId());
                     m.put("nom", u.getNom());
                     m.put("email", u.getEmail());
-                    m.put("motDePasse", "Eleve@" + java.time.LocalDate.now().getYear());
                     return m;
                 })
                 .toList()

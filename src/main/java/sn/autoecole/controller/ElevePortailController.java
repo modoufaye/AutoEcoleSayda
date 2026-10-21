@@ -1,5 +1,6 @@
 package sn.autoecole.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import sn.autoecole.dto.DeclarationPaiementRequest;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Examen;
 import sn.autoecole.entity.Lecon;
@@ -16,6 +18,7 @@ import sn.autoecole.repository.PaiementRepository;
 import sn.autoecole.repository.UserRepository;
 import sn.autoecole.service.ExamenService;
 import sn.autoecole.service.LeconService;
+import sn.autoecole.service.PaiementService;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ public class ElevePortailController {
     private final PasswordEncoder    passwordEncoder;
     private final ExamenService      examenService;
     private final LeconService       leconService;
+    private final PaiementService    paiementService;
 
     private Eleve eleveConnecte(Authentication auth) {
         return eleveRepository.findByEmailIgnoreCase(auth.getName())
@@ -67,6 +71,13 @@ public class ElevePortailController {
     @GetMapping("/mes-paiements")
     public List<Paiement> getMesPaiements(Authentication auth) {
         return paiementRepository.findByEleveId(eleveConnecte(auth).getId());
+    }
+
+    /** L'élève a payé via le lien Wave / Orange Money : le paiement est créé EN_ATTENTE. */
+    @PostMapping("/paiements/declarer")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Paiement declarerPaiement(Authentication auth, @Valid @RequestBody DeclarationPaiementRequest request) {
+        return paiementService.declarerPaiementMobile(eleveConnecte(auth), request);
     }
 
     @PutMapping("/changer-mot-de-passe")

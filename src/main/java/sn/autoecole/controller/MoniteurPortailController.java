@@ -45,6 +45,6 @@ public class MoniteurPortailController {
 
     @GetMapping("/mes-eleves")
     public List<Eleve> getMesEleves(Authentication auth) {
-        return eleveRepository.findByMoniteurId(moniteurConnecte(auth).getId());
+        return eleveRepository.findByMoniteurIdAndArchiveFalse(moniteurConnecte(auth).getId());
     }
 }

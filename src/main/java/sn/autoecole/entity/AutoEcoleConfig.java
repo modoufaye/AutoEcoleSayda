@@ -23,6 +23,13 @@ public class AutoEcoleConfig {
     private String logoUrl;
     private String signatureUrl;
 
+    /** Liens marchands affichés à l'élève pour payer (Wave Business / Orange Money). */
+    @Column(length = 500)
+    private String lienWave;
+
+    @Column(length = 500)
+    private String lienOrangeMoney;
+
     @Builder.Default
     @Column(precision = 12, scale = 2)
     private BigDecimal tarifInscription = BigDecimal.ZERO;
