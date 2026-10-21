@@ -1203,6 +1203,8 @@ export default function Eleves({ initialEleveId }) {
   }
 
   /* ══ VUE LISTE ═══════════════════════════════════════════ */
+  const colonnes = ['#','Nom & Prénom','Téléphone','Bureau','Moniteur','Catégorie','Leçons','Statut','Inscription',
+    ...(archives ? ['Archivé le'] : []), '']
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
@@ -1304,18 +1306,18 @@ export default function Eleves({ initialEleveId }) {
           <table className="w-full text-sm table-cards">
             <thead>
               <tr className="bg-slate-50">
-                {['#','Nom & Prénom','Téléphone','Bureau','Moniteur','Catégorie','Leçons','Statut','Inscription',''].map((h, i) => (
-                  <th key={i} className={`px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 9 ? 'text-right' : 'text-left'}`}>{h}</th>
+                {colonnes.map((h, i) => (
+                  <th key={i} className={`px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === colonnes.length - 1 ? 'text-right' : 'text-left'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="10" className="text-center py-12">
+                <tr><td colSpan={colonnes.length} className="text-center py-12">
                   <div className="w-8 h-8 border-4 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin mx-auto" />
                 </td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="10">
+                <tr><td colSpan={colonnes.length}>
                   <div className="flex flex-col items-center justify-center py-14 text-slate-400">
                     <i className="bi bi-inbox" style={{ fontSize: '2.5rem' }} />
                     <div className="mt-2 text-sm font-medium">{archives ? 'Aucun élève archivé' : 'Aucun élève enregistré'}</div>
@@ -1370,6 +1372,11 @@ export default function Eleves({ initialEleveId }) {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-slate-400 text-xs" data-label="Inscription">{fmtDate(e.dateInscription)}</td>
+                    {archives && (
+                      <td className="px-4 py-3.5 text-xs font-semibold" style={{ color: '#475569' }} data-label="Archivé le">
+                        {e.dateArchivage ? fmtDate(e.dateArchivage) : '—'}
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 text-right cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
                         <button onClick={() => openProfile(e)} title="Voir profil"

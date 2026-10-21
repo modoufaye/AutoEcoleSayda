@@ -47,7 +47,7 @@ public class EleveService {
     }
 
     public List<Eleve> listerArchives() {
-        return eleveRepository.findByArchiveTrue();
+        return eleveRepository.findByArchiveTrueOrderByDateArchivageDescIdDesc();
     }
 
     public Eleve trouverParId(Long id) {

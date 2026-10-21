@@ -20,7 +20,8 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
     // Les listes ne montrent que les élèves non archivés ; les archivés ont leur propre liste.
     List<Eleve> findByArchiveFalse();
 
-    List<Eleve> findByArchiveTrue();
+    /** Les plus récemment archivés en premier. */
+    List<Eleve> findByArchiveTrueOrderByDateArchivageDescIdDesc();
 
     @Query("SELECT e FROM Eleve e WHERE e.archive = false AND (LOWER(e.nom) LIKE LOWER(CONCAT('%', :terme, '%')) OR LOWER(e.prenom) LIKE LOWER(CONCAT('%', :terme, '%')))")
     List<Eleve> rechercherActifs(@Param("terme") String terme);
