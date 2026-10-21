@@ -38,7 +38,8 @@ export const BADGES = {
   resultat:        { ADMIS: 'success', REFUSE: 'danger', EN_ATTENTE: 'warning text-dark' },
   type_lecon:      { CODE: 'secondary', CONDUITE: 'primary' },
   statut_paiement: { PAYE: 'success', EN_ATTENTE: 'warning text-dark', ANNULE: 'secondary' },
-  type_paiement:   { INSCRIPTION: 'info text-dark', LECON: 'primary', EXAMEN: 'secondary', AUTRE: 'secondary' },
+  type_paiement:   { TARIF_INSCRIPTION: 'info text-dark', TARIF_CODE: 'primary', TARIF_CONDUITE: 'warning text-dark',
+                     INSCRIPTION: 'info text-dark', LECON: 'primary', EXAMEN: 'secondary', AUTRE: 'secondary' },
   site:            { MAZALIK_JINAN: 'primary', GUEDIAWAYE: 'secondary', KEUR_MASSAR: 'warning text-dark' },
 }
 
@@ -49,6 +50,7 @@ export const LABELS = {
   ADMIS: 'Admis', REFUSE: 'Refusé', EN_ATTENTE: 'En attente',
   CODE: 'Code', CONDUITE: 'Conduite',
   PAYE: 'Payé', ANNULE: 'Annulé',
+  TARIF_INSCRIPTION: 'Tarif inscription', TARIF_CODE: 'Tarif code', TARIF_CONDUITE: 'Tarif conduite',
   INSCRIPTION: 'Inscription', LECON: 'Leçon', EXAMEN: 'Examen', AUTRE: 'Autre',
   MAZALIK_JINAN: 'Massalikoul Djinane', GUEDIAWAYE: 'Guédiawaye (fermé)', KEUR_MASSAR: 'Keur Massar',
 }

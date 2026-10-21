@@ -21,13 +21,18 @@ Application web complète de gestion d'auto-école développée pour le marché 
 
 ---
 
-## 🔐 Rôles & Accès démo
+## 🔐 Rôles & Accès démo (en local uniquement)
 
 | Rôle | Email | Mot de passe |
 |---|---|---|
 | Administrateur | admin@autoecole.sn | Admin@2024 |
 | Moniteur | moniteur@autoecole.sn | Moniteur@2024 |
 | Élève | eleve@autoecole.sn | Eleve@2024 |
+
+Les comptes moniteur et élève, ainsi que les données de démonstration, n'existent qu'en
+profil **dev** (`mvn spring-boot:run`). En production, seul le compte administrateur est
+créé, et uniquement s'il n'existe encore aucun administrateur :
+**changez son mot de passe dès le premier déploiement**.
 
 ---
 
@@ -61,7 +66,11 @@ cd autoEcole
 mvn spring-boot:run
 ```
 
-L'API démarre sur **http://localhost:8080**
+L'API démarre sur **http://localhost:8080**, en profil **dev** :
+données de démonstration (`data.sql`), comptes de démo et console H2
+(http://localhost:8080/h2-console, JDBC URL `jdbc:h2:file:./data/autoecole-db`, utilisateur `sa`).
+
+Le jar lancé sans profil (`java -jar`, comme en production) ne charge rien de tout cela.
 
 ### Frontend
 
@@ -83,8 +92,9 @@ autoEcole/
 │   └── main/
 │       ├── java/sn/autoecole/ # Controllers, Services, Entities
 │       └── resources/
-│           ├── application.properties
-│           └── data.sql        # Données de test
+│           ├── application.properties      # Configuration (production par défaut)
+│           ├── application-dev.properties  # Profil dev : démo, console H2
+│           └── data.sql                    # Données de démonstration (dev)
 ├── frontend/                   # Frontend React
 │   └── src/
 │       ├── pages/              # LoginPage, LandingPage

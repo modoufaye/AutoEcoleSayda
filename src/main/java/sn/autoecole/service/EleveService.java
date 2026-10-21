@@ -114,7 +114,7 @@ public class EleveService {
                     .date(LocalDate.now())
                     .montant(request.getMontantAvance())
                     .eleve(saved)
-                    .typePaiement(TypePaiement.INSCRIPTION)
+                    .typePaiement(TypePaiement.TARIF_INSCRIPTION)
                     .statut(StatutPaiement.PAYE)
                     .description("Versement à l'inscription")
                     .build());

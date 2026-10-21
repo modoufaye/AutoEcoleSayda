@@ -95,6 +95,11 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- mvn spring-boot:run démarre en profil dev (données de démo, console H2).
+                         Sans effet sur le jar : la production démarre sans profil. -->
+                    <profiles>
+                        <profile>dev</profile>
+                    </profiles>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

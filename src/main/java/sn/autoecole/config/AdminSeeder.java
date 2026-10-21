@@ -2,6 +2,7 @@ package sn.autoecole.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -17,13 +18,27 @@ public class AdminSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /** Comptes de démo : profil dev uniquement (application-dev.properties). */
+    @Value("${demo.comptes:false}")
+    private boolean demoComptes;
+
     @Override
     public void run(String... args) {
-        createIfAbsent("Administrateur",  "admin@autoecole.sn",              "Admin@2024",    RoleUser.SUPER_ADMIN);
+        // Compte admin initial : seulement s'il n'existe aucun administrateur, pour pouvoir se
+        // connecter à une installation neuve. Changer son mot de passe dès le premier déploiement
+        // (il figure dans le README). Tester l'email ne suffirait pas : un admin qui a changé
+        // d'email verrait réapparaître un second compte admin au mot de passe public.
+        if (userRepository.findAllByRole(RoleUser.SUPER_ADMIN).isEmpty()) {
+            createIfAbsent("Administrateur", "admin@autoecole.sn", "Admin@2024", RoleUser.SUPER_ADMIN);
+        }
+
+        // Tout le reste n'existe que pour la démo : en production, ces comptes au mot de passe
+        // public donneraient accès à l'application.
+        if (!demoComptes) return;
         createIfAbsent("Mamadou Diallo", "moniteur@autoecole.sn",           "Moniteur@2024", RoleUser.MONITEUR);
         createIfAbsent("Fatou Ndiaye",   "fatou.ndiaye@autoecole.sn",       "Moniteur@2024", RoleUser.MONITEUR);
         createIfAbsent("Ibrahima Mbaye", "ibrahima.mbaye@autoecole.sn",     "Moniteur@2024", RoleUser.MONITEUR);
-        createIfAbsent("Fatou Ndiaye",    "eleve@autoecole.sn",              "Eleve@2024",    RoleUser.ELEVE);
+        createIfAbsent("Aliou Sarr",      "eleve@autoecole.sn",              "Eleve@2024",    RoleUser.ELEVE);
 
         // Élèves existants
         createIfAbsent("Aminata Sarr",   "aminata.sarr@gmail.com",          "Eleve@2024",    RoleUser.ELEVE);
