@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../landing.css'
+import affichePerfAuto from '../assets/perf-boite-automatique.jpeg'
+import affichePerfManuelle from '../assets/perf-boite-manuelle.jpeg'
 
 // ── Icônes SVG inline ──────────────────────────────────────────────────────
 const CarIcon = () => (
@@ -122,6 +125,7 @@ export default function LandingPage() {
       <Services />
       <StatsSection />
       <Avantages />
+      <Galerie />
       <CtaBanner />
       <Footer />
     </div>
@@ -450,6 +454,104 @@ function Avantages() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ── Galerie (affiches en diaporama horizontal) ───────────────────────────────
+const AFFICHES = [
+  { src: affichePerfAuto,     titre: 'Cours de perfectionnement — boîte automatique' },
+  { src: affichePerfManuelle, titre: 'Cours de perfectionnement — boîte manuelle' },
+]
+
+function Galerie() {
+  const piste = useRef(null)
+  const [actif, setActif] = useState(0)
+  const [pause, setPause] = useState(false)
+
+  const allerA = i => {
+    const el = piste.current
+    if (!el) return
+    const n = (i + AFFICHES.length) % AFFICHES.length
+    el.scrollTo({ left: n * el.clientWidth, behavior: 'smooth' })
+  }
+
+  // L'indice suit le défilement (flèches, points, mais aussi glissement au doigt)
+  const auDefilement = () => {
+    const el = piste.current
+    if (el) setActif(Math.round(el.scrollLeft / el.clientWidth))
+  }
+
+  useEffect(() => {
+    if (pause) return
+    const t = setInterval(() => allerA(actif + 1), 6000)
+    return () => clearInterval(t)
+  }, [actif, pause])
+
+  return (
+    <section id="galerie" className="py-16 bg-white">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader
+          eyebrow="Nos offres"
+          title="Cours de perfectionnement"
+          subtitle="Boîte automatique ou manuelle : reprenez confiance au volant avec nos formules à la carte."
+        />
+
+        <div
+          className="relative mt-8"
+          onMouseEnter={() => setPause(true)}
+          onMouseLeave={() => setPause(false)}
+          onTouchStart={() => setPause(true)}
+        >
+          <div
+            ref={piste}
+            onScroll={auDefilement}
+            className="flex overflow-x-auto snap-x snap-mandatory rounded-2xl bg-slate-900 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {AFFICHES.map((a, i) => (
+              <div key={i} className="w-full flex-shrink-0 snap-center flex justify-center p-3 sm:p-5">
+                <img
+                  src={a.src}
+                  alt={a.titre}
+                  loading="lazy"
+                  draggable="false"
+                  className="max-h-[55vh] w-auto max-w-full rounded-xl shadow-2xl object-contain"
+                />
+              </div>
+            ))}
+          </div>
+
+          {[{ dir: -1, cote: 'left-2 sm:-left-5', label: 'Affiche précédente', d: 'M15 18l-6-6 6-6' },
+            { dir: 1,  cote: 'right-2 sm:-right-5', label: 'Affiche suivante', d: 'M9 18l6-6-6-6' }].map(b => (
+            <button
+              key={b.dir}
+              type="button"
+              aria-label={b.label}
+              onClick={() => allerA(actif + b.dir)}
+              style={{ borderRadius: '9999px' }}   // le reboot Bootstrap remet border-radius à 0 sur <button>
+              className={`absolute top-1/2 -translate-y-1/2 ${b.cote} w-11 h-11 rounded-full bg-[#d4a017] hover:bg-[#f0bb2a] text-white shadow-lg flex items-center justify-center transition-colors`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                <path d={b.d} />
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-center gap-2 mt-6">
+          {AFFICHES.map((a, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={a.titre}
+              aria-current={i === actif}
+              onClick={() => allerA(i)}
+              style={{ borderRadius: '9999px' }}
+              className={`h-2.5 rounded-full transition-all duration-300 ${i === actif ? 'w-8 bg-[#d4a017]' : 'w-2.5 bg-slate-300 hover:bg-slate-400'}`}
+            />
+          ))}
         </div>
       </div>
     </section>
