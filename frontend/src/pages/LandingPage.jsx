@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import '../landing.css'
 import affichePerfAuto from '../assets/perf-boite-automatique.jpeg'
 import affichePerfManuelle from '../assets/perf-boite-manuelle.jpeg'
+import afficheCoursCode from '../assets/cours-code-horaires.jpeg'
 
 // ── Icônes SVG inline ──────────────────────────────────────────────────────
 const CarIcon = () => (
@@ -118,6 +119,13 @@ const NAV_LINKS = [
 
 // ── Composant principal ────────────────────────────────────────────────────
 export default function LandingPage() {
+  // Lien direct vers une section (ex. /#galerie) : la page étant rendue par React après
+  // le chargement, le navigateur n'a pas pu défiler jusqu'à l'ancre tout seul.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1))
+    if (id) document.getElementById(id)?.scrollIntoView()
+  }, [])
+
   return (
     <div className="min-h-screen w-full bg-white font-[Inter,system-ui,sans-serif] text-slate-800">
       <Navbar />
@@ -462,6 +470,7 @@ function Avantages() {
 
 // ── Galerie (affiches en diaporama horizontal) ───────────────────────────────
 const AFFICHES = [
+  { src: afficheCoursCode,    titre: 'Cours de code sur WhatsApp — emploi du temps' },
   { src: affichePerfAuto,     titre: 'Cours de perfectionnement — boîte automatique' },
   { src: affichePerfManuelle, titre: 'Cours de perfectionnement — boîte manuelle' },
 ]
@@ -495,8 +504,8 @@ function Galerie() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader
           eyebrow="Nos offres"
-          title="Cours de perfectionnement"
-          subtitle="Boîte automatique ou manuelle : reprenez confiance au volant avec nos formules à la carte."
+          title="Nos formations"
+          subtitle="Cours de code sur WhatsApp et cours de perfectionnement en boîte automatique ou manuelle."
         />
 
         <div
