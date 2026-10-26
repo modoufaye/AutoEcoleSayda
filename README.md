@@ -41,7 +41,7 @@ créé, et uniquement s'il n'existe encore aucun administrateur :
 **Backend**
 - Java · Spring Boot 3.2.5
 - Spring Security · JWT
-- H2 Database (fichier persistant)
+- PostgreSQL en production · H2 (fichier) en local
 - Maven
 
 **Frontend**
@@ -84,6 +84,32 @@ L'application démarre sur **http://localhost:5173**
 
 ---
 
+## 🐘 Production : base PostgreSQL
+
+L'application utilise PostgreSQL dès que la variable `DB_URL` est définie ; sans elle,
+elle reste sur la base H2 fichier `data/autoecole-db`.
+
+Mise en place sur CapRover :
+
+1. **Sauvegarder** le fichier H2 de production (`/app/data/autoecole-db.mv.db`, volume persistant).
+2. Installer PostgreSQL (*One-Click Apps* → PostgreSQL), créer une base `autoecole`.
+3. Dans l'application → *App Configs* → variables d'environnement :
+   ```
+   DB_URL=jdbc:postgresql://srv-captain--<nom-app-postgres>:5432/autoecole
+   DB_USER=<utilisateur>
+   DB_PASSWORD=<mot de passe>
+   SPRING_PROFILES_ACTIVE=transfert-h2
+   ```
+4. Déployer : au démarrage, les tables sont créées puis les données H2 copiées
+   (log « Transfert H2 → PostgreSQL terminé »). En cas d'erreur, rien n'est copié et
+   l'application ne démarre pas : retirer `DB_URL` la remet sur H2, le temps de corriger.
+5. Vérifier l'application, puis **retirer `SPRING_PROFILES_ACTIVE=transfert-h2`** et redémarrer.
+   (Laissé actif, il ne recopie rien : la base contient déjà des comptes.)
+
+Les fichiers (`uploads/`, `data/documents-eleves/`) restent sur le volume, hors de la base.
+
+---
+
 ## 📁 Structure du projet
 
 ```
@@ -94,6 +120,7 @@ autoEcole/
 │       └── resources/
 │           ├── application.properties      # Configuration (production par défaut)
 │           ├── application-dev.properties  # Profil dev : démo, console H2
+│           ├── application-transfert-h2.properties  # Copie unique H2 → PostgreSQL
 │           └── data.sql                    # Données de démonstration (dev)
 ├── frontend/                   # Frontend React
 │   └── src/
