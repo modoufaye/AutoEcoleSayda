@@ -98,6 +98,7 @@ Mise en place sur CapRover :
    DB_URL=jdbc:postgresql://srv-captain--<nom-app-postgres>:5432/autoecole
    DB_USER=<utilisateur>
    DB_PASSWORD=<mot de passe>
+   JWT_SECRET=<résultat de `openssl rand -hex 32`>
    SPRING_PROFILES_ACTIVE=transfert-h2
    ```
 4. Déployer : au démarrage, les tables sont créées puis les données H2 copiées
@@ -107,6 +108,9 @@ Mise en place sur CapRover :
    (Laissé actif, il ne recopie rien : la base contient déjà des comptes.)
 
 Les fichiers (`uploads/`, `data/documents-eleves/`) restent sur le volume, hors de la base.
+
+`JWT_SECRET` signe les jetons de connexion : à garder secrète et stable. Sans elle, une clé
+aléatoire est tirée à chaque démarrage et tout le monde doit se reconnecter.
 
 ---
 
