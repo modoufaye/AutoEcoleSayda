@@ -40,6 +40,10 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Créer un compte (rôle choisi par l'appelant) : admin uniquement. Ouvert à tous,
+                // n'importe qui pouvait se créer un compte SUPER_ADMIN. Avant le permitAll
+                // de /api/auth/** : la première règle qui correspond l'emporte.
+                .requestMatchers("/api/auth/register").hasRole("SUPER_ADMIN")
                 // Routes publiques
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
