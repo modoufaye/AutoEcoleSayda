@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
 import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, waLink } from '../utils'
 import { msgBienvenue } from '../messages'
@@ -326,16 +327,63 @@ function BienvenueWhatsApp({ eleve, ecole }) {
 }
 
 /* ─── Compte élève ──────────────────────────────────────── */
-/* Ouvre une pièce jointe dans un nouvel onglet. L'onglet est ouvert AVANT le téléchargement :
-   après un await, Safari iOS bloque window.open comme une popup. */
-async function ouvrirPiece(eleveId, doc) {
-  const w = window.open('', '_blank')
-  try {
-    const url = URL.createObjectURL(await fetchBlob(`/eleves/${eleveId}/documents/${doc.id}/fichier`))
-    if (w) w.location.href = url
-    else Object.assign(document.createElement('a'), { href: url, download: doc.nomFichier }).click()
-    setTimeout(() => URL.revokeObjectURL(url), 60_000)
-  } catch (e) { w?.close(); toast(e.message, 'danger') }
+/* Aperçu d'une pièce jointe (image ou PDF) dans une modale, sans quitter la fiche.
+   Rendue dans <body> : elle peut s'ouvrir depuis une autre modale (formulaire élève).
+   « Télécharger » reste là pour les navigateurs mobiles qui affichent mal un PDF intégré. */
+function ApercuPiece({ eleveId, doc, onClose }) {
+  const [url, setUrl] = useState(null)
+  // Dernier onClose reçu, sans relancer le téléchargement quand le parent le recrée
+  const fermer = useRef(onClose)
+  useEffect(() => { fermer.current = onClose })
+
+  useEffect(() => {
+    let objUrl = null, annule = false
+    fetchBlob(`/eleves/${eleveId}/documents/${doc.id}/fichier`)
+      .then(b => { if (!annule) { objUrl = URL.createObjectURL(b); setUrl(objUrl) } })
+      .catch(e => { if (!annule) { toast(e.message, 'danger'); fermer.current() } })
+    return () => { annule = true; if (objUrl) URL.revokeObjectURL(objUrl) }
+  }, [eleveId, doc.id])
+
+  useEffect(() => {
+    const echap = e => e.key === 'Escape' && fermer.current()
+    document.addEventListener('keydown', echap)
+    return () => document.removeEventListener('keydown', echap)
+  }, [])
+
+  const pdf = doc.contentType === 'application/pdf'
+  return createPortal(
+    <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-dialog modal-dialog-centered modal-xl">
+        <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem', overflow: 'hidden' }}>
+          <div className="modal-header border-0 px-5 py-3">
+            <h5 className="modal-title fw-bold m-0 text-truncate" style={{ color: '#1e293b', fontSize: '1rem' }}>
+              <i className={`bi bi-file-earmark-${pdf ? 'pdf-fill' : 'image-fill'} me-2`} style={{ color: pdf ? '#dc2626' : '#2563eb' }} />
+              {doc.nomFichier}
+            </h5>
+            <button className="btn-close" onClick={onClose} />
+          </div>
+          <div className="modal-body p-0 flex items-center justify-center" style={{ height: '75vh', background: '#f1f5f9' }}>
+            {!url
+              ? <div className="w-8 h-8 border-4 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin" />
+              : pdf
+                ? <iframe src={url} title={doc.nomFichier} className="w-100 h-100 border-0" />
+                : <img src={url} alt={doc.nomFichier} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />}
+          </div>
+          <div className="modal-footer border-0 px-5 py-3 gap-2">
+            {url && (
+              <a href={url} download={doc.nomFichier} className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}>
+                <i className="bi bi-download me-1" />Télécharger
+              </a>
+            )}
+            <button className="btn fw-bold text-white px-4" style={{ background: '#1e3a5f', borderRadius: '.75rem' }}
+              onClick={onClose}>Fermer</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
 }
 
 /*
@@ -350,6 +398,7 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
   const [docs, setDocs]       = useState([])
   const [type, setType]       = useState('DOSSIER')
   const [envoi, setEnvoi]     = useState(false)
+  const [apercu, setApercu]   = useState(null)
 
   useEffect(() => {
     if (!eleveId) return
@@ -418,7 +467,7 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
                 style={{ color: l.pdf ? '#dc2626' : '#2563eb', fontSize: '1.1rem', flexShrink: 0 }} />
               <div className="min-w-0 flex-1">
                 {l.doc
-                  ? <button type="button" onClick={() => ouvrirPiece(eleveId, l.doc)}
+                  ? <button type="button" onClick={() => setApercu(l.doc)}
                       className="block w-full text-left truncate text-sm font-semibold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0">{l.nom}</button>
                   : <div className="truncate text-sm font-semibold text-slate-700">{l.nom}</div>}
                 <div className="text-xs text-slate-400">{typeLabel(l.type)} · {tailleLisible(l.taille)}{!l.doc && ' · envoyé à l\'enregistrement'}</div>
@@ -436,6 +485,7 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
           Photo ou scan (JPG, PNG, PDF — 10 Mo max). Sur téléphone, vous pouvez prendre la photo directement.
         </p>
       )}
+      {apercu && <ApercuPiece eleveId={eleveId} doc={apercu} onClose={() => setApercu(null)} />}
     </div>
   )
 }
@@ -445,6 +495,7 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
 function DossierEleve({ eleveId }) {
   const [dossier, setDossier] = useState(undefined)   // undefined = chargement, null = aucun
   const [envoi, setEnvoi]     = useState(false)
+  const [apercu, setApercu]   = useState(false)
 
   useEffect(() => {
     api('GET', `/eleves/${eleveId}/documents`)
@@ -511,7 +562,7 @@ function DossierEleve({ eleveId }) {
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <button type="button" onClick={() => ouvrirPiece(eleveId, dossier)}
+              <button type="button" onClick={() => setApercu(true)}
                 className="btn btn-sm fw-semibold text-white flex-1" style={{ background: '#1e3a5f', borderRadius: '.65rem' }}>
                 <i className="bi bi-eye-fill me-1" />Voir
               </button>
@@ -526,6 +577,7 @@ function DossierEleve({ eleveId }) {
           </div>
         )}
       </div>
+      {apercu && dossier && <ApercuPiece eleveId={eleveId} doc={dossier} onClose={() => setApercu(false)} />}
     </div>
   )
 }
