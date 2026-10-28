@@ -154,8 +154,13 @@ export default function AppLayout() {
     setDrawerOpen(false)
     navigate(`${base}/eleves/${eleveId}`)
   }
+  /* Un profil élève ouvert depuis la liste ne change pas l'URL : recliquer sur « Élèves »
+     naviguait vers l'URL déjà affichée et laissait le profil ouvert. Ce compteur, dans la
+     clé du composant, le remonte pour revenir à la liste. */
+  const [retourListe, setRetourListe] = useState(0)
   const handleSectionChange = (key) => {
     setDrawerOpen(false)
+    if (key === section) setRetourListe(n => n + 1)
     navigate(`${base}/${key}`)
   }
   const handleBack = () => navigate(-1)
@@ -324,7 +329,7 @@ export default function AppLayout() {
             : section === 'td-eleve'
             ? <TravauxDirigesEleve key="td-eleve" onBack={handleBack} />
             : section === 'eleves'
-            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}`} initialEleveId={navigateToEleve} />
+            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} />
             : section === 'moniteurs'
             ? <Moniteurs key="moniteurs" onProfilChange={setMoniteurEnProfil} />
             : <ActiveComponent key={section} />}
