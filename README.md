@@ -112,6 +112,21 @@ Les fichiers (`uploads/`, `data/documents-eleves/`) restent sur le volume, hors 
 `JWT_SECRET` signe les jetons de connexion : à garder secrète et stable. Sans elle, une clé
 aléatoire est tirée à chaque démarrage et tout le monde doit se reconnecter.
 
+### Sauvegarde automatique
+
+L'app CapRover `pg-backup` (`deploy/pg-backup/`) fait un `pg_dump` compressé au démarrage
+puis chaque nuit à 3 h (UTC), dans le volume persistant `/backups`, et supprime les
+sauvegardes de plus de `KEEP_DAYS` jours (14 par défaut). Résultat dans les *App Logs*.
+
+Variables d'environnement : `PGHOST=srv-captain--postgres`, `PGUSER`, `PGPASSWORD`,
+`PGDATABASE` (celles de l'app `postgres`), `KEEP_DAYS`. Déploiement :
+
+```bash
+cd deploy/pg-backup && tar -cf /tmp/pg-backup.tar . && caprover deploy -a pg-backup -t /tmp/pg-backup.tar
+```
+
+Les sauvegardes restent sur le même VPS : elles ne protègent pas d'une perte du serveur.
+
 ---
 
 ## 📁 Structure du projet
