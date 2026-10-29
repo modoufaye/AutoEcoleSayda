@@ -195,10 +195,16 @@ export default function ElevePortail({ onGoSection }) {
         <div className="relative px-6 py-2 flex flex-col sm:flex-row sm:items-center gap-5">
           <div className="flex items-center gap-4">
             <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-extrabold"
-                style={{ background: 'linear-gradient(135deg, #d4a017, #f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.4)' }}>
-                {initials(profil.prenom, profil.nom)}
-              </div>
+              {/* Photo ajoutée par l'auto-école, sinon les initiales */}
+              {profil.photoUrl ? (
+                <img src={profil.photoUrl} alt={`${profil.prenom} ${profil.nom}`} className="w-20 h-20 rounded-full block"
+                  style={{ objectFit: 'cover', border: '3px solid #d4a017', boxShadow: '0 4px 14px rgba(212,160,23,.4)' }} />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-extrabold"
+                  style={{ background: 'linear-gradient(135deg, #d4a017, #f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.4)' }}>
+                  {initials(profil.prenom, profil.nom)}
+                </div>
+              )}
               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#1e3a5f] flex items-center justify-center"
                 style={{ background: profil.statut === 'DIPLOME' ? '#d4a017' : profil.statut === 'EN_COURS' ? '#22c55e' : '#94a3b8' }}>
                 <i className={`bi bi-${profil.statut === 'DIPLOME' ? 'award-fill' : profil.statut === 'EN_COURS' ? 'play-fill' : 'pause-fill'}`}

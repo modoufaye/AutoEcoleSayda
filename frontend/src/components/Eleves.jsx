@@ -1118,7 +1118,6 @@ export default function Eleves({ initialEleveId }) {
               <div className="divide-y divide-slate-50">
                 {[
                   { label: 'Téléphone', value: s.telephone },
-                  { label: 'Bureau',    value: s.site ? LABELS[s.site] : null },
                   { label: 'CNI',       value: s.numeroCni },
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
