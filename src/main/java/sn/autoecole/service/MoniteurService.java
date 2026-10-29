@@ -44,6 +44,7 @@ public class MoniteurService {
                 .numeroCni(request.getNumeroCni())
                 .numeroPermis(request.getNumeroPermis())
                 .dateEmbauche(request.getDateEmbauche())
+                .photoUrl(request.getPhotoUrl())
                 .categoriesAutorisees(request.getCategoriesAutorisees() != null
                         ? request.getCategoriesAutorisees() : new HashSet<>())
                 .actif(request.getActif() != null ? request.getActif() : true)
@@ -59,6 +60,7 @@ public class MoniteurService {
         moniteur.setEmail(request.getEmail());
         moniteur.setNumeroCni(request.getNumeroCni());
         moniteur.setNumeroPermis(request.getNumeroPermis());
+        moniteur.setPhotoUrl(request.getPhotoUrl());
         if (request.getDateEmbauche() != null) {
             moniteur.setDateEmbauche(request.getDateEmbauche());
         }

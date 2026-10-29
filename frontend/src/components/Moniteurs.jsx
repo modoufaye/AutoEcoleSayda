@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
+import { api, uploadFile } from '../api'
 import { fmtDate, LABELS } from '../utils'
 import { toast } from './Toast'
 import Pagination from './Pagination'
@@ -15,7 +15,7 @@ const CATS = [
   { value: 'INTERNATIONAL', label: 'International',  bg: '#ede9fe', color: '#6d28d9' },
 ]
 const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
-const EMPTY = { nom: '', prenom: '', telephone: '', email: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', categoriesAutorisees: [], actif: true }
+const EMPTY = { nom: '', prenom: '', telephone: '', email: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true }
 
 /* ── Statut élève styles ──────────────────────────────────── */
 const STATUT_ELEVE = {
@@ -68,6 +68,66 @@ function StatutBadge({ statut }) {
       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
       {s.label}
     </span>
+  )
+}
+
+/* ── Avatar : photo du moniteur, sinon ses initiales ─────── */
+function Avatar({ m, size = 36, radius = '.75rem', style }) {
+  const base = { width: size, height: size, borderRadius: radius, flexShrink: 0, ...style }
+  if (m.photoUrl) return <img src={m.photoUrl} alt="" style={{ ...base, objectFit: 'cover' }} />
+  return (
+    <div className="flex items-center justify-center font-extrabold"
+      style={{ ...base, fontSize: size * 0.36, background: 'linear-gradient(135deg, #d4a017, #f0bb2a)', color: '#1e3a5f' }}>
+      {m.nom?.[0]}{m.prenom?.[0]}
+    </div>
+  )
+}
+
+/* ── Choix de la photo de profil (formulaire) ───────────── */
+function PhotoPicker({ value, onChange }) {
+  const [uploading, setUploading] = useState(false)
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const res = await uploadFile('/admin/upload/image', file)
+      onChange(res.url)
+    } catch (err) {
+      toast(err.message || 'Erreur upload', 'danger')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      {value ? (
+        <img src={value} alt="Photo de profil"
+          style={{ width: 72, height: 72, borderRadius: '1rem', objectFit: 'cover', border: '2px solid #e2e8f0' }} />
+      ) : (
+        <div style={{ width: 72, height: 72, borderRadius: '1rem', border: '2px dashed #cbd5e1', background: '#f8fafc',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <i className="bi bi-person-fill text-slate-300" style={{ fontSize: '1.8rem' }} />
+        </div>
+      )}
+      <div className="flex gap-2">
+        <label className="btn btn-light fw-semibold mb-0" style={{ borderRadius: '.75rem', fontSize: '.82rem' }}>
+          {uploading
+            ? <><span className="spinner-border spinner-border-sm me-1" />Envoi…</>
+            : <><i className="bi bi-camera-fill me-1" />{value ? 'Changer' : 'Ajouter une photo'}</>}
+          <input type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={uploading} onChange={handleFile} />
+        </label>
+        {value && !uploading && (
+          <button type="button" className="btn btn-light fw-semibold" style={{ borderRadius: '.75rem', fontSize: '.82rem', color: '#b91c1c' }}
+            onClick={() => onChange('')}>
+            <i className="bi bi-trash me-1" />Retirer
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -146,7 +206,7 @@ export default function Moniteurs({ onProfilChange }) {
       setForm({
         nom: m.nom, prenom: m.prenom, telephone: m.telephone, email: m.email || '',
         numeroCni: m.numeroCni || '', numeroPermis: m.numeroPermis || '',
-        dateEmbauche: m.dateEmbauche || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif
+        dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif
       })
     } else {
       setEditId(null); setForm(EMPTY)
@@ -170,7 +230,8 @@ export default function Moniteurs({ onProfilChange }) {
     const data = {
       ...form,
       email: form.email || null, numeroCni: form.numeroCni || null,
-      numeroPermis: form.numeroPermis || null, dateEmbauche: form.dateEmbauche || null
+      numeroPermis: form.numeroPermis || null, dateEmbauche: form.dateEmbauche || null,
+      photoUrl: form.photoUrl || null
     }
     try {
       if (editId) { await api('PUT', `/moniteurs/${editId}`, data); toast('Moniteur modifié') }
@@ -226,6 +287,11 @@ export default function Moniteurs({ onProfilChange }) {
             {/* Corps */}
             <div className="modal-body px-6 py-4">
               <div className="row g-3">
+                <div className="col-12">
+                  <label className={lCls}>Photo de profil</label>
+                  <PhotoPicker value={form.photoUrl} onChange={url => setForm(f => ({ ...f, photoUrl: url }))} />
+                </div>
+
                 {[
                   { key: 'nom',         label: 'Nom',         req: true,  type: 'text',  ph: 'Nom de famille' },
                   { key: 'prenom',      label: 'Prénom',      req: true,  type: 'text',  ph: 'Prénom' },
@@ -330,10 +396,7 @@ export default function Moniteurs({ onProfilChange }) {
         <div className="relative px-6 py-2 flex flex-col sm:flex-row sm:items-center gap-5">
           {/* Avatar + nom */}
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #d4a017, #f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.4)' }}>
-              {selected.nom[0]}{selected.prenom[0]}
-            </div>
+            <Avatar m={selected} size={56} radius="1rem" style={{ boxShadow: '0 4px 14px rgba(212,160,23,.4)' }} />
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>Fiche moniteur</div>
               <div className="text-xl font-extrabold text-white leading-tight">{selected.nom} {selected.prenom}</div>
@@ -592,10 +655,13 @@ export default function Moniteurs({ onProfilChange }) {
                     </td>
 
                     <td className="py-3.5 px-4 cell-title">
-                      <button className="text-left border-0 bg-transparent p-0 cursor-pointer"
+                      <button className="flex items-center gap-3 text-left border-0 bg-transparent p-0 cursor-pointer"
                         onClick={() => openProfile(m)}>
-                        <div className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{m.nom} {m.prenom}</div>
-                        {m.email && <div className="text-xs text-slate-400 mt-0.5">{m.email}</div>}
+                        <Avatar m={m} />
+                        <div>
+                          <div className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{m.nom} {m.prenom}</div>
+                          {m.email && <div className="text-xs text-slate-400 mt-0.5">{m.email}</div>}
+                        </div>
                       </button>
                     </td>
 

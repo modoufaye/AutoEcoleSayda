@@ -28,6 +28,10 @@ public class MoniteurRequest {
 
     private LocalDate dateEmbauche;
 
+    // Seulement une image envoyée sur le serveur : pas d'URL externe arbitraire.
+    @Pattern(regexp = "/uploads/images/[\\w.-]+", message = "Photo invalide")
+    private String photoUrl;
+
     private Set<CategoriePermis> categoriesAutorisees;
 
     private Boolean actif;

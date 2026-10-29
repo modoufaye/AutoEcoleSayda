@@ -41,6 +41,10 @@ public class Moniteur {
     @Column(name = "numero_permis", unique = true)
     private String numeroPermis;
 
+    // Chemin renvoyé par l'upload d'image (/uploads/images/…), null sans photo.
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @Column(name = "date_embauche")
     private LocalDate dateEmbauche;
 
