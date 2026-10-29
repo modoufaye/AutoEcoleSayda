@@ -74,7 +74,7 @@ function initials(nom = '', prenom = '') {
 // Photo de profil si elle existe, sinon la pastille d'initiales (classes et styles inchangés).
 function Avatar({ p, className, style }) {
   if (p.photoUrl) return <img src={p.photoUrl} alt="" className={`${className} flex-shrink-0`}
-    style={{ objectFit: 'cover' }} />
+    style={{ objectFit: 'cover', border: style?.border }} />
   return <div className={`${className} flex items-center justify-center flex-shrink-0`} style={style}>{initials(p.nom, p.prenom)}</div>
 }
 
@@ -857,10 +857,15 @@ export default function Eleves({ initialEleveId }) {
             <div className="px-6 pt-6 pb-5 relative" style={{ background: 'linear-gradient(135deg,#142a47 0%,#1e3a5f 50%,#2a4f7c 100%)' }}>
               <button className="btn-close btn-close-white position-absolute top-4 end-4" onClick={() => setShowModal(false)} />
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,.2)' }}>
-                  <i className="bi bi-person-plus-fill" style={{ fontSize: '1.6rem', color: '#fff' }} />
-                </div>
+                {form.photoUrl ? (
+                  <img src={form.photoUrl} alt="" className="w-14 h-14 rounded-full flex-shrink-0"
+                    style={{ objectFit: 'cover', border: '2px solid rgba(255,255,255,.85)' }} />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(255,255,255,.2)' }}>
+                    <i className="bi bi-person-plus-fill" style={{ fontSize: '1.6rem', color: '#fff' }} />
+                  </div>
+                )}
                 <div>
                   <div className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>
                     {editId ? "Modifier l'élève" : 'Nouvel élève'}
@@ -1025,16 +1030,16 @@ export default function Eleves({ initialEleveId }) {
       <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
         {/* Bannière */}
-        <div className="rounded-2xl px-6 py-2 text-white relative overflow-hidden"
+        <div className="rounded-2xl px-6 py-4 text-white relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4f7c 100%)' }}>
           <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10"
             style={{ background: 'radial-gradient(circle, #d4a017 0%, transparent 70%)' }} />
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Avatar p={s} className="w-9 h-9 rounded-xl text-sm font-extrabold"
-                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }} />
+              <Avatar p={s} className="w-20 h-20 rounded-full text-2xl font-extrabold"
+                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '3px solid rgba(255,255,255,.85)' }} />
               <div>
-                <div className="font-extrabold text-base leading-tight">{s.nom} {s.prenom}</div>
+                <div className="font-extrabold text-xl leading-tight">{s.nom} {s.prenom}</div>
                 {s.email && <div className="text-blue-200 text-xs">{s.email}</div>}
               </div>
             </div>
@@ -1399,7 +1404,7 @@ export default function Eleves({ initialEleveId }) {
                       <button className="text-left border-0 bg-transparent cursor-pointer p-0"
                         onClick={() => openProfile(e)}>
                         <div className="flex items-center gap-2.5">
-                          <Avatar p={e} className="w-8 h-8 rounded-lg text-xs font-extrabold"
+                          <Avatar p={e} className="w-10 h-10 rounded-full text-xs font-extrabold"
                             style={{ background: 'rgba(30,58,95,.08)', color: '#1e3a5f' }} />
                           <div>
                             <div className="font-semibold text-[#1e3a5f] text-sm hover:underline">{e.nom} {e.prenom}</div>
