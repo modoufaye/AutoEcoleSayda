@@ -7,6 +7,7 @@ import Badge from './Badge'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
+import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -36,7 +37,7 @@ const today = () => new Date().toISOString().split('T')[0]
 
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
-  adresse: '', site: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '',
+  adresse: '', site: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
   montantAvance: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
   docVisiteMedicale: false, docPhotos: false, docTimbre: false,
@@ -68,6 +69,13 @@ function age(d) {
 
 function initials(nom = '', prenom = '') {
   return ((nom[0] || '') + (prenom[0] || '')).toUpperCase()
+}
+
+// Photo de profil si elle existe, sinon la pastille d'initiales (classes et styles inchangés).
+function Avatar({ p, className, style }) {
+  if (p.photoUrl) return <img src={p.photoUrl} alt="" className={`${className} flex-shrink-0`}
+    style={{ objectFit: 'cover' }} />
+  return <div className={`${className} flex items-center justify-center flex-shrink-0`} style={style}>{initials(p.nom, p.prenom)}</div>
 }
 
 /* ─── Onglet Leçons ─────────────────────────────────────── */
@@ -764,7 +772,7 @@ export default function Eleves({ initialEleveId }) {
         dateInscription: eleve.dateInscription || '',
         telephone: eleve.telephone, adresse: eleve.adresse || '', site: eleve.site || '', email: eleve.email || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
-        moniteurId: eleve.moniteur?.id || '',
+        moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
         docCertResidence: eleve.docCertResidence || false,
         docCniLegalisee: eleve.docCniLegalisee || false,
         docGroupeSanguin: eleve.docGroupeSanguin || false,
@@ -791,7 +799,7 @@ export default function Eleves({ initialEleveId }) {
       toast('Le montant avancé à l\'inscription est obligatoire', 'warning'); return
     }
     const data = { ...form, adresse: form.adresse || null, email: form.email || null,
-      numeroCni: form.numeroCni || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
+      numeroCni: form.numeroCni || null, photoUrl: form.photoUrl || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null }
     try {
       if (editId) {
@@ -872,6 +880,10 @@ export default function Eleves({ initialEleveId }) {
             </div>
             <div className="modal-body px-6 py-4" style={{ background: '#f8fafc' }}>
               <div className="row g-3">
+                <div className="col-12">
+                  <label className={labelCls}>Photo de profil</label>
+                  <PhotoPicker value={form.photoUrl} onChange={url => setForm(f => ({ ...f, photoUrl: url }))} />
+                </div>
                 {[
                   { key: 'nom',           label: 'Nom',             req: true,  type: 'text' },
                   { key: 'prenom',        label: 'Prénom',          req: true,  type: 'text' },
@@ -1019,10 +1031,8 @@ export default function Eleves({ initialEleveId }) {
             style={{ background: 'radial-gradient(circle, #d4a017 0%, transparent 70%)' }} />
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-extrabold flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
-                {initials(s.nom, s.prenom)}
-              </div>
+              <Avatar p={s} className="w-9 h-9 rounded-xl text-sm font-extrabold"
+                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }} />
               <div>
                 <div className="font-extrabold text-base leading-tight">{s.nom} {s.prenom}</div>
                 {s.email && <div className="text-blue-200 text-xs">{s.email}</div>}
@@ -1116,10 +1126,8 @@ export default function Eleves({ initialEleveId }) {
               <div className="px-5 py-4">
                 {s.moniteur ? (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-extrabold flex-shrink-0"
-                      style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
-                      {initials(s.moniteur.nom, s.moniteur.prenom)}
-                    </div>
+                    <Avatar p={s.moniteur} className="w-10 h-10 rounded-xl text-sm font-extrabold"
+                      style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }} />
                     <div>
                       <div className="font-semibold text-sm text-slate-700">{s.moniteur.nom} {s.moniteur.prenom}</div>
                       {s.moniteur.telephone && <div className="text-xs text-slate-400">{s.moniteur.telephone}</div>}
@@ -1391,10 +1399,8 @@ export default function Eleves({ initialEleveId }) {
                       <button className="text-left border-0 bg-transparent cursor-pointer p-0"
                         onClick={() => openProfile(e)}>
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0"
-                            style={{ background: 'rgba(30,58,95,.08)', color: '#1e3a5f' }}>
-                            {initials(e.nom, e.prenom)}
-                          </div>
+                          <Avatar p={e} className="w-8 h-8 rounded-lg text-xs font-extrabold"
+                            style={{ background: 'rgba(30,58,95,.08)', color: '#1e3a5f' }} />
                           <div>
                             <div className="font-semibold text-[#1e3a5f] text-sm hover:underline">{e.nom} {e.prenom}</div>
                             {e.email && <div className="text-xs text-slate-400">{e.email}</div>}

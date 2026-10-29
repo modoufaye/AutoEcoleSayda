@@ -54,6 +54,10 @@ public class Eleve {
     @NotNull(message = "La catégorie de permis est obligatoire")
     private CategoriePermis categoriePermis;
 
+    // Chemin renvoyé par l'upload d'image (/uploads/images/…), null sans photo.
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @Column(name = "date_inscription", nullable = false)
     private LocalDate dateInscription;
 

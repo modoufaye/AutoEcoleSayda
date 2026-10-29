@@ -38,6 +38,10 @@ public class EleveRequest {
 
     private String numeroCni;
 
+    // Seulement une image envoyée sur le serveur : pas d'URL externe arbitraire.
+    @Pattern(regexp = "/uploads/images/[\\w.-]+", message = "Photo invalide")
+    private String photoUrl;
+
     @NotNull(message = "La catégorie de permis est obligatoire")
     private CategoriePermis categoriePermis;
 

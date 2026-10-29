@@ -94,6 +94,7 @@ public class EleveService {
                 .site(request.getSite())
                 .email(request.getEmail())
                 .numeroCni(request.getNumeroCni())
+                .photoUrl(request.getPhotoUrl())
                 .categoriePermis(request.getCategoriePermis())
                 .dateInscription(request.getDateInscription() != null ? request.getDateInscription() : LocalDate.now())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutEleve.EN_COURS)
@@ -192,6 +193,7 @@ public class EleveService {
         eleve.setSite(request.getSite());
         eleve.setEmail(request.getEmail());
         eleve.setNumeroCni(request.getNumeroCni());
+        eleve.setPhotoUrl(request.getPhotoUrl());
         eleve.setCategoriePermis(request.getCategoriePermis());
         if (request.getStatut() != null) {
             eleve.setStatut(request.getStatut());
