@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
 import '../landing.css'
+import GrandePhoto from './GrandePhoto'
 
 const PAGE_SIZE = 10
 
@@ -1103,8 +1104,7 @@ export default function Eleves({ initialEleveId }) {
               </div>
               {/* Photo de profil : la moitié haute de la carte (initiales sans photo) */}
               {s.photoUrl ? (
-                <img src={s.photoUrl} alt={`${s.nom} ${s.prenom}`} className="w-full block"
-                  style={{ height: 260, objectFit: 'cover', objectPosition: 'center top', background: '#f1f5f9' }} />
+                <GrandePhoto src={s.photoUrl} alt={`${s.nom} ${s.prenom}`} />
               ) : (
                 <div className="w-full flex flex-col items-center justify-center gap-2"
                   style={{ height: 260, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>

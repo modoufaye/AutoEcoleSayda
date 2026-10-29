@@ -5,6 +5,7 @@ import { toast } from './Toast'
 import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
 import '../landing.css'
+import GrandePhoto from './GrandePhoto'
 
 const PAGE_SIZE = 10
 
@@ -409,8 +410,7 @@ export default function Moniteurs({ onProfilChange }) {
           />
           {/* Photo de profil : la moitié haute de la carte (initiales sans photo) */}
           {selected.photoUrl ? (
-            <img src={selected.photoUrl} alt={`${selected.nom} ${selected.prenom}`} className="w-full block"
-              style={{ height: 260, objectFit: 'cover', objectPosition: 'center top', background: '#f1f5f9' }} />
+            <GrandePhoto src={selected.photoUrl} alt={`${selected.nom} ${selected.prenom}`} />
           ) : (
             <div className="w-full flex flex-col items-center justify-center gap-2"
               style={{ height: 260, background: 'linear-gradient(135deg,#142a47,#2a4f7c)' }}>
