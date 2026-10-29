@@ -125,7 +125,11 @@ Variables d'environnement : `PGHOST=srv-captain--postgres`, `PGUSER`, `PGPASSWOR
 cd deploy/pg-backup && tar -cf /tmp/pg-backup.tar . && caprover deploy -a pg-backup -t /tmp/pg-backup.tar
 ```
 
-Les sauvegardes restent sur le même VPS : elles ne protègent pas d'une perte du serveur.
+Copie hors du serveur : avec `S3_BUCKET`, chaque sauvegarde est aussi envoyée (rclone) dans
+un conteneur OVH Object Storage, où elle est gardée `S3_KEEP_DAYS` jours (60 par défaut).
+Variables : `S3_ENDPOINT` (ex. `https://s3.gra.io.cloud.ovh.net`), `S3_REGION` (ex. `gra`),
+`S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`. Sans `S3_BUCKET`, les sauvegardes restent
+seulement sur le VPS et ne protègent pas d'une perte du serveur.
 
 ---
 
