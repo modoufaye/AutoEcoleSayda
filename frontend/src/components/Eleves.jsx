@@ -1124,6 +1124,7 @@ export default function Eleves({ initialEleveId }) {
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
                   { label: 'Inscription', value: fmtDate(s.dateInscription) },
                   { label: 'Catégorie', value: s.categoriePermis },
+                  { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.nom} ${s.moniteur.prenom}` : 'Aucun' },
                 ].map(({ label, value }) => value ? (
                   <div key={label} className="flex items-center justify-between px-5 py-2.5">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</span>
@@ -1134,31 +1135,6 @@ export default function Eleves({ initialEleveId }) {
               {!isMoniteur && !s.archive && <BienvenueWhatsApp eleve={s} ecole={ecole} />}
             </div>
 
-            {/* Moniteur assigné */}
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fef9c3' }}>
-                  <i className="bi bi-person-badge-fill" style={{ color: '#ca8a04', fontSize: '.8rem' }} />
-                </div>
-                <span className="font-bold text-slate-700 text-sm">Moniteur assigné</span>
-              </div>
-              <div className="px-5 py-4">
-                {s.moniteur ? (
-                  <div className="flex items-center gap-3">
-                    <Avatar p={s.moniteur} className="w-10 h-10 rounded-xl text-sm font-extrabold"
-                      style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }} />
-                    <div>
-                      <div className="font-semibold text-sm text-slate-700">{s.moniteur.nom} {s.moniteur.prenom}</div>
-                      {s.moniteur.telephone && <div className="text-xs text-slate-400">{s.moniteur.telephone}</div>}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-slate-400 flex items-center gap-1.5 py-1">
-                    <i className="bi bi-person-x" />Aucun moniteur assigné
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* Colonne droite — onglets */}
