@@ -1147,12 +1147,13 @@ export default function Eleves({ initialEleveId }) {
                   ...(!isMoniteur ? [{ key: 'paiements', icon: 'cash-stack', label: 'Paiements', count: profileData.paiements.length }] : []),
                 ].map(tab => (
                   <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                    className="flex items-center gap-2 px-4 py-3 text-sm font-semibold border-0 bg-transparent cursor-pointer transition-all"
+                    className="flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-1.5 sm:gap-2 px-1.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold border-0 bg-transparent cursor-pointer transition-all"
                     style={{
                       color: activeTab === tab.key ? '#1e3a5f' : '#94a3b8',
                       borderBottom: activeTab === tab.key ? '2px solid #1e3a5f' : '2px solid transparent',
                     }}>
-                    <i className={`bi bi-${tab.icon}`} />
+                    {/* Sur téléphone, pas la place pour icône + libellé + compteur × 3 */}
+                    <i className={`bi bi-${tab.icon} hidden sm:inline`} />
                     {tab.label}
                     {!loadingProfile && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full"
