@@ -349,7 +349,7 @@ export default function Moniteurs({ onProfilChange }) {
         <div className="relative px-6 py-2 flex flex-col sm:flex-row sm:items-center gap-5">
           {/* Avatar + nom */}
           <div className="flex items-center gap-4">
-            <Avatar m={selected} size={56} radius="1rem" style={{ boxShadow: '0 4px 14px rgba(212,160,23,.4)' }} />
+            <Avatar m={selected} size={48} radius="50%" style={{ border: '2px solid rgba(255,255,255,.85)' }} />
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>Fiche moniteur</div>
               <div className="text-xl font-extrabold text-white leading-tight">{selected.nom} {selected.prenom}</div>
@@ -394,7 +394,7 @@ export default function Moniteurs({ onProfilChange }) {
       </button>
 
       {/* Grid 3 colonnes */}
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         {/* ── Colonne gauche : infos perso ──────────────────── */}
         <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
@@ -407,6 +407,17 @@ export default function Moniteurs({ onProfilChange }) {
             title={{ text: 'Informations personnelles', color: '#fff' }}
             subtitle={{ text: 'Données du moniteur', color: 'rgba(147,197,253,.85)' }}
           />
+          {/* Photo de profil : la moitié haute de la carte (initiales sans photo) */}
+          {selected.photoUrl ? (
+            <img src={selected.photoUrl} alt={`${selected.nom} ${selected.prenom}`} className="w-full block"
+              style={{ height: 260, objectFit: 'cover', objectPosition: 'center top', background: '#f1f5f9' }} />
+          ) : (
+            <div className="w-full flex flex-col items-center justify-center gap-2"
+              style={{ height: 260, background: 'linear-gradient(135deg,#142a47,#2a4f7c)' }}>
+              <Avatar m={selected} size={96} radius="50%" />
+              <span className="text-xs" style={{ color: '#bfdbfe' }}>Pas de photo · « Modifier » pour en ajouter une</span>
+            </div>
+          )}
           <div className="px-5 py-2">
             {[
               { icon: 'telephone',    label: 'Téléphone',       value: selected.telephone,                           iconBg: '#fef9c3', iconColor: '#b45309' },
