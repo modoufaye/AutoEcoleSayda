@@ -1030,14 +1030,14 @@ export default function Eleves({ initialEleveId }) {
       <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
         {/* Bannière */}
-        <div className="rounded-2xl px-6 py-4 text-white relative overflow-hidden"
+        <div className="rounded-2xl px-6 py-3 text-white relative overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4f7c 100%)' }}>
           <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10"
             style={{ background: 'radial-gradient(circle, #d4a017 0%, transparent 70%)' }} />
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Avatar p={s} className="w-20 h-20 rounded-full text-2xl font-extrabold"
-                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '3px solid rgba(255,255,255,.85)' }} />
+              <Avatar p={s} className="w-12 h-12 rounded-full text-base font-extrabold"
+                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '2px solid rgba(255,255,255,.85)' }} />
               <div>
                 <div className="font-extrabold text-xl leading-tight">{s.nom} {s.prenom}</div>
                 {s.email && <div className="text-blue-200 text-xs">{s.email}</div>}
@@ -1089,7 +1089,7 @@ export default function Eleves({ initialEleveId }) {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Colonne gauche */}
           <div className="space-y-4">
 
@@ -1101,6 +1101,20 @@ export default function Eleves({ initialEleveId }) {
                 </div>
                 <span className="font-bold text-slate-700 text-sm">Informations</span>
               </div>
+              {/* Photo de profil : la moitié haute de la carte (initiales sans photo) */}
+              {s.photoUrl ? (
+                <img src={s.photoUrl} alt={`${s.nom} ${s.prenom}`} className="w-full block"
+                  style={{ height: 260, objectFit: 'cover', objectPosition: 'center top', background: '#f1f5f9' }} />
+              ) : (
+                <div className="w-full flex flex-col items-center justify-center gap-2"
+                  style={{ height: 260, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
+                  <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-extrabold"
+                    style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+                    {initials(s.nom, s.prenom)}
+                  </div>
+                  <span className="text-xs" style={{ color: '#bfdbfe' }}>Pas de photo · « Modifier » pour en ajouter une</span>
+                </div>
+              )}
               <div className="divide-y divide-slate-50">
                 {[
                   { label: 'Téléphone', value: s.telephone },
@@ -1193,7 +1207,7 @@ export default function Eleves({ initialEleveId }) {
         </div>
 
         {/* Ligne du bas : Documents, Suivi formation, Compte élève */}
-        <div className="grid lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
           {/* Dossier de l'élève : le fichier déposé au Service des Mines (admin) */}
           {!isMoniteur && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
