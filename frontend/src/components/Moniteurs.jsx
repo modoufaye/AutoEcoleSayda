@@ -76,7 +76,7 @@ function StatutBadge({ statut }) {
 /* ── Avatar : photo du moniteur, sinon ses initiales ─────── */
 function Avatar({ m, size = 36, radius = '.75rem', style }) {
   const base = { width: size, height: size, borderRadius: radius, flexShrink: 0, ...style }
-  if (m.photoUrl) return <img src={m.photoUrl} alt="" style={{ ...base, objectFit: 'cover' }} />
+  if (m.photoUrl) return <img src={m.photoUrl} alt="" style={{ ...base, objectFit: 'cover', objectPosition: 'center 25%' }} />
   return (
     <div className="flex items-center justify-center font-extrabold"
       style={{ ...base, fontSize: size * 0.36, background: 'linear-gradient(135deg, #d4a017, #f0bb2a)', color: '#1e3a5f' }}>

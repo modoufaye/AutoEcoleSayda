@@ -75,7 +75,7 @@ function initials(nom = '', prenom = '') {
 // Photo de profil si elle existe, sinon la pastille d'initiales (classes et styles inchangés).
 function Avatar({ p, className, style }) {
   if (p.photoUrl) return <img src={p.photoUrl} alt="" className={`${className} flex-shrink-0`}
-    style={{ objectFit: 'cover', border: style?.border }} />
+    style={{ objectFit: 'cover', objectPosition: 'center 25%', border: style?.border }} />
   return <div className={`${className} flex items-center justify-center flex-shrink-0`} style={style}>{initials(p.nom, p.prenom)}</div>
 }
 
@@ -860,7 +860,7 @@ export default function Eleves({ initialEleveId }) {
               <div className="flex items-center gap-4">
                 {form.photoUrl ? (
                   <img src={form.photoUrl} alt="" className="w-14 h-14 rounded-full flex-shrink-0"
-                    style={{ objectFit: 'cover', border: '2px solid rgba(255,255,255,.85)' }} />
+                    style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '2px solid rgba(255,255,255,.85)' }} />
                 ) : (
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
                     style={{ background: 'rgba(255,255,255,.2)' }}>

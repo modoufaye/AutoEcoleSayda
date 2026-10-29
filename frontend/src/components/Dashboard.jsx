@@ -107,7 +107,7 @@ function DashboardMoniteur({ stats, user }) {
           <div className="flex items-center gap-4">
             {photoUrl ? (
               <img src={photoUrl} alt="" className="w-16 h-16 rounded-full flex-shrink-0"
-                style={{ objectFit: 'cover', border: '3px solid #d4a017', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }} />
+                style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '3px solid #d4a017', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }} />
             ) : (
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
