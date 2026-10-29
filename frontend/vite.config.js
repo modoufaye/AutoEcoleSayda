@@ -8,9 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // Le service worker se met à jour tout seul au redéploiement :
-      // l'élève n'a jamais à réinstaller l'application.
-      registerType: 'autoUpdate',
+      // Au redéploiement, le nouveau service worker attend : le bandeau MiseAJour propose
+      // de recharger (pas de rechargement surprise au milieu d'une saisie). L'élève n'a
+      // jamais à réinstaller l'application.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
 
       manifest: {
