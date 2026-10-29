@@ -21,6 +21,10 @@ public class EleveRequest {
     @NotNull(message = "La date de naissance est obligatoire")
     private LocalDate dateNaissance;
 
+    /** Élèves déjà inscrits avant leur saisie dans l'application. Absente : aujourd'hui. */
+    @PastOrPresent(message = "La date d'inscription ne peut pas être dans le futur")
+    private LocalDate dateInscription;
+
     @NotBlank(message = "Le téléphone est obligatoire")
     private String telephone;
 

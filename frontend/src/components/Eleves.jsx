@@ -32,8 +32,10 @@ const tailleLisible = o => o < 1024 * 1024 ? `${Math.max(1, Math.round(o / 1024)
 const TAILLE_MAX = 10 * 1024 * 1024
 const ACCEPT_PIECE = 'image/*,application/pdf'
 
+const today = () => new Date().toISOString().split('T')[0]
+
 const EMPTY = {
-  nom: '', prenom: '', dateNaissance: '', telephone: '',
+  nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
   adresse: '', site: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '',
   montantAvance: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
@@ -759,6 +761,7 @@ export default function Eleves({ initialEleveId }) {
     if (eleve) {
       setEditId(eleve.id)
       setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance,
+        dateInscription: eleve.dateInscription || '',
         telephone: eleve.telephone, adresse: eleve.adresse || '', site: eleve.site || '', email: eleve.email || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '',
@@ -771,15 +774,18 @@ export default function Eleves({ initialEleveId }) {
         docEnrolement: eleve.docEnrolement || false,
         docDelivrance: eleve.docDelivrance || false,
       })
-    } else { setEditId(null); setForm(EMPTY) }
+    } else { setEditId(null); setForm({ ...EMPTY, dateInscription: today() }) }
     setPiecesAttente([])
     setShowModal(true)
   }
 
   const save = async () => {
-    const { nom, prenom, telephone, categoriePermis, dateNaissance, site } = form
-    if (!nom || !prenom || !telephone || !categoriePermis || !dateNaissance || !site) {
+    const { nom, prenom, telephone, categoriePermis, dateNaissance, dateInscription, site } = form
+    if (!nom || !prenom || !telephone || !categoriePermis || !dateNaissance || !dateInscription || !site) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
+    }
+    if (dateInscription > today()) {
+      toast('La date d\'inscription ne peut pas être dans le futur', 'warning'); return
     }
     if (!editId && (!form.montantAvance || parseFloat(form.montantAvance) <= 0)) {
       toast('Le montant avancé à l\'inscription est obligatoire', 'warning'); return
@@ -870,13 +876,14 @@ export default function Eleves({ initialEleveId }) {
                   { key: 'nom',           label: 'Nom',             req: true,  type: 'text' },
                   { key: 'prenom',        label: 'Prénom',          req: true,  type: 'text' },
                   { key: 'dateNaissance', label: 'Date de naissance', req: true, type: 'date' },
+                  { key: 'dateInscription', label: "Date d'inscription", req: true, type: 'date', max: today() },
                   { key: 'telephone',     label: 'Téléphone',       req: true,  type: 'text', ph: '7XXXXXXXX' },
                   { key: 'email',         label: 'Email',           req: false, type: 'email' },
                   { key: 'numeroCni',     label: 'Numéro CNI',      req: false, type: 'text' },
                 ].map(f => (
                   <div key={f.key} className="col-md-6">
                     <label className={labelCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
-                    <input type={f.type} className={inputCls} placeholder={f.ph || ''}
+                    <input type={f.type} className={inputCls} placeholder={f.ph || ''} max={f.max}
                       value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} />
                   </div>
                 ))}

@@ -95,7 +95,7 @@ public class EleveService {
                 .email(request.getEmail())
                 .numeroCni(request.getNumeroCni())
                 .categoriePermis(request.getCategoriePermis())
-                .dateInscription(LocalDate.now())
+                .dateInscription(request.getDateInscription() != null ? request.getDateInscription() : LocalDate.now())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutEleve.EN_COURS)
                 .docCertResidence(request.isDocCertResidence())
                 .docCniLegalisee(request.isDocCniLegalisee())
@@ -185,6 +185,8 @@ public class EleveService {
         eleve.setNom(request.getNom());
         eleve.setPrenom(request.getPrenom());
         eleve.setDateNaissance(request.getDateNaissance());
+        // Corrigeable après coup (élève inscrit avant sa saisie) ; absente, on garde l'actuelle.
+        if (request.getDateInscription() != null) eleve.setDateInscription(request.getDateInscription());
         eleve.setTelephone(request.getTelephone());
         eleve.setAdresse(request.getAdresse());
         eleve.setSite(request.getSite());
