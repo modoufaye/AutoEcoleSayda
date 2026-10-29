@@ -60,12 +60,17 @@ function FinanceCard({ value, label, icon, accent }) {
 function DashboardMoniteur({ stats, user }) {
   const [eleves, setEleves] = useState([])
   const [loadingEleves, setLoadingEleves] = useState(true)
+  const [photoUrl, setPhotoUrl] = useState(null)
 
   useEffect(() => {
     api('GET', '/moniteur/mes-eleves')
       .then(setEleves)
       .catch(() => {})
       .finally(() => setLoadingEleves(false))
+    // Photo ajoutée par l'auto-école : absente du compte de connexion, on la lit sur la fiche.
+    api('GET', '/moniteur/profil')
+      .then(m => setPhotoUrl(m?.photoUrl || null))
+      .catch(() => {})
   }, [])
 
   const hour     = new Date().getHours()
@@ -100,10 +105,15 @@ function DashboardMoniteur({ stats, user }) {
         {/* Contenu haut */}
         <div className="relative px-6 pt-2 pb-2 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
-              {(user?.nom?.[0] || '?').toUpperCase()}
-            </div>
+            {photoUrl ? (
+              <img src={photoUrl} alt="" className="w-16 h-16 rounded-full flex-shrink-0"
+                style={{ objectFit: 'cover', border: '3px solid #d4a017', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }} />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
+                {(user?.nom?.[0] || '?').toUpperCase()}
+              </div>
+            )}
             <div>
               <div className="text-xl font-extrabold text-white leading-tight">{greeting}, {user?.nom?.split(' ')[0]} 👋</div>
               <div className="text-sm text-blue-200 mt-0.5">Moniteur — Auto-École Khadija</div>
