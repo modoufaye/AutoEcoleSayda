@@ -56,7 +56,8 @@ public class MigrationDonnees {
      * et ddl-auto=update ne la met jamais à jour : toute nouvelle valeur (catégorie de permis,
      * type de document, moyen de paiement…) serait refusée par la base. L'enum Java suffit à
      * garantir les valeurs ; les CHECK numériques (score, année…) sont conservés.
-     * H2 écrit ces CHECK « col IN('A','B') », PostgreSQL « col = ANY (ARRAY['A','B']) ».
+     * H2 écrit ces CHECK « col IN('A','B') », PostgreSQL « (col)::text = ANY ((ARRAY['A'::character varying, …])::text[]) »
+     * (deux parenthèses avant ARRAY : on cherche donc seulement « ARRAY[ »).
      */
     private void supprimerChecksEnums() {
         List<Map<String, Object>> checks = jdbc.queryForList(
@@ -68,7 +69,7 @@ public class MigrationDonnees {
         int n = 0;
         for (Map<String, Object> c : checks) {
             String clause = String.valueOf(c.get("CHECK_CLAUSE"));
-            if (!clause.contains(" IN(") && !clause.contains(" IN (") && !clause.contains("ANY (ARRAY[")) continue;
+            if (!clause.contains(" IN(") && !clause.contains(" IN (") && !clause.contains("ARRAY[")) continue;
             jdbc.execute("ALTER TABLE \"" + c.get("TABLE_NAME") + "\" DROP CONSTRAINT IF EXISTS \"" + c.get("CONSTRAINT_NAME") + "\"");
             n++;
         }
