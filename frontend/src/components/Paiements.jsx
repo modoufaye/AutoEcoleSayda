@@ -11,7 +11,7 @@ const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = { date: today(), eleveId: '', montant: '', typePaiement: '', statut: 'PAYE', description: '' }
 
 const TYPE_P = {
-  TRANCHE_1: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: '1re tranche (acompte)' },
+  TRANCHE_1: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: '1re tranche (acompte)', court: '1re tranche' },
   TRANCHE_2: { bg: '#eff6ff', color: '#2563eb', dot: '#3b82f6', label: '2e tranche' },
   TRANCHE_3: { bg: '#fef9c3', color: '#a16207', dot: '#ca8a04', label: '3e tranche' },
 }
@@ -99,6 +99,15 @@ export default function Paiements({ onEleveClick }) {
 
   const enAttente = list.filter(p => p.statut === 'EN_ATTENTE').length
 
+  // Par élève : acompte (1re tranche payée) et total payé, pour les colonnes Acompte / Reliquat / Total.
+  const parEleve = {}
+  for (const p of list) {
+    if (!p.eleve || p.statut !== 'PAYE') continue
+    const s = parEleve[p.eleve.id] ??= { acompte: 0, paye: 0 }
+    s.paye += Number(p.montant)
+    if (p.typePaiement === 'TRANCHE_1') s.acompte += Number(p.montant)
+  }
+
   const del = async (id) => {
     if (!confirm('Supprimer ce paiement ?')) return
     try { await api('DELETE', `/paiements/${id}`); toast('Paiement supprimé'); load() }
@@ -174,9 +183,9 @@ export default function Paiements({ onEleveClick }) {
           <table className="w-full table-cards">
             <thead>
               <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Référence', 'Date', 'Élève', 'Montant', 'Type', 'Statut', 'Actions'].map((h, i) => (
+                {['Référence', 'Date', 'Élève', 'Type', 'Acompte', 'Reliquat', 'Total', 'Statut', 'Actions'].map((h, i) => (
                   <th key={h}
-                    className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 7 ? 'text-right' : i === 0 ? 'text-center w-10' : 'text-left'}`}>
+                    className={`py-3 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 8 ? 'text-right' : 'text-left'}`}>
                     {h}
                   </th>
                 ))}
@@ -185,7 +194,7 @@ export default function Paiements({ onEleveClick }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" className="py-16 text-center">
+                  <td colSpan="9" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-8 h-8 border-4 border-slate-100 border-t-[#4ade80] rounded-full animate-spin" />
                       <span className="text-sm text-slate-400 font-medium">Chargement…</span>
@@ -194,7 +203,7 @@ export default function Paiements({ onEleveClick }) {
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="py-16 text-center">
+                  <td colSpan="9" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
                         style={{ background: '#f1f5f9' }}>
@@ -208,14 +217,14 @@ export default function Paiements({ onEleveClick }) {
                 const tp = TYPE_P[p.typePaiement]   || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.typePaiement }
                 const st = STATUT_P[p.statut]       || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.statut }
                 const isEven = i % 2 === 0
+                const se = (p.eleve && parEleve[p.eleve.id]) || { acompte: 0, paye: 0 }
+                const total = p.eleve?.montantTotal != null ? Number(p.eleve.montantTotal) : null
+                const reliquat = total != null ? total - se.paye : null
                 return (
                   <tr key={p.id}
                     style={{ background: isEven ? '#fff' : '#fafbfc' }}
                     className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center cell-hide">
-                      <span className="text-xs font-bold text-slate-300">{i + 1}</span>
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Référence">
+                    <td className="py-3.5 px-3" data-label="Référence">
                       <span className="text-xs text-slate-400"
                         style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
                         {p.reference}
@@ -228,10 +237,10 @@ export default function Paiements({ onEleveClick }) {
                         </div>
                       )}
                     </td>
-                    <td className="py-3.5 px-4" data-label="Date">
+                    <td className="py-3.5 px-3" data-label="Date">
                       <span className="text-sm font-semibold text-slate-700">{fmtDate(p.date)}</span>
                     </td>
-                    <td className="py-3.5 px-4 cell-title">
+                    <td className="py-3.5 px-3 cell-title">
                       {p.eleve
                         ? onEleveClick
                           ? <button
@@ -242,26 +251,36 @@ export default function Paiements({ onEleveClick }) {
                           : <span className="text-sm text-slate-700">{p.eleve.nom} {p.eleve.prenom}</span>
                         : <span className="text-sm text-slate-700">—</span>}
                     </td>
-                    <td className="py-3.5 px-4" data-label="Montant">
-                      <span className="text-sm font-bold" style={{ color: '#059669' }}>
-                        {fmtMontant(p.montant)}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Type">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                    <td className="py-3.5 px-3" data-label="Type">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
                         style={{ background: tp.bg, color: tp.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tp.dot }} />
-                        {tp.label}
+                        {tp.court || tp.label}
+                      </span>
+                      {/* Montant de ce versement */}
+                      <div className="text-xs text-slate-500 mt-1 whitespace-nowrap">{fmtMontant(p.montant)}</div>
+                    </td>
+                    <td className="py-3.5 px-3" data-label="Acompte">
+                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#7c3aed' }}>{fmtMontant(se.acompte)}</span>
+                    </td>
+                    <td className="py-3.5 px-3" data-label="Reliquat">
+                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: reliquat > 0 ? '#b45309' : '#059669' }}>
+                        {reliquat != null ? fmtMontant(Math.max(0, reliquat)) : '—'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4" data-label="Statut">
+                    <td className="py-3.5 px-3" data-label="Total">
+                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#1e3a5f' }}>
+                        {total != null ? fmtMontant(total) : '—'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3" data-label="Statut">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
                         style={{ background: st.bg, color: st.color }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
                         {st.label}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 cell-actions">
+                    <td className="py-3.5 px-3 cell-actions">
                       <div className="flex items-center justify-end gap-1.5">
                         {p.statut === 'EN_ATTENTE' && <>
                           <button
