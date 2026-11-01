@@ -80,6 +80,10 @@ public class EleveService {
 
     public Eleve creer(EleveRequest request) {
         verifierBureau(request.getSite(), null);
+        if (request.getMontantTotal() != null && request.getMontantAvance() != null
+                && request.getMontantAvance().compareTo(request.getMontantTotal()) > 0) {
+            throw new BusinessException("L'acompte ne peut pas dépasser le montant total");
+        }
         if (request.getNumeroCni() != null && !request.getNumeroCni().isBlank()) {
             eleveRepository.findByNumeroCni(request.getNumeroCni()).ifPresent(e -> {
                 throw new BusinessException("Un élève avec ce numéro CNI existe déjà: " + request.getNumeroCni());
@@ -95,6 +99,7 @@ public class EleveService {
                 .email(request.getEmail())
                 .numeroCni(request.getNumeroCni())
                 .photoUrl(request.getPhotoUrl())
+                .montantTotal(request.getMontantTotal())
                 .categoriePermis(request.getCategoriePermis())
                 .dateInscription(request.getDateInscription() != null ? request.getDateInscription() : LocalDate.now())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutEleve.EN_COURS)
@@ -115,9 +120,9 @@ public class EleveService {
                     .date(LocalDate.now())
                     .montant(request.getMontantAvance())
                     .eleve(saved)
-                    .typePaiement(TypePaiement.TARIF_INSCRIPTION)
+                    .typePaiement(TypePaiement.TRANCHE_1)
                     .statut(StatutPaiement.PAYE)
-                    .description("Versement à l'inscription")
+                    .description("Acompte versé à l'inscription")
                     .build());
         }
         return saved;
@@ -194,6 +199,7 @@ public class EleveService {
         eleve.setEmail(request.getEmail());
         eleve.setNumeroCni(request.getNumeroCni());
         eleve.setPhotoUrl(request.getPhotoUrl());
+        eleve.setMontantTotal(request.getMontantTotal());
         eleve.setCategoriePermis(request.getCategoriePermis());
         if (request.getStatut() != null) {
             eleve.setStatut(request.getStatut());

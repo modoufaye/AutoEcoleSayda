@@ -11,9 +11,9 @@ const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = { date: today(), eleveId: '', montant: '', typePaiement: '', statut: 'PAYE', description: '' }
 
 const TYPE_P = {
-  TARIF_INSCRIPTION: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: 'Tarif inscription' },
-  TARIF_CODE:        { bg: '#eff6ff', color: '#2563eb', dot: '#3b82f6', label: 'Tarif code' },
-  TARIF_CONDUITE:    { bg: '#fef9c3', color: '#a16207', dot: '#ca8a04', label: 'Tarif conduite' },
+  TRANCHE_1: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: '1re tranche (acompte)' },
+  TRANCHE_2: { bg: '#eff6ff', color: '#2563eb', dot: '#3b82f6', label: '2e tranche' },
+  TRANCHE_3: { bg: '#fef9c3', color: '#a16207', dot: '#ca8a04', label: '3e tranche' },
 }
 
 const STATUT_P = {
@@ -358,9 +358,7 @@ export default function Paiements({ onEleveClick }) {
                     <select className={inputCls} value={form.typePaiement}
                       onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
                       <option value="">Choisir…</option>
-                      <option value="TARIF_INSCRIPTION">Tarif inscription</option>
-                      <option value="TARIF_CODE">Tarif code</option>
-                      <option value="TARIF_CONDUITE">Tarif conduite</option>
+                      {Object.entries(TYPE_P).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
                     </select>
                   </div>
                   <div className="col-12">

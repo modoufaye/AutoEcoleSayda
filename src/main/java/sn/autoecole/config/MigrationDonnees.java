@@ -121,12 +121,18 @@ public class MigrationDonnees {
     }
 
     /**
-     * L'avance versée à l'inscription était enregistrée en INSCRIPTION, alors que les écrans
-     * (libellés, couleurs, filtres) n'utilisent que TARIF_INSCRIPTION.
+     * Anciens types (TARIF_INSCRIPTION, TARIF_CODE, TARIF_CONDUITE, INSCRIPTION…) vers les
+     * tranches : pour chaque élève, ses paiements dans l'ordre des dates deviennent 1re tranche
+     * (l'acompte), 2e tranche, puis 3e tranche pour tous les suivants.
      */
     private void typesPaiement() {
-        int n = jdbc.update("UPDATE paiements SET type_paiement = 'TARIF_INSCRIPTION' WHERE type_paiement = 'INSCRIPTION'");
-        if (n > 0) log.info("Migration : {} paiement(s) INSCRIPTION → TARIF_INSCRIPTION", n);
+        int n = jdbc.update(
+                "UPDATE paiements SET type_paiement = (" +
+                "  SELECT CASE WHEN x.rang = 1 THEN 'TRANCHE_1' WHEN x.rang = 2 THEN 'TRANCHE_2' ELSE 'TRANCHE_3' END" +
+                "  FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY eleve_id ORDER BY date, id) AS rang FROM paiements) x" +
+                "  WHERE x.id = paiements.id)" +
+                " WHERE type_paiement NOT IN ('TRANCHE_1', 'TRANCHE_2', 'TRANCHE_3')");
+        if (n > 0) log.info("Migration : {} paiement(s) converti(s) en tranches", n);
     }
 
     /** Pour les ALTER déjà appliqués (ou sans objet) : l'échec est normal et ignoré. */

@@ -58,6 +58,11 @@ public class Eleve {
     @Column(name = "photo_url")
     private String photoUrl;
 
+    // Prix total de la formation convenu avec l'élève (null pour les fiches antérieures).
+    // Acompte = 1re tranche ; reliquat = total − montants payés.
+    @Column(name = "montant_total", precision = 12, scale = 2)
+    private java.math.BigDecimal montantTotal;
+
     @Column(name = "date_inscription", nullable = false)
     private LocalDate dateInscription;
 

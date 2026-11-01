@@ -51,6 +51,9 @@ public class EleveRequest {
 
     private BigDecimal montantAvance;
 
+    @PositiveOrZero(message = "Le montant total doit être positif")
+    private BigDecimal montantTotal;
+
     // Documents dossier
     private boolean docCertResidence;
     private boolean docCniLegalisee;

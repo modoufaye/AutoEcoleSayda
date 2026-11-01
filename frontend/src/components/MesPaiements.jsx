@@ -6,13 +6,9 @@ import { toast } from './Toast'
 import '../landing.css'
 
 const TYPE_LABEL = {
-  TARIF_INSCRIPTION: 'Tarif inscription',
-  TARIF_CODE:        'Tarif code',
-  TARIF_CONDUITE:    'Tarif conduite',
-  INSCRIPTION: 'Inscription',
-  LECON:       'Leçon',
-  EXAMEN:      'Examen',
-  AUTRE:       'Autre',
+  TRANCHE_1: '1re tranche (acompte)',
+  TRANCHE_2: '2e tranche',
+  TRANCHE_3: '3e tranche',
 }
 
 const STATUT_CFG = {
@@ -40,11 +36,13 @@ export default function MesPaiements({ onBack }) {
   const [liens, setLiens]         = useState({ WAVE: null, ORANGE_MONEY: null })
   const [decl, setDecl]           = useState(null) // formulaire « J'ai payé » ouvert ou non
   const [sending, setSending]     = useState(false)
+  const [montantTotal, setMontantTotal] = useState(null) // prix de la formation, fixé par l'auto-école
 
   const load = () => api('GET', '/eleve/mes-paiements').then(setPaiements)
 
   useEffect(() => {
     load().finally(() => setLoading(false))
+    api('GET', '/eleve/profil').then(p => setMontantTotal(p?.montantTotal ?? null)).catch(() => {})
     api('GET', '/config')
       .then(c => setLiens({ WAVE: c.lienWave || null, ORANGE_MONEY: c.lienOrangeMoney || null }))
       .catch(() => {})
@@ -120,6 +118,11 @@ export default function MesPaiements({ onBack }) {
             <div className="text-xl font-extrabold text-white">
               {total.toLocaleString('fr-FR')} <span className="text-sm font-semibold">FCFA</span>
             </div>
+            {montantTotal != null && (
+              <div className="text-xs font-semibold mt-1" style={{ color: 'rgba(187,247,208,.9)' }}>
+                sur {Number(montantTotal).toLocaleString('fr-FR')} · reste {Math.max(0, montantTotal - total).toLocaleString('fr-FR')} FCFA
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -246,9 +249,7 @@ export default function MesPaiements({ onBack }) {
                   <select className={inputCls} value={decl.typePaiement}
                     onChange={e => setDecl(d => ({ ...d, typePaiement: e.target.value }))}>
                     <option value="">Choisir…</option>
-                    <option value="TARIF_INSCRIPTION">Tarif inscription</option>
-                    <option value="TARIF_CODE">Tarif code</option>
-                    <option value="TARIF_CONDUITE">Tarif conduite</option>
+                    {Object.entries(TYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                   </select>
                 </div>
                 <div>

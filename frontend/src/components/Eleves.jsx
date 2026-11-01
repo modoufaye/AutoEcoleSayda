@@ -39,7 +39,7 @@ const today = () => new Date().toISOString().split('T')[0]
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
   adresse: '', site: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
-  montantAvance: '',
+  montantAvance: '', montantTotal: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
   docVisiteMedicale: false, docPhotos: false, docTimbre: false,
   docEnrolement: false, docDelivrance: false,
@@ -151,11 +151,26 @@ function TabExamens({ examens }) {
 
 /* ─── Onglet Paiements ──────────────────────────────────── */
 const EMPTY_PAY = { date: new Date().toISOString().slice(0,10), montant: '', typePaiement: '', statut: 'PAYE', description: '' }
+const TRANCHES = ['TRANCHE_1', 'TRANCHE_2', 'TRANCHE_3']
 
-function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
+function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState(EMPTY_PAY)
   const [saving, setSaving]     = useState(false)
+
+  const total    = montantTotal != null ? Number(montantTotal) : null
+  const acompte  = paiements.filter(p => p.typePaiement === 'TRANCHE_1' && p.statut === 'PAYE')
+                            .reduce((s, p) => s + Number(p.montant), 0)
+  const reliquat = total != null ? total - Number(totalPaye || 0) : null
+
+  // Nouveau versement : la tranche suivante et le reliquat sont proposés d'office.
+  const ouvrirForm = () => {
+    if (showForm) { setShowForm(false); return }
+    const prises = new Set(paiements.filter(p => p.statut !== 'ANNULE').map(p => p.typePaiement))
+    const suivante = TRANCHES.find(t => !prises.has(t)) || 'TRANCHE_3'
+    setForm({ ...EMPTY_PAY, typePaiement: suivante, montant: reliquat > 0 ? String(reliquat) : '' })
+    setShowForm(true)
+  }
 
   const save = async () => {
     if (!form.date || !form.montant || !form.typePaiement) { toast('Remplissez tous les champs obligatoires', 'warning'); return }
@@ -171,13 +186,30 @@ function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
 
   return (
     <>
-      {/* En-tête : total + bouton ajouter */}
-      <div className="px-5 pt-4 pb-2 flex items-center justify-between flex-wrap gap-2">
-        <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold px-4 py-2 rounded-xl">
-          <i className="bi bi-cash-coin" />
-          Total encaissé : {fmtMontant(totalPaye)}
-        </span>
-        <button onClick={() => setShowForm(v => !v)}
+      {/* Récapitulatif : total prévu, acompte, payé, reliquat */}
+      <div className="px-5 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[
+          { label: 'Total prévu', val: total != null ? fmtMontant(total) : 'Non renseigné', color: '#1e3a5f', bg: '#eff6ff' },
+          { label: 'Acompte',     val: fmtMontant(acompte),   color: '#7c3aed', bg: '#f5f3ff' },
+          { label: 'Payé',        val: fmtMontant(totalPaye), color: '#047857', bg: '#ecfdf5' },
+          { label: reliquat != null && reliquat < 0 ? 'Trop-perçu' : 'Reliquat',
+            val: reliquat != null ? fmtMontant(Math.abs(reliquat)) : '—',
+            color: reliquat > 0 ? '#b45309' : '#047857', bg: reliquat > 0 ? '#fffbeb' : '#ecfdf5' },
+        ].map(c => (
+          <div key={c.label} className="rounded-xl px-3 py-2.5 min-w-0" style={{ background: c.bg }}>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{c.label}</div>
+            <div className="text-[13px] sm:text-sm font-extrabold leading-tight" style={{ color: c.color }}>{c.val}</div>
+          </div>
+        ))}
+      </div>
+      {total == null && (
+        <p className="px-5 pt-2 mb-0 text-xs text-slate-400">
+          Renseignez le montant total de la formation avec « Modifier » pour suivre le reliquat.
+        </p>
+      )}
+
+      <div className="px-5 pt-3 pb-2 flex items-center justify-end flex-wrap gap-2">
+        <button onClick={ouvrirForm}
           className="flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-xl border-0 cursor-pointer"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
           <i className={`bi bi-${showForm ? 'x-lg' : 'plus-lg'}`} />
@@ -204,9 +236,7 @@ function TabPaiements({ paiements, totalPaye, eleveId, onRefresh }) {
               <select className="form-select form-select-sm" value={form.typePaiement}
                 onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
                 <option value="">Choisir…</option>
-                <option value="TARIF_INSCRIPTION">Tarif inscription</option>
-                <option value="TARIF_CODE">Tarif code</option>
-                <option value="TARIF_CONDUITE">Tarif conduite</option>
+                {TRANCHES.map(t => <option key={t} value={t}>{LABELS[t]}</option>)}
               </select>
             </div>
             <div className="col-md-3">
@@ -774,6 +804,7 @@ export default function Eleves({ initialEleveId }) {
         telephone: eleve.telephone, adresse: eleve.adresse || '', site: eleve.site || '', email: eleve.email || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
+        montantTotal: eleve.montantTotal ?? '',
         docCertResidence: eleve.docCertResidence || false,
         docCniLegalisee: eleve.docCniLegalisee || false,
         docGroupeSanguin: eleve.docGroupeSanguin || false,
@@ -796,12 +827,19 @@ export default function Eleves({ initialEleveId }) {
     if (dateInscription > today()) {
       toast('La date d\'inscription ne peut pas être dans le futur', 'warning'); return
     }
+    if (!editId && (!form.montantTotal || parseFloat(form.montantTotal) <= 0)) {
+      toast('Le montant total de la formation est obligatoire', 'warning'); return
+    }
     if (!editId && (!form.montantAvance || parseFloat(form.montantAvance) <= 0)) {
-      toast('Le montant avancé à l\'inscription est obligatoire', 'warning'); return
+      toast('L\'acompte versé à l\'inscription est obligatoire', 'warning'); return
+    }
+    if (!editId && parseFloat(form.montantAvance) > parseFloat(form.montantTotal)) {
+      toast('L\'acompte ne peut pas dépasser le montant total', 'warning'); return
     }
     const data = { ...form, adresse: form.adresse || null, email: form.email || null,
       numeroCni: form.numeroCni || null, photoUrl: form.photoUrl || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
-      montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null }
+      montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null,
+      montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null }
     try {
       if (editId) {
         await api('PUT', `/eleves/${editId}`, data); toast('Élève modifié')
@@ -948,17 +986,34 @@ export default function Eleves({ initialEleveId }) {
                   <input className={inputCls} value={form.adresse}
                     onChange={e => setForm(fm => ({ ...fm, adresse: e.target.value }))} />
                 </div>
+                {/* Prix convenu : total fixé par élève, acompte à l'inscription, reliquat = le reste */}
+                <div className={editId ? 'col-12' : 'col-md-6'}>
+                  <label className={labelCls}>
+                    Montant total de la formation (FCFA) {!editId && <span className="text-red-500">*</span>}
+                  </label>
+                  <input type="number" min="0" className={inputCls}
+                    placeholder="Ex: 150000"
+                    value={form.montantTotal}
+                    onChange={e => setForm(fm => ({ ...fm, montantTotal: e.target.value }))} />
+                </div>
                 {!editId && (
-                  <div className="col-12">
+                  <div className="col-md-6">
                     <label className={labelCls}>
-                      Montant avancé à l'inscription (FCFA) <span className="text-red-500">*</span>
+                      Acompte versé à l'inscription (FCFA) <span className="text-red-500">*</span>
                     </label>
                     <input type="number" min="0" className={inputCls}
-                      placeholder="Ex: 50000 FCFA"
+                      placeholder="Ex: 50000"
                       value={form.montantAvance}
                       onChange={e => setForm(fm => ({ ...fm, montantAvance: e.target.value }))} />
-                    <p className="text-xs text-slate-400 mt-1">
-                      Un paiement de type <strong>Inscription</strong> sera automatiquement créé
+                  </div>
+                )}
+                {!editId && (
+                  <div className="col-12" style={{ marginTop: '-.25rem' }}>
+                    <p className="text-xs text-slate-500 mb-0">
+                      L'acompte est enregistré comme <strong>1re tranche</strong>.
+                      {parseFloat(form.montantTotal) > 0 && (
+                        <> Reliquat : <strong>{fmtMontant(Math.max(0, parseFloat(form.montantTotal) - (parseFloat(form.montantAvance) || 0)))}</strong></>
+                      )}
                     </p>
                   </div>
                 )}
@@ -1169,7 +1224,7 @@ export default function Eleves({ initialEleveId }) {
                 <>
                   {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} />}
                   {activeTab === 'examens'   && <TabExamens   examens={profileData.examens} />}
-                  {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} eleveId={s.id} onRefresh={() => openProfile(s, 'paiements')} />}
+                  {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} montantTotal={s.montantTotal} eleveId={s.id} onRefresh={() => openProfile(s, 'paiements')} />}
                 </>
               )}
             </div>
@@ -1245,6 +1300,14 @@ export default function Eleves({ initialEleveId }) {
               <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
                 <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
                 <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
+              </div>
+            )}
+            {!loadingProfile && !isMoniteur && s.montantTotal != null && (
+              <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Reliquat</span>
+                <span className="text-sm font-bold" style={{ color: s.montantTotal - profileData.totalPaye > 0 ? '#b45309' : '#047857' }}>
+                  {fmtMontant(Math.max(0, s.montantTotal - profileData.totalPaye))}
+                </span>
               </div>
             )}
           </div>
