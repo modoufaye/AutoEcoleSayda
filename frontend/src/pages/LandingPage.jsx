@@ -94,11 +94,13 @@ const SERVICES = [
   },
 ]
 
+const ANNEE_CREATION = 2016
+
 const STATS = [
   { value: '12 000+', label: 'Élèves formés' },
   { value: '94 %', label: 'Taux de réussite' },
   { value: '15+', label: 'Moniteurs certifiés' },
-  { value: '12 ans', label: "D'expérience" },
+  { value: `${new Date().getFullYear() - ANNEE_CREATION} ans`, label: "D'expérience" },
 ]
 
 const AVANTAGES = [
@@ -236,7 +238,7 @@ function Hero() {
 
             <p className="text-lg text-blue-100 leading-relaxed mb-8 max-w-xl">
               Formation de qualité au code de la route et à la conduite avec des moniteurs certifiés.
-              Rejoignez plus de 12 000 élèves formés avec succès depuis 2012.
+              Rejoignez plus de 12 000 élèves formés avec succès depuis 2016.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -409,7 +411,7 @@ function Avantages() {
             <SectionHeader
               eyebrow="Pourquoi nous choisir"
               title="Une auto-école de référence à Dakar"
-              subtitle="Depuis 2012, nous formons les conducteurs sénégalais avec les plus hauts standards de qualité pédagogique."
+              subtitle="Depuis 2016, nous formons les conducteurs sénégalais avec les plus hauts standards de qualité pédagogique."
               align="left"
             />
 
@@ -616,7 +618,7 @@ function Footer() {
               <span className="font-bold text-lg">Auto-École Khadija</span>
             </div>
             <p className="text-blue-200 text-sm leading-relaxed max-w-xs mb-6">
-              Votre partenaire de confiance pour l'obtention du permis de conduire à Dakar depuis 2012.
+              Votre partenaire de confiance pour l'obtention du permis de conduire à Dakar depuis 2016.
               Formation de qualité, moniteurs certifiés, suivi personnalisé.
             </p>
             <div className="flex gap-3">
