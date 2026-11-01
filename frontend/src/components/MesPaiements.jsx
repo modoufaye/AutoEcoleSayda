@@ -23,7 +23,7 @@ const MOYENS = {
 }
 
 const PAGE_SIZE = 10
-const EMPTY_DECL = { moyenPaiement: '', typePaiement: '', montant: '', transactionId: '' }
+const EMPTY_DECL = { moyenPaiement: '', montant: '', transactionId: '' }
 
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#15803d] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
@@ -53,14 +53,14 @@ export default function MesPaiements({ onBack }) {
   const ouvrirDeclaration = (moyen = '') => setDecl({ ...EMPTY_DECL, moyenPaiement: moyen })
 
   const declarer = async () => {
-    const { moyenPaiement, typePaiement, montant, transactionId } = decl
-    if (!moyenPaiement || !typePaiement || !montant || !transactionId.trim()) {
+    const { moyenPaiement, montant, transactionId } = decl
+    if (!moyenPaiement || !montant || !transactionId.trim()) {
       toast('Veuillez remplir tous les champs', 'warning'); return
     }
     setSending(true)
     try {
       await api('POST', '/eleve/paiements/declarer', {
-        moyenPaiement, typePaiement, montant: parseFloat(montant), transactionId: transactionId.trim(),
+        moyenPaiement, montant: parseFloat(montant), transactionId: transactionId.trim(),
       })
       toast("Paiement déclaré — il sera validé par l'administration")
       setDecl(null); setPage(1); load()
@@ -242,14 +242,6 @@ export default function MesPaiements({ onBack }) {
                     onChange={e => setDecl(d => ({ ...d, moyenPaiement: e.target.value }))}>
                     <option value="">Choisir…</option>
                     {moyensDispo.map(k => <option key={k} value={k}>{MOYENS[k].label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Objet du paiement</label>
-                  <select className={inputCls} value={decl.typePaiement}
-                    onChange={e => setDecl(d => ({ ...d, typePaiement: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    {Object.entries(TYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                   </select>
                 </div>
                 <div>

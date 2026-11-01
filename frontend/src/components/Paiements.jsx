@@ -8,7 +8,7 @@ import '../landing.css'
 const PAGE_SIZE = 10
 
 const today = () => new Date().toISOString().split('T')[0]
-const EMPTY = { date: today(), eleveId: '', montant: '', typePaiement: '', statut: 'PAYE', description: '' }
+const EMPTY = { date: today(), eleveId: '', montant: '', statut: 'PAYE', description: '' }
 
 const TYPE_P = {
   TRANCHE_1: { bg: '#f5f3ff', color: '#7c3aed', dot: '#8b5cf6', label: '1re tranche (acompte)', court: '1re tranche' },
@@ -61,7 +61,7 @@ export default function Paiements({ onEleveClick }) {
       setEditId(p.id)
       setForm({
         date: p.date, eleveId: p.eleve?.id || '', montant: p.montant,
-        typePaiement: p.typePaiement, statut: p.statut, description: p.description || ''
+        statut: p.statut, description: p.description || ''
       })
     } else {
       setEditId(null); setForm(EMPTY)
@@ -70,13 +70,13 @@ export default function Paiements({ onEleveClick }) {
   }
 
   const save = async () => {
-    const { date, montant, eleveId, typePaiement } = form
-    if (!date || !montant || !eleveId || !typePaiement) {
+    const { date, montant, eleveId } = form
+    if (!date || !montant || !eleveId) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
     }
     const data = {
       date, montant: parseFloat(montant), eleveId: parseInt(eleveId),
-      typePaiement, statut: form.statut, description: form.description || null
+      statut: form.statut, description: form.description || null
     }
     try {
       if (editId) { await api('PUT', `/paiements/${editId}`, data); toast('Paiement modifié') }
@@ -366,19 +366,14 @@ export default function Paiements({ onEleveClick }) {
                       ))}
                     </select>
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-12">
                     <label className={labelCls}>Montant (FCFA) <span className="text-red-500 ml-0.5">*</span></label>
                     <input type="number" className={inputCls} value={form.montant} min="1"
                       placeholder="Ex: 50000"
                       onChange={e => setForm(f => ({ ...f, montant: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Type <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.typePaiement}
-                      onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
-                      <option value="">Choisir…</option>
-                      {Object.entries(TYPE_P).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
-                    </select>
+                    <p className="text-xs text-slate-400 mt-1 mb-0">
+                      La tranche est attribuée automatiquement selon l'ordre des versements de l'élève.
+                    </p>
                   </div>
                   <div className="col-12">
                     <label className={labelCls}>Description</label>

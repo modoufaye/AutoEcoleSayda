@@ -3,7 +3,6 @@ package sn.autoecole.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import sn.autoecole.enums.StatutPaiement;
-import sn.autoecole.enums.TypePaiement;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,8 +20,6 @@ public class PaiementRequest {
     @NotNull(message = "L'id de l'élève est obligatoire")
     private Long eleveId;
 
-    @NotNull(message = "Le type de paiement est obligatoire")
-    private TypePaiement typePaiement;
 
     private StatutPaiement statut;
 

@@ -150,8 +150,7 @@ function TabExamens({ examens }) {
 }
 
 /* ─── Onglet Paiements ──────────────────────────────────── */
-const EMPTY_PAY = { date: new Date().toISOString().slice(0,10), montant: '', typePaiement: '', statut: 'PAYE', description: '' }
-const TRANCHES = ['TRANCHE_1', 'TRANCHE_2', 'TRANCHE_3']
+const EMPTY_PAY = { date: new Date().toISOString().slice(0,10), montant: '', statut: 'PAYE', description: '' }
 
 function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }) {
   const [showForm, setShowForm] = useState(false)
@@ -163,17 +162,15 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }
                             .reduce((s, p) => s + Number(p.montant), 0)
   const reliquat = total != null ? total - Number(totalPaye || 0) : null
 
-  // Nouveau versement : la tranche suivante et le reliquat sont proposés d'office.
+  // Nouveau versement : le reliquat est proposé d'office ; la tranche est attribuée par le serveur.
   const ouvrirForm = () => {
     if (showForm) { setShowForm(false); return }
-    const prises = new Set(paiements.filter(p => p.statut !== 'ANNULE').map(p => p.typePaiement))
-    const suivante = TRANCHES.find(t => !prises.has(t)) || 'TRANCHE_3'
-    setForm({ ...EMPTY_PAY, typePaiement: suivante, montant: reliquat > 0 ? String(reliquat) : '' })
+    setForm({ ...EMPTY_PAY, montant: reliquat > 0 ? String(reliquat) : '' })
     setShowForm(true)
   }
 
   const save = async () => {
-    if (!form.date || !form.montant || !form.typePaiement) { toast('Remplissez tous les champs obligatoires', 'warning'); return }
+    if (!form.date || !form.montant) { toast('Remplissez tous les champs obligatoires', 'warning'); return }
     setSaving(true)
     try {
       await api('POST', '/paiements', { ...form, eleveId, montant: parseFloat(form.montant) })
@@ -221,25 +218,17 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }
       {showForm && (
         <div className="mx-5 mb-3 p-4 rounded-xl" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
           <div className="row g-2">
-            <div className="col-md-3">
+            <div className="col-md-4">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Date *</label>
               <input type="date" className="form-control form-control-sm" value={form.date}
                 onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
             </div>
-            <div className="col-md-3">
+            <div className="col-md-4">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Montant (FCFA) *</label>
               <input type="number" className="form-control form-control-sm" placeholder="0" value={form.montant}
                 onChange={e => setForm(f => ({ ...f, montant: e.target.value }))} />
             </div>
-            <div className="col-md-3">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Type *</label>
-              <select className="form-select form-select-sm" value={form.typePaiement}
-                onChange={e => setForm(f => ({ ...f, typePaiement: e.target.value }))}>
-                <option value="">Choisir…</option>
-                {TRANCHES.map(t => <option key={t} value={t}>{LABELS[t]}</option>)}
-              </select>
-            </div>
-            <div className="col-md-3">
+            <div className="col-md-4">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Statut</label>
               <select className="form-select form-select-sm" value={form.statut}
                 onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>

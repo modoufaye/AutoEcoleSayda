@@ -9,6 +9,7 @@ import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Paiement;
 import sn.autoecole.enums.MoyenPaiement;
 import sn.autoecole.enums.StatutPaiement;
+import sn.autoecole.enums.TypePaiement;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.EleveRepository;
@@ -16,6 +17,7 @@ import sn.autoecole.repository.PaiementRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -51,27 +53,32 @@ public class PaiementService {
                 .date(request.getDate())
                 .montant(request.getMontant())
                 .eleve(eleve)
-                .typePaiement(request.getTypePaiement())
+                .typePaiement(TypePaiement.TRANCHE_1)   // provisoire : fixé par renumeroterTranches
                 .statut(request.getStatut() != null ? request.getStatut() : StatutPaiement.PAYE)
                 .description(request.getDescription())
                 .build();
-        return paiementRepository.save(paiement);
+        Paiement saved = paiementRepository.save(paiement);
+        renumeroterTranches(eleve.getId());
+        return saved;
     }
 
     public Paiement modifier(Long id, PaiementRequest request) {
         Paiement paiement = trouverParId(id);
+        Long ancienEleveId = paiement.getEleve().getId();
         Eleve eleve = eleveRepository.findById(request.getEleveId())
                 .orElseThrow(() -> new ResourceNotFoundException("Élève", request.getEleveId()));
 
         paiement.setDate(request.getDate());
         paiement.setMontant(request.getMontant());
         paiement.setEleve(eleve);
-        paiement.setTypePaiement(request.getTypePaiement());
         paiement.setDescription(request.getDescription());
         if (request.getStatut() != null) {
             paiement.setStatut(request.getStatut());
         }
-        return paiementRepository.save(paiement);
+        Paiement saved = paiementRepository.save(paiement);
+        renumeroterTranches(eleve.getId());
+        if (!ancienEleveId.equals(eleve.getId())) renumeroterTranches(ancienEleveId);
+        return saved;
     }
 
     public Paiement declarerPaiementMobile(Eleve eleve, DeclarationPaiementRequest request) {
@@ -86,13 +93,15 @@ public class PaiementService {
         Paiement paiement = Paiement.builder()
                 .montant(request.getMontant())
                 .eleve(eleve)
-                .typePaiement(request.getTypePaiement())
+                .typePaiement(TypePaiement.TRANCHE_1)   // provisoire : fixé par renumeroterTranches
                 .statut(StatutPaiement.EN_ATTENTE)
                 .moyenPaiement(request.getMoyenPaiement())
                 .transactionId(transactionId)
                 .description("Déclaré par l'élève — " + request.getMoyenPaiement().getLibelle())
                 .build();
-        return paiementRepository.save(paiement);
+        Paiement saved = paiementRepository.save(paiement);
+        renumeroterTranches(eleve.getId());
+        return saved;
     }
 
     public Paiement changerStatut(Long id, StatutPaiement statut) {
@@ -101,14 +110,34 @@ public class PaiementService {
         }
         Paiement paiement = trouverParId(id);
         paiement.setStatut(statut);
-        return paiementRepository.save(paiement);
+        Paiement saved = paiementRepository.save(paiement);
+        renumeroterTranches(paiement.getEleve().getId());
+        return saved;
     }
 
     public void supprimer(Long id) {
-        if (!paiementRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Paiement", id);
+        Paiement paiement = trouverParId(id);
+        Long eleveId = paiement.getEleve().getId();
+        paiementRepository.delete(paiement);
+        paiementRepository.flush();
+        renumeroterTranches(eleveId);
+    }
+
+    /**
+     * La tranche n'est jamais saisie : les versements de l'élève (hors annulés), dans l'ordre
+     * des dates, sont la 1re tranche (l'acompte), la 2e, puis la 3e pour tous les suivants.
+     * Recalculé après chaque ajout, modification, suppression ou changement de statut.
+     */
+    public void renumeroterTranches(Long eleveId) {
+        List<Paiement> versements = paiementRepository.findByEleveId(eleveId).stream()
+                .filter(p -> p.getStatut() != StatutPaiement.ANNULE)
+                .sorted(Comparator.comparing(Paiement::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(Paiement::getId))
+                .toList();
+        TypePaiement[] tranches = { TypePaiement.TRANCHE_1, TypePaiement.TRANCHE_2, TypePaiement.TRANCHE_3 };
+        for (int i = 0; i < versements.size(); i++) {
+            versements.get(i).setTypePaiement(tranches[Math.min(i, 2)]);
         }
-        paiementRepository.deleteById(id);
     }
 
     public BigDecimal totalEncaisse() {
