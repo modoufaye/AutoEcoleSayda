@@ -32,6 +32,8 @@ public class MigrationDonnees {
         etape("catégories de permis", this::categoriesPermis);
         etape("doublons des catégories moniteurs", this::dedoublonnerCategoriesMoniteurs);
         etape("types de paiement", this::typesPaiement);
+        etape("champs élève facultatifs", this::champsEleveFacultatifs);
+        etape("téléphones des élèves", this::telephonesEleves);
     }
 
     private void etape(String nom, Runnable r) {
@@ -133,6 +135,29 @@ public class MigrationDonnees {
                 "  WHERE x.id = paiements.id)" +
                 " WHERE type_paiement NOT IN ('TRANCHE_1', 'TRANCHE_2', 'TRANCHE_3')");
         if (n > 0) log.info("Migration : {} paiement(s) converti(s) en tranches", n);
+    }
+
+    /** Date de naissance et téléphone deviennent facultatifs (import Excel). */
+    private void champsEleveFacultatifs() {
+        silencieux("ALTER TABLE eleves ALTER COLUMN date_naissance DROP NOT NULL");
+        silencieux("ALTER TABLE eleves ALTER COLUMN telephone DROP NOT NULL");
+    }
+
+    /**
+     * Le téléphone est l'identifiant de connexion de l'élève : on le garde sous la forme
+     * normalisée (Telephones), seule reconnue à la connexion.
+     */
+    private void telephonesEleves() {
+        int n = 0;
+        for (Map<String, Object> e : jdbc.queryForList("SELECT id, telephone FROM eleves WHERE telephone IS NOT NULL")) {
+            // Clés insensibles à la casse (H2 les rend en majuscules, PostgreSQL en minuscules).
+            String brut = String.valueOf(e.get("telephone"));
+            String norm = sn.autoecole.util.Telephones.normaliser(brut);
+            if (!brut.equals(norm)) {
+                n += jdbc.update("UPDATE eleves SET telephone = ? WHERE id = ?", norm, e.get("id"));
+            }
+        }
+        if (n > 0) log.info("Migration : {} téléphone(s) d'élève normalisé(s)", n);
     }
 
     /** Pour les ALTER déjà appliqués (ou sans objet) : l'échec est normal et ignoré. */

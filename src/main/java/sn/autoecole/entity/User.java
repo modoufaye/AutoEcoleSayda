@@ -22,6 +22,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String nom;
 
+    // Identifiant de connexion : l'email pour l'admin et les moniteurs, le numéro de
+    // téléphone (Telephones.normaliser) pour les élèves.
     @Column(nullable = false, unique = true)
     private String email;
 

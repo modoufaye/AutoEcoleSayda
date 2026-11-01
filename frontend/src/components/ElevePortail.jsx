@@ -24,7 +24,6 @@ const FIELD_META_PERSO = [
   { key: 'prenom',    label: 'Prénom',     icon: 'person-fill',       iconBg: '#eff6ff', iconColor: '#2563eb' },
   { key: 'nom',       label: 'Nom',        icon: 'person-badge-fill', iconBg: '#f5f3ff', iconColor: '#7c3aed' },
   { key: 'telephone', label: 'Téléphone',  icon: 'telephone-fill',    iconBg: '#fef9c3', iconColor: '#a16207' },
-  { key: 'email',     label: 'Email',      icon: 'envelope-fill',     iconBg: '#ecfeff', iconColor: '#0891b2' },
   { key: 'adresse',   label: 'Adresse',    icon: 'geo-alt-fill',      iconBg: '#fdf4ff', iconColor: '#9333ea' },
   { key: 'numeroCni', label: 'Numéro CNI', icon: 'credit-card-fill',  iconBg: '#f0fdf4', iconColor: '#16a34a' },
 ]
@@ -115,7 +114,7 @@ export default function ElevePortail({ onGoSection }) {
 
   function toForm(p) {
     return { prenom: p.prenom || '', nom: p.nom || '', telephone: p.telephone || '',
-      email: p.email || '', adresse: p.adresse || '', numeroCni: p.numeroCni || '' }
+      adresse: p.adresse || '', numeroCni: p.numeroCni || '' }
   }
 
   const saveInfos = async () => {
@@ -214,7 +213,7 @@ export default function ElevePortail({ onGoSection }) {
             <div>
               <div className="text-xs font-semibold text-blue-300 uppercase tracking-widest mb-0.5">Mon espace</div>
               <div className="text-xl font-extrabold text-white leading-tight">{profil.prenom} {profil.nom}</div>
-              {profil.email && <div className="text-sm text-blue-200 mt-0.5">{profil.email}</div>}
+              {profil.telephone && <div className="text-sm text-blue-200 mt-0.5">{profil.telephone}</div>}
             </div>
           </div>
 
@@ -432,7 +431,6 @@ export default function ElevePortail({ onGoSection }) {
                 ))}
               </div>
               {[
-                { key: 'telephone', label: 'Téléphone', type: 'tel' },
                 { key: 'adresse',   label: 'Adresse',   type: 'text' },
                 { key: 'numeroCni', label: 'Numéro CNI', type: 'text' },
               ].map(f => (
@@ -443,10 +441,10 @@ export default function ElevePortail({ onGoSection }) {
                 </div>
               ))}
               <div>
-                <label className={labelCls}>Email</label>
-                <input className={inputCls} type="email" value={form.email} readOnly
+                <label className={labelCls}>Téléphone (identifiant de connexion)</label>
+                <input className={inputCls} type="tel" value={form.telephone} readOnly
                   style={{ cursor: 'not-allowed', opacity: .6 }}
-                  title="L'email ne peut pas être modifié ici" />
+                  title="Pour changer de numéro, contactez l'auto-école" />
               </div>
               <div className="flex gap-3 pt-2">
                 <button onClick={() => { setForm(toForm(profil)); setEditMode(false) }}

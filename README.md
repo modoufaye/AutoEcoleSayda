@@ -27,7 +27,7 @@ Application web complète de gestion d'auto-école développée pour le marché 
 |---|---|---|
 | Administrateur | admin@autoecole.sn | Admin@2024 |
 | Moniteur | moniteur@autoecole.sn | Moniteur@2024 |
-| Élève | eleve@autoecole.sn | Eleve@2024 |
+| Élève | 771234567 (téléphone) | Eleve@2024 |
 
 Les comptes moniteur et élève, ainsi que les données de démonstration, n'existent qu'en
 profil **dev** (`mvn spring-boot:run`). En production, seul le compte administrateur est

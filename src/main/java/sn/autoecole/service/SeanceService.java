@@ -52,7 +52,7 @@ public class SeanceService {
     @Transactional(readOnly = true)
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)
-        Eleve eleve = eleveRepo.findByEmailIgnoreCase(email).orElse(null);
+        Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
         if (eleve == null) return List.of();
         return seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve).stream()
                 .map(this::toResponse)
@@ -61,7 +61,7 @@ public class SeanceService {
 
     @Transactional(readOnly = true)
     public SeanceResponse findByIdForEleve(Long id, String email) {
-        Eleve eleve = eleveRepo.findByEmailIgnoreCase(email).orElse(null);
+        Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
         if (s.getStatut() != StatutSeance.PUBLIE || eleve == null || !s.getEleves().contains(eleve)) {

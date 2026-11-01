@@ -3,6 +3,7 @@ package sn.autoecole.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import sn.autoecole.enums.CategoriePermis;
+import sn.autoecole.enums.MoyenPaiement;
 import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
@@ -18,23 +19,20 @@ public class EleveRequest {
     @NotBlank(message = "Le prénom est obligatoire")
     private String prenom;
 
-    @NotNull(message = "La date de naissance est obligatoire")
+    // Facultative : les élèves importés d'un fichier Excel n'en ont pas encore.
     private LocalDate dateNaissance;
 
     /** Élèves déjà inscrits avant leur saisie dans l'application. Absente : aujourd'hui. */
     @PastOrPresent(message = "La date d'inscription ne peut pas être dans le futur")
     private LocalDate dateInscription;
 
-    @NotBlank(message = "Le téléphone est obligatoire")
+    // Identifiant de connexion de l'élève ; facultatif (import) : sans lui, pas de compte.
     private String telephone;
 
     private String adresse;
 
     @NotNull(message = "Le bureau est obligatoire")
     private Site site;
-
-    @Email(message = "Format d'email invalide")
-    private String email;
 
     private String numeroCni;
 
@@ -50,6 +48,9 @@ public class EleveRequest {
     private Long moniteurId;
 
     private BigDecimal montantAvance;
+
+    /** Mode de règlement de l'acompte (espèces par défaut). */
+    private MoyenPaiement moyenAcompte;
 
     @PositiveOrZero(message = "Le montant total doit être positif")
     private BigDecimal montantTotal;

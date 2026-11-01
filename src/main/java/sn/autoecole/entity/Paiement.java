@@ -67,7 +67,11 @@ public class Paiement {
             date = LocalDate.now();
         }
         if (reference == null) {
-            reference = "PAY-" + System.currentTimeMillis();
+            // Plusieurs paiements créés dans la même milliseconde (import Excel) : le compteur
+            // les départage, sinon la référence unique est violée.
+            reference = "PAY-" + System.currentTimeMillis() + String.format("%03d", SEQUENCE.getAndIncrement() % 1000);
         }
     }
+
+    private static final java.util.concurrent.atomic.AtomicInteger SEQUENCE = new java.util.concurrent.atomic.AtomicInteger();
 }

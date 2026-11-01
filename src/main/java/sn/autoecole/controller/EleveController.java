@@ -23,6 +23,7 @@ import sn.autoecole.enums.StatutEleve;
 import sn.autoecole.enums.TypeDocument;
 import sn.autoecole.repository.UserRepository;
 import sn.autoecole.service.DocumentEleveService;
+import sn.autoecole.service.EleveImportService;
 import sn.autoecole.service.EleveService;
 import sn.autoecole.service.ExamenService;
 import sn.autoecole.service.LeconService;
@@ -45,6 +46,7 @@ public class EleveController {
     private final PaiementService paiementService;
     private final DocumentEleveService documentService;
     private final UserRepository  userRepository;
+    private final EleveImportService importService;
 
     @GetMapping
     public ResponseEntity<List<Eleve>> listerTous(@RequestParam(defaultValue = "false") boolean archives) {
@@ -163,12 +165,22 @@ public class EleveController {
     @PostMapping("/{id}/creer-compte")
     public ResponseEntity<?> creerCompte(@PathVariable Long id) {
         Eleve eleve = eleveService.trouverParId(id);
-        if (eleve.getEmail() == null || eleve.getEmail().isBlank())
-            return ResponseEntity.badRequest().body(Map.of("erreur", "L'élève n'a pas d'email renseigné"));
-        if (userRepository.existsByEmail(eleve.getEmail()))
-            return ResponseEntity.badRequest().body(Map.of("erreur", "Un compte existe déjà pour cet email"));
+        if (eleve.getTelephone() == null)
+            return ResponseEntity.badRequest().body(Map.of("erreur", "L'élève n'a pas de téléphone renseigné"));
+        if (userRepository.existsByEmailIgnoreCase(eleve.getTelephone()))
+            return ResponseEntity.badRequest().body(Map.of("erreur", "Un compte existe déjà pour ce numéro"));
         Map<String, Object> ids = eleveService.genererIdentifiants(id);
         return ResponseEntity.ok(Map.of("email", ids.get("identifiant"), "motDePasse", ids.get("motDePasse")));
+    }
+
+    /**
+     * Import des nouveaux inscrits depuis un fichier Excel. confirmer=false : analyse seule
+     * (rien n'est écrit) ; confirmer=true : crée les élèves valides. Réservé à l'admin (SecurityConfig).
+     */
+    @PostMapping("/import")
+    public ResponseEntity<EleveImportService.Resultat> importer(@RequestParam("file") MultipartFile file,
+                                                                @RequestParam(defaultValue = "false") boolean confirmer) {
+        return ResponseEntity.ok(importService.importer(file, confirmer));
     }
 
     /** Message de bienvenue : (re)génère les identifiants de l'élève. Réservé à l'admin (SecurityConfig). */
@@ -180,8 +192,8 @@ public class EleveController {
     @GetMapping("/{id}/compte")
     public ResponseEntity<?> statutCompte(@PathVariable Long id) {
         Eleve eleve = eleveService.trouverParId(id);
-        boolean existe = eleve.getEmail() != null && userRepository.existsByEmail(eleve.getEmail());
-        return ResponseEntity.ok(Map.of("compteActif", existe, "email", eleve.getEmail() != null ? eleve.getEmail() : ""));
+        boolean existe = eleve.getTelephone() != null && userRepository.existsByEmailIgnoreCase(eleve.getTelephone());
+        return ResponseEntity.ok(Map.of("compteActif", existe, "identifiant", eleve.getTelephone() != null ? eleve.getTelephone() : ""));
     }
 
     @GetMapping("/comptes")

@@ -36,6 +36,13 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
 
     Optional<Eleve> findByEmailIgnoreCase(String email);
 
+    /* Le téléphone normalisé est l'identifiant de connexion de l'élève (unique, contrôlé par EleveService). */
+    Optional<Eleve> findFirstByTelephone(String telephone);
+
+    boolean existsByTelephone(String telephone);
+
+    Optional<Eleve> findFirstByTelephoneAndIdNot(String telephone, Long id);
+
     boolean existsByEmailIgnoreCase(String email);
 
     List<Eleve> findByMoniteurAndArchiveFalse(Moniteur moniteur);

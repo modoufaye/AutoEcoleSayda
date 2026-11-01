@@ -275,7 +275,7 @@ public class ExerciceTDController {
 
         String reponse = body.get("reponse");
 
-        Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
+        Eleve eleve = eleveRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
 
         QuestionTD question = questionRepo.findById(id)
@@ -313,7 +313,7 @@ public class ExerciceTDController {
     @Transactional
     @DeleteMapping("/api/eleve/exercices-td/{exId}/mes-reponses")
     public ResponseEntity<Void> reinitialiserReponses(@PathVariable Long exId, Authentication auth) {
-        Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
+        Eleve eleve = eleveRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
         exerciceRepo.findById(exId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice introuvable"));
@@ -323,7 +323,7 @@ public class ExerciceTDController {
 
     @GetMapping("/api/eleve/exercices-td/mes-reponses")
     public List<ReponseTD> mesReponses(Authentication auth) {
-        Eleve eleve = eleveRepository.findByEmailIgnoreCase(auth.getName())
+        Eleve eleve = eleveRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
         return reponseRepo.findByEleveIdOrderByCreatedAtDesc(eleve.getId());
     }

@@ -63,6 +63,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/paiements/**").hasRole("SUPER_ADMIN")
                 // Réinitialise un mot de passe élève : admin uniquement.
                 .requestMatchers(HttpMethod.POST, "/api/eleves/*/identifiants").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/eleves/import").hasRole("SUPER_ADMIN")
                 // Archiver / réactiver un élève : admin uniquement.
                 .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/archiver", "/api/eleves/*/reactiver").hasRole("SUPER_ADMIN")
                 // Supprimer un élève (et son compte de connexion) : admin uniquement.

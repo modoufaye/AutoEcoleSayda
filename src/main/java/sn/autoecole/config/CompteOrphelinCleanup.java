@@ -14,7 +14,7 @@ import sn.autoecole.repository.UserRepository;
 import java.util.List;
 
 /**
- * Supprime au démarrage les comptes ELEVE sans fiche élève correspondante (même email).
+ * Supprime au démarrage les comptes ELEVE sans fiche élève correspondante (même téléphone).
  * Avant la correction de EleveService.supprimer, supprimer un élève laissait son compte
  * actif : il pouvait encore se connecter.
  *
@@ -32,11 +32,30 @@ public class CompteOrphelinCleanup {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void supprimerComptesOrphelins() {
+        convertirComptesEmail();
         List<User> orphelins = userRepository.findAllByRole(RoleUser.ELEVE).stream()
-                // exists plutôt que find : un email partagé par deux fiches ne doit pas faire échouer le démarrage
-                .filter(u -> !eleveRepository.existsByEmailIgnoreCase(u.getEmail()))
+                // exists plutôt que find : un numéro partagé par deux fiches ne doit pas faire échouer le démarrage
+                .filter(u -> !eleveRepository.existsByTelephone(u.getEmail()))
                 .toList();
         orphelins.forEach(u -> log.info("Compte élève orphelin supprimé : {}", u.getEmail()));
         userRepository.deleteAll(orphelins);
+    }
+
+    /**
+     * Les élèves se connectaient avec leur email ; c'est désormais leur numéro de téléphone.
+     * Un ancien compte garde son mot de passe : seul son identifiant devient le téléphone de la fiche.
+     */
+    private void convertirComptesEmail() {
+        for (User u : userRepository.findAllByRole(RoleUser.ELEVE)) {
+            if (!u.getEmail().contains("@")) continue;
+            eleveRepository.findByEmailIgnoreCase(u.getEmail())
+                    .map(e -> e.getTelephone())
+                    .filter(tel -> tel != null && !userRepository.existsByEmailIgnoreCase(tel))
+                    .ifPresent(tel -> {
+                        log.info("Compte élève {} : identifiant remplacé par le téléphone", u.getEmail());
+                        u.setEmail(tel);
+                        userRepository.save(u);
+                    });
+        }
     }
 }

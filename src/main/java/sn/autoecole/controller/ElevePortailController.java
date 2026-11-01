@@ -37,7 +37,7 @@ public class ElevePortailController {
     private final PaiementService    paiementService;
 
     private Eleve eleveConnecte(Authentication auth) {
-        return eleveRepository.findByEmailIgnoreCase(auth.getName())
+        return eleveRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucun profil élève associé à ce compte. Contactez l'administration."));
     }
@@ -52,7 +52,7 @@ public class ElevePortailController {
         Eleve eleve = eleveConnecte(auth);
         if (body.containsKey("nom")       && body.get("nom")       != null) eleve.setNom(body.get("nom").trim());
         if (body.containsKey("prenom")    && body.get("prenom")    != null) eleve.setPrenom(body.get("prenom").trim());
-        if (body.containsKey("telephone") && body.get("telephone") != null) eleve.setTelephone(body.get("telephone").trim());
+        // Pas de téléphone : c'est l'identifiant de connexion, changé seulement par l'auto-école.
         if (body.containsKey("adresse"))    eleve.setAdresse(body.get("adresse"));
         if (body.containsKey("numeroCni"))  eleve.setNumeroCni(body.get("numeroCni"));
         return eleveRepository.save(eleve);

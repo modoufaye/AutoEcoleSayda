@@ -6,10 +6,10 @@ package sn.autoecole.enums;
  */
 public enum Site {
     MAZALIK_JINAN("Massalikoul Djinane"),
-    /** Bureau fermé : conservé pour que les élèves déjà rattachés restent lisibles ; plus assignable. */
-    @Deprecated
     GUEDIAWAYE("Guédiawaye"),
-    KEUR_MASSAR("Keur Massar");
+    KEUR_MASSAR("Keur Massar"),
+    /** Inscription faite en ligne, sans passage par un bureau. */
+    EN_LIGNE("En ligne");
 
     private final String libelle;
 

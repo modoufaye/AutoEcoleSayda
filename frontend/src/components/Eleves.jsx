@@ -10,6 +10,7 @@ import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
+import ImportEleves from './ImportEleves'
 
 const PAGE_SIZE = 10
 
@@ -38,8 +39,8 @@ const today = () => new Date().toISOString().split('T')[0]
 
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
-  adresse: '', site: '', email: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
-  montantAvance: '', montantTotal: '',
+  adresse: '', site: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
+  montantAvance: '', montantTotal: '', moyenAcompte: 'ESPECES',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
   docVisiteMedicale: false, docPhotos: false, docTimbre: false,
   docEnrolement: false, docDelivrance: false,
@@ -299,7 +300,6 @@ function BienvenueWhatsApp({ eleve, ecole }) {
   if (!waLink(eleve.telephone)) return null
 
   const generer = async () => {
-    if (!eleve.email) { toast("Renseignez l'email de l'élève : il sert d'identifiant", 'warning'); return }
     if (!confirm(`Générer un nouveau mot de passe pour ${eleve.prenom} ?\nS'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus.`)) return
     setLoading(true)
     try { setCreds(await api('POST', `/eleves/${eleve.id}/identifiants`)) }
@@ -627,7 +627,7 @@ function CompteEleveCard({ eleve }) {
     setCreating(true)
     try {
       const res = await api('POST', `/eleves/${eleve.id}/creer-compte`)
-      setCreds(res); setStatut({ compteActif: true, email: res.email })
+      setCreds(res); setStatut({ compteActif: true, identifiant: res.email })
       toast('Compte créé avec succès')
     } catch (e) { toast(e.message || 'Erreur création compte', 'danger') }
     finally { setCreating(false) }
@@ -651,10 +651,10 @@ function CompteEleveCard({ eleve }) {
             </div>
             <div>
               <div className="font-semibold text-sm text-slate-700">Compte actif</div>
-              <div className="text-xs text-slate-400">{statut.email}</div>
+              <div className="text-xs text-slate-400">Identifiant : {statut.identifiant}</div>
             </div>
           </div>
-        ) : eleve.email ? (
+        ) : eleve.telephone ? (
           <>
             <div className="text-sm text-slate-400 mb-3 flex items-center gap-1.5">
               <i className="bi bi-info-circle" />Aucun compte créé
@@ -671,7 +671,7 @@ function CompteEleveCard({ eleve }) {
             {creds && (
               <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs">
                 <div className="font-bold text-emerald-700 mb-1">Identifiants créés</div>
-                <div>Email : <code className="bg-white px-1 rounded">{creds.email}</code></div>
+                <div>Identifiant : <code className="bg-white px-1 rounded">{creds.email}</code></div>
                 <div className="mt-1">Mot de passe : <code className="bg-white px-1 rounded">{creds.motDePasse}</code></div>
               </div>
             )}
@@ -679,7 +679,7 @@ function CompteEleveCard({ eleve }) {
         ) : (
           <div className="text-sm text-slate-400 flex items-center gap-1.5">
             <i className="bi bi-exclamation-triangle text-amber-500" />
-            Renseignez un email pour créer un compte
+            Renseignez le téléphone pour créer un compte
           </div>
         )}
       </div>
@@ -704,6 +704,7 @@ export default function Eleves({ initialEleveId }) {
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(1)
@@ -788,9 +789,9 @@ export default function Eleves({ initialEleveId }) {
   const openModal = (eleve = null) => {
     if (eleve) {
       setEditId(eleve.id)
-      setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance,
+      setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance || '',
         dateInscription: eleve.dateInscription || '',
-        telephone: eleve.telephone, adresse: eleve.adresse || '', site: eleve.site || '', email: eleve.email || '',
+        telephone: eleve.telephone || '', adresse: eleve.adresse || '', site: eleve.site || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
         montantTotal: eleve.montantTotal ?? '',
@@ -809,8 +810,8 @@ export default function Eleves({ initialEleveId }) {
   }
 
   const save = async () => {
-    const { nom, prenom, telephone, categoriePermis, dateNaissance, dateInscription, site } = form
-    if (!nom || !prenom || !telephone || !categoriePermis || !dateNaissance || !dateInscription || !site) {
+    const { nom, prenom, telephone, categoriePermis, dateInscription, site } = form
+    if (!nom || !prenom || !telephone || !categoriePermis || !dateInscription || !site) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
     }
     if (dateInscription > today()) {
@@ -825,7 +826,7 @@ export default function Eleves({ initialEleveId }) {
     if (!editId && parseFloat(form.montantAvance) > parseFloat(form.montantTotal)) {
       toast('L\'acompte ne peut pas dépasser le montant total', 'warning'); return
     }
-    const data = { ...form, adresse: form.adresse || null, email: form.email || null,
+    const data = { ...form, adresse: form.adresse || null, dateNaissance: form.dateNaissance || null,
       numeroCni: form.numeroCni || null, photoUrl: form.photoUrl || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null,
       montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null }
@@ -920,10 +921,9 @@ export default function Eleves({ initialEleveId }) {
                 {[
                   { key: 'nom',           label: 'Nom',             req: true,  type: 'text' },
                   { key: 'prenom',        label: 'Prénom',          req: true,  type: 'text' },
-                  { key: 'dateNaissance', label: 'Date de naissance', req: true, type: 'date' },
+                  { key: 'dateNaissance', label: 'Date de naissance', req: false, type: 'date' },
                   { key: 'dateInscription', label: "Date d'inscription", req: true, type: 'date', max: today() },
-                  { key: 'telephone',     label: 'Téléphone',       req: true,  type: 'text', ph: '7XXXXXXXX' },
-                  { key: 'email',         label: 'Email',           req: false, type: 'email' },
+                  { key: 'telephone',     label: 'Téléphone (identifiant de connexion)', req: true, type: 'tel', ph: '7XXXXXXXX' },
                   { key: 'numeroCni',     label: 'Numéro CNI',      req: false, type: 'text' },
                 ].map(f => (
                   <div key={f.key} className="col-md-6">
@@ -976,7 +976,7 @@ export default function Eleves({ initialEleveId }) {
                     onChange={e => setForm(fm => ({ ...fm, adresse: e.target.value }))} />
                 </div>
                 {/* Prix convenu : total fixé par élève, acompte à l'inscription, reliquat = le reste */}
-                <div className={editId ? 'col-12' : 'col-md-6'}>
+                <div className={editId ? 'col-12' : 'col-md-4'}>
                   <label className={labelCls}>
                     Montant total de la formation (FCFA) {!editId && <span className="text-red-500">*</span>}
                   </label>
@@ -986,7 +986,7 @@ export default function Eleves({ initialEleveId }) {
                     onChange={e => setForm(fm => ({ ...fm, montantTotal: e.target.value }))} />
                 </div>
                 {!editId && (
-                  <div className="col-md-6">
+                  <div className="col-md-4">
                     <label className={labelCls}>
                       Acompte versé à l'inscription (FCFA) <span className="text-red-500">*</span>
                     </label>
@@ -994,6 +994,17 @@ export default function Eleves({ initialEleveId }) {
                       placeholder="Ex: 50000"
                       value={form.montantAvance}
                       onChange={e => setForm(fm => ({ ...fm, montantAvance: e.target.value }))} />
+                  </div>
+                )}
+                {!editId && (
+                  <div className="col-md-4">
+                    <label className={labelCls}>Mode de règlement</label>
+                    <select className={inputCls} value={form.moyenAcompte}
+                      onChange={e => setForm(fm => ({ ...fm, moyenAcompte: e.target.value }))}>
+                      <option value="ESPECES">Espèces</option>
+                      <option value="WAVE">Wave</option>
+                      <option value="ORANGE_MONEY">Orange Money</option>
+                    </select>
                   </div>
                 )}
                 {!editId && (
@@ -1079,7 +1090,7 @@ export default function Eleves({ initialEleveId }) {
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '2px solid rgba(255,255,255,.85)' }} />
               <div>
                 <div className="font-extrabold text-xl leading-tight">{s.nom} {s.prenom}</div>
-                {s.email && <div className="text-blue-200 text-xs">{s.email}</div>}
+                {s.telephone && <div className="text-blue-200 text-xs">{s.telephone}</div>}
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -1323,11 +1334,18 @@ export default function Eleves({ initialEleveId }) {
             <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Élèves</h2>
             <p className="text-sm text-slate-400 mt-0.5">{filtered.length} élève{filtered.length > 1 ? 's' : ''}</p>
           </div>
-          <button onClick={() => openModal()}
-            className="flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer transition-all"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-            <i className="bi bi-plus-lg" />Nouvel élève
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => setShowImport(true)}
+              className="flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-all"
+              style={{ background: '#ecfdf5', color: '#047857', border: '1.5px solid #a7f3d0' }}>
+              <i className="bi bi-file-earmark-excel" />Importer Excel
+            </button>
+            <button onClick={() => openModal()}
+              className="flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 rounded-xl border-0 cursor-pointer transition-all"
+              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+              <i className="bi bi-plus-lg" />Nouvel élève
+            </button>
+          </div>
         </div>
       )}
 
@@ -1444,7 +1462,6 @@ export default function Eleves({ initialEleveId }) {
                             style={{ background: 'rgba(30,58,95,.08)', color: '#1e3a5f' }} />
                           <div>
                             <div className="font-semibold text-[#1e3a5f] text-sm hover:underline">{e.nom} {e.prenom}</div>
-                            {e.email && <div className="text-xs text-slate-400">{e.email}</div>}
                           </div>
                         </div>
                       </button>
@@ -1525,6 +1542,7 @@ export default function Eleves({ initialEleveId }) {
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
+      {showImport && <ImportEleves onClose={() => setShowImport(false)} onDone={load} />}
       {showModal && Modal()}
     </div>
   )

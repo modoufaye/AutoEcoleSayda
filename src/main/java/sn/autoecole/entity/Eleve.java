@@ -29,12 +29,10 @@ public class Eleve {
     @Column(nullable = false)
     private String prenom;
 
-    @NotNull(message = "La date de naissance est obligatoire")
-    @Column(name = "date_naissance", nullable = false)
+    @Column(name = "date_naissance")
     private LocalDate dateNaissance;
 
-    @NotBlank(message = "Le numéro de téléphone est obligatoire")
-    @Column(nullable = false)
+    // Normalisé (Telephones) : c'est l'identifiant de connexion de l'élève.
     private String telephone;
 
     private String adresse;
@@ -43,6 +41,7 @@ public class Eleve {
     @Column(name = "site")
     private Site site;
 
+    // Ancien identifiant de connexion, plus saisi : conservé pour les fiches existantes.
     @Email(message = "Format d'email invalide")
     private String email;
 

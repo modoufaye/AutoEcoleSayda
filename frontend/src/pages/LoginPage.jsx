@@ -25,10 +25,10 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      /* Le backend cherche l'email tel quel : une majuscule (clavier iOS,
-         QuickType, remplissage auto) ou un espace final fait échouer la
-         connexion. On normalise avant l'envoi. */
-      const email = form.email.trim().toLowerCase()
+      /* Email (admin, moniteur) ou numéro de téléphone (élève). Une majuscule
+         (clavier iOS, QuickType, remplissage auto) ou un espace final faisait
+         échouer la connexion : on normalise l'email ; le backend normalise le numéro. */
+      const email = form.email.includes('@') ? form.email.trim().toLowerCase() : form.email.trim()
       await login(email, form.motDePasse)
       if (remember) localStorage.setItem(SAVED_EMAIL_KEY, email)
       else          localStorage.removeItem(SAVED_EMAIL_KEY)
@@ -51,7 +51,7 @@ export default function LoginPage() {
     const map = {
       admin:    { email: 'admin@autoecole.sn',    motDePasse: 'Admin@2024' },
       moniteur: { email: 'moniteur@autoecole.sn', motDePasse: 'Moniteur@2024' },
-      eleve:    { email: 'eleve@autoecole.sn',    motDePasse: 'Eleve@2024' },
+      eleve:    { email: '771234567',             motDePasse: 'Eleve@2024' },
     }
     setForm(map[role])
   }
@@ -150,7 +150,7 @@ export default function LoginPage() {
               {/* Champ email */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
-                  Adresse email
+                  Téléphone ou email
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -159,14 +159,13 @@ export default function LoginPage() {
                     </svg>
                   </span>
                   <input
-                    type="email"
-                    inputMode="email"
+                    type="text"
                     autoComplete="username"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
                     className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm placeholder-slate-400 outline-none transition-all duration-200 focus:bg-white focus:border-[#1e3a5f]"
-                    placeholder="exemple@autoecole.sn"
+                    placeholder="77 123 45 67 ou exemple@autoecole.sn"
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     required

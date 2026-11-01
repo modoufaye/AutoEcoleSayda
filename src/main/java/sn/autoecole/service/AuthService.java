@@ -44,7 +44,7 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request) {
-        String email = normaliserEmail(request.getEmail());
+        String email = request.getEmail();   // déjà normalisé par AuthRequest (email ou téléphone)
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.getMotDePasse())
         );
@@ -55,7 +55,7 @@ public class AuthService {
         // Pour les élèves, utiliser le nom réel de l'entité Eleve
         String nomAffiche = user.getNom();
         if (user.getRole() == RoleUser.ELEVE) {
-            nomAffiche = eleveRepository.findByEmailIgnoreCase(email)
+            nomAffiche = eleveRepository.findFirstByTelephone(email)
                     .map(e -> e.getPrenom() + " " + e.getNom())
                     .orElse(user.getNom());
         }
