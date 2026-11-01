@@ -95,7 +95,7 @@ const SERVICES = [
 ]
 
 const STATS = [
-  { value: '1 200+', label: 'Élèves formés' },
+  { value: '12 000+', label: 'Élèves formés' },
   { value: '94 %', label: 'Taux de réussite' },
   { value: '15+', label: 'Moniteurs certifiés' },
   { value: '12 ans', label: "D'expérience" },
@@ -236,7 +236,7 @@ function Hero() {
 
             <p className="text-lg text-blue-100 leading-relaxed mb-8 max-w-xl">
               Formation de qualité au code de la route et à la conduite avec des moniteurs certifiés.
-              Rejoignez plus de 1 200 élèves formés avec succès depuis 2012.
+              Rejoignez plus de 12 000 élèves formés avec succès depuis 2012.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
