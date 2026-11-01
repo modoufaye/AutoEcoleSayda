@@ -1,11 +1,10 @@
 package sn.autoecole.enums;
 
 public enum CategoriePermis {
-    POIDS_LEGER("Poids léger"),
-    POIDS_LOURD("Poids lourd"),
-    TRANSPORT("Transport"),
-    C1("C1"),
-    INTERNATIONAL("International");
+    A("Moto"),
+    B("Véhicule léger"),
+    C("Poids lourd"),
+    D("Transport en commun");
 
     private final String description;
 

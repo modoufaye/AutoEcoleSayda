@@ -10,11 +10,10 @@ import GrandePhoto from './GrandePhoto'
 const PAGE_SIZE = 10
 
 const CATS = [
-  { value: 'POIDS_LEGER',   label: 'Poids léger',   bg: '#dbeafe', color: '#1d4ed8' },
-  { value: 'POIDS_LOURD',   label: 'Poids lourd',   bg: '#fce7f3', color: '#be185d' },
-  { value: 'TRANSPORT',     label: 'Transport',      bg: '#d1fae5', color: '#065f46' },
-  { value: 'C1',            label: 'C1',             bg: '#fef9c3', color: '#854d0e' },
-  { value: 'INTERNATIONAL', label: 'International',  bg: '#ede9fe', color: '#6d28d9' },
+  { value: 'A', label: 'A', bg: '#fef9c3', color: '#854d0e' },
+  { value: 'B', label: 'B', bg: '#dbeafe', color: '#1d4ed8' },
+  { value: 'C', label: 'C', bg: '#fce7f3', color: '#be185d' },
+  { value: 'D', label: 'D', bg: '#d1fae5', color: '#065f46' },
 ]
 const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
 const EMPTY = { nom: '', prenom: '', telephone: '', email: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true }

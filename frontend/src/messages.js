@@ -4,12 +4,7 @@ import { fmtDate } from './utils'
 
 const ECOLE_DEFAUT = 'Auto-École Khadija'
 
-const CATEGORIE = {
-  POIDS_LEGER:   'poids léger',
-  POIDS_LOURD:   'poids lourd',
-  TRANSPORT:     'transport',
-  INTERNATIONAL: 'international',
-}
+const CATEGORIE = { A: 'A', B: 'B', C: 'C', D: 'D' }
 
 const TYPE_EXAMEN = {
   CODE:     'examen du code',

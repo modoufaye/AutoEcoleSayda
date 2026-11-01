@@ -910,13 +910,7 @@ export default function Eleves({ initialEleveId }) {
                   <select className={inputCls} value={form.categoriePermis}
                     onChange={e => setForm(fm => ({ ...fm, categoriePermis: e.target.value }))}>
                     <option value="">Choisir…</option>
-                    {[
-                      { value: 'POIDS_LEGER',   label: 'Poids léger' },
-                      { value: 'POIDS_LOURD',   label: 'Poids lourd' },
-                      { value: 'TRANSPORT',     label: 'Transport' },
-                      { value: 'C1',            label: 'C1' },
-                      { value: 'INTERNATIONAL', label: 'International' },
-                    ].map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="col-md-6">

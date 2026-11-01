@@ -75,14 +75,27 @@ public class MigrationDonnees {
         if (n > 0) log.info("Migration : {} contrainte(s) CHECK d'enum supprimée(s)", n);
     }
 
-    /** Anciennes catégories (A, B, C…) vers les catégories actuelles. */
+    /**
+     * Anciennes catégories vers les catégories actuelles A, B, C, D. C1 (poids lourd léger)
+     * rejoint C ; INTERNATIONAL, sans équivalent, rejoint B, le permis le plus courant.
+     */
     private void categoriesPermis() {
-        String[][] tables = { {"eleves", "categorie_permis"}, {"moniteur_categories", "categorie"}, {"vehicules", "categorie"} };
+        Map<String, String> anciennes = Map.of(
+                "A", "'A1'",
+                "B", "'POIDS_LEGER','INTERNATIONAL','EB'",
+                "C", "'POIDS_LOURD','C1','EC'",
+                "D", "'TRANSPORT'");
         int n = 0;
-        for (String[] t : tables) {
-            n += jdbc.update("UPDATE " + t[0] + " SET " + t[1] + " = 'POIDS_LEGER' WHERE " + t[1] + " IN ('A','A1','B','EB')");
-            n += jdbc.update("UPDATE " + t[0] + " SET " + t[1] + " = 'POIDS_LOURD' WHERE " + t[1] + " IN ('C','EC')");
-            n += jdbc.update("UPDATE " + t[0] + " SET " + t[1] + " = 'TRANSPORT'   WHERE " + t[1] + " = 'D'");
+        for (Map.Entry<String, String> e : anciennes.entrySet()) {
+            String cat = e.getKey(), olds = e.getValue();
+            n += jdbc.update("UPDATE eleves SET categorie_permis = '" + cat + "' WHERE categorie_permis IN (" + olds + ")");
+            n += jdbc.update("UPDATE vehicules SET categorie = '" + cat + "' WHERE categorie IN (" + olds + ")");
+            // Deux anciennes catégories d'un moniteur peuvent donner la même (POIDS_LOURD + C1 → C) :
+            // un UPDATE heurterait uk_moniteur_categorie. On ajoute la nouvelle une fois, puis on retire les anciennes.
+            jdbc.update("INSERT INTO moniteur_categories (moniteur_id, categorie) " +
+                    "SELECT DISTINCT mc.moniteur_id, '" + cat + "' FROM moniteur_categories mc WHERE mc.categorie IN (" + olds + ") " +
+                    "AND NOT EXISTS (SELECT 1 FROM moniteur_categories m2 WHERE m2.moniteur_id = mc.moniteur_id AND m2.categorie = '" + cat + "')");
+            n += jdbc.update("DELETE FROM moniteur_categories WHERE categorie IN (" + olds + ")");
         }
         if (n > 0) log.info("Migration catégories permis : {} ligne(s) mise(s) à jour", n);
     }
