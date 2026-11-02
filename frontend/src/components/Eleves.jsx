@@ -923,10 +923,23 @@ export default function Eleves({ initialEleveId }) {
                 {[
                   { key: 'nom',           label: 'Nom',             req: true,  type: 'text' },
                   { key: 'prenom',        label: 'Prénom',          req: true,  type: 'text' },
+                  'moniteur',
                   { key: 'dateNaissance', label: 'Date de naissance', req: false, type: 'date' },
                   { key: 'dateInscription', label: "Date d'inscription", req: true, type: 'date', max: today() },
                   { key: 'telephone',     label: 'Téléphone (identifiant de connexion)', req: true, type: 'tel', ph: '7XXXXXXXX' },
-                ].map(f => (
+                ].map(f => f === 'moniteur' ? (
+                  // Le moniteur, juste après le nom et le prénom, sur sa propre ligne.
+                  <div key="moniteur" className="col-12">
+                    <label className={labelCls}>Moniteur assigné</label>
+                    <select className={inputCls} value={form.moniteurId}
+                      onChange={e => setForm(fm => ({ ...fm, moniteurId: e.target.value }))}>
+                      <option value="">— Aucun moniteur —</option>
+                      {moniteurs.filter(m => m.actif).map(m => (
+                        <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
                   <div key={f.key} className="col-md-6">
                     <label className={labelCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
                     <input type={f.type} className={inputCls} placeholder={f.ph || ''} max={f.max}
@@ -962,25 +975,6 @@ export default function Eleves({ initialEleveId }) {
                     {LIEUX_INSCRIPTION.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
-                <div className="col-md-6">
-                  <label className={labelCls}>Moniteur assigné</label>
-                  <select className={inputCls} value={form.moniteurId}
-                    onChange={e => setForm(fm => ({ ...fm, moniteurId: e.target.value }))}>
-                    <option value="">— Aucun moniteur —</option>
-                    {moniteurs.filter(m => m.actif).map(m => (
-                      <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
-                    ))}
-                  </select>
-                </div>
-                {editId && (
-                  <div className="col-md-6">
-                    <label className={labelCls}>Statut</label>
-                    <select className={inputCls} value={form.statut}
-                      onChange={e => setForm(fm => ({ ...fm, statut: e.target.value }))}>
-                      {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                  </div>
-                )}
                 <div className={editId ? 'col-md-6' : 'col-12'}>
                   <label className={labelCls}>Adresse</label>
                   <input className={inputCls} value={form.adresse}
@@ -1065,6 +1059,15 @@ export default function Eleves({ initialEleveId }) {
                       peutSupprimer={!isMoniteur} seulDossier />
                   </div>
                 </div>
+                {editId && (
+                  <div className="col-md-6">
+                    <label className={labelCls}>Statut</label>
+                    <select className={inputCls} value={form.statut}
+                      onChange={e => setForm(fm => ({ ...fm, statut: e.target.value }))}>
+                      {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2" style={{ background: '#f8fafc' }}>
