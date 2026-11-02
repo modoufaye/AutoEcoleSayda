@@ -1,13 +1,17 @@
 package sn.autoecole.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 import sn.autoecole.entity.Cours;
 import sn.autoecole.enums.CategoriePanneau;
 import sn.autoecole.enums.Langue;
 import sn.autoecole.enums.TypeContenu;
 import sn.autoecole.repository.CoursRepository;
+import sn.autoecole.repository.MoniteurRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -18,36 +22,68 @@ import java.util.Map;
 public class CoursController {
 
     private final CoursRepository coursRepository;
+    private final MoniteurRepository moniteurRepository;
+
+    /* Cours de code : visibles par l'admin et par les moniteurs à qui l'admin a ouvert l'accès.
+       Fermés aux élèves et aux autres moniteurs (contrôlé ici, pas seulement en masquant le menu). */
+    private boolean aAcces(Authentication auth) {
+        if (auth == null) return false;
+        if (aRole(auth, "ROLE_SUPER_ADMIN")) return true;
+        if (!aRole(auth, "ROLE_MONITEUR")) return false;
+        return moniteurRepository.findFirstByTelephone(auth.getName())
+                .map(m -> Boolean.TRUE.equals(m.getAccesCoursCode()))
+                .orElse(false);
+    }
+
+    private static boolean aRole(Authentication auth, String role) {
+        return auth.getAuthorities().stream().anyMatch(a -> role.equals(a.getAuthority()));
+    }
+
+    private void verifierAcces(Authentication auth) {
+        if (!aAcces(auth)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cours de code non disponibles pour ce compte");
+    }
+
+    /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. */
+    @GetMapping("/acces")
+    public Map<String, Boolean> acces(Authentication auth) {
+        return Map.of("acces", aAcces(auth));
+    }
 
     @GetMapping
-    public List<Cours> getAll() {
+    public List<Cours> getAll(Authentication auth) {
+        verifierAcces(auth);
         return coursRepository.findAll();
     }
 
     @GetMapping("/langue/{langue}")
-    public List<Cours> getByLangue(@PathVariable Langue langue) {
+    public List<Cours> getByLangue(@PathVariable Langue langue, Authentication auth) {
+        verifierAcces(auth);
         return coursRepository.findByLangue(langue);
     }
 
     @GetMapping("/type/{type}")
-    public List<Cours> getByType(@PathVariable TypeContenu type) {
+    public List<Cours> getByType(@PathVariable TypeContenu type, Authentication auth) {
+        verifierAcces(auth);
         return coursRepository.findByTypeContenu(type);
     }
 
     @GetMapping("/categorie/{categorie}")
-    public List<Cours> getByCategorie(@PathVariable CategoriePanneau categorie) {
+    public List<Cours> getByCategorie(@PathVariable CategoriePanneau categorie, Authentication auth) {
+        verifierAcces(auth);
         return coursRepository.findByCategorie(categorie);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Cours> getById(@PathVariable Long id) {
+    public ResponseEntity<Cours> getById(@PathVariable Long id, Authentication auth) {
+        verifierAcces(auth);
         return coursRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Cours> create(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Cours> create(@RequestBody Map<String, String> body, Authentication auth) {
+        verifierAcces(auth);
         String titre = body.get("titre");
         if (titre == null || titre.isBlank())
             return ResponseEntity.badRequest().build();
@@ -64,7 +100,8 @@ public class CoursController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cours> update(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<Cours> update(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
+        verifierAcces(auth);
         return coursRepository.findById(id).map(cours -> {
             if (body.containsKey("titre")       && body.get("titre") != null) cours.setTitre(body.get("titre").trim());
             if (body.containsKey("description")) cours.setDescription(body.get("description"));
@@ -78,7 +115,8 @@ public class CoursController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        verifierAcces(auth);
         if (!coursRepository.existsById(id)) return ResponseEntity.notFound().build();
         coursRepository.deleteById(id);
         return ResponseEntity.noContent().build();

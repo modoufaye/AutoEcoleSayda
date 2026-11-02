@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
@@ -66,6 +67,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, "Ressource introuvable : /" + ex.getResourcePath());
+    }
+
+    // Refus ou absence signalés volontairement par un contrôleur (403 cours de code, 404 profil…) :
+    // on garde leur code au lieu de les transformer en erreur 500.
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        return buildResponse(status != null ? status : HttpStatus.INTERNAL_SERVER_ERROR,
+                ex.getReason() != null ? ex.getReason() : ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

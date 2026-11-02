@@ -83,7 +83,18 @@ export default function AppLayout() {
   const [collapsed, setCollapsed]   = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role))
+  /* Cours de code : ouverts à l'admin et aux moniteurs à qui il a donné l'accès (fiche moniteur),
+     fermés aux élèves. Le serveur le contrôle aussi ; ici on masque seulement le menu.
+     null = réponse pas encore reçue : on garde la page accessible (lien direct d'un moniteur autorisé)
+     mais on n'affiche l'entrée du menu qu'une fois l'accès confirmé. */
+  const [accesCours, setAccesCours] = useState(user?.role === 'SUPER_ADMIN' ? true : null)
+  useEffect(() => {
+    if (!user || user.role === 'SUPER_ADMIN') return
+    api('GET', '/cours/acces').then(r => setAccesCours(!!r?.acces)).catch(() => setAccesCours(false))
+  }, [user])
+
+  const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false))
+  const sectionsMenu = sections.filter(s => s.key !== 'cours' || accesCours === true)
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'
 
@@ -197,7 +208,7 @@ export default function AppLayout() {
       >
 
         {/* Logo */}
-        <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sections[0]?.key)}>
+        <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sectionsMenu[0]?.key)}>
           <i className="bi bi-car-front-fill" style={{ fontSize: '1.2rem', color: '#f0bb2a', flexShrink: 0 }} />
           <div className="brand-text">
             <div>Auto-École Khadija</div>
@@ -206,7 +217,7 @@ export default function AppLayout() {
 
         {/* Navigation */}
         <ul className="sidebar-menu list-unstyled">
-          {sections.map(s => (
+          {sectionsMenu.map(s => (
             <li key={s.key}>
               <button
                 className={`nav-link${section === s.key ? ' active' : ''}`}
@@ -301,7 +312,7 @@ export default function AppLayout() {
             </div>
           )}
           {section === 'mon-espace'
-            ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} />
+            ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} accesCours={accesCours === true} />
             : section === 'seances-moniteur' && user?.role === 'SUPER_ADMIN'
             ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-moniteur'

@@ -33,4 +33,6 @@ public class MoniteurRequest {
     private Set<CategoriePermis> categoriesAutorisees;
 
     private Boolean actif;
+
+    private Boolean accesCoursCode;
 }

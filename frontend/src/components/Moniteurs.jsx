@@ -21,7 +21,7 @@ const CATS = [
   { value: 'D', label: 'D', bg: '#d1fae5', color: '#065f46' },
 ]
 const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
-const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true }
+const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true, accesCoursCode: false }
 
 /* ── Statut élève styles ──────────────────────────────────── */
 const STATUT_ELEVE = {
@@ -247,7 +247,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
       setForm({
         nom: m.nom, prenom: m.prenom, telephone: m.telephone,
         numeroCni: m.numeroCni || '', numeroPermis: m.numeroPermis || '',
-        dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif
+        dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif, accesCoursCode: !!m.accesCoursCode
       })
     } else {
       setEditId(null); setForm(EMPTY)
@@ -372,6 +372,14 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                 { v: 'inactif', label: 'Inactif', icon: 'pause-circle-fill', color: '#b91c1c', bg: '#fee2e2' },
               ]} />
             </div>
+            <div className="col-12">
+              {/* Fermé par défaut : seuls les moniteurs choisis voient le menu « Cours Code » */}
+              <Etiquette>Accès aux cours de code</Etiquette>
+              <Choix cols={2} value={form.accesCoursCode ? 'oui' : 'non'} onChange={v => set('accesCoursCode', v === 'oui')} options={[
+                { v: 'non', label: 'Masqués', icon: 'eye-slash-fill', color: '#64748b', bg: '#f1f5f9' },
+                { v: 'oui', label: 'Visibles', icon: 'eye-fill',      color: '#1d4ed8', bg: '#dbeafe' },
+              ]} />
+            </div>
           </div>
         </Etape>
 
@@ -488,6 +496,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
               { icon: 'credit-card',  label: 'Numéro CNI',      value: selected.numeroCni,                           iconBg: '#f0fdf4', iconColor: '#15803d' },
               { icon: 'card-checklist', label: 'N° Permis',     value: selected.numeroPermis,                        iconBg: '#eef2ff', iconColor: '#4f46e5' },
               { icon: 'calendar-event', label: "Date d'embauche", value: selected.dateEmbauche ? fmtDate(selected.dateEmbauche) : null, iconBg: '#fdf4ff', iconColor: '#9333ea' },
+              { icon: 'sign-turn-right', label: 'Cours de code', value: selected.accesCoursCode ? 'Visibles' : 'Masqués',  iconBg: '#eff6ff', iconColor: '#1d4ed8' },
             ].filter(r => r.value).map(({ icon, label, value, iconBg, iconColor }, i, arr) => (
               <div key={label} className={`flex items-center gap-3 py-3 ${i < arr.length - 1 ? 'border-b border-slate-50' : ''}`}>
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"

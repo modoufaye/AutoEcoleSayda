@@ -89,7 +89,7 @@ function TableLecons({ lecons, empty }) {
   )
 }
 
-export default function ElevePortail({ onGoSection }) {
+export default function ElevePortail({ onGoSection, accesCours = false }) {
   const { user } = useAuth()
   const [profil, setProfil]   = useState(null)
   const [examens, setExamens] = useState([])
@@ -276,10 +276,11 @@ export default function ElevePortail({ onGoSection }) {
       )}
 
       {/* ── Raccourcis rapides : une colonne sur téléphone, trois sur ordinateur ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className={`grid grid-cols-1 ${accesCours ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
         {[
           { icon: 'play-circle-fill',      label: 'Mes Séances',  sub: 'Cours vidéo',                  color: '#06b6d4', bg: 'linear-gradient(135deg,#ecfeff,#f0fdff)', border: '#a5f3fc', sec: 'seances-eleve' },
-          { icon: 'sign-turn-right-fill',  label: 'Cours Code',   sub: 'Théorie du code de la route',  color: '#d4a017', bg: 'linear-gradient(135deg,#fefce8,#fffbeb)', border: '#fde68a', sec: 'cours' },
+          // Raccourci Cours Code seulement si l'accès est ouvert (fermé aux élèves pour l'instant)
+          ...(accesCours ? [{ icon: 'sign-turn-right-fill',  label: 'Cours Code',   sub: 'Théorie du code de la route',  color: '#d4a017', bg: 'linear-gradient(135deg,#fefce8,#fffbeb)', border: '#fde68a', sec: 'cours' }] : []),
           { icon: 'clipboard2-check-fill', label: 'Mes Examens',  sub: `${examens.length} au total`,   color: '#fb923c', bg: 'linear-gradient(135deg,#fff7ed,#fffbf5)', border: '#fed7aa', sec: 'examens' },
         ].map(({ icon, label, sub, color, bg, border, sec }) => (
           <button key={sec}

@@ -59,6 +59,11 @@ public class Moniteur {
     @Builder.Default
     private boolean actif = true;
 
+    // Accès aux cours de code (réglé par l'admin, fermé par défaut). Colonne sans NOT NULL pour que
+    // l'ajout automatique fonctionne sur la table existante : null vaut « pas d'accès ».
+    @Column(name = "acces_cours_code")
+    private Boolean accesCoursCode;
+
     @PrePersist
     private void prePersist() {
         if (dateEmbauche == null) {

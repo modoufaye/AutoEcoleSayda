@@ -58,6 +58,7 @@ public class MoniteurService {
                 .categoriesAutorisees(request.getCategoriesAutorisees() != null
                         ? request.getCategoriesAutorisees() : new HashSet<>())
                 .actif(request.getActif() != null ? request.getActif() : true)
+                .accesCoursCode(Boolean.TRUE.equals(request.getAccesCoursCode()))
                 .build();
         return moniteurRepository.save(moniteur);
     }
@@ -81,6 +82,9 @@ public class MoniteurService {
         if (request.getActif() != null) {
             moniteur.setActif(request.getActif());
             activerCompte(moniteur);
+        }
+        if (request.getAccesCoursCode() != null) {
+            moniteur.setAccesCoursCode(request.getAccesCoursCode());
         }
         return moniteurRepository.save(moniteur);
     }
