@@ -659,7 +659,7 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
 }
 
 /* ── Vue accueil : grille des thèmes ── */
-export default function Cours({ onBack }) {
+export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }) {
   const { user } = useAuth()
   const isEleve = user?.role === 'ELEVE'
   const [cours, setCours]           = useState([])
@@ -682,12 +682,14 @@ export default function Cours({ onBack }) {
     </div>
   )
 
-  if (activeTheme) return (
+  // Thème dans l'URL (…/cours/signalisation) quand la mise en page le gère : Retour revient aux thèmes.
+  const themeOuvert = onOuvrirTheme ? THEMES.find(t => t.key === themeKey) : activeTheme
+  if (themeOuvert) return (
     <ThemeDetail
-      theme={activeTheme}
+      theme={themeOuvert}
       cours={cours}
       setCours={setCours}
-      onBack={() => setActiveTheme(null)}
+      onBack={onFermerTheme || (() => setActiveTheme(null))}
     />
   )
 
@@ -762,7 +764,7 @@ export default function Cours({ onBack }) {
               key={theme.key}
               className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all"
               style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}
-              onClick={() => setActiveTheme(theme)}
+              onClick={() => onOuvrirTheme ? onOuvrirTheme(theme.key) : setActiveTheme(theme)}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,.12)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,.07)' }}
             >

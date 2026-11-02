@@ -167,7 +167,7 @@ function Avatar({ m, size = 36, radius = '.75rem', style }) {
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
-export default function Moniteurs({ onProfilChange }) {
+export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFermer }) {
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [search, setSearch]           = useState('')
@@ -231,6 +231,15 @@ export default function Moniteurs({ onProfilChange }) {
 
   const closeProfile = () => { setSelected(null); setElevesSel([]); onProfilChange?.(false) }
 
+  /* Fiche dans l'URL (…/moniteurs/3) : l'ouverture et la fermeture passent par l'adresse,
+     pour que Retour revienne à la liste. Sans ces fonctions, simple état local. */
+  const ouvrirFiche = (m) => onOuvrir ? onOuvrir(m.id) : openProfile(m)
+  const fermerFiche = () => onFermer ? onFermer() : closeProfile()
+  useEffect(() => {
+    if (!moniteurId) return
+    api('GET', `/moniteurs/${moniteurId}`).then(openProfile).catch(() => toast('Moniteur introuvable', 'danger'))
+  }, [moniteurId])
+
   /* ── Modal création / modification ────────────────────── */
   const openModal = (m = null) => {
     if (m) {
@@ -290,7 +299,7 @@ export default function Moniteurs({ onProfilChange }) {
   const del = async (id) => {
     if (!(await confirmer({ titre: 'Supprimer ce moniteur ?', ton: 'danger', libelle: 'Supprimer',
       message: 'Son compte de connexion sera aussi supprimé. Cette action est définitive.' }))) return
-    try { await api('DELETE', `/moniteurs/${id}`); toast('Moniteur supprimé'); closeProfile(); load() }
+    try { await api('DELETE', `/moniteurs/${id}`); toast('Moniteur supprimé'); fermerFiche(); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
@@ -444,7 +453,7 @@ export default function Moniteurs({ onProfilChange }) {
       </div>
 
       {/* Bouton retour */}
-      <button onClick={closeProfile}
+      <button onClick={fermerFiche}
         className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
         style={{ background: '#f1f5f9', color: '#475569' }}>
         <i className="bi bi-arrow-left" />
@@ -636,7 +645,7 @@ export default function Moniteurs({ onProfilChange }) {
               <div className="flex items-center gap-3 min-w-0">
                 <AvatarRond photoUrl={m.photoUrl} prenom={m.prenom} nom={m.nom} />
                 <div className="min-w-0">
-                  <button onClick={() => openProfile(m)}
+                  <button onClick={() => ouvrirFiche(m)}
                     className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
                     {m.nom} {m.prenom}
                   </button>
@@ -663,7 +672,7 @@ export default function Moniteurs({ onProfilChange }) {
 
               {/* Élèves et embauche */}
               <div className="text-xs min-w-0">
-                <button onClick={() => openProfile(m)}
+                <button onClick={() => ouvrirFiche(m)}
                   className="inline-flex items-center gap-1.5 font-bold px-2.5 py-1 border-0 cursor-pointer"
                   style={{ borderRadius: '999px', background: '#dbeafe', color: '#1d4ed8' }}>
                   <i className="bi bi-people-fill" />{elevesCount[m.id] ?? 0} élève{(elevesCount[m.id] ?? 0) > 1 ? 's' : ''}
@@ -675,7 +684,7 @@ export default function Moniteurs({ onProfilChange }) {
               <div className="flex items-center justify-between md:justify-end gap-2">
                 <Pastille couleur={m.actif ? '#15803d' : '#b91c1c'} fond={m.actif ? '#dcfce7' : '#fee2e2'}>{m.actif ? 'Actif' : 'Inactif'}</Pastille>
                 <div className="flex items-center gap-1.5">
-                  <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => openProfile(m)} />
+                  <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => ouvrirFiche(m)} />
                   <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(m)} />
                   <BoutonRond title={m.actif ? 'Désactiver' : 'Activer'} icon={m.actif ? 'pause-circle-fill' : 'play-circle-fill'}
                     couleur={m.actif ? '#a16207' : '#15803d'} fond={m.actif ? '#fef9c3' : '#dcfce7'} onClick={() => toggleActif(m.id)} />

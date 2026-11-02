@@ -87,18 +87,20 @@ export default function AppLayout() {
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'
 
-  /* La section et l'élève ouvert vivent désormais dans l'URL :
-     /dashboard/admin/eleves/42 → section « eleves », élève 42. */
-  const [rawSection, rawEleveId] = (params['*'] || '').split('/')
+  /* La section et le détail ouvert vivent dans l'URL : /dashboard/admin/eleves/42 → section
+     « eleves », élève 42 ; /moniteurs/3 → fiche moniteur ; /cours/signalisation → thème.
+     Chaque ouverture empile ainsi une étape d'historique, et Retour (bouton, navigateur,
+     Android) revient à la liste au lieu de quitter la page. */
+  const [rawSection, rawDetail] = (params['*'] || '').split('/')
   const section = sections.some(s => s.key === rawSection) ? rawSection : defaultSection
-  const navigateToEleve = section === 'eleves' && rawEleveId ? rawEleveId : null
+  const detail = rawDetail ? decodeURIComponent(rawDetail) : null
+  const navigateToEleve = section === 'eleves' ? detail : null
 
   /* URL absente ou section inconnue → on réécrit l'URL sans polluer l'historique. */
   useEffect(() => {
     if (rawSection !== section) navigate(`${base}/${section}`, { replace: true })
   }, [rawSection, section, base, navigate])
 
-  const [moniteurEnProfil, setMoniteurEnProfil] = useState(false)
 
   /* Le bouton Retour ne doit s'afficher que s'il reste une étape INTERNE où
      revenir. react-router numérote les entrées d'historique dans
@@ -151,25 +153,26 @@ export default function AppLayout() {
 
   /* Chaque navigation empile une entrée d'historique : le bouton Retour
      du navigateur — et celui d'Android en PWA — fonctionne nativement. */
-  const handleEleveClick = (eleveId) => {
+  // onglet : onglet de la fiche à ouvrir (ex. « paiements » juste après une inscription).
+  const handleEleveClick = (eleveId, onglet) => {
     setDrawerOpen(false)
-    navigate(`${base}/eleves/${eleveId}`)
+    navigate(`${base}/eleves/${eleveId}`, onglet ? { state: { onglet } } : undefined)
   }
+  const ouvrirDetail = (id) => { setDrawerOpen(false); navigate(`${base}/${section}/${encodeURIComponent(id)}`) }
   /* Un profil élève ou moniteur ouvert depuis la liste ne change pas l'URL : recliquer sur
      la section naviguait vers l'URL déjà affichée et laissait le profil ouvert. Ce compteur,
      dans la clé du composant, le remonte pour revenir à la liste. */
   const [retourListe, setRetourListe] = useState(0)
   const handleSectionChange = (key) => {
     setDrawerOpen(false)
-    if (key === section) {
-      setRetourListe(n => n + 1)
-      setMoniteurEnProfil(false)   // le Moniteurs remonté repart sur la liste
-    }
+    if (key === section) setRetourListe(n => n + 1)
     navigate(`${base}/${key}`)
   }
   const handleBack = () => navigate(-1)
 
   const canGoBack = historyIdx > entryIdx
+  // Fermer un détail : revenir d'une étape, ou, arrivé directement sur l'URL, rejoindre la liste.
+  const fermerDetail = () => canGoBack ? navigate(-1) : navigate(`${base}/${section}`, { replace: true })
   const activeSection = sections.find(s => s.key === section)
   const ActiveComponent = COMPONENTS[section]
 
@@ -286,7 +289,7 @@ export default function AppLayout() {
 
         <main className="main-content">
           <HoteConfirmation />
-          {user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && moniteurEnProfil) && (
+          {user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && detail) && (
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={handleBack} className="btn-retour">
                 <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
@@ -309,7 +312,8 @@ export default function AppLayout() {
             : section === 'lecons'
             ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined} />
             : section === 'cours'
-            ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined}
+                themeKey={detail} onOuvrirTheme={ouvrirDetail} onFermerTheme={fermerDetail} />
             : section === 'vehicules'
             ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
             : section === 'mon-profil'
@@ -325,7 +329,7 @@ export default function AppLayout() {
             : section === 'eleves'
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick} />
             : section === 'moniteurs'
-            ? <Moniteurs key={`moniteurs-${retourListe}`} onProfilChange={setMoniteurEnProfil} />
+            ? <Moniteurs key={`moniteurs-${detail ?? 'list'}-${retourListe}`} moniteurId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : <ActiveComponent key={section} />}
         </main>
       </div>

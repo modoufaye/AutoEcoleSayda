@@ -745,8 +745,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
   useEffect(() => {
     if (!initialEleveId) return
+    // Onglet demandé à l'ouverture (ex. « paiements » après une inscription), transmis par l'historique.
     api('GET', `/eleves/${initialEleveId}`)
-      .then(eleve => openProfile(eleve))
+      .then(eleve => openProfile(eleve, window.history.state?.usr?.onglet || 'lecons'))
       .catch(() => toast('Élève introuvable', 'danger'))
   }, [initialEleveId])
 
@@ -870,7 +871,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           echecs ? 'warning' : undefined)
         setPiecesAttente([])
         setShowModal(false); await load()
-        openProfile(created, 'paiements')
+        if (onOuvrirEleve) onOuvrirEleve(created.id, 'paiements'); else openProfile(created, 'paiements')
       }
     } catch (e) { toast(e.message, 'danger') }
   }
