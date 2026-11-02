@@ -1502,7 +1502,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           </div>
 
           {/* Colonne droite — onglets */}
-          <div className="lg:col-span-2">
+          {/* Colonne de droite : onglets Leçons / Examens / Paiements, puis le suivi de formation */}
+          <div className="lg:col-span-2 space-y-5">
             <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)', minHeight: '480px' }}>
               {/* Onglets */}
               <div className="flex border-b border-slate-100 px-2 pt-2">
@@ -1544,54 +1545,54 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 </>
               )}
             </div>
+
+            {/* Suivi formation */}
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                  <i className="bi bi-bar-chart-fill" style={{ color: '#16a34a', fontSize: '.8rem' }} />
+                </div>
+                <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
+              </div>
+              <div className="grid grid-cols-3 divide-x divide-slate-100 text-center py-4">
+                {[
+                  { val: s.nombreLeconsCode,      label: 'Code',     color: '#1e3a5f' },
+                  { val: s.nombreLeconsConduite,   label: 'Conduite', color: '#10b981' },
+                  { val: s.nombreLeconsCode + s.nombreLeconsConduite, label: 'Total', color: '#6366f1' },
+                ].map(({ val, label, color }) => (
+                  <div key={label}>
+                    <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+              {!loadingProfile && !isMoniteur && (
+                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
+                  <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
+                </div>
+              )}
+              {!loadingProfile && !isMoniteur && s.montantTotal != null && (
+                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Reliquat</span>
+                  <span className="text-sm font-bold" style={{ color: s.montantTotal - profileData.totalPaye > 0 ? '#b45309' : '#047857' }}>
+                    {fmtMontant(Math.max(0, s.montantTotal - profileData.totalPaye))}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Ligne du bas : Dossier, Suivi formation, Compte élève (admin) ; le moniteur ne voit que le suivi. */}
-        <div className={`grid grid-cols-1 ${isMoniteur ? 'md:grid-cols-2' : 'lg:grid-cols-3'} gap-5`}>
+        {/* Ligne du bas (admin) : dossier Service des Mines et compte de l'élève */}
+        {!isMoniteur && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-          {/* Dossier de l'élève : le fichier déposé au Service des Mines (admin) */}
-          {!isMoniteur && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
-
-          {/* Suivi formation */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
-              <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                <i className="bi bi-bar-chart-fill" style={{ color: '#16a34a', fontSize: '.8rem' }} />
-              </div>
-              <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
-            </div>
-            <div className="grid grid-cols-3 divide-x divide-slate-100 text-center py-4">
-              {[
-                { val: s.nombreLeconsCode,      label: 'Code',     color: '#1e3a5f' },
-                { val: s.nombreLeconsConduite,   label: 'Conduite', color: '#10b981' },
-                { val: s.nombreLeconsCode + s.nombreLeconsConduite, label: 'Total', color: '#6366f1' },
-              ].map(({ val, label, color }) => (
-                <div key={label}>
-                  <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">{label}</div>
-                </div>
-              ))}
-            </div>
-            {!loadingProfile && !isMoniteur && (
-              <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
-                <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
-              </div>
-            )}
-            {!loadingProfile && !isMoniteur && s.montantTotal != null && (
-              <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
-                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Reliquat</span>
-                <span className="text-sm font-bold" style={{ color: s.montantTotal - profileData.totalPaye > 0 ? '#b45309' : '#047857' }}>
-                  {fmtMontant(Math.max(0, s.montantTotal - profileData.totalPaye))}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Dossier de l'élève : le fichier déposé au Service des Mines */}
+          <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />
 
           {/* Compte élève */}
-          {!isMoniteur && <CompteEleveCard eleve={s} />}
-        </div>
+          <CompteEleveCard eleve={s} />
+        </div>}
 
         {showModal && (vueModale === 'moderne' ? ModalModerne() : Modal())}
       </div>
