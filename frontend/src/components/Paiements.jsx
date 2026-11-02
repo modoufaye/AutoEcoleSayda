@@ -25,8 +25,9 @@ const STATUT_P = {
 }
 
 const MOYEN_P = {
-  WAVE:         { label: 'Wave',         color: '#0284c7' },
-  ORANGE_MONEY: { label: 'Orange Money', color: '#ea580c' },
+  ESPECES:      { label: 'Espèces',      color: '#15803d', icon: 'cash-coin' },
+  WAVE:         { label: 'Wave',         color: '#0284c7', icon: 'water' },
+  ORANGE_MONEY: { label: 'Orange Money', color: '#ea580c', icon: 'phone-fill' },
 }
 
 
@@ -195,171 +196,169 @@ export default function Paiements({ onEleveClick }) {
         })}
       </div>
 
-      {/* ── Tableau ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-
-        {/* En-tête tableau navy */}
-        <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg, #16a34a, #4ade80)', borderBottom: '2px solid #15803d' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.2)' }}>
-              <i className="bi bi-receipt" style={{ color: '#fff', fontSize: '.85rem' }} />
+      {/* ── Liste des versements, groupés par jour ───────────── */}
+      {(() => {
+        const tries = [...affiches].sort((x, y) => (y.date || '').localeCompare(x.date || '') || y.id - x.id)
+        const pageItems = tries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+        const groupes = []
+        for (const p of pageItems) {
+          const g = groupes[groupes.length - 1]
+          if (g && g.date === p.date) g.items.push(p); else groupes.push({ date: p.date, items: [p] })
+        }
+        const hier = new Date(auj); hier.setDate(auj.getDate() - 1)
+        // court : version téléphone (« ven. 20 nov. »)
+        const libelleJour = (d, court = false) => {
+          if (d === iso(auj)) return "Aujourd'hui"
+          if (d === iso(hier)) return 'Hier'
+          const dt = new Date(`${d}T12:00:00`)
+          return dt.toLocaleDateString('fr-FR', { weekday: court ? 'short' : 'long', day: 'numeric', month: court ? 'short' : 'long',
+            ...(dt.getFullYear() !== auj.getFullYear() ? { year: 'numeric' } : {}) })
+        }
+        const encaisseJour = d => list.filter(p => p.date === d && p.statut === 'PAYE').reduce((s, p) => s + Number(p.montant), 0)
+        const periodeLabel = PERIODES.find(x => x.v === periode).label
+        return (
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+            <div className="flex items-center justify-between gap-3 px-5 py-4"
+              style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+                  <i className="bi bi-receipt" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-white leading-tight">Historique des versements</div>
+                  <div className="text-xs" style={{ color: '#bfdbfe' }}>{periode ? periodeLabel : 'Toutes les dates'} · du plus récent au plus ancien</div>
+                </div>
+              </div>
+              <span className="text-xs font-extrabold px-3 py-1 rounded-full flex-shrink-0" style={{ background: '#f0bb2a', color: '#1e3a5f' }}>
+                {affiches.length}
+              </span>
             </div>
-            <div>
-              <div className="font-extrabold text-sm leading-tight" style={{ color: '#fff' }}>Paiements</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(187,247,208,.85)' }}>Historique des encaissements</div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {affiches.length}
-          </span>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full table-cards">
-            <thead>
-              <tr style={{ background: '#f8fafc' }}>
-                {['Référence', 'Date', 'Élève', 'Type', 'Acompte', 'Reliquat', 'Total', 'Statut', 'Actions'].map((h, i) => (
-                  <th key={h}
-                    className={`py-3 px-3 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 8 ? 'text-right' : 'text-left'}`}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#4ade80] rounded-full animate-spin" />
-                      <span className="text-sm text-slate-400 font-medium">Chargement…</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : affiches.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: '#f1f5f9' }}>
-                        <i className="bi bi-receipt" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-                      </div>
-                      <div className="text-sm font-medium text-slate-400">{periode ? 'Aucun paiement sur cette période' : 'Aucun paiement enregistré'}</div>
-                    </div>
-                  </td>
-                </tr>
-              ) : affiches.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((p, i) => {
-                const tp = TYPE_P[p.typePaiement]   || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.typePaiement }
-                const st = STATUT_P[p.statut]       || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.statut }
-                const isEven = i % 2 === 0
-                const se = (p.eleve && parEleve[p.eleve.id]) || { acompte: 0, paye: 0 }
-                const total = p.eleve?.montantTotal != null ? Number(p.eleve.montantTotal) : null
-                const reliquat = total != null ? total - se.paye : null
-                return (
-                  <tr key={p.id}
-                    style={{ background: isEven ? '#fff' : '#fafbfc' }}
-                    className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-3" data-label="Référence">
-                      <span className="text-xs text-slate-400"
-                        style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
-                        {p.reference}
-                      </span>
-                      {p.moyenPaiement && MOYEN_P[p.moyenPaiement] && (
-                        <div className="text-xs mt-0.5 font-semibold" style={{ color: MOYEN_P[p.moyenPaiement].color }}>
-                          {MOYEN_P[p.moyenPaiement].label}
-                          {p.transactionId && <span className="text-slate-500 font-normal"
-                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}> · {p.transactionId}</span>}
+            {loading ? (
+              <div className="py-16 flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-slate-100 border-t-[#d4a017] rounded-full animate-spin" />
+                <span className="text-sm text-slate-400 font-medium">Chargement…</span>
+              </div>
+            ) : affiches.length === 0 ? (
+              <div className="py-16 flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#f1f5f9' }}>
+                  <i className="bi bi-receipt" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
+                </div>
+                <div className="text-sm font-medium text-slate-400">{periode ? 'Aucun paiement sur cette période' : 'Aucun paiement enregistré'}</div>
+              </div>
+            ) : groupes.map(g => (
+              <div key={g.date}>
+                <div className="flex items-center justify-between gap-3 px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider"
+                  style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #eef2f7' }}>
+                  <span className="truncate"><i className="bi bi-calendar3 me-2" />
+                    <span className="hidden sm:inline">{libelleJour(g.date)}</span><span className="sm:hidden">{libelleJour(g.date, true)}</span>
+                  </span>
+                  <span className="whitespace-nowrap" style={{ color: '#15803d' }}>
+                    {fmtMontant(encaisseJour(g.date))}<span className="hidden sm:inline"> encaissés</span>
+                  </span>
+                </div>
+                {g.items.map(p => {
+                  const tp = TYPE_P[p.typePaiement] || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.typePaiement }
+                  const st = STATUT_P[p.statut] || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.statut }
+                  const mp = MOYEN_P[p.moyenPaiement || 'ESPECES']
+                  const se = (p.eleve && parEleve[p.eleve.id]) || { acompte: 0, paye: 0 }
+                  const total = p.eleve?.montantTotal != null ? Number(p.eleve.montantTotal) : null
+                  const reste = total != null ? total - se.paye : null
+                  const pct = total ? Math.min(100, Math.round(se.paye / total * 100)) : 0
+                  const nom = p.eleve ? `${p.eleve.prenom} ${p.eleve.nom}` : '—'
+                  const ini = p.eleve ? ((p.eleve.prenom || '')[0] || '') + ((p.eleve.nom || '')[0] || '') : '?'
+                  return (
+                    <div key={p.id}
+                      className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-3 md:gap-5 items-center px-5 py-4 transition-colors hover:bg-slate-50"
+                      style={{ borderBottom: '1px solid #f1f5f9', opacity: p.statut === 'ANNULE' ? .6 : 1 }}>
+                      {/* Élève */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        {p.eleve?.photoUrl ? (
+                          <img src={p.eleve.photoUrl} alt="" className="w-11 h-11 rounded-full flex-shrink-0"
+                            style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '2px solid #f0bb2a' }} />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-extrabold"
+                            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>{ini.toUpperCase()}</div>
+                        )}
+                        <div className="min-w-0">
+                          {p.eleve && onEleveClick ? (
+                            <button onClick={() => onEleveClick(p.eleve.id)}
+                              className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">{nom}</button>
+                          ) : <div className="font-bold text-slate-700 truncate">{nom}</div>}
+                          <div className="text-xs text-slate-400 flex flex-wrap items-center gap-x-2">
+                            <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>{p.reference}</span>
+                            {mp && <span className="font-semibold" style={{ color: mp.color }}><i className={`bi bi-${mp.icon} me-1`} />{mp.label}</span>}
+                          </div>
+                          {p.transactionId && <div className="text-xs text-slate-500 truncate" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>Transaction {p.transactionId}</div>}
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-3" data-label="Date">
-                      <span className="text-sm font-semibold text-slate-700">{fmtDate(p.date)}</span>
-                    </td>
-                    <td className="py-3.5 px-3 cell-title">
-                      {p.eleve
-                        ? onEleveClick
-                          ? <button
-                              onClick={() => onEleveClick(p.eleve.id)}
-                              className="text-sm font-semibold text-[#1e3a5f] underline-offset-2 hover:underline bg-transparent border-0 cursor-pointer p-0 text-left">
-                              {p.eleve.nom} {p.eleve.prenom}
-                            </button>
-                          : <span className="text-sm text-slate-700">{p.eleve.nom} {p.eleve.prenom}</span>
-                        : <span className="text-sm text-slate-700">—</span>}
-                    </td>
-                    <td className="py-3.5 px-3" data-label="Type">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
-                        style={{ background: tp.bg, color: tp.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: tp.dot }} />
-                        {tp.court || tp.label}
-                      </span>
-                      {/* Montant de ce versement */}
-                      <div className="text-xs text-slate-500 mt-1 whitespace-nowrap">{fmtMontant(p.montant)}</div>
-                    </td>
-                    <td className="py-3.5 px-3" data-label="Acompte">
-                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#7c3aed' }}>{fmtMontant(se.acompte)}</span>
-                    </td>
-                    <td className="py-3.5 px-3" data-label="Reliquat">
-                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: reliquat > 0 ? '#b45309' : '#059669' }}>
-                        {reliquat != null ? fmtMontant(Math.max(0, reliquat)) : '—'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3" data-label="Total">
-                      <span className="text-sm font-bold whitespace-nowrap" style={{ color: '#1e3a5f' }}>
-                        {total != null ? fmtMontant(total) : '—'}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3" data-label="Statut">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{ background: st.bg, color: st.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3 cell-actions">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {p.statut === 'EN_ATTENTE' && <>
-                          <button
-                            onClick={() => changerStatut(p, 'PAYE')}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                            style={{ background: '#dcfce7', color: '#15803d' }}
-                            title="Valider">
-                            <i className="bi bi-check-lg" style={{ fontSize: '.9rem' }} />
-                          </button>
-                          <button
-                            onClick={() => changerStatut(p, 'ANNULE')}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                            style={{ background: '#fef3c7', color: '#b45309' }}
-                            title="Refuser">
-                            <i className="bi bi-x-lg" style={{ fontSize: '.8rem' }} />
-                          </button>
-                        </>}
-                        <button
-                          onClick={() => openModal(p)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#eff6ff', color: '#2563eb' }}
-                          title="Modifier">
-                          <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
-                        <button
-                          onClick={() => del(p.id)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#fee2e2', color: '#b91c1c' }}
-                          title="Supprimer">
-                          <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
                       </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        <Pagination page={page} setPage={setPage} total={affiches.length} pageSize={PAGE_SIZE} />
-      </div>
+
+                      {/* Versement */}
+                      <div className="flex md:block items-center justify-between gap-3">
+                        <div className="text-lg font-extrabold leading-tight whitespace-nowrap" style={{ color: '#0f2240', textDecoration: p.statut === 'ANNULE' ? 'line-through' : 'none' }}>
+                          {fmtMontant(p.montant)}
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1 whitespace-nowrap"
+                          style={{ background: tp.bg, color: tp.color }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: tp.dot }} />{tp.court || tp.label}
+                        </span>
+                      </div>
+
+                      {/* Avancement de l'élève */}
+                      <div className="min-w-0">
+                        {total != null ? (
+                          <>
+                            <div className="flex items-baseline justify-between gap-2 text-xs">
+                              <span className="text-slate-500">Payé <b className="text-slate-700">{fmtMontant(se.paye)}</b> / {fmtMontant(total)}</span>
+                              <span className="font-bold" style={{ color: pct >= 100 ? '#15803d' : '#64748b' }}>{pct} %</span>
+                            </div>
+                            <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ background: '#eef2f7' }}>
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? 'linear-gradient(90deg,#22c55e,#15803d)' : 'linear-gradient(90deg,#f0bb2a,#d4a017)' }} />
+                            </div>
+                            <div className="text-xs font-semibold mt-1" style={{ color: reste > 0 ? '#b45309' : '#15803d' }}>
+                              {reste > 0 ? `Reste ${fmtMontant(reste)}` : <><i className="bi bi-check-circle-fill me-1" />Formation soldée</>}
+                            </div>
+                          </>
+                        ) : <div className="text-xs text-slate-400">Prix de la formation non renseigné</div>}
+                      </div>
+
+                      {/* Statut et actions */}
+                      <div className="flex items-center justify-between md:justify-end gap-2">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+                          style={{ background: st.bg, color: st.color }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />{st.label}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {p.statut === 'EN_ATTENTE' && <>
+                            <button onClick={() => changerStatut(p, 'PAYE')} title="Valider"
+                              className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#dcfce7', color: '#15803d' }}>
+                              <i className="bi bi-check-lg" />
+                            </button>
+                            <button onClick={() => changerStatut(p, 'ANNULE')} title="Refuser"
+                              className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#fef3c7', color: '#b45309' }}>
+                              <i className="bi bi-x-lg" style={{ fontSize: '.8rem' }} />
+                            </button>
+                          </>}
+                          <button onClick={() => openModal(p)} title="Modifier"
+                            className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#eff6ff', color: '#2563eb' }}>
+                            <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
+                          </button>
+                          <button onClick={() => del(p.id)} title="Supprimer"
+                            className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#fee2e2', color: '#b91c1c' }}>
+                            <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+            <Pagination page={page} setPage={setPage} total={affiches.length} pageSize={PAGE_SIZE} />
+          </div>
+        )
+      })()}
 
       {/* ── Fenêtre ajout / modification ─────────────────────── */}
       {showModal && (() => {
