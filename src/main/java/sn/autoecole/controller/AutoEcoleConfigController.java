@@ -5,6 +5,9 @@ import org.springframework.web.bind.annotation.*;
 import sn.autoecole.entity.AutoEcoleConfig;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
+import sn.autoecole.repository.EleveRepository;
+import sn.autoecole.repository.MoniteurRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -15,6 +18,8 @@ import java.util.Map;
 public class AutoEcoleConfigController {
 
     private final AutoEcoleConfigRepository repo;
+    private final EleveRepository eleveRepository;
+    private final MoniteurRepository moniteurRepository;
 
     private AutoEcoleConfig getOrCreate() {
         return repo.findAll().stream().findFirst()
@@ -56,6 +61,22 @@ public class AutoEcoleConfigController {
         }
 
         return repo.save(cfg);
+    }
+
+    /**
+     * Donne le moniteur par défaut aux élèves actifs qui n'ont aucun moniteur (ex. inscrits importés
+     * avant ce réglage). Ceux qui ont déjà un moniteur ne changent pas. Réservé à l'admin (/api/admin/**).
+     */
+    @PostMapping("/api/admin/config/moniteur-par-defaut/appliquer")
+    @Transactional
+    public Map<String, Object> appliquerMoniteurParDefaut() {
+        Long id = getOrCreate().getMoniteurParDefautId();
+        var moniteur = id == null ? null : moniteurRepository.findById(id).filter(m -> m.isActif()).orElse(null);
+        if (moniteur == null) throw new BusinessException("Choisissez d'abord un moniteur par défaut actif, puis sauvegardez");
+        var eleves = eleveRepository.findByArchiveFalse().stream().filter(e -> e.getMoniteur() == null).toList();
+        eleves.forEach(e -> e.setMoniteur(moniteur));
+        eleveRepository.saveAll(eleves);
+        return Map.of("eleves", eleves.size(), "moniteur", moniteur.getPrenom() + " " + moniteur.getNom());
     }
 
     /** Le lien est rendu tel quel dans un href côté élève : on n'accepte que du https. */

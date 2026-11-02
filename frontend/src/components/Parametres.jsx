@@ -71,6 +71,7 @@ export default function Parametres() {
     lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
   })
   const [moniteurs, setMoniteurs] = useState([])
+  const [applying, setApplying]   = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
 
@@ -97,6 +98,19 @@ export default function Parametres() {
 
   function set(field, value) {
     setForm(f => ({ ...f, [field]: value }))
+  }
+
+  // Le réglage enregistré (et non la liste en cours d'édition) est appliqué : sauvegarder d'abord.
+  async function appliquerMoniteur() {
+    const m = moniteurs.find(x => String(x.id) === String(form.moniteurParDefautId))
+    if (!m) { toast('Choisissez un moniteur par défaut et sauvegardez d\'abord', 'warning'); return }
+    if (!confirm(`Assigner ${m.prenom} ${m.nom} à tous les élèves actifs qui n'ont pas de moniteur ?\n(Pensez à sauvegarder avant si vous venez de le choisir.)`)) return
+    setApplying(true)
+    try {
+      const r = await api('POST', '/admin/config/moniteur-par-defaut/appliquer')
+      toast(r.eleves ? `${r.moniteur} assigné à ${r.eleves} élève${r.eleves > 1 ? 's' : ''}` : 'Tous les élèves ont déjà un moniteur')
+    } catch (e) { toast(e.message, 'danger') }
+    finally { setApplying(false) }
   }
 
   async function handleSave() {
@@ -258,6 +272,14 @@ export default function Parametres() {
                   <option value="">— Aucun —</option>
                   {moniteurs.map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
                 </select>
+              </div>
+              <div className="col-md-6 d-flex align-items-end">
+                <button type="button" className="btn fw-semibold w-100" disabled={applying}
+                  onClick={appliquerMoniteur}
+                  style={{ borderRadius: '.75rem', background: '#fef9c3', color: '#854d0e', border: '1.5px solid #fde68a' }}>
+                  {applying ? <span className="spinner-border spinner-border-sm me-1" /> : <i className="bi bi-people-fill me-1" />}
+                  Assigner aux élèves sans moniteur
+                </button>
               </div>
             </div>
           </div>
