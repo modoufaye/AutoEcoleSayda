@@ -811,10 +811,16 @@ export default function Eleves({ initialEleveId }) {
   }
 
   const save = async () => {
-    const { nom, prenom, telephone, categoriePermis, dateInscription, site } = form
-    if (!nom || !prenom || !telephone || !categoriePermis || !dateInscription || !site) {
-      toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
+    // Téléphone obligatoire à l'inscription seulement : un élève importé sans numéro doit
+    // rester modifiable (son compte se crée dès que le numéro est ajouté).
+    const manquants = [
+      !form.nom && 'nom', !form.prenom && 'prénom', !editId && !form.telephone && 'téléphone',
+      !form.categoriePermis && 'catégorie de permis', !form.dateInscription && "date d'inscription", !form.site && 'bureau',
+    ].filter(Boolean)
+    if (manquants.length) {
+      toast(`Champ${manquants.length > 1 ? 's' : ''} obligatoire${manquants.length > 1 ? 's' : ''} : ${manquants.join(', ')}`, 'warning'); return
     }
+    const { dateInscription } = form
     if (dateInscription > today()) {
       toast('La date d\'inscription ne peut pas être dans le futur', 'warning'); return
     }
@@ -926,7 +932,7 @@ export default function Eleves({ initialEleveId }) {
                   'moniteur',
                   { key: 'dateNaissance', label: 'Date de naissance', req: false, type: 'date' },
                   { key: 'dateInscription', label: "Date d'inscription", req: true, type: 'date', max: today() },
-                  { key: 'telephone',     label: 'Téléphone (identifiant de connexion)', req: true, type: 'tel', ph: '7XXXXXXXX' },
+                  { key: 'telephone',     label: 'Téléphone (identifiant de connexion)', req: !editId, type: 'tel', ph: '7XXXXXXXX' },
                 ].map(f => f === 'moniteur' ? (
                   // Juste après le nom et le prénom : statut (modification seulement) à gauche du moniteur.
                   <Fragment key="moniteur">
