@@ -100,13 +100,14 @@ export default function Parametres() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
-  // Le réglage enregistré (et non la liste en cours d'édition) est appliqué : sauvegarder d'abord.
+  // Enregistre d'abord le moniteur choisi (seul ce champ) : le bouton ne dépend pas de « Sauvegarder ».
   async function appliquerMoniteur() {
     const m = moniteurs.find(x => String(x.id) === String(form.moniteurParDefautId))
-    if (!m) { toast('Choisissez un moniteur par défaut et sauvegardez d\'abord', 'warning'); return }
-    if (!confirm(`Assigner ${m.prenom} ${m.nom} à tous les élèves actifs qui n'ont pas de moniteur ?\n(Pensez à sauvegarder avant si vous venez de le choisir.)`)) return
+    if (!m) { toast('Choisissez d\'abord un moniteur par défaut', 'warning'); return }
+    if (!confirm(`Assigner ${m.prenom} ${m.nom} à tous les élèves actifs qui n'ont pas de moniteur ?`)) return
     setApplying(true)
     try {
+      await api('PUT', '/admin/config', { moniteurParDefautId: form.moniteurParDefautId })
       const r = await api('POST', '/admin/config/moniteur-par-defaut/appliquer')
       toast(r.eleves ? `${r.moniteur} assigné à ${r.eleves} élève${r.eleves > 1 ? 's' : ''}` : 'Tous les élèves ont déjà un moniteur')
     } catch (e) { toast(e.message, 'danger') }
