@@ -9,6 +9,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { champCls, stylePastille } from './fenetreStyles'
 
 const PAGE_SIZE = 10
@@ -624,127 +625,64 @@ export default function Moniteurs({ onProfilChange }) {
         </div>
       </div>
 
-      {/* Tableau */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <SectionHeader
-          gradient="linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%)"
-          border="#5b21b6"
-          icon="person-badge-fill"
-          iconBg="rgba(255,255,255,.18)"
-          iconColor="#fff"
-          title={{ text: 'Moniteurs', color: '#fff' }}
-          subtitle={{ text: 'Personnel enseignant', color: 'rgba(221,214,254,.85)' }}
-          badge={filtered.length}
-          badgeStyle={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}
-        />
+      {/* Liste des moniteurs */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="person-badge-fill" titre="Moniteurs" sousTitre="Personnel enseignant" nombre={filtered.length} />
+        {loading ? <ListeChargement />
+          : filtered.length === 0 ? <ListeVide texte="Aucun moniteur enregistré" />
+          : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(m => (
+            <LigneListe key={m.id} attenue={!m.actif}>
+              {/* Identité */}
+              <div className="flex items-center gap-3 min-w-0">
+                <AvatarRond photoUrl={m.photoUrl} prenom={m.prenom} nom={m.nom} />
+                <div className="min-w-0">
+                  <button onClick={() => openProfile(m)}
+                    className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
+                    {m.nom} {m.prenom}
+                  </button>
+                  <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
+                    <span><i className="bi bi-telephone me-1" />{m.telephone}</span>
+                    {m.numeroPermis && <span><i className="bi bi-card-checklist me-1" />{m.numeroPermis}</span>}
+                  </div>
+                </div>
+              </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 border-4 border-slate-100 border-t-[#7c3aed] rounded-full animate-spin" />
-              <span className="text-sm text-slate-400 font-medium">Chargement…</span>
-            </div>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-slate-100">
-              <i className="bi bi-inbox" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-            </div>
-            <div className="text-sm font-medium text-slate-400">Aucun moniteur enregistré</div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full table-cards">
-              <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  {['#', 'Nom & Prénom', 'Téléphone', 'Catégories', 'Élèves', 'Permis', 'Statut', 'Embauche', ''].map((h, i) => (
-                    <th key={i} className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 0 ? 'text-center w-10' : i === 8 ? 'text-right' : 'text-left'}`}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((m, i) => (
-                  <tr key={m.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}
-                    className="transition-colors hover:bg-blue-50/40">
+              {/* Catégories enseignées */}
+              <div className="min-w-0">
+                <div className="text-slate-400 uppercase tracking-wider font-bold text-[10px] mb-1">Catégories</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(m.categoriesAutorisees || []).length ? [...m.categoriesAutorisees].sort().map(c => {
+                    const cat = CAT_MAP[c] || { label: c, bg: '#f1f5f9', color: '#475569' }
+                    return (
+                      <span key={c} className="w-7 h-7 flex items-center justify-center text-xs font-extrabold"
+                        style={{ borderRadius: '.6rem', background: cat.bg, color: cat.color }}>{cat.label}</span>
+                    )
+                  }) : <span className="text-xs text-slate-400">Aucune</span>}
+                </div>
+              </div>
 
-                    <td className="py-3.5 px-4 text-center cell-hide">
-                      <span className="text-xs font-bold text-slate-300">{i + 1}</span>
-                    </td>
+              {/* Élèves et embauche */}
+              <div className="text-xs min-w-0">
+                <button onClick={() => openProfile(m)}
+                  className="inline-flex items-center gap-1.5 font-bold px-2.5 py-1 border-0 cursor-pointer"
+                  style={{ borderRadius: '999px', background: '#dbeafe', color: '#1d4ed8' }}>
+                  <i className="bi bi-people-fill" />{elevesCount[m.id] ?? 0} élève{(elevesCount[m.id] ?? 0) > 1 ? 's' : ''}
+                </button>
+                <div className="text-slate-400 mt-1">{m.dateEmbauche ? <>Embauché le {fmtDate(m.dateEmbauche)}</> : 'Date d\'embauche non renseignée'}</div>
+              </div>
 
-                    <td className="py-3.5 px-4 cell-title">
-                      <button className="flex items-center gap-3 text-left border-0 bg-transparent p-0 cursor-pointer"
-                        onClick={() => openProfile(m)}>
-                        <Avatar m={m} />
-                        <div>
-                          <div className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{m.nom} {m.prenom}</div>
-                        </div>
-                      </button>
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Téléphone">
-                      <span className="text-sm text-slate-600">{m.telephone}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Catégories">
-                      <div className="flex flex-wrap gap-1">
-                        {(m.categoriesAutorisees || []).map(c => {
-                          const cat = CAT_MAP[c] || { label: c, bg: '#f1f5f9', color: '#475569' }
-                          return (
-                            <span key={c} className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                              style={{ background: cat.bg, color: cat.color }}>
-                              {cat.label}
-                            </span>
-                          )
-                        })}
-                        {!m.categoriesAutorisees?.length && <span className="text-slate-300 text-xs">—</span>}
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Élèves">
-                      <button onClick={() => openProfile(m)}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer transition-all"
-                        style={{ background: '#dbeafe', color: '#1d4ed8' }}>
-                        <i className="bi bi-people" />
-                        {elevesCount[m.id] ?? 0}
-                      </button>
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Permis">
-                      <span className="text-xs text-slate-500">{m.numeroPermis || '—'}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Statut">
-                      <StatutBadge statut={m.actif} />
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Embauche">
-                      <span className="text-xs text-slate-500">{fmtDate(m.dateEmbauche)}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4 cell-actions">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => toggleActif(m.id)}
-                          title={m.actif ? 'Désactiver' : 'Activer'}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: m.actif ? '#fef9c3' : '#dcfce7', color: m.actif ? '#a16207' : '#15803d' }}>
-                          <i className={`bi bi-${m.actif ? 'pause-circle' : 'play-circle'}-fill`} style={{ fontSize: '.8rem' }} />
-                        </button>
-                        <button onClick={() => openModal(m)}
-                          title="Modifier"
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#f1f5f9', color: '#475569' }}>
-                          <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              {/* Statut et actions */}
+              <div className="flex items-center justify-between md:justify-end gap-2">
+                <Pastille couleur={m.actif ? '#15803d' : '#b91c1c'} fond={m.actif ? '#dcfce7' : '#fee2e2'}>{m.actif ? 'Actif' : 'Inactif'}</Pastille>
+                <div className="flex items-center gap-1.5">
+                  <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => openProfile(m)} />
+                  <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(m)} />
+                  <BoutonRond title={m.actif ? 'Désactiver' : 'Activer'} icon={m.actif ? 'pause-circle-fill' : 'play-circle-fill'}
+                    couleur={m.actif ? '#a16207' : '#15803d'} fond={m.actif ? '#fef9c3' : '#dcfce7'} onClick={() => toggleActif(m.id)} />
+                </div>
+              </div>
+            </LigneListe>
+          ))}
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 

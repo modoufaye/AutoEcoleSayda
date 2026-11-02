@@ -12,6 +12,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 
 const PAGE_SIZE = 10
 
@@ -1632,8 +1633,6 @@ export default function Eleves({ initialEleveId }) {
   }
 
   /* ══ VUE LISTE ═══════════════════════════════════════════ */
-  const colonnes = ['#','Nom & Prénom','Téléphone','Bureau','Moniteur','Catégorie','Leçons','Statut','Inscription',
-    ...(archives ? ['Archivé le'] : []), '']
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
@@ -1713,135 +1712,77 @@ export default function Eleves({ initialEleveId }) {
         </button>
       </div>
 
-      {/* Tableau */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="px-5 py-3.5 flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f 0%,#2a4f7c 100%)', borderBottom: '2px solid #142a47' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
-            <i className="bi bi-people-fill" style={{ color: '#fff', fontSize: '.9rem' }} />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-white text-sm">{isMoniteur ? 'Mes Élèves' : archives ? 'Élèves archivés' : 'Liste des Élèves'}</div>
-            <div style={{ fontSize: '.72rem', color: 'rgba(147,197,253,.85)' }}>
-              {filtered.length} élève{filtered.length > 1 ? 's' : ''} · suivi de formation
-            </div>
-          </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {filtered.length}
-          </span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm table-cards">
-            <thead>
-              <tr className="bg-slate-50">
-                {colonnes.map((h, i) => (
-                  <th key={i} className={`px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === colonnes.length - 1 ? 'text-right' : 'text-left'}`}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr><td colSpan={colonnes.length} className="text-center py-12">
-                  <div className="w-8 h-8 border-4 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin mx-auto" />
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={colonnes.length}>
-                  <div className="flex flex-col items-center justify-center py-14 text-slate-400">
-                    <i className="bi bi-inbox" style={{ fontSize: '2.5rem' }} />
-                    <div className="mt-2 text-sm font-medium">{archives ? 'Aucun élève archivé' : 'Aucun élève enregistré'}</div>
+      {/* Liste des élèves */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone={archives ? 'archive-fill' : 'people-fill'}
+          titre={isMoniteur ? 'Mes élèves' : archives ? 'Élèves archivés' : 'Liste des élèves'}
+          sousTitre={`${filtered.length} élève${filtered.length > 1 ? 's' : ''} · suivi de formation`}
+          nombre={filtered.length} />
+        {loading ? <ListeChargement />
+          : filtered.length === 0 ? <ListeVide texte={archives ? 'Aucun élève archivé' : 'Aucun élève enregistré'} />
+          : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(e => {
+            const st = STATUT_STYLE[e.statut] || { bg: '#f1f5f9', color: '#64748b', label: e.statut }
+            return (
+              <LigneListe key={e.id} attenue={e.archive}>
+                {/* Identité */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <AvatarRond photoUrl={e.photoUrl} prenom={e.prenom} nom={e.nom} />
+                  <div className="min-w-0">
+                    <button onClick={() => openProfile(e)}
+                      className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
+                      {e.nom} {e.prenom}
+                    </button>
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
+                      <span><i className="bi bi-telephone me-1" />{e.telephone || 'Pas de numéro'}</span>
+                      {e.site && <span><i className="bi bi-building me-1" />{LABELS[e.site] || e.site}</span>}
+                    </div>
                   </div>
-                </td></tr>
-              ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((e, i) => {
-                const st = STATUT_STYLE[e.statut] || { bg: '#f1f5f9', color: '#64748b', label: e.statut }
-                return (
-                  <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3.5 text-slate-400 text-xs cell-hide">{i + 1}</td>
-                    <td className="px-4 py-3.5 cell-title">
-                      <button className="text-left border-0 bg-transparent cursor-pointer p-0"
-                        onClick={() => openProfile(e)}>
-                        <div className="flex items-center gap-2.5">
-                          <Avatar p={e} className="w-10 h-10 rounded-full text-xs font-extrabold"
-                            style={{ background: 'rgba(30,58,95,.08)', color: '#1e3a5f' }} />
-                          <div>
-                            <div className="font-semibold text-[#1e3a5f] text-sm hover:underline">{e.nom} {e.prenom}</div>
-                          </div>
-                        </div>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600 text-sm" data-label="Téléphone">{e.telephone}</td>
-                    <td className="px-4 py-3.5" data-label="Bureau">
-                      {e.site ? <Badge value={e.site} map={BADGES.site} /> : <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3.5" data-label="Moniteur">
-                      {e.moniteur
-                        ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: '#eff6ff', color: '#1e3a5f' }}>
-                            {e.moniteur.nom} {e.moniteur.prenom}
-                          </span>
-                        : <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3.5" data-label="Catégorie">
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', color: '#475569' }}>
-                        {e.categoriePermis}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5" data-label="Leçons">
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <span><i className="bi bi-book me-1" />{e.nombreLeconsCode}</span>
-                        <span><i className="bi bi-car-front me-1" />{e.nombreLeconsConduite}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5" data-label="Statut">
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{ background: st.bg, color: st.color }}>
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-400 text-xs" data-label="Inscription">{fmtDate(e.dateInscription)}</td>
-                    {archives && (
-                      <td className="px-4 py-3.5 text-xs font-semibold" style={{ color: '#475569' }} data-label="Archivé le">
-                        {e.dateArchivage ? fmtDate(e.dateArchivage) : '—'}
-                      </td>
-                    )}
-                    <td className="px-4 py-3.5 text-right cell-actions">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button onClick={() => openProfile(e)} title="Voir profil"
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#eff6ff', color: '#1e3a5f' }}>
-                          <i className="bi bi-eye-fill" style={{ fontSize: '.8rem' }} />
-                        </button>
-                        {!isMoniteur && !e.archive && <>
-                          <button onClick={() => openModal(e)} title="Modifier"
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                            style={{ background: '#f8fafc', color: '#64748b' }}>
-                            <i className="bi bi-pencil-fill" style={{ fontSize: '.8rem' }} />
-                          </button>
-                          <button onClick={() => archiver(e)} title="Archiver"
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                            style={{ background: '#fefce8', color: '#a16207' }}>
-                            <i className="bi bi-archive-fill" style={{ fontSize: '.8rem' }} />
-                          </button>
-                        </>}
-                        {!isMoniteur && e.archive && <>
-                          <button onClick={() => reactiver(e)} title="Réactiver"
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                            style={{ background: '#f0fdf4', color: '#15803d' }}>
-                            <i className="bi bi-arrow-counterclockwise" style={{ fontSize: '.85rem' }} />
-                          </button>
-                          <button onClick={() => del(e.id)} title="Supprimer définitivement"
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                            style={{ background: '#fef2f2', color: '#dc2626' }}>
-                            <i className="bi bi-trash-fill" style={{ fontSize: '.8rem' }} />
-                          </button>
-                        </>}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                </div>
+
+                {/* Formation */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 flex flex-col items-center justify-center flex-shrink-0"
+                    style={{ borderRadius: '.8rem', background: '#eff6ff', color: '#1e3a5f', border: '1.5px solid #bfdbfe' }}>
+                    <span className="text-[9px] font-bold uppercase leading-none">Permis</span>
+                    <span className="text-base font-extrabold leading-tight">{e.categoriePermis}</span>
+                  </div>
+                  <div className="min-w-0 text-xs">
+                    <div className="text-slate-400 uppercase tracking-wider font-bold text-[10px]">Moniteur</div>
+                    <div className="font-semibold text-slate-700 truncate">
+                      {e.moniteur ? `${e.moniteur.prenom} ${e.moniteur.nom}` : <span className="text-slate-400">Aucun</span>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Suivi */}
+                <div className="text-xs min-w-0">
+                  <div className="flex items-center gap-3 text-slate-600">
+                    <span title="Leçons de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode}</b> code</span>
+                    <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>
+                  </div>
+                  <div className="text-slate-400 mt-1">
+                    {archives && e.dateArchivage ? <>Archivé le {fmtDate(e.dateArchivage)}</> : <>Inscrit le {fmtDate(e.dateInscription)}</>}
+                  </div>
+                </div>
+
+                {/* Statut et actions */}
+                <div className="flex items-center justify-between md:justify-end gap-2">
+                  <Pastille couleur={st.color} fond={st.bg}>{st.label}</Pastille>
+                  <div className="flex items-center gap-1.5">
+                    <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => openProfile(e)} />
+                    {!isMoniteur && !e.archive && <>
+                      <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(e)} />
+                      <BoutonRond title="Archiver" icon="archive-fill" couleur="#a16207" fond="#fef9c3" onClick={() => archiver(e)} />
+                    </>}
+                    {!isMoniteur && e.archive && <>
+                      <BoutonRond title="Réactiver" icon="arrow-counterclockwise" couleur="#15803d" fond="#dcfce7" onClick={() => reactiver(e)} />
+                      <BoutonRond title="Supprimer définitivement" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(e.id)} />
+                    </>}
+                  </div>
+                </div>
+              </LigneListe>
+            )
+          })}
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
