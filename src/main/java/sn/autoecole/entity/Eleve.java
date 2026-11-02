@@ -41,6 +41,11 @@ public class Eleve {
     @Column(name = "site")
     private Site site;
 
+    // Où l'élève s'est inscrit (bureau ou en ligne), distinct du bureau qui le suit ensuite.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "lieu_inscription")
+    private Site lieuInscription;
+
     // Ancien identifiant de connexion, plus saisi : conservé pour les fiches existantes.
     @Email(message = "Format d'email invalide")
     private String email;

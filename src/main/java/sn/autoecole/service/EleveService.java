@@ -102,6 +102,7 @@ public class EleveService {
                 .telephone(telephone)
                 .adresse(request.getAdresse())
                 .site(request.getSite())
+                .lieuInscription(request.getLieuInscription() != null ? request.getLieuInscription() : request.getSite())
                 .numeroCni(request.getNumeroCni())
                 .photoUrl(request.getPhotoUrl())
                 .montantTotal(request.getMontantTotal())
@@ -203,6 +204,7 @@ public class EleveService {
         eleve.setTelephone(telephone);
         eleve.setAdresse(request.getAdresse());
         eleve.setSite(request.getSite());
+        if (request.getLieuInscription() != null) eleve.setLieuInscription(request.getLieuInscription());
         eleve.setNumeroCni(request.getNumeroCni());
         eleve.setPhotoUrl(request.getPhotoUrl());
         eleve.setMontantTotal(request.getMontantTotal());

@@ -35,6 +35,7 @@ public class MigrationDonnees {
         etape("champs élève facultatifs", this::champsEleveFacultatifs);
         etape("téléphones des élèves", this::telephonesEleves);
         etape("téléphones des moniteurs", this::telephonesMoniteurs);
+        etape("lieu d'inscription", this::lieuInscription);
     }
 
     private void etape(String nom, Runnable r) {
@@ -170,6 +171,12 @@ public class MigrationDonnees {
             if (!brut.equals(norm)) n += jdbc.update("UPDATE moniteurs SET telephone = ? WHERE id = ?", norm, m.get("id"));
         }
         if (n > 0) log.info("Migration : {} téléphone(s) de moniteur normalisé(s)", n);
+    }
+
+    /** Nouvelle colonne : on y recopie le bureau des élèves qui n'ont pas encore de lieu d'inscription. */
+    private void lieuInscription() {
+        int n = jdbc.update("UPDATE eleves SET lieu_inscription = site WHERE lieu_inscription IS NULL AND site IS NOT NULL");
+        if (n > 0) log.info("Migration : lieu d'inscription recopié du bureau pour {} élève(s)", n);
     }
 
     /** Pour les ALTER déjà appliqués (ou sans objet) : l'échec est normal et ignoré. */

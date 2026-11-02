@@ -119,6 +119,7 @@ public class EleveImportService {
                     req.setMontantTotal(total);
                     req.setMoyenAcompte(mode);
                     req.setSite(lieu);
+                    req.setLieuInscription(lieu);
                     req.setStatut(StatutEleve.EN_COURS);
                     aCreer.add(req);
                 }

@@ -34,6 +34,9 @@ public class EleveRequest {
     @NotNull(message = "Le bureau est obligatoire")
     private Site site;
 
+    /** Absent : le bureau. */
+    private Site lieuInscription;
+
     private String numeroCni;
 
     // Seulement une image envoyée sur le serveur : pas d'URL externe arbitraire.

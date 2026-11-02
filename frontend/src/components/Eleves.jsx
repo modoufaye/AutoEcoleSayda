@@ -39,7 +39,7 @@ const today = () => new Date().toISOString().split('T')[0]
 
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
-  adresse: '', site: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
+  adresse: '', site: '', lieuInscription: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
   montantAvance: '', montantTotal: '', moyenAcompte: 'ESPECES',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
   docVisiteMedicale: false, docPhotos: false, docTimbre: false,
@@ -792,6 +792,7 @@ export default function Eleves({ initialEleveId }) {
       setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance || '',
         dateInscription: eleve.dateInscription || '',
         telephone: eleve.telephone || '', adresse: eleve.adresse || '', site: eleve.site || '',
+        lieuInscription: eleve.lieuInscription || eleve.site || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
         montantTotal: eleve.montantTotal ?? '',
@@ -827,6 +828,7 @@ export default function Eleves({ initialEleveId }) {
       toast('L\'acompte ne peut pas dépasser le montant total', 'warning'); return
     }
     const data = { ...form, adresse: form.adresse || null, dateNaissance: form.dateNaissance || null,
+      lieuInscription: form.lieuInscription || null,
       numeroCni: form.numeroCni || null, photoUrl: form.photoUrl || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null,
       montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null }
@@ -949,6 +951,14 @@ export default function Eleves({ initialEleveId }) {
                     {form.site && !BUREAUX.some(b => b.value === form.site) && (
                       <option value={form.site} disabled>{LABELS[form.site] || form.site}</option>
                     )}
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className={labelCls}>Lieu d'inscription</label>
+                  <select className={inputCls} value={form.lieuInscription}
+                    onChange={e => setForm(fm => ({ ...fm, lieuInscription: e.target.value }))}>
+                    <option value="">Comme le bureau</option>
+                    {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div className="col-md-6">
@@ -1171,6 +1181,7 @@ export default function Eleves({ initialEleveId }) {
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
                   { label: 'Inscription', value: fmtDate(s.dateInscription) },
+                  { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
                   { label: 'Catégorie', value: s.categoriePermis },
                   { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.nom} ${s.moniteur.prenom}` : 'Aucun' },
                 ].map(({ label, value }) => value ? (
