@@ -3,6 +3,7 @@ import { api } from '../api'
 import { fmtDate, fmtTime, BADGES, BUREAUX } from '../utils'
 import Badge from './Badge'
 import { toast } from './Toast'
+import { Filtre } from './ListeModerne'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
@@ -143,12 +144,10 @@ export default function Lecons({ onBack }) {
             <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Cours Conduite</h2>
             <p className="text-sm text-slate-400 mt-0.5">{filtered.length} leçon{filtered.length !== 1 ? 's' : ''} au total</p>
           </div>
-          <select
-            className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
-            value={site} onChange={e => setSite(e.target.value)}>
+          <Filtre icone="building" value={site} onChange={setSite}>
             <option value="">Tous les bureaux</option>
             {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          </Filtre>
           <button
             onClick={() => openModal()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"

@@ -77,6 +77,9 @@ public class SecurityConfig {
                 // Créer, modifier, supprimer un moniteur ou lui créer son compte : admin uniquement.
                 // Avant, ces routes relevaient de anyRequest().authenticated() : un élève pouvait les appeler.
                 .requestMatchers(HttpMethod.POST, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
+                // Véhicules : le moniteur peut modifier, mais l'ajout et la suppression sont réservés à l'admin
+                .requestMatchers(HttpMethod.POST, "/api/vehicules", "/api/vehicules/**").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/vehicules/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/moniteurs/**").hasRole("SUPER_ADMIN")

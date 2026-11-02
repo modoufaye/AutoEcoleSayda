@@ -12,7 +12,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
-import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule } from './ListeModerne'
 
 const PAGE_SIZE = 10
 
@@ -1651,35 +1651,18 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
       )}
 
       {/* Filtres */}
-      <div className="bg-white rounded-2xl p-4 flex gap-3 flex-wrap" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-        <div className="flex items-center gap-2 flex-1 min-w-48 bg-slate-50 border-2 rounded-xl px-3 py-2 focus-within:border-[#1e3a5f] transition-all" style={{ borderColor: '#e2e8f0' }}>
-          <i className="bi bi-search text-slate-400" style={{ fontSize: '.9rem' }} />
-          <input className="flex-1 bg-transparent border-0 outline-none text-sm text-slate-700 placeholder-slate-400"
-            placeholder="Nom, prénom, téléphone…"
-            value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <select
-          className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
-          value={statut} onChange={e => setStatut(e.target.value)}>
+      <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder="Nom, prénom, téléphone…" />
+        <Filtre icone="flag" value={statut} onChange={setStatut}>
           <option value="">Tous les statuts</option>
           {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-        <select
-          className="bg-slate-50 border-2 rounded-xl px-3 py-2 text-sm text-slate-600 outline-none focus:border-[#1e3a5f] transition-all cursor-pointer" style={{ borderColor: '#e2e8f0' }}
-          value={site} onChange={e => setSite(e.target.value)}>
+        </Filtre>
+        <Filtre icone="building" value={site} onChange={setSite}>
           <option value="">Tous les bureaux</option>
           {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-        <button
-          onClick={() => setNouveauMois(v => !v)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold border-2 cursor-pointer transition-all"
-          style={nouveauMois
-            ? { background: '#eff6ff', borderColor: '#3b82f6', color: '#2563eb' }
-            : { background: '#f8fafc', borderColor: '#e2e8f0', color: '#64748b' }}>
-          <i className="bi bi-calendar-check" style={{ fontSize: '.85rem' }} />
-          Nouveaux ce mois
-        </button>
-      </div>
+        </Filtre>
+        <FiltreBascule actif={nouveauMois} onClick={() => setNouveauMois(v => !v)} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
+      </BarreFiltres>
 
       {/* Liste des élèves */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>

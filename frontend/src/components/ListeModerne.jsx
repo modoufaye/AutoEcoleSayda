@@ -84,3 +84,63 @@ export function ListeChargement() {
     </div>
   )
 }
+
+/* ── Filtres (pastilles) ─────────────────────────────────────
+   Pastille blanche arrondie avec icône ; bordure dorée quand le filtre est actif ou en saisie.
+   Styles : .filtre… dans index.css. */
+export function BarreFiltres({ children }) {
+  return (
+    <div className="bg-white rounded-2xl p-3 sm:p-4 flex flex-wrap items-center gap-2"
+      style={{ boxShadow: '0 2px 12px rgba(15,34,64,.06)', border: '1px solid #eef2f7' }}>
+      {children}
+    </div>
+  )
+}
+
+export function Recherche({ value, onChange, placeholder = 'Rechercher…' }) {
+  return (
+    <label className={`filtre filtre-recherche mb-0${value ? ' actif' : ''}`}>
+      <i className="bi bi-search" />
+      <input type="text" value={value} placeholder={placeholder} onChange={e => onChange(e.target.value)} />
+      {value && (
+        <button type="button" className="filtre-effacer" title="Effacer" onClick={() => onChange('')}>
+          <i className="bi bi-x-lg" />
+        </button>
+      )}
+    </label>
+  )
+}
+
+export function Filtre({ icone, value, onChange, children }) {
+  return (
+    <label className={`filtre mb-0${value ? ' actif' : ''}`}>
+      <i className={`bi bi-${icone}`} />
+      <select value={value} onChange={e => onChange(e.target.value)}>{children}</select>
+    </label>
+  )
+}
+
+export function FiltreDate({ libelle, value, onChange }) {
+  return (
+    <label className={`filtre mb-0${value ? ' actif' : ''}`}>
+      <span className="filtre-libelle">{libelle}</span>
+      <input type="date" value={value} onChange={e => onChange(e.target.value)} />
+    </label>
+  )
+}
+
+export function FiltreBascule({ actif, onClick, icone, children }) {
+  return (
+    <button type="button" onClick={onClick} className={`filtre filtre-bouton${actif ? ' actif' : ''}`}>
+      <i className={`bi bi-${actif ? 'check-circle-fill' : icone}`} />{children}
+    </button>
+  )
+}
+
+export function Reinitialiser({ onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="filtre filtre-bouton filtre-reset">
+      <i className="bi bi-x-circle" />Réinitialiser
+    </button>
+  )
+}

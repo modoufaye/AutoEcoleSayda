@@ -442,3 +442,37 @@ body {
 }
 .btn-retour:hover .btn-retour-icone { transform: translateX(-2px); }
 @media (prefers-reduced-motion: reduce) { .btn-retour, .btn-retour-icone { transition: none; } }
+
+/* Filtres en pastilles (ListeModerne.jsx : BarreFiltres, Recherche, Filtre, FiltreDate…). */
+.filtre {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .45rem .95rem; min-height: 40px;
+  background: #fff; border: 1.5px solid #dbe2ec; border-radius: 999px;
+  color: #1e3a5f; font-size: .875rem; font-weight: 600; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.filtre > i { color: #1e3a5f; font-size: .9rem; flex-shrink: 0; }
+.filtre:hover { border-color: #b8c4d6; }
+.filtre:focus-within { border-color: #d4a017; box-shadow: 0 0 0 3px rgba(212, 160, 23, .15); }
+.filtre.actif { border-color: #d4a017; background: #fffbeb; }
+.filtre.actif > i { color: #b45309; }
+.filtre select, .filtre input {
+  border: 0; background-color: transparent; outline: none; min-width: 0;
+  color: #1e3a5f; font-size: .875rem; font-weight: 600; cursor: pointer;
+}
+.filtre select {
+  appearance: none; -webkit-appearance: none; padding-right: 1.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%231e3a5f' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m3 6 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right center; background-size: .75rem;
+}
+.filtre input::placeholder { color: #94a3b8; font-weight: 500; }
+.filtre-recherche { flex: 1 1 14rem; cursor: text; }
+.filtre-recherche input { flex: 1; width: 100%; cursor: text; }
+.filtre-libelle { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; }
+.filtre-effacer {
+  border: 0; background: #eef2f7; color: #64748b; width: 22px; height: 22px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: .65rem; cursor: pointer; flex-shrink: 0;
+}
+.filtre-bouton { font-family: inherit; }
+.filtre-reset { color: #b91c1c; border-color: #fecaca; background: #fff5f5; }
+.filtre-reset > i { color: #b91c1c; }

@@ -7,7 +7,7 @@ import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
-import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser } from './ListeModerne'
 import { champCls } from './fenetreStyles'
 import '../landing.css'
 
@@ -211,55 +211,29 @@ export default function Examens({ onEleveClick, onBack }) {
 
       {/* ── Filtres (admin uniquement) ───────────────────────── */}
       {!isEleve && (
-        <div className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div className="flex flex-wrap gap-3 items-center">
-            {/* Recherche */}
-            <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl">
-              <i className="bi bi-search text-slate-400" style={{ fontSize: '.85rem' }} />
-              <input
-                type="text"
-                placeholder="Rechercher par nom ou prénom…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-              />
-            </div>
-            {/* Select Type */}
-            <select className="px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] transition-all"
-              value={filterType} onChange={e => setFilterType(e.target.value)}>
-              <option value="">Tous les types</option>
-              <option value="CODE">Code</option>
-              <option value="CONDUITE">Conduite</option>
-            </select>
-            {/* Select Résultat */}
-            <select className="px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] transition-all"
-              value={filterResultat} onChange={e => setFilterResultat(e.target.value)}>
-              <option value="">Tous les résultats</option>
-              <option value="ADMIS">Admis</option>
-              <option value="REFUSE">Refusé</option>
-              <option value="EN_ATTENTE">En attente</option>
-            </select>
-            {/* Select Tentative */}
-            <select className="px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] transition-all"
-              value={filterTentative} onChange={e => setFilterTentative(e.target.value)}>
-              <option value="">Toutes les tentatives</option>
-              {tentatives.map(t => (
-                <option key={t} value={t}>{t}{t === 1 ? 'ère' : 'ème'}</option>
-              ))}
-            </select>
-            {/* Dates */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Du</span>
-              <input type="date"
-                className="px-3 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] transition-all"
-                value={filterDateDe} onChange={e => setFilterDateDe(e.target.value)} />
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">au</span>
-              <input type="date"
-                className="px-3 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] transition-all"
-                value={filterDateA} onChange={e => setFilterDateA(e.target.value)} />
-            </div>
-          </div>
-        </div>
+        <BarreFiltres>
+          <Recherche value={search} onChange={setSearch} placeholder="Rechercher par nom ou prénom…" />
+          <Filtre icone="journal-text" value={filterType} onChange={setFilterType}>
+            <option value="">Tous les types</option>
+            <option value="CODE">Code</option>
+            <option value="CONDUITE">Conduite</option>
+          </Filtre>
+          <Filtre icone="trophy" value={filterResultat} onChange={setFilterResultat}>
+            <option value="">Tous les résultats</option>
+            <option value="ADMIS">Admis</option>
+            <option value="REFUSE">Refusé</option>
+            <option value="EN_ATTENTE">En attente</option>
+          </Filtre>
+          <Filtre icone="arrow-repeat" value={filterTentative} onChange={setFilterTentative}>
+            <option value="">Toutes les tentatives</option>
+            {tentatives.map(t => <option key={t} value={t}>{t}{t === 1 ? 're' : 'e'} tentative</option>)}
+          </Filtre>
+          <FiltreDate libelle="Du" value={filterDateDe} onChange={setFilterDateDe} />
+          <FiltreDate libelle="Au" value={filterDateA} onChange={setFilterDateA} />
+          {(search || filterType || filterResultat || filterTentative || filterDateDe || filterDateA) && (
+            <Reinitialiser onClick={() => { setSearch(''); setFilterType(''); setFilterResultat(''); setFilterTentative(''); setFilterDateDe(''); setFilterDateA('') }} />
+          )}
+        </BarreFiltres>
       )}
 
       {/* ── Liste des examens ─────────────────────────────────── */}

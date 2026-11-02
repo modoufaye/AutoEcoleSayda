@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { useAuth } from '../context/AuthContext'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
-import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
+import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Filtre, Reinitialiser } from './ListeModerne'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -46,6 +47,9 @@ const STATUT_V = {
 
 
 export default function Vehicules({ onBack }) {
+  // Le moniteur consulte et modifie les véhicules, mais ne peut ni en ajouter ni en supprimer.
+  const { user } = useAuth()
+  const isMoniteur = user?.role === 'MONITEUR'
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [statutFilter, setStatutFilter] = useState('')
@@ -127,50 +131,27 @@ export default function Vehicules({ onBack }) {
           <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Véhicules</h2>
           <p className="text-sm text-slate-400 mt-0.5">Gérez votre flotte de véhicules et leur entretien</p>
         </div>
-        <button
+        {!isMoniteur && <button
           onClick={() => openModal()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
           <i className="bi bi-plus-lg" style={{ fontSize: '.9rem' }} />
           Véhicule
-        </button>
+        </button>}
       </div>
 
       {/* ── Barre de filtres ─────────────────────────────────── */}
-      <div className="bg-white rounded-2xl px-5 py-4 flex flex-wrap gap-3" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="flex items-center gap-2 flex-1 min-w-[180px]">
-          <i className="bi bi-funnel text-slate-400" style={{ fontSize: '.85rem' }} />
-          <select
-            className="flex-1 px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] cursor-pointer"
-            value={statutFilter}
-            onChange={e => setStatutFilter(e.target.value)}>
-            <option value="">Tous les statuts</option>
-            <option value="DISPONIBLE">Disponible</option>
-            <option value="EN_COURS">En cours</option>
-            <option value="EN_MAINTENANCE">En maintenance</option>
-            <option value="HORS_SERVICE">Hors service</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2 flex-1 min-w-[160px]">
-          <i className="bi bi-tag text-slate-400" style={{ fontSize: '.85rem' }} />
-          <select
-            className="flex-1 px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] cursor-pointer"
-            value={catFilter}
-            onChange={e => setCatFilter(e.target.value)}>
-            <option value="">Toutes catégories</option>
-            {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        {(statutFilter || catFilter) && (
-          <button
-            onClick={() => { setStatutFilter(''); setCatFilter('') }}
-            className="px-3 py-2 rounded-xl text-xs font-semibold border-0 cursor-pointer transition-all"
-            style={{ background: '#fee2e2', color: '#b91c1c' }}>
-            <i className="bi bi-x-lg me-1" style={{ fontSize: '.7rem' }} />
-            Réinitialiser
-          </button>
-        )}
-      </div>
+      <BarreFiltres>
+        <Filtre icone="funnel" value={statutFilter} onChange={setStatutFilter}>
+          <option value="">Tous les statuts</option>
+          {Object.entries(STATUT_V).map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}
+        </Filtre>
+        <Filtre icone="award" value={catFilter} onChange={setCatFilter}>
+          <option value="">Toutes catégories</option>
+          {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>Permis {c}</option>)}
+        </Filtre>
+        {(statutFilter || catFilter) && <Reinitialiser onClick={() => { setStatutFilter(''); setCatFilter('') }} />}
+      </BarreFiltres>
 
       {/* ── Liste des véhicules ───────────────────────────────── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
@@ -240,7 +221,7 @@ export default function Vehicules({ onBack }) {
                   <div className="flex items-center gap-1.5">
                     <BoutonRond title="Voir le véhicule" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => setProfil(v)} />
                     <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(v)} />
-                    <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(v.id)} />
+                    {!isMoniteur && <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(v.id)} />}
                   </div>
                 </div>
               </LigneListe>

@@ -9,7 +9,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
-import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 import { champCls, stylePastille } from './fenetreStyles'
 
 const PAGE_SIZE = 10
@@ -622,15 +622,9 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
       </div>
 
       {/* Barre de filtres */}
-      <div className="bg-white rounded-2xl p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="relative">
-          <i className="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" style={{ fontSize: '.85rem' }} />
-          <input type="text"
-            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm text-slate-700 outline-none focus:border-[#1e3a5f] transition-all"
-            placeholder="Rechercher par nom ou prénom…"
-            value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-      </div>
+      <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder="Rechercher par nom ou prénom…" />
+      </BarreFiltres>
 
       {/* Liste des moniteurs */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
