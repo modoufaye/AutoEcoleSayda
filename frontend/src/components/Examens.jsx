@@ -184,8 +184,11 @@ export default function Examens({ onEleveClick, onBack }) {
             <option value="">Toutes les tentatives</option>
             {tentatives.map(t => <option key={t} value={t}>{t}{t === 1 ? 're' : 'e'} tentative</option>)}
           </Filtre>
-          <FiltreDate libelle="Du" value={filterDateDe} onChange={setFilterDateDe} />
-          <FiltreDate libelle="Au" value={filterDateA} onChange={setFilterDateA} />
+          {/* Du et Au restent ensemble (côte à côte) quelle que soit la largeur de l'écran */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            <FiltreDate libelle="Du" value={filterDateDe} onChange={setFilterDateDe} />
+            <FiltreDate libelle="Au" value={filterDateA} onChange={setFilterDateA} />
+          </div>
           {(search || filterType || filterResultat || filterTentative || filterDateDe || filterDateA) && (
             <Reinitialiser onClick={() => { setSearch(''); setFilterType(''); setFilterResultat(''); setFilterTentative(''); setFilterDateDe(''); setFilterDateA('') }} />
           )}
