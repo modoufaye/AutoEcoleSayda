@@ -134,45 +134,56 @@ export default function Paiements({ onEleveClick }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* ── En-tête de page ─────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Paiements</h2>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {list.length} paiement{list.length !== 1 ? 's' : ''} enregistré{list.length !== 1 ? 's' : ''}
-            {enAttente > 0 && <span className="font-semibold" style={{ color: '#a16207' }}> · {enAttente} à valider</span>}
-          </p>
-        </div>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
-          <i className="bi bi-plus-lg" style={{ fontSize: '.9rem' }} />
-          Paiement
-        </button>
-      </div>
-
-      {/* ── Banner total encaissé ────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg, #16a34a, #4ade80)', boxShadow: '0 8px 24px rgba(74,222,128,.25)' }}>
-        <div className="absolute inset-0 opacity-[0.04]"
-          style={{ backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)', backgroundSize: '14px 14px' }} />
-        <div className="relative flex items-center gap-5 px-6 py-5">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }}>
-            <i className="bi bi-cash-coin" style={{ color: '#fff', fontSize: '1.5rem' }} />
-          </div>
-          <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-emerald-100 mb-1">Total encaissé</div>
-            <div className="text-3xl font-extrabold text-white leading-none">
-              {totalEncaisse != null ? fmtMontant(totalEncaisse) : '—'}
+      {/* ── En-tête : titre, chiffres clés, total encaissé ──────── */}
+      {(() => {
+        // Reste à percevoir : pour chaque élève ayant un prix, prix − payé (jamais négatif).
+        const eleves = {}
+        for (const p of list) if (p.eleve?.montantTotal != null) eleves[p.eleve.id] = Number(p.eleve.montantTotal)
+        const aPercevoir = Object.entries(eleves).reduce((s, [id, tot]) => s + Math.max(0, tot - (parEleve[id]?.paye || 0)), 0)
+        const pastille = (icon, txt, couleur = '#bfdbfe', fond = 'rgba(255,255,255,.1)') => (
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full sm:whitespace-nowrap"
+            style={{ background: fond, color: couleur, border: '1px solid rgba(255,255,255,.12)' }}>
+            <i className={`bi bi-${icon}`} />{txt}
+          </span>
+        )
+        return (
+          <div className="rounded-2xl overflow-hidden relative"
+            style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 55%,#2a4f7c 100%)', boxShadow: '0 10px 30px rgba(15,34,64,.25)' }}>
+            <div className="absolute -top-16 -right-10 w-64 h-64 rounded-full opacity-10" style={{ background: 'radial-gradient(circle,#f0bb2a,transparent 70%)' }} />
+            <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
+            <div className="relative px-5 sm:px-7 py-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+              <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0 text-xl sm:text-2xl"
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 6px 16px rgba(212,160,23,.35)' }}>
+                  <i className="bi bi-cash-coin" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>Caisse de l'auto-école</div>
+                  <h2 className="text-xl sm:text-2xl text-white leading-tight m-0" style={{ fontWeight: 800 }}>Gestion des paiements</h2>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {pastille('receipt', `${list.length} paiement${list.length !== 1 ? 's' : ''} enregistré${list.length !== 1 ? 's' : ''}`)}
+                    {enAttente > 0 && pastille('hourglass-split', `${enAttente} à valider`, '#1e3a5f', '#fcd34d')}
+                    {pastille('hourglass-bottom', `Reste à percevoir : ${fmtMontant(aPercevoir)}`, '#fde68a')}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between lg:justify-end gap-5 flex-wrap">
+                <div className="lg:text-right">
+                  <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#93c5fd' }}>Total encaissé</div>
+                  <div className="text-3xl font-extrabold leading-tight whitespace-nowrap" style={{ color: '#86efac' }}>
+                    {totalEncaisse != null ? fmtMontant(totalEncaisse) : '—'}
+                  </div>
+                </div>
+                <button onClick={() => openModal()}
+                  className="flex items-center gap-2 px-5 py-3 text-sm font-extrabold border-0 cursor-pointer transition-all hover:-translate-y-0.5"
+                  style={{ borderRadius: '.9rem', background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 6px 16px rgba(212,160,23,.35)' }}>
+                  <i className="bi bi-plus-lg" />Paiement
+                </button>
+              </div>
             </div>
-            <div className="text-sm text-emerald-100 mt-1 font-medium">
-              {list.length} paiement{list.length !== 1 ? 's' : ''} enregistré{list.length !== 1 ? 's' : ''}
-            </div>
           </div>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* ── Filtres de période ───────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
