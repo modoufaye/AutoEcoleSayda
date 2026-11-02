@@ -16,9 +16,11 @@ export function EnteteListe({ icone, emoji, titre, sousTitre, nombre }) {
           {sousTitre && <div className="text-xs" style={{ color: '#bfdbfe' }}>{sousTitre}</div>}
         </div>
       </div>
-      <span className="text-xs font-extrabold px-3 py-1 rounded-full flex-shrink-0" style={{ background: '#f0bb2a', color: '#1e3a5f' }}>
-        {nombre}
-      </span>
+      {nombre != null && (
+        <span className="text-xs font-extrabold px-3 py-1 rounded-full flex-shrink-0" style={{ background: '#f0bb2a', color: '#1e3a5f' }}>
+          {nombre}
+        </span>
+      )}
     </div>
   )
 }

@@ -57,7 +57,9 @@ public class SeanceMoniteurController {
                 .map(e -> Map.<String, Object>of(
                         "id",    e.getId(),
                         "nom",   e.getNom() + " " + e.getPrenom(),
-                        "email", e.getEmail() != null ? e.getEmail() : ""
+                        "email", e.getEmail() != null ? e.getEmail() : "",
+                        // Le téléphone sert d'identifiant depuis que l'e-mail a quitté les fiches
+                        "telephone", e.getTelephone() != null ? e.getTelephone() : ""
                 ))
                 .toList();
     }

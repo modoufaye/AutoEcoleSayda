@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
-import { EnteteListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
+import { EnteteListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
+import { Etiquette } from './FenetreModerne'
+import { champCls } from './fenetreStyles'
 import '../landing.css'
 
 const THEMES = [
@@ -132,6 +134,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   const [seances, setSeances]         = useState([])
   const [recherche, setRecherche]     = useState('')
   const [statutFiltre, setStatutFiltre] = useState('')
+  const [rechercheEleve, setRechercheEleve] = useState('')
   const [eleves, setEleves]           = useState([])
   const [loading, setLoading]         = useState(true)
   const [view, setView]               = useState('list')
@@ -249,47 +252,80 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
     load()
   }
 
-  const inputCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
-  const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
   if (loading) return (
     <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}><ListeChargement /></div>
   )
 
   /* ── ÉDITEUR ── */
+  /* Élèves assignables filtrés par la recherche (nom ou téléphone) */
+  const qEleve = rechercheEleve.trim().toLowerCase()
+  const elevesVisibles = qEleve
+    ? eleves.filter(e => `${e.nom} ${e.telephone || ''}`.toLowerCase().includes(qEleve))
+    : eleves
+  const toutCocher = coche => setForm(f => {
+    const ids = new Set(f.eleveIds)
+    elevesVisibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
+    return { ...f, eleveIds: [...ids] }
+  })
+  const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
+  const BLOCS = [
+    { type: 'TEXTE', label: 'Texte', icon: 'pencil-fill',       color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    { type: 'IMAGE', label: 'Image', icon: 'image-fill',        color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+    { type: 'VIDEO', label: 'Vidéo', icon: 'camera-video-fill', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+    { type: 'AUDIO', label: 'Audio', icon: 'music-note-beamed', color: '#9333ea', bg: '#fdf4ff', border: '#e9d5ff' },
+  ]
+
+  /* ── ÉDITEUR : même style que les fenêtres modernes (en-tête bleu nuit souligné d'or, cartes à bandeau) ── */
   if (enEditeur) return (
     <div data-saisie style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
-      {/* Barre du haut */}
-      <div className="flex items-center gap-4 flex-wrap">
+      <div style={{ marginBottom: '1rem' }}>
         <button onClick={fermerEditeur} className="btn-retour">
           <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
           Retour
         </button>
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
-            {editId ? 'Modifier la séance' : 'Nouvelle séance'}
-          </h2>
-        </div>
-        <div className="ml-auto flex gap-3">
-          <button
-            className="flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl border-0 cursor-pointer transition-all"
-            style={{ background: '#f1f5f9', color: '#475569' }}
-            disabled={saving}
-            onClick={() => handleSave('BROUILLON')}
-          >
-            {saving ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin" /> : <i className="bi bi-save" />}
-            Brouillon
-          </button>
-          <button
-            className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer transition-all text-white"
-            style={{ background: 'linear-gradient(135deg,#059669,#10b981)', boxShadow: '0 4px 12px rgba(5,150,105,.25)' }}
-            disabled={saving}
-            onClick={() => handleSave('PUBLIE')}
-          >
-            <i className="bi bi-send-fill" />
-            Publier
-          </button>
+      </div>
+
+      {/* En-tête : titre de la séance et actions Brouillon / Publier */}
+      <div className="rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017', boxShadow: '0 8px 28px rgba(15,34,64,.22)' }}>
+        <div className="px-5 sm:px-6 py-5 flex flex-wrap items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+            <i className="bi bi-camera-video-fill" style={{ fontSize: '1.25rem' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>
+              {editId ? 'Modifier la séance' : 'Nouvelle séance'}
+            </div>
+            <div className="text-lg sm:text-xl font-extrabold text-white leading-tight truncate">
+              {form.titre.trim() || 'Séance sans titre'}
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: '#bfdbfe' }}>
+              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+            <button
+              className="flex items-center justify-center gap-2 text-sm font-bold px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5"
+              style={{ minHeight: 42, borderRadius: 999, background: 'rgba(255,255,255,.14)', color: '#fff', border: '1.5px solid rgba(255,255,255,.25)' }}
+              disabled={saving}
+              onClick={() => handleSave('BROUILLON')}
+            >
+              {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <i className="bi bi-save" />}
+              Brouillon
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 text-sm font-extrabold px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              style={{ minHeight: 42, borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}
+              disabled={saving}
+              onClick={() => handleSave('PUBLIE')}
+            >
+              <i className="bi bi-send-fill" />
+              Publier
+            </button>
+          </div>
         </div>
       </div>
 
@@ -302,31 +338,25 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
       )}
 
       <div className="grid lg:grid-cols-3 gap-5">
-        {/* Métadonnées */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-            <div className="px-5 py-3 flex items-center gap-2"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderBottom: '2px solid #1e3a5f' }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
-                <i className="bi bi-info-circle-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-              </div>
-              <span className="font-bold text-white text-sm">Informations</span>
-            </div>
+        <div className="space-y-5">
+          {/* Informations */}
+          <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
+            <EnteteListe icone="info-circle-fill" titre="Informations" sousTitre="Titre, date et thème" />
             <div className="p-5 space-y-4">
               <div>
-                <label className={labelCls}>Titre <span className="text-red-400">*</span></label>
-                <input className={inputCls} value={form.titre}
+                <Etiquette requis>Titre</Etiquette>
+                <input className={champCls} value={form.titre}
                   onChange={e => setField('titre', e.target.value)}
                   placeholder="Ex : Comprendre les panneaux d'interdiction" />
               </div>
               <div>
-                <label className={labelCls}>Date et heure</label>
-                <input type="datetime-local" className={inputCls}
+                <Etiquette>Date et heure</Etiquette>
+                <input type="datetime-local" className={champCls}
                   value={form.dateHeure} onChange={e => setField('dateHeure', e.target.value)} />
               </div>
               <div>
-                <label className={labelCls}>Thème</label>
-                <select className={inputCls} value={form.theme} onChange={e => setField('theme', e.target.value)}>
+                <Etiquette>Thème</Etiquette>
+                <select className={champCls} value={form.theme} onChange={e => setField('theme', e.target.value)}>
                   <option value="">— Choisir un thème —</option>
                   {THEMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
@@ -334,37 +364,45 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
             </div>
           </div>
 
-          {/* Élèves */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-            <div className="px-5 py-3 flex items-center gap-2"
-              style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', borderBottom: '2px solid #b8860b' }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(30,58,95,.2)' }}>
-                <i className="bi bi-people-fill" style={{ color: '#1e3a5f', fontSize: '.85rem' }} />
+          {/* Élèves assignés */}
+          <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
+            <EnteteListe icone="people-fill" titre="Élèves" sousTitre="Qui verra la séance" nombre={`${form.eleveIds.length}/${eleves.length}`} />
+            {eleves.length > 0 && (
+              <div className="px-4 pt-4 pb-2 space-y-2" style={{ borderBottom: '1px solid #eef2f7' }}>
+                <div className="flex"><Recherche value={rechercheEleve} onChange={setRechercheEleve} placeholder="Nom ou téléphone…" /></div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => toutCocher(true)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
+                    <i className="bi bi-check2-all" />Tous
+                  </button>
+                  <button type="button" onClick={() => toutCocher(false)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
+                    <i className="bi bi-x-lg" />Aucun
+                  </button>
+                </div>
               </div>
-              <span className="font-bold text-slate-800 text-sm">Élèves assignés</span>
-              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(30,58,95,.2)', color: '#1e3a5f' }}>
-                {form.eleveIds.length}/{eleves.length}
-              </span>
-            </div>
-            <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+            )}
+            <div style={{ maxHeight: 340, overflowY: 'auto' }}>
               {eleves.length === 0 ? (
-                <div className="text-center py-6 text-sm text-slate-400">Aucun élève enregistré</div>
+                <ListeVide texte="Aucun élève enregistré" icone="people" />
+              ) : elevesVisibles.length === 0 ? (
+                <ListeVide texte="Aucun élève trouvé" icone="search" />
               ) : (
-                eleves.map(e => {
+                elevesVisibles.map(e => {
                   const checked = form.eleveIds.includes(e.id)
+                  const [nom, ...prenoms] = (e.nom || '').split(' ')
                   return (
                     <div key={e.id}
-                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all border-b border-slate-50"
-                      style={{ background: checked ? '#eff6ff' : '#fff' }}
+                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-slate-50"
+                      style={{ background: checked ? '#fffbeb' : '#fff', borderBottom: '1px solid #f1f5f9' }}
                       onClick={() => toggleEleve(e.id)}
                     >
-                      <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all"
-                        style={{ borderColor: checked ? '#1e3a5f' : '#cbd5e1', background: checked ? '#1e3a5f' : 'transparent' }}>
-                        {checked && <i className="bi bi-check" style={{ color: '#fff', fontSize: '.65rem' }} />}
+                      <AvatarRond prenom={prenoms.join(' ')} nom={nom} taille={34} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</div>
+                        {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}</div>}
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-700 truncate">{e.nom}</div>
-                        <div className="text-xs text-slate-400 truncate">{e.email}</div>
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+                        style={{ border: `2px solid ${checked ? '#d4a017' : '#cbd5e1'}`, background: checked ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
+                        {checked && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
                       </div>
                     </div>
                   )
@@ -374,28 +412,14 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
           </div>
         </div>
 
-        {/* Éditeur de blocs */}
+        {/* Contenu pédagogique */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-            <div className="px-5 py-3 flex items-center gap-3"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderBottom: '2px solid #1e3a5f' }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
-                <i className="bi bi-layout-text-window-reverse" style={{ color: '#fff', fontSize: '.85rem' }} />
-              </div>
-              <span className="font-bold text-white text-sm">Contenu pédagogique</span>
-              <span className="ml-auto text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>
-                {form.blocs.length} bloc(s)
-              </span>
-            </div>
+          <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
+            <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />
 
             <div className="p-5">
               {form.blocs.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 gap-3">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
-                    <i className="bi bi-plus-square" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-                  </div>
-                  <div className="text-sm font-medium text-slate-400">Ajoutez des blocs de contenu ci-dessous</div>
-                </div>
+                <ListeVide texte="Ajoutez des blocs de contenu avec les boutons ci-dessous" icone="plus-square" />
               )}
 
               {form.blocs.map((bloc, i) => (
@@ -404,27 +428,14 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                   onMove={moveBloc} onUpload={handleUpload} />
               ))}
 
-              <div className="flex gap-2 mt-2 pt-4 border-t border-slate-100">
-                <button className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-                  style={{ background: '#eff6ff', color: '#2563eb' }}
-                  onClick={() => addBloc('TEXTE')}>
-                  <i className="bi bi-pencil-fill" />+ Texte
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-                  style={{ background: '#f0fdf4', color: '#16a34a' }}
-                  onClick={() => addBloc('IMAGE')}>
-                  <i className="bi bi-image-fill" />+ Image
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-                  style={{ background: '#fef2f2', color: '#dc2626' }}
-                  onClick={() => addBloc('VIDEO')}>
-                  <i className="bi bi-camera-video-fill" />+ Vidéo
-                </button>
-                <button className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-                  style={{ background: '#fdf4ff', color: '#9333ea' }}
-                  onClick={() => addBloc('AUDIO')}>
-                  <i className="bi bi-music-note-beamed" />+ Audio
-                </button>
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-2 pt-4 border-t border-slate-100">
+                {BLOCS.map(b => (
+                  <button key={b.type} type="button" onClick={() => addBloc(b.type)}
+                    className="flex items-center justify-center gap-1.5 text-sm font-bold px-4 cursor-pointer transition-all hover:-translate-y-0.5 whitespace-nowrap"
+                    style={{ minHeight: 40, borderRadius: 999, background: b.bg, color: b.color, border: `1.5px solid ${b.border}` }}>
+                    <i className={`bi bi-${b.icon}`} />+ {b.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
