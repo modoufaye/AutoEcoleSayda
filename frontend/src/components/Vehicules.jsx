@@ -119,26 +119,27 @@ export default function Vehicules({ onBack }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {onBack && (
+      {/* Moniteur : même disposition que « Mes élèves », la barre de filtres en haut, sans Retour ni titre */}
+      {onBack && !isMoniteur && (
         <button onClick={onBack} className="btn-retour">
           <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
         </button>
       )}
 
       {/* ── En-tête de page ─────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      {!isMoniteur && <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Véhicules</h2>
           <p className="text-sm text-slate-400 mt-0.5">Gérez votre flotte de véhicules et leur entretien</p>
         </div>
-        {!isMoniteur && <button
+        <button
           onClick={() => openModal()}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
           <i className="bi bi-plus-lg" style={{ fontSize: '.9rem' }} />
           Véhicule
-        </button>}
-      </div>
+        </button>
+      </div>}
 
       {/* ── Barre de filtres ─────────────────────────────────── */}
       <BarreFiltres>
