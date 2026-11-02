@@ -3,6 +3,7 @@ import { api } from '../api'
 import { fmtDate, waLink } from '../utils'
 import { useAuth } from '../context/AuthContext'
 import { toast } from './Toast'
+import { EnteteListe } from './ListeModerne'
 import '../landing.css'
 
 const RES_STYLE = {
@@ -182,7 +183,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
 
       {/* ══ BANNIÈRE ══════════════════════════════════════════ */}
       <div className="rounded-2xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg, #142a47 0%, #1e3a5f 50%, #2a4f7c 100%)', boxShadow: '0 8px 32px rgba(30,58,95,.3)' }}>
+        style={{ background: 'linear-gradient(135deg, #142a47 0%, #1e3a5f 50%, #2a4f7c 100%)', borderBottom: '3px solid #d4a017', boxShadow: '0 8px 32px rgba(30,58,95,.3)' }}>
 
         <div className="absolute top-0 right-0 w-72 h-72 opacity-5 rounded-full -translate-y-1/2 translate-x-1/4"
           style={{ background: 'radial-gradient(circle, #d4a017, transparent)' }} />
@@ -303,21 +304,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       </div>
 
       {/* ── Parcours de formation ── */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="flex items-center gap-3 px-6 py-3"
-          style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4f7c 100%)', borderBottom: '2px solid #1e3a5f' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.18)' }}>
-            <i className="bi bi-map-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-          </div>
-          <div>
-            <div className="font-extrabold text-sm text-white leading-tight">Parcours de formation</div>
-            <div className="text-xs mt-0.5" style={{ color: 'rgba(147,197,253,.85)' }}>Votre progression étape par étape</div>
-          </div>
-          <span className="ms-auto text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>
-            {Math.round((journeySteps.filter(s => s.done).length / journeySteps.length) * 100)}%
-          </span>
-        </div>
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="map-fill" titre="Parcours de formation" sousTitre="Votre progression étape par étape" nombre={`${Math.round((journeySteps.filter(s => s.done).length / journeySteps.length) * 100)} %`} />
         <div className="px-4 py-5">
           <div className="flex items-start">
             {journeySteps.map((step, i) => (
@@ -363,44 +351,14 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       </div>
 
       {/* ══ COURS CODE ════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)', borderBottom: '2px solid #052e16' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.18)' }}>
-              <i className="bi bi-sign-turn-right-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm text-white leading-tight">Cours Code</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(147,197,253,.85)' }}>Formation théorique du code de la route</div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {leconsCode.length}
-          </span>
-        </div>
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="sign-turn-right-fill" titre="Cours Code" sousTitre="Formation théorique du code de la route" nombre={leconsCode.length} />
         <TableLecons lecons={leconsCode} empty={{ icon: 'book', text: 'Aucun cours de code enregistré' }} />
       </div>
 
       {/* ══ COURS CONDUITE ════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg, #78350f 0%, #b45309 100%)', borderBottom: '2px solid #4d1f04' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.18)' }}>
-              <i className="bi bi-car-front-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm text-white leading-tight">Cours Conduite</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(253,230,138,.85)' }}>Formation pratique à la conduite</div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {leconsConduite.length}
-          </span>
-        </div>
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="car-front-fill" titre="Cours Conduite" sousTitre="Formation pratique à la conduite" nombre={leconsConduite.length} />
         <TableLecons lecons={leconsConduite} empty={{ icon: 'car-front', text: 'Aucun cours de conduite enregistré' }} />
       </div>
 
@@ -408,18 +366,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       <div className="grid lg:grid-cols-2 gap-5">
 
         {/* Informations personnelles */}
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div className="flex items-center gap-3 px-6 py-3"
-            style={{ background: 'linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%)', borderBottom: '2px solid #3b0764' }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.2)' }}>
-              <i className="bi bi-person-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm leading-tight text-white">Informations personnelles</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(221,214,254,.85)' }}>Modifiables à tout moment</div>
-            </div>
-          </div>
-
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+          <EnteteListe icone="person-fill" titre="Informations personnelles" sousTitre="Modifiables à tout moment" />
           {editMode ? (
             <div className="px-6 py-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -481,7 +429,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
               <div className="px-6 py-4 border-t border-slate-50">
                 <button onClick={() => setEditMode(true)}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #4c1d95, #6d28d9)', color: '#fff', boxShadow: '0 4px 12px rgba(76,29,149,.35)' }}>
+                  style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
                   <i className="bi bi-pencil-fill" style={{ fontSize: '.8rem' }} />
                   Modifier mes informations
                 </button>
@@ -491,17 +439,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
         </div>
 
         {/* Informations de formation */}
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div className="flex items-center gap-3 px-6 py-3"
-            style={{ background: 'linear-gradient(135deg, #164e63 0%, #0891b2 100%)', borderBottom: '2px solid #0c3547' }}>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.2)' }}>
-              <i className="bi bi-mortarboard-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm text-white leading-tight">Informations de formation</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(165,243,252,.85)' }}>Gérées par l'administration</div>
-            </div>
-          </div>
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+          <EnteteListe icone="mortarboard-fill" titre="Informations de formation" sousTitre="Gérées par l'administration" />
           <div className="px-6 py-2">
             {[
               { icon: 'card-checklist', iconBg: '#eff6ff', iconColor: '#2563eb', label: 'Catégorie',     value: profil.categoriePermis },
@@ -597,23 +536,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       </div>
 
       {/* ══ EXAMENS ═══════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', borderBottom: '2px solid #450a0a' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.2)' }}>
-              <i className="bi bi-clipboard2-check-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm text-white leading-tight">Mes Examens</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(255,237,213,.85)' }}>Historique de vos passages</div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {examens.length}
-          </span>
-        </div>
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="clipboard2-check-fill" titre="Mes Examens" sousTitre="Historique de vos passages" nombre={examens.length} />
         {examens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
