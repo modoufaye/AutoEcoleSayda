@@ -275,8 +275,8 @@ export default function ElevePortail({ onGoSection }) {
         </div>
       )}
 
-      {/* ── Raccourcis rapides ── */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* ── Raccourcis rapides : une colonne sur téléphone, trois sur ordinateur ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { icon: 'play-circle-fill',      label: 'Mes Séances',  sub: 'Cours vidéo',                  color: '#06b6d4', bg: 'linear-gradient(135deg,#ecfeff,#f0fdff)', border: '#a5f3fc', sec: 'seances-eleve' },
           { icon: 'sign-turn-right-fill',  label: 'Cours Code',   sub: 'Théorie du code de la route',  color: '#d4a017', bg: 'linear-gradient(135deg,#fefce8,#fffbeb)', border: '#fde68a', sec: 'cours' },

@@ -378,7 +378,7 @@ function DashboardAdmin({ stats, user }) {
                   style={{ width: `${val / stats.totalEleves * 100}%`, background: color }} />
               ))}
             </div>
-            <div className="flex gap-4 mt-2">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
               {[
                 { label: 'En formation', color: '#3b82f6', val: stats.elevesEnCours },
                 { label: 'Diplômés',     color: '#10b981', val: stats.elevesDiplomes },
