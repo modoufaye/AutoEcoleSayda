@@ -48,18 +48,32 @@ public class UploadController {
     @PostMapping(value = "/api/moniteur/upload/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> uploadAudio(@RequestParam("file") MultipartFile file) throws IOException {
         return saveFile(file, "audios",
-                List.of("audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/aac", "audio/webm", "audio/mp4"));
+                // M4A : mémos vocaux iPhone et enregistreurs Android (audio/x-m4a selon le navigateur)
+                List.of("audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave",
+                        "audio/ogg", "audio/opus", "audio/aac", "audio/x-aac", "audio/webm",
+                        "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/flac", "audio/x-flac"),
+                List.of(".mp3", ".wav", ".ogg", ".oga", ".opus", ".aac", ".webm", ".m4a", ".mp4", ".flac"));
     }
 
     private Map<String, String> saveFile(MultipartFile file, String subDir, List<String> allowed) throws IOException {
+        return saveFile(file, subDir, allowed, List.of());
+    }
+
+    /* Type accepté si le navigateur en annonce un de la liste ; s'il n'annonce rien d'utile
+       (application/octet-stream, fréquent sur téléphone), on se fie à l'extension du fichier. */
+    private Map<String, String> saveFile(MultipartFile file, String subDir, List<String> allowed,
+                                         List<String> extensions) throws IOException {
         String ct = file.getContentType();
-        if (ct == null || allowed.stream().noneMatch(ct::startsWith)) {
-            throw new BusinessException("Type de fichier non autorisé : " + ct);
-        }
         String orig = file.getOriginalFilename();
         String ext = (orig != null && orig.contains("."))
                 ? orig.substring(orig.lastIndexOf('.'))
                 : "";
+        boolean typeOk = ct != null && allowed.stream().anyMatch(ct::startsWith);
+        boolean typeInconnu = ct == null || ct.isBlank() || ct.equals("application/octet-stream");
+        boolean extOk = extensions.contains(ext.toLowerCase());
+        if (!typeOk && !(typeInconnu && extOk)) {
+            throw new BusinessException("Type de fichier non autorisé : " + ct);
+        }
         String filename = UUID.randomUUID() + ext;
         Path dest = Paths.get(uploadDir, subDir, filename);
         Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);

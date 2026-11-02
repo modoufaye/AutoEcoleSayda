@@ -108,7 +108,7 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
 
         {bloc.typeBloc === 'AUDIO' && (
           <div>
-            <input type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/aac,audio/webm,audio/mp4"
+            <input type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.opus,.aac,.flac"
               className="w-full text-sm text-slate-500 mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700"
               onChange={e => e.target.files[0] && onUpload(index, e.target.files[0], 'audio')} />
             {bloc._uploading && (
