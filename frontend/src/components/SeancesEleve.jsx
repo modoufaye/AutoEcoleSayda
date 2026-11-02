@@ -60,7 +60,7 @@ function blocIcon(blocs) {
   return 'file-text-fill'
 }
 
-export default function SeancesEleve({ onBack }) {
+export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
   const [seances, setSeances]   = useState([])
   const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState(null)
@@ -81,19 +81,19 @@ export default function SeancesEleve({ onBack }) {
     </div>
   )
 
+  /* Séance dans l'URL (…/seances-eleve/12) quand la mise en page le gère : Retour (bouton,
+     navigateur, Android) revient à la liste des cours au lieu de quitter la page. */
+  const ouverte = onOuvrir ? seances.find(s => String(s.id) === String(seanceId)) : selected
+  const ouvrir = s => onOuvrir ? onOuvrir(s.id) : setSelected(s)
+  const fermer = () => onFermer ? onFermer() : setSelected(null)
+
   /* ── Détail d'une séance ── */
-  if (selected) return (
+  if (ouverte) return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {/* Bouton retour */}
-      <button
-        onClick={() => setSelected(null)}
-        className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-        style={{ background: '#f1f5f9', color: '#475569' }}
-        onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-        onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-      >
-        <i className="bi bi-arrow-left" />
+      <button onClick={fermer} className="btn-retour">
+        <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
         Retour aux cours
       </button>
 
@@ -103,19 +103,19 @@ export default function SeancesEleve({ onBack }) {
           style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', borderBottom: '2px solid #1e3a5f' }}>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: 'rgba(255,255,255,.15)' }}>
-            <i className={`bi bi-${blocIcon(selected.blocs)}`} style={{ color: '#fff', fontSize: '1.1rem' }} />
+            <i className={`bi bi-${blocIcon(ouverte.blocs)}`} style={{ color: '#fff', fontSize: '1.1rem' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-extrabold text-white text-lg leading-tight">{selected.titre}</div>
-            {selected.theme && (
-              <div className="text-blue-200 text-sm mt-0.5">{THEMES[selected.theme] || selected.theme}</div>
+            <div className="font-extrabold text-white text-lg leading-tight">{ouverte.titre}</div>
+            {ouverte.theme && (
+              <div className="text-blue-200 text-sm mt-0.5">{THEMES[ouverte.theme] || ouverte.theme}</div>
             )}
           </div>
-          {selected.dateHeure && (
+          {ouverte.dateHeure && (
             <span className="text-xs font-semibold px-3 py-1.5 rounded-full hidden sm:inline-block"
               style={{ background: 'rgba(255,255,255,.15)', color: '#e2e8f0' }}>
               <i className="bi bi-calendar3 me-1" />
-              {new Date(selected.dateHeure).toLocaleDateString('fr-FR', { dateStyle: 'long' })}
+              {new Date(ouverte.dateHeure).toLocaleDateString('fr-FR', { dateStyle: 'long' })}
             </span>
           )}
         </div>
@@ -125,16 +125,16 @@ export default function SeancesEleve({ onBack }) {
           <span className="flex items-center gap-1.5">
             <i className="bi bi-person-fill text-[#1e3a5f]" />
             <span className="font-medium">Moniteur :</span>
-            {selected.moniteurNom}
+            {ouverte.moniteurNom}
           </span>
           <span className="flex items-center gap-1.5">
             <i className="bi bi-layers-fill text-[#1e3a5f]" />
-            {selected.blocs.length} bloc(s) de contenu
+            {ouverte.blocs.length} bloc(s) de contenu
           </span>
         </div>
 
         <div className="px-6 py-5">
-          {selected.blocs.length === 0 ? (
+          {ouverte.blocs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
                 <i className="bi bi-inbox" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
@@ -142,7 +142,7 @@ export default function SeancesEleve({ onBack }) {
               <div className="text-sm font-medium text-slate-400">Aucun contenu dans cette séance</div>
             </div>
           ) : (
-            selected.blocs.map((bloc, i) => <BlocViewer key={i} bloc={bloc} />)
+            ouverte.blocs.map((bloc, i) => <BlocViewer key={i} bloc={bloc} />)
           )}
         </div>
       </div>
@@ -155,14 +155,8 @@ export default function SeancesEleve({ onBack }) {
 
       {/* Bouton retour */}
       {onBack && (
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-          style={{ background: '#f1f5f9', color: '#475569' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-        >
-          <i className="bi bi-arrow-left" />
+        <button onClick={onBack} className="btn-retour">
+          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
           Retour
         </button>
       )}
@@ -205,7 +199,7 @@ export default function SeancesEleve({ onBack }) {
                   key={s.id}
                   className="flex items-center gap-4 px-6 py-4 cursor-pointer transition-all hover:bg-blue-50/40"
                   style={{ background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}
-                  onClick={() => setSelected(s)}
+                  onClick={() => ouvrir(s)}
                 >
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: 'linear-gradient(135deg,#eff6ff,#dbeafe)' }}>
@@ -236,7 +230,7 @@ export default function SeancesEleve({ onBack }) {
                   <button
                     className="flex-shrink-0 flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
                     style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff', boxShadow: '0 2px 8px rgba(30,58,95,.2)' }}
-                    onClick={e => { e.stopPropagation(); setSelected(s) }}
+                    onClick={e => { e.stopPropagation(); ouvrir(s) }}
                   >
                     Voir
                     <i className="bi bi-arrow-right" style={{ fontSize: '.7rem' }} />

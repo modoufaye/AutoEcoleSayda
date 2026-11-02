@@ -127,7 +127,7 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
   )
 }
 
-export default function SeancesMoniteur({ isAdmin = false, onBack }) {
+export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onOuvrir, onFermer }) {
   const [seances, setSeances]         = useState([])
   const [eleves, setEleves]           = useState([])
   const [loading, setLoading]         = useState(true)
@@ -155,6 +155,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
     setForm({ ...defaultForm(), eleveIds: eleves.map(e => e.id) })
     setErr('')
     setView('editor')
+    onOuvrir?.('nouvelle')
   }
 
   const openEdit = (s) => {
@@ -169,7 +170,12 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
     })
     setErr('')
     setView('editor')
+    onOuvrir?.(s.id)
   }
+  // Éditeur dans l'URL (…/seances-moniteur/12 ou /nouvelle) : Retour du navigateur ou
+  // d'Android revient à la liste ; arrivé directement sur l'URL sans formulaire, on montre la liste.
+  const fermerEditeur = () => onFermer ? onFermer() : setView('list')
+  const enEditeur = view === 'editor' && (!onOuvrir || !!seanceId)
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -229,7 +235,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
       if (editId) await api('PUT',  `/moniteur/seances/${editId}`, payload)
       else        await api('POST', '/moniteur/seances', payload)
       load()
-      setView('list')
+      fermerEditeur()
     } catch (e) { setErr(e.message) }
     finally { setSaving(false) }
   }
@@ -253,19 +259,13 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
   )
 
   /* ── ÉDITEUR ── */
-  if (view === 'editor') return (
+  if (enEditeur) return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {/* Barre du haut */}
       <div className="flex items-center gap-4 flex-wrap">
-        <button
-          onClick={() => setView('list')}
-          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-          style={{ background: '#f1f5f9', color: '#475569' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-        >
-          <i className="bi bi-arrow-left" />
+        <button onClick={fermerEditeur} className="btn-retour">
+          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
           Retour
         </button>
         <div>
@@ -441,14 +441,8 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
 
       {/* En-tête page */}
       {onBack && (
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-          style={{ background: '#f1f5f9', color: '#475569' }}
-          onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-          onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-        >
-          <i className="bi bi-arrow-left" />
+        <button onClick={onBack} className="btn-retour">
+          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
           Retour
         </button>
       )}

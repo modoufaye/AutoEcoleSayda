@@ -303,11 +303,11 @@ export default function AppLayout() {
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} />
             : section === 'seances-moniteur' && user?.role === 'SUPER_ADMIN'
-            ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={handleBack} />
+            ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-moniteur'
-            ? <SeancesMoniteur key="seances-moniteur" onBack={handleBack} />
+            ? <SeancesMoniteur key="seances-moniteur" onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-eleve'
-            ? <SeancesEleve key="seances-eleve" onBack={handleBack} />
+            ? <SeancesEleve key="seances-eleve" onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'examens'
             ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? handleBack : undefined} />
             : section === 'paiements'
