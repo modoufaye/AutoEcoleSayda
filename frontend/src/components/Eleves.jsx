@@ -705,6 +705,9 @@ export default function Eleves({ initialEleveId }) {
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  // Fenêtre d'inscription : 'moderne' (par défaut) ou 'classique' ; préférence locale au navigateur.
+  const [vueModale, setVueModale] = useState(() => { try { return localStorage.getItem('vueModaleEleve') || 'moderne' } catch { return 'moderne' } })
+  const choisirVue = (v) => { setVueModale(v); try { localStorage.setItem('vueModaleEleve', v) } catch { /* stockage indisponible */ } }
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(1)
@@ -889,6 +892,258 @@ export default function Eleves({ initialEleveId }) {
   }
 
   /* ── Modal ─────────────────────────────────────────────── */
+  /* ── Inscription « moderne » (+ Élève) ─────────────────────
+     La fenêtre classique (Modal) reste disponible : lien « Ancienne vue » dans l'en-tête,
+     choix retenu dans le navigateur. La modification d'un élève garde la fenêtre classique. */
+  function ModalModerne() {
+    const inputCls = "w-full px-3.5 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#d4a017] transition-all"
+    const labelCls = "block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+    const set = (k, v) => setForm(fm => ({ ...fm, [k]: v }))
+    const total = parseFloat(form.montantTotal) || 0
+    const acompte = parseFloat(form.montantAvance) || 0
+    const pct = total > 0 ? Math.min(100, Math.round(acompte / total * 100)) : 0
+    const nbDocs = DOCS.filter(d => form[d.key]).length
+    const PERMIS = [
+      { v: 'A', icon: 'scooter',          txt: 'Moto' },
+      { v: 'B', icon: 'car-front-fill',   txt: 'Voiture' },
+      { v: 'C', icon: 'truck-front-fill', txt: 'Poids lourd' },
+      { v: 'D', icon: 'bus-front-fill',   txt: 'Transport' },
+    ]
+    const MODES = [
+      { v: 'ESPECES',      icon: 'cash-coin', txt: 'Espèces',      color: '#15803d', bg: '#dcfce7' },
+      { v: 'WAVE',         icon: 'water',     txt: 'Wave',         color: '#0284c7', bg: '#e0f2fe' },
+      { v: 'ORANGE_MONEY', icon: 'phone-fill', txt: 'Orange Money', color: '#ea580c', bg: '#ffedd5' },
+    ]
+    // Appelée comme fonction, pas comme composant : un composant redéfini à chaque rendu
+    // serait remonté à chaque frappe et le champ perdrait le focus.
+    const section = (n, icon, titre, children) => (
+      <div className="bg-white rounded-2xl p-4 sm:p-5" style={{ boxShadow: '0 1px 4px rgba(15,34,64,.06)', border: '1px solid #eef2f7' }}>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{n}</span>
+          <i className={`bi bi-${icon}`} style={{ color: '#1e3a5f' }} />
+          <span className="font-extrabold text-slate-800">{titre}</span>
+        </div>
+        {children}
+      </div>
+    )
+    const pill = (actif, extra = {}) => ({
+      borderRadius: '.85rem', border: `2px solid ${actif ? (extra.color || '#1e3a5f') : '#e2e8f0'}`,
+      background: actif ? (extra.bg || '#eff6ff') : '#fff', color: actif ? (extra.color || '#1e3a5f') : '#64748b',
+      transition: 'all .15s',
+    })
+    const nomComplet = `${form.prenom} ${form.nom}`.trim()
+
+    return (
+      <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.6)', backdropFilter: 'blur(6px)' }}>
+        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div className="modal-content border-0" style={{ borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,.3)' }}>
+            {/* En-tête : aperçu de l'élève en cours de saisie */}
+            <div className="px-6 pt-5 pb-5 relative" style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 55%,#2a4f7c 100%)' }}>
+              <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
+              <button className="btn-close btn-close-white position-absolute top-4 end-4" onClick={() => setShowModal(false)} />
+              <div className="flex items-center gap-4">
+                {form.photoUrl ? (
+                  <img src={form.photoUrl} alt="" className="w-16 h-16 rounded-full flex-shrink-0"
+                    style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '3px solid #f0bb2a' }} />
+                ) : (
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-extrabold"
+                    style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+                    {nomComplet ? initials(form.nom, form.prenom) : <i className="bi bi-person-plus-fill" />}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>Nouvelle inscription</div>
+                  <div className="text-xl font-extrabold text-white leading-tight truncate">{nomComplet || 'Nouvel élève'}</div>
+                  <div className="text-xs mt-1 flex flex-wrap gap-x-3" style={{ color: '#bfdbfe' }}>
+                    {form.categoriePermis && <span><i className="bi bi-award me-1" />Permis {form.categoriePermis}</span>}
+                    {form.site && <span><i className="bi bi-geo-alt me-1" />{LABELS[form.site]}</span>}
+                    {total > 0 && <span><i className="bi bi-cash-stack me-1" />{fmtMontant(total)}</span>}
+                  </div>
+                </div>
+              </div>
+              <button type="button" onClick={() => choisirVue('classique')}
+                className="absolute bottom-3 end-5 text-[11px] font-semibold border-0 bg-transparent p-0 cursor-pointer"
+                style={{ color: 'rgba(191,219,254,.75)' }}>
+                <i className="bi bi-arrow-counterclockwise me-1" />Ancienne vue
+              </button>
+            </div>
+
+            <div className="modal-body px-4 sm:px-6 py-5 space-y-4" style={{ background: '#f4f6fa' }}>
+              {section(1, "person-vcard", "Identité", <>
+                <div className="mb-3"><PhotoPicker value={form.photoUrl} onChange={url => set('photoUrl', url)} /></div>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Prénom <span className="text-red-500">*</span></label>
+                    <input className={inputCls} value={form.prenom} onChange={e => set('prenom', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Nom <span className="text-red-500">*</span></label>
+                    <input className={inputCls} value={form.nom} onChange={e => set('nom', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Téléphone <span className="text-red-500">*</span></label>
+                    <div className="flex">
+                      <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
+                        style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
+                      <input type="tel" className={inputCls} style={{ borderRadius: '0 .75rem .75rem 0' }} placeholder="77 123 45 67"
+                        value={form.telephone} onChange={e => set('telephone', e.target.value)} />
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">Sert d'identifiant de connexion à l'élève</div>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Date de naissance</label>
+                    <input type="date" className={inputCls} value={form.dateNaissance} onChange={e => set('dateNaissance', e.target.value)} />
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Adresse</label>
+                    <input className={inputCls} placeholder="Quartier, ville" value={form.adresse} onChange={e => set('adresse', e.target.value)} />
+                  </div>
+                </div>
+              </>)}
+
+              {section(2, "mortarboard", "Formation", <>
+                <label className={labelCls}>Permis <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {PERMIS.map(p => (
+                    <button key={p.v} type="button" onClick={() => set('categoriePermis', p.v)}
+                      className="flex flex-col items-center py-3 cursor-pointer" style={pill(form.categoriePermis === p.v)}>
+                      <i className={`bi bi-${p.icon}`} style={{ fontSize: '1.4rem' }} />
+                      <span className="text-lg font-extrabold leading-none mt-1">{p.v}</span>
+                      <span className="text-[10px] font-semibold mt-0.5 hidden sm:block">{p.txt}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Date d'inscription <span className="text-red-500">*</span></label>
+                    <input type="date" className={inputCls} max={today()} value={form.dateInscription} onChange={e => set('dateInscription', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Moniteur</label>
+                    <select className={inputCls} value={form.moniteurId} onChange={e => set('moniteurId', e.target.value)}>
+                      <option value="">— Aucun moniteur —</option>
+                      {moniteurs.filter(m => m.actif).map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Lieu d'inscription</label>
+                    <div className="flex flex-wrap gap-2">
+                      {LIEUX_INSCRIPTION.map(l => (
+                        <button key={l.value} type="button"
+                          onClick={() => setForm(fm => ({ ...fm, lieuInscription: l.value,
+                            // Inscrit en ligne : suivi par Massalikoul Djinane ; sinon le bureau suit le lieu.
+                            site: l.value === 'EN_LIGNE' ? (fm.site || 'MAZALIK_JINAN') : l.value }))}
+                          className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.lieuInscription === l.value)}>
+                          {l.value === 'EN_LIGNE' && <i className="bi bi-globe2 me-1" />}{l.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Bureau de suivi <span className="text-red-500">*</span></label>
+                    <div className="flex flex-wrap gap-2">
+                      {BUREAUX.map(b => (
+                        <button key={b.value} type="button" onClick={() => set('site', b.value)}
+                          className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.site === b.value)}>
+                          <i className="bi bi-building me-1" />{b.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>)}
+
+              {section(3, "wallet2", "Paiement", <>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Prix de la formation <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <input type="number" min="0" className={inputCls} style={{ paddingRight: '3.5rem' }} placeholder="150000"
+                        value={form.montantTotal} onChange={e => set('montantTotal', e.target.value)} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Acompte versé <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <input type="number" min="0" className={inputCls} style={{ paddingRight: '3.5rem' }} placeholder="50000"
+                        value={form.montantAvance} onChange={e => set('montantAvance', e.target.value)} />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span>
+                    </div>
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Mode de règlement</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {MODES.map(m => (
+                        <button key={m.v} type="button" onClick={() => set('moyenAcompte', m.v)}
+                          className="flex items-center justify-center gap-2 py-2.5 text-sm font-bold cursor-pointer"
+                          style={pill(form.moyenAcompte === m.v, m)}>
+                          <i className={`bi bi-${m.icon}`} /><span className="truncate">{m.txt}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {/* Récapitulatif en direct */}
+                <div className="mt-4 rounded-xl p-3" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
+                  <div className="grid grid-cols-3 text-center">
+                    {[['Total', total, '#fff'], ['Acompte', acompte, '#86efac'], ['Reliquat', Math.max(0, total - acompte), '#fcd34d']].map(([l, v, c]) => (
+                      <div key={l}>
+                        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#93c5fd' }}>{l}</div>
+                        <div className="text-sm sm:text-base font-extrabold" style={{ color: c }}>{fmtMontant(v)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)', transition: 'width .3s' }} />
+                  </div>
+                  <div className="text-[11px] mt-1.5" style={{ color: '#bfdbfe' }}>
+                    {acompte > total && total > 0 ? "⚠️ L'acompte dépasse le prix" : `${pct} % payé · l'acompte devient la 1re tranche`}
+                  </div>
+                </div>
+              </>)}
+
+              {section(4, "folder2-open", "Dossier", <>
+                <div className="flex items-center justify-between mb-2">
+                  <label className={labelCls + ' mb-0'}>Documents remis</label>
+                  <span className="text-xs font-bold" style={{ color: nbDocs === DOCS.length ? '#15803d' : '#94a3b8' }}>{nbDocs}/{DOCS.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {DOCS.map(doc => (
+                    <button key={doc.key} type="button" onClick={() => set(doc.key, !form[doc.key])}
+                      className="px-3 py-1.5 text-xs font-semibold cursor-pointer"
+                      style={{ ...pill(form[doc.key], { color: '#15803d', bg: '#dcfce7' }), borderRadius: '999px' }}>
+                      <i className={`bi bi-${form[doc.key] ? 'check-circle-fill' : 'circle'} me-1`} />{doc.label}
+                    </button>
+                  ))}
+                </div>
+                <label className={labelCls}>Dossier Service des Mines</label>
+                <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1' }}>
+                  <PiecesJointes eleveId={null} attente={piecesAttente} setAttente={setPiecesAttente}
+                    peutSupprimer={!isMoniteur} seulDossier />
+                </div>
+              </>)}
+            </div>
+
+            <div className="modal-footer border-0 px-6 py-3 flex items-center justify-between gap-2" style={{ background: '#fff', borderTop: '1px solid #eef2f7' }}>
+              <div className="text-xs text-slate-500 hidden sm:block">
+                {total > 0 ? <>Reliquat à percevoir : <strong className="text-slate-700">{fmtMontant(Math.max(0, total - acompte))}</strong></> : 'Les champs * sont obligatoires'}
+              </div>
+              <div className="flex gap-2 ms-auto">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.85rem' }} onClick={() => setShowModal(false)}>Annuler</button>
+                <button className="btn fw-bold px-4" onClick={save}
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', borderRadius: '.85rem', border: 'none', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
+                  <i className="bi bi-check2-circle me-1" />Inscrire l'élève
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   function Modal() {
     const inputCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
     const labelCls = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
@@ -920,7 +1175,13 @@ export default function Eleves({ initialEleveId }) {
                       {form.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{form.telephone}</div>}
                     </>
                   ) : (
-                    <div className="text-xl font-extrabold text-white leading-tight">Ajouter un élève</div>
+                    <>
+                      <div className="text-xl font-extrabold text-white leading-tight">Ajouter un élève</div>
+                      <button type="button" onClick={() => choisirVue('moderne')}
+                        className="text-[11px] font-semibold border-0 bg-transparent p-0 mt-1 cursor-pointer" style={{ color: '#f0bb2a' }}>
+                        <i className="bi bi-stars me-1" />Essayer la nouvelle vue
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -1344,7 +1605,7 @@ export default function Eleves({ initialEleveId }) {
           {!isMoniteur && <CompteEleveCard eleve={s} />}
         </div>
 
-        {showModal && Modal()}
+        {showModal && (!editId && vueModale === 'moderne' ? ModalModerne() : Modal())}
       </div>
     )
   }
@@ -1564,7 +1825,7 @@ export default function Eleves({ initialEleveId }) {
       </div>
 
       {showImport && <ImportEleves onClose={() => setShowImport(false)} onDone={load} />}
-      {showModal && Modal()}
+      {showModal && (!editId && vueModale === 'moderne' ? ModalModerne() : Modal())}
     </div>
   )
 }
