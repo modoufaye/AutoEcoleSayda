@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
+import { EnteteListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre } from './ListeModerne'
 import '../landing.css'
 
 const THEMES = [
@@ -129,6 +130,8 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
 
 export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onOuvrir, onFermer }) {
   const [seances, setSeances]         = useState([])
+  const [recherche, setRecherche]     = useState('')
+  const [statutFiltre, setStatutFiltre] = useState('')
   const [eleves, setEleves]           = useState([])
   const [loading, setLoading]         = useState(true)
   const [view, setView]               = useState('list')
@@ -250,12 +253,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
   if (loading) return (
-    <div className="flex items-center justify-center py-20" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin" />
-        <span className="text-sm text-slate-400">Chargement des séances…</span>
-      </div>
-    </div>
+    <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}><ListeChargement /></div>
   )
 
   /* ── ÉDITEUR ── */
@@ -436,71 +434,60 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   )
 
   /* ── LISTE ── */
+  const q = recherche.trim().toLowerCase()
+  const visibles = seances.filter(s =>
+    (!statutFiltre || s.statut === statutFiltre)
+    && (!q || `${s.titre || ''} ${THEME_MAP[s.theme] || s.theme || ''}`.toLowerCase().includes(q)))
+
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
-      {/* En-tête page */}
+      {/* En-tête : comme « Mes élèves », Retour puis directement la recherche avec le bouton d'ajout */}
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-          Retour
-        </button>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+            Retour
+          </button>
+        </div>
       )}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Mes Séances</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Cours que vous avez créés pour vos élèves</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer text-white transition-all"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}
-        >
-          <i className="bi bi-plus-lg" />
-          Nouvelle séance
+      <BarreFiltres>
+        <Recherche value={recherche} onChange={setRecherche} placeholder="Titre ou thème de la séance…" />
+        <Filtre icone="flag" value={statutFiltre} onChange={setStatutFiltre}>
+          <option value="">Tous les statuts</option>
+          <option value="PUBLIE">Publié</option>
+          <option value="BROUILLON">Brouillon</option>
+        </Filtre>
+        <button onClick={openCreate}
+          className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
+          style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+          <i className="bi bi-plus-lg" />Séance
         </button>
-      </div>
+      </BarreFiltres>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="px-6 py-3 flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderBottom: '2px solid #1e3a5f' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
-            <i className="bi bi-camera-video-fill" style={{ color: '#fff', fontSize: '.9rem' }} />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-white text-sm">Séances créées</div>
-            <div className="text-blue-200" style={{ fontSize: '.72rem' }}>Contenu partagé avec vos élèves</div>
-          </div>
-          <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>
-            {seances.length}
-          </span>
-        </div>
+      {/* Liste : bandeau bleu nuit souligné d'or, comme « Véhicules · Flotte de l'auto-école » */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="camera-video-fill" titre="Séances de cours" sousTitre="Contenu partagé avec vos élèves" nombre={visibles.length} />
 
-        {seances.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
-              <i className="bi bi-camera-video" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-            </div>
-            <div className="text-sm font-medium text-slate-400">Aucune séance créée</div>
-            <div className="text-xs text-slate-300">Cliquez sur "Nouvelle séance" pour commencer</div>
-          </div>
+        {visibles.length === 0 ? (
+          <ListeVide texte={q || statutFiltre ? 'Aucune séance trouvée' : 'Aucune séance créée · cliquez sur « + Séance » pour commencer'} icone="camera-video" />
         ) : (
-          <div className="divide-y divide-slate-50">
-            {seances.map((s, idx) => {
+          <div>
+            {visibles.map(s => {
               const isPub = s.statut === 'PUBLIE'
               return (
-                <div key={s.id} className="flex items-center gap-4 px-6 py-4 transition-all hover:bg-blue-50/40"
-                  style={{ background: idx % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 transition-colors hover:bg-slate-50"
+                  style={{ borderBottom: '1.5px solid #dbe2ec' }}>
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
 
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: isPub ? 'linear-gradient(135deg,#dcfce7,#bbf7d0)' : 'linear-gradient(135deg,#fef9c3,#fde68a)' }}>
-                    <i className="bi bi-camera-video-fill" style={{ color: isPub ? '#15803d' : '#a16207', fontSize: '1rem' }} />
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#f0bb2a' }}>
+                    <i className="bi bi-camera-video-fill" style={{ fontSize: '1rem' }} />
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-800 text-sm truncate">{s.titre}</div>
-                    <div className="flex flex-wrap gap-3 mt-1" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
+                    <div className="font-bold text-sm truncate" style={{ color: '#1e3a5f' }}>{s.titre}</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1" style={{ fontSize: '.75rem', color: '#64748b' }}>
                       {s.theme && <span>{THEME_MAP[s.theme] || s.theme}</span>}
                       {s.dateHeure && (
                         <span className="flex items-center gap-1">
@@ -510,45 +497,23 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                       )}
                       <span className="flex items-center gap-1">
                         <i className="bi bi-people" />
-                        {s.eleves.length} élève(s)
+                        {s.eleves.length} élève{s.eleves.length > 1 ? 's' : ''}
                       </span>
                       <span className="flex items-center gap-1">
                         <i className="bi bi-layers" />
-                        {s.blocs.length} bloc(s)
+                        {s.blocs.length} bloc{s.blocs.length > 1 ? 's' : ''}
                       </span>
                     </div>
                   </div>
+                  </div>
 
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0"
-                    style={{
-                      background: isPub ? '#dcfce7' : '#fef9c3',
-                      color: isPub ? '#15803d' : '#a16207',
-                    }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: isPub ? '#16a34a' : '#ca8a04' }} />
-                    {isPub ? 'Publié' : 'Brouillon'}
-                  </span>
-
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => openEdit(s)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                      style={{ background: '#f1f5f9', color: '#475569' }}
-                      title="Modifier"
-                      onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-                      onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-                    >
-                      <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                      style={{ background: '#fef2f2', color: '#dc2626' }}
-                      title="Supprimer"
-                      onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
-                      onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}
-                    >
-                      <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
-                    </button>
+                  {/* Statut et actions : sous le titre sur téléphone, à droite sur ordinateur */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
+                    <Pastille couleur={isPub ? '#15803d' : '#a16207'} fond={isPub ? '#dcfce7' : '#fef9c3'}>{isPub ? 'Publié' : 'Brouillon'}</Pastille>
+                    <div className="flex items-center gap-2">
+                      <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
+                      <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => handleDelete(s.id)} />
+                    </div>
                   </div>
                 </div>
               )
