@@ -31,7 +31,7 @@ export function FenetreModerne({ surTitre, titre, icone, avatar, details = [], o
                 </div>
               )}
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>{surTitre}</div>
+                {surTitre && <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>{surTitre}</div>}
                 <div className="text-xl font-extrabold text-white leading-tight truncate">{titre}</div>
                 {details.filter(Boolean).length > 0 && (
                   <div className="text-xs mt-1 flex flex-wrap gap-x-3" style={{ color: '#bfdbfe' }}>

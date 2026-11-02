@@ -426,7 +426,6 @@ export default function Examens({ onEleveClick, onBack }) {
         const eleve = eleves.find(e => String(e.id) === String(form.eleveId))
         return (
           <FenetreModerne
-            surTitre="Nouvel examen"
             titre={eleve ? `${eleve.prenom} ${eleve.nom}` : 'Nouvel examen'}
             icone="clipboard2-check-fill"
             details={[
