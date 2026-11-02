@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { fmtDate, fmtMontant } from '../utils'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
@@ -87,11 +88,20 @@ export default function Paiements({ onEleveClick }) {
     } catch (e) { toast(e.message, 'danger') }
   }
 
+  const resume = p => [
+    ['Élève', p.eleve ? `${p.eleve.prenom} ${p.eleve.nom}` : '—'],
+    ['Montant', fmtMontant(p.montant)],
+    ['Date', fmtDate(p.date)],
+    ...(p.transactionId ? [['Transaction', p.transactionId]] : []),
+  ]
+
   const changerStatut = async (p, statut) => {
-    const msg = statut === 'PAYE'
-      ? `Valider ce paiement de ${fmtMontant(p.montant)} ? Vérifiez d'abord la transaction ${p.transactionId || ''} dans votre application.`
-      : 'Refuser ce paiement ?'
-    if (!confirm(msg)) return
+    const ok = await confirmer(statut === 'PAYE'
+      ? { titre: 'Valider ce paiement ?', ton: 'succes', libelle: 'Valider', details: resume(p),
+          message: "Vérifiez d'abord la transaction dans votre application Wave ou Orange Money." }
+      : { titre: 'Refuser ce paiement ?', ton: 'alerte', icone: 'x-circle-fill', libelle: 'Refuser', details: resume(p),
+          message: "Le paiement passera en « Annulé » et ne comptera pas dans l'encaissé." })
+    if (!ok) return
     try {
       await api('PATCH', `/paiements/${p.id}/statut`, { statut })
       toast(statut === 'PAYE' ? 'Paiement validé' : 'Paiement refusé')
@@ -125,9 +135,11 @@ export default function Paiements({ onEleveClick }) {
     if (p.typePaiement === 'TRANCHE_1') s.acompte += Number(p.montant)
   }
 
-  const del = async (id) => {
-    if (!confirm('Supprimer ce paiement ?')) return
-    try { await api('DELETE', `/paiements/${id}`); toast('Paiement supprimé'); load() }
+  const del = async (p) => {
+    const ok = await confirmer({ titre: 'Supprimer ce paiement ?', ton: 'danger', libelle: 'Supprimer', details: resume(p),
+      message: "Il disparaîtra de la caisse et de la fiche de l'élève. Cette action est définitive." })
+    if (!ok) return
+    try { await api('DELETE', `/paiements/${p.id}`); toast('Paiement supprimé'); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
@@ -355,7 +367,7 @@ export default function Paiements({ onEleveClick }) {
                             className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#eff6ff', color: '#2563eb' }}>
                             <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
                           </button>
-                          <button onClick={() => del(p.id)} title="Supprimer"
+                          <button onClick={() => del(p)} title="Supprimer"
                             className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#fee2e2', color: '#b91c1c' }}>
                             <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
                           </button>

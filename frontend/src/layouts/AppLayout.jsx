@@ -22,6 +22,7 @@ import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
 import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
 import TravauxDirigesAdmin from '../components/TravauxDirigesAdmin'
 import Parametres from '../components/Parametres'
+import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
@@ -284,6 +285,7 @@ export default function AppLayout() {
         </nav>
 
         <main className="main-content">
+          <HoteConfirmation />
           {user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && moniteurEnProfil) && (
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={handleBack} className="btn-retour">
