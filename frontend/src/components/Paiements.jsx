@@ -261,7 +261,7 @@ export default function Paiements({ onEleveClick }) {
             ) : groupes.map(g => (
               <div key={g.date}>
                 <div className="flex items-center justify-between gap-3 px-5 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider"
-                  style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #eef2f7' }}>
+                  style={{ background: '#eef2f7', color: '#475569', borderBottom: '1.5px solid #dbe2ec', borderLeft: '4px solid #d4a017' }}>
                   <span className="truncate"><i className="bi bi-calendar3 me-2" />
                     <span className="hidden sm:inline">{libelleJour(g.date)}</span><span className="sm:hidden">{libelleJour(g.date, true)}</span>
                   </span>
@@ -282,7 +282,7 @@ export default function Paiements({ onEleveClick }) {
                   return (
                     <div key={p.id}
                       className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-3 md:gap-5 items-center px-5 py-4 transition-colors hover:bg-slate-50"
-                      style={{ borderBottom: '1px solid #f1f5f9', opacity: p.statut === 'ANNULE' ? .6 : 1 }}>
+                      style={{ borderBottom: '1.5px solid #dbe2ec', opacity: p.statut === 'ANNULE' ? .6 : 1 }}>
                       {/* Élève */}
                       <div className="flex items-center gap-3 min-w-0">
                         {p.eleve?.photoUrl ? (
