@@ -5,6 +5,8 @@ import { msgRappelExamen, joursAvant } from '../messages'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
+import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
+import { champCls } from './fenetreStyles'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -420,81 +422,65 @@ export default function Examens({ onEleveClick, onBack }) {
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
-      {/* ── Modal nouvel examen ───────────────────────────────── */}
-      {showModal && (
-        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-              <div className="modal-header border-0 px-6 pt-5 pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
-                    <i className="bi bi-clipboard2-plus-fill" />
-                  </div>
-                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>Nouvel examen</h5>
+      {/* ── Fenêtre nouvel examen ────────────────────────────── */}
+      {showModal && (() => {
+        const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+        const eleve = eleves.find(e => String(e.id) === String(form.eleveId))
+        return (
+          <FenetreModerne
+            surTitre="Nouvel examen"
+            titre={eleve ? `${eleve.prenom} ${eleve.nom}` : 'Nouvel examen'}
+            icone="clipboard2-check-fill"
+            details={[
+              form.type && ['journal-text', TYPE_STYLE[form.type].label],
+              form.date && ['calendar-event', fmtDate(form.date)],
+              eleve?.categoriePermis && ['award', `Permis ${eleve.categoriePermis}`],
+            ]}
+            onClose={() => setShowModal(false)} onSave={save} libelleSave="Enregistrer l'examen">
+            <Etape n={1} icon="person" titre="Candidat">
+              <div className="row g-3">
+                <div className="col-md-7">
+                  <Etiquette requis>Élève</Etiquette>
+                  <select className={champCls} value={form.eleveId} onChange={e => set('eleveId', e.target.value)}>
+                    <option value="">Choisir un élève…</option>
+                    {eleves.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+                  </select>
                 </div>
-                <button className="btn-close" onClick={() => setShowModal(false)} />
-              </div>
-              <div className="modal-body px-6 py-4">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="date" className={inputCls} value={form.date}
-                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.eleveId}
-                      onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
-                      <option value="">Choisir un élève…</option>
-                      {eleves.map(e => (
-                        <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Type <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.type}
-                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                      <option value="">Choisir…</option>
-                      <option value="CODE">Code</option>
-                      <option value="CONDUITE">Conduite</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Résultat</label>
-                    <select className={inputCls} value={form.resultat}
-                      onChange={e => setForm(f => ({ ...f, resultat: e.target.value }))}>
-                      <option value="EN_ATTENTE">En attente</option>
-                      <option value="ADMIS">Admis</option>
-                      <option value="REFUSE">Refusé</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Score (/100)</label>
-                    <input type="number" className={inputCls} value={form.score} min="0" max="100"
-                      onChange={e => setForm(f => ({ ...f, score: e.target.value }))} />
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Observations</label>
-                    <textarea className={inputCls} rows={2} value={form.observations}
-                      onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-                  </div>
+                <div className="col-md-5">
+                  <Etiquette requis>Date de l'examen</Etiquette>
+                  <input type="date" className={champCls} value={form.date} onChange={e => set('date', e.target.value)} />
                 </div>
               </div>
-              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
-                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                  onClick={() => setShowModal(false)}>Annuler</button>
-                <button className="btn fw-bold text-white px-5" style={{
-                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
-                  onClick={save}>
-                  <i className="bi bi-check-lg me-1" />Enregistrer
-                </button>
+            </Etape>
+
+            <Etape n={2} icon="journal-check" titre="Épreuve">
+              <Etiquette requis>Type</Etiquette>
+              <div className="mb-4">
+                <Choix tuiles cols={2} value={form.type} onChange={v => set('type', v)} options={[
+                  { v: 'CODE',     label: 'Code',     icon: 'signpost-2-fill', sous: 'Code de la route', color: TYPE_STYLE.CODE.color, bg: TYPE_STYLE.CODE.bg },
+                  { v: 'CONDUITE', label: 'Conduite', icon: 'car-front-fill',  sous: 'Épreuve pratique', color: TYPE_STYLE.CONDUITE.color, bg: TYPE_STYLE.CONDUITE.bg },
+                ]} />
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+              <Etiquette>Résultat</Etiquette>
+              <div className="mb-4">
+                <Choix cols={3} value={form.resultat} onChange={v => set('resultat', v)}
+                  options={['EN_ATTENTE', 'ADMIS', 'REFUSE'].map(v => ({ v, label: RES_STYLE[v].label, color: RES_STYLE[v].color, bg: RES_STYLE[v].bg,
+                    icon: { EN_ATTENTE: 'hourglass-split', ADMIS: 'check-circle-fill', REFUSE: 'x-circle-fill' }[v] }))} />
+              </div>
+              <div className="row g-3">
+                <div className="col-md-4">
+                  <Etiquette>Score</Etiquette>
+                  <ChampMontant suffixe="/ 100" placeholder="—" value={form.score} onChange={v => set('score', v)} />
+                </div>
+                <div className="col-md-8">
+                  <Etiquette>Observations</Etiquette>
+                  <input className={champCls} value={form.observations} placeholder="Facultatif" onChange={e => set('observations', e.target.value)} />
+                </div>
+              </div>
+            </Etape>
+          </FenetreModerne>
+        )
+      })()}
 
       {/* ── Modal résultat (petit) ───────────────────────────── */}
       {showResModal && (

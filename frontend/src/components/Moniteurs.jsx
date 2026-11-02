@@ -7,6 +7,8 @@ import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
+import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
+import { champCls, stylePastille } from './fenetreStyles'
 
 const PAGE_SIZE = 10
 
@@ -288,122 +290,101 @@ export default function Moniteurs({ onProfilChange }) {
     catch (e) { toast(e.message, 'danger') }
   }
 
-  /* ══ MODAL ═══════════════════════════════════════════════════ */
+  /* ══ FENÊTRE AJOUT / MODIFICATION ════════════════════════════ */
   function renderModal() {
-    const iCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
-    const lCls = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+    const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+    const nomComplet = `${form.prenom} ${form.nom}`.trim()
     return (
-      <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-
-            {/* En-tête */}
-            <div className="modal-header border-0 px-6 pt-5 pb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
-                  <i className="bi bi-person-badge-fill" />
-                </div>
-                <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
-                  {editId ? 'Modifier le moniteur' : 'Nouveau moniteur'}
-                </h5>
-              </div>
-              <button className="btn-close" onClick={() => setShowModal(false)} />
+      <FenetreModerne
+        surTitre={editId ? 'Modifier le moniteur' : 'Nouveau moniteur'}
+        titre={nomComplet || 'Nouveau moniteur'}
+        avatar={form.photoUrl ? (
+          <img src={form.photoUrl} alt="" className="w-16 h-16 rounded-full flex-shrink-0"
+            style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '3px solid #f0bb2a' }} />
+        ) : (
+          <div className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-extrabold"
+            style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+            {nomComplet ? ((form.prenom[0] || '') + (form.nom[0] || '')).toUpperCase() : <i className="bi bi-person-badge-fill" />}
+          </div>
+        )}
+        details={[
+          form.telephone && ['telephone', form.telephone],
+          form.categoriesAutorisees.length > 0 && ['award', `Permis ${[...form.categoriesAutorisees].sort().join(', ')}`],
+          ['circle-fill', form.actif ? 'Actif' : 'Inactif'],
+        ]}
+        onClose={() => setShowModal(false)} onSave={save}
+        libelleSave={editId ? 'Enregistrer' : 'Ajouter le moniteur'}>
+        <Etape n={1} icon="person-vcard" titre="Identité">
+          <div className="mb-3"><PhotoPicker value={form.photoUrl} onChange={url => set('photoUrl', url)} /></div>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <Etiquette requis>Prénom</Etiquette>
+              <input className={champCls} value={form.prenom} onChange={e => set('prenom', e.target.value)} />
             </div>
-
-            {/* Corps */}
-            <div className="modal-body px-6 py-4">
-              <div className="row g-3">
-                <div className="col-12">
-                  <label className={lCls}>Photo de profil</label>
-                  <PhotoPicker value={form.photoUrl} onChange={url => setForm(f => ({ ...f, photoUrl: url }))} />
-                </div>
-
-                {[
-                  { key: 'nom',         label: 'Nom',         req: true,  type: 'text',  ph: 'Nom de famille' },
-                  { key: 'prenom',      label: 'Prénom',      req: true,  type: 'text',  ph: 'Prénom' },
-                  { key: 'telephone',   label: 'Téléphone (identifiant de connexion)', req: true, type: 'tel', ph: '77 000 00 00' },
-                  { key: 'numeroCni',   label: 'Numéro CNI',  req: false, type: 'text',  ph: 'N° CNI' },
-                  { key: 'numeroPermis',label: 'N° Permis',   req: false, type: 'text',  ph: 'Numéro de permis' },
-                ].map(f => (
-                  <div key={f.key} className="col-md-6">
-                    <label className={lCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
-                    <input type={f.type} className={iCls} placeholder={f.ph}
-                      value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} />
-                  </div>
-                ))}
-
-                <div className="col-md-6">
-                  <label className={lCls}>Date d'embauche</label>
-                  <input type="date" className={iCls}
-                    value={form.dateEmbauche} onChange={e => setForm(f => ({ ...f, dateEmbauche: e.target.value }))} />
-                </div>
-
-                <div className="col-md-6">
-                  <label className={lCls}>Statut</label>
-                  <button type="button"
-                    onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all cursor-pointer"
-                    style={{
-                      background: form.actif ? '#f0fdf4' : '#f8fafc',
-                      borderColor: form.actif ? '#86efac' : '#e2e8f0',
-                      color: form.actif ? '#15803d' : '#64748b',
-                    }}>
-                    <div className="relative w-10 h-5 rounded-full transition-all flex-shrink-0"
-                      style={{ background: form.actif ? '#22c55e' : '#cbd5e1' }}>
-                      <div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all"
-                        style={{ left: form.actif ? '1.25rem' : '0.125rem' }} />
-                    </div>
-                    <span className="text-sm font-semibold">{form.actif ? 'Moniteur actif' : 'Inactif'}</span>
-                  </button>
-                </div>
-
-                {/* Catégories */}
-                <div className="col-12">
-                  <label className={lCls}>Catégories autorisées</label>
-                  <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
-                    <div className="row g-2">
-                      {CATS.map(c => {
-                        const sel = form.categoriesAutorisees.includes(c.value)
-                        return (
-                          <div key={c.value} className="col-6">
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', fontSize: '.82rem', fontWeight: 600, color: sel ? '#1e3a5f' : '#64748b' }}>
-                              <input
-                                type="checkbox"
-                                checked={sel}
-                                onChange={() => toggleCat(c.value)}
-                                style={{ width: 16, height: 16, accentColor: '#1e3a5f', cursor: 'pointer', flexShrink: 0 }}
-                              />
-                              <span>
-                                {sel && <i className="bi bi-check-circle-fill me-1" style={{ color: '#1e3a5f', fontSize: '.78rem' }} />}
-                                {c.label}
-                              </span>
-                            </label>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <p className="mb-0 mt-2" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
-                      {form.categoriesAutorisees.length}/{CATS.length} catégorie{form.categoriesAutorisees.length !== 1 ? 's' : ''} sélectionnée{form.categoriesAutorisees.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div className="col-md-6">
+              <Etiquette requis>Nom</Etiquette>
+              <input className={champCls} value={form.nom} onChange={e => set('nom', e.target.value)} />
             </div>
-
-            {/* Pied */}
-            <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
-              <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                onClick={() => setShowModal(false)}>Annuler</button>
-              <button className="btn fw-bold text-white px-5" style={{
-                background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
-                onClick={save}>
-                <i className="bi bi-check-lg me-1" />Enregistrer
-              </button>
+            <div className="col-md-6">
+              <Etiquette requis>Téléphone</Etiquette>
+              <div className="flex">
+                <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
+                  style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
+                <input type="tel" className={champCls} style={{ borderRadius: '0 .75rem .75rem 0' }} placeholder="77 123 45 67"
+                  value={form.telephone} onChange={e => set('telephone', e.target.value)} />
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1">Sert d'identifiant de connexion au moniteur</div>
+            </div>
+            <div className="col-md-6">
+              <Etiquette>Numéro CNI</Etiquette>
+              <input className={champCls} value={form.numeroCni} placeholder="N° CNI" onChange={e => set('numeroCni', e.target.value)} />
             </div>
           </div>
-        </div>
-      </div>
+        </Etape>
+
+        <Etape n={2} icon="briefcase" titre="Activité">
+          <div className="row g-3">
+            <div className="col-md-6">
+              <Etiquette>N° de permis</Etiquette>
+              <input className={champCls} value={form.numeroPermis} placeholder="SN-B-001" onChange={e => set('numeroPermis', e.target.value)} />
+            </div>
+            <div className="col-md-6">
+              <Etiquette>Date d'embauche</Etiquette>
+              <input type="date" className={champCls} value={form.dateEmbauche} onChange={e => set('dateEmbauche', e.target.value)} />
+            </div>
+            <div className="col-12">
+              <Etiquette>Statut</Etiquette>
+              <Choix cols={2} value={form.actif ? 'actif' : 'inactif'} onChange={v => set('actif', v === 'actif')} options={[
+                { v: 'actif',   label: 'Actif',   icon: 'check-circle-fill', color: '#15803d', bg: '#dcfce7' },
+                { v: 'inactif', label: 'Inactif', icon: 'pause-circle-fill', color: '#b91c1c', bg: '#fee2e2' },
+              ]} />
+            </div>
+          </div>
+        </Etape>
+
+        <Etape n={3} icon="award" titre="Catégories enseignées">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { v: 'A', icon: 'scooter',          sous: 'Moto' },
+              { v: 'B', icon: 'car-front-fill',   sous: 'Voiture' },
+              { v: 'C', icon: 'truck-front-fill', sous: 'Poids lourd' },
+              { v: 'D', icon: 'bus-front-fill',   sous: 'Transport' },
+            ].map(c => {
+              const sel = form.categoriesAutorisees.includes(c.v)
+              return (
+                <button key={c.v} type="button" onClick={() => toggleCat(c.v)}
+                  className="flex flex-col items-center py-3 cursor-pointer relative" style={stylePastille(sel)}>
+                  {sel && <i className="bi bi-check-circle-fill absolute top-1.5 right-2" style={{ fontSize: '.8rem' }} />}
+                  <i className={`bi bi-${c.icon}`} style={{ fontSize: '1.4rem' }} />
+                  <span className="text-sm font-extrabold mt-1">{c.v}</span>
+                  <span className="text-[10px] font-semibold mt-0.5">{c.sous}</span>
+                </button>
+              )
+            })}
+          </div>
+          <div className="text-[11px] text-slate-400 mt-2">Plusieurs choix possibles · {form.categoriesAutorisees.length}/4 sélectionnée{form.categoriesAutorisees.length > 1 ? 's' : ''}</div>
+        </Etape>
+      </FenetreModerne>
     )
   }
 

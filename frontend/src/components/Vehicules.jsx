@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import Pagination from './Pagination'
+import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
+import { champCls } from './fenetreStyles'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -43,8 +45,6 @@ const CAT_STYLE = {
   bg: '#eff6ff', color: '#1d4ed8',
 }
 
-const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
-const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
 export default function Vehicules({ onBack }) {
   const [list, setList]               = useState([])
@@ -371,149 +371,113 @@ export default function Vehicules({ onBack }) {
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
-      {/* ── Modal ────────────────────────────────────────────── */}
-      {showModal && (
-        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content border-0" style={{ borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,.25)' }}>
-              <div className="px-6 pt-6 pb-5 relative" style={{ background: 'linear-gradient(135deg,#0d9488,#2dd4bf)' }}>
-                <button className="btn-close btn-close-white position-absolute top-4 end-4" onClick={() => setShowModal(false)} />
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(255,255,255,.2)' }}>
-                    <i className="bi bi-car-front-fill" style={{ fontSize: '1.6rem', color: '#fff' }} />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(209,250,229,.7)' }}>
-                      {editId ? 'Modifier le véhicule' : 'Nouveau véhicule'}
-                    </div>
-                    {editId ? (
-                      <>
-                        <div className="text-2xl font-extrabold text-white leading-tight" style={{ fontFamily: 'ui-monospace,monospace' }}>
-                          {form.immatriculation || '—'}
-                        </div>
-                        <div className="text-sm mt-0.5" style={{ color: 'rgba(209,250,229,.85)' }}>
-                          {form.marque} {form.modele} — {form.annee}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-xl font-extrabold text-white leading-tight">
-                        Ajouter un véhicule
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="modal-body px-6 py-4" style={{ background: '#f8fafc' }}>
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className={labelCls}>Immatriculation <span className="text-red-500 ml-0.5">*</span></label>
-                    <input className={inputCls} value={form.immatriculation} placeholder="DK-XXXX-AB"
-                      onChange={e => setForm(f => ({ ...f, immatriculation: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Marque <span className="text-red-500 ml-0.5">*</span></label>
-                    <input className={inputCls} value={form.marque} placeholder="Toyota"
-                      onChange={e => setForm(f => ({ ...f, marque: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Modèle <span className="text-red-500 ml-0.5">*</span></label>
-                    <input className={inputCls} value={form.modele} placeholder="Corolla"
-                      onChange={e => setForm(f => ({ ...f, modele: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Année <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="number" className={inputCls} value={form.annee} min="1990" max="2030"
-                      onChange={e => setForm(f => ({ ...f, annee: parseInt(e.target.value) }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Catégorie <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.categorie}
-                      onChange={e => setForm(f => ({ ...f, categorie: e.target.value }))}>
-                      <option value="">Choisir…</option>
-                      {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Kilométrage</label>
-                    <input type="number" className={inputCls} value={form.kilometrage} min="0"
-                      onChange={e => setForm(f => ({ ...f, kilometrage: parseInt(e.target.value) || 0 }))} />
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Statut</label>
-                    <select className={inputCls} value={form.statut}
-                      onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
-                      <option value="DISPONIBLE">Disponible</option>
-                      <option value="EN_COURS">En cours</option>
-                      <option value="EN_MAINTENANCE">En maintenance</option>
-                      <option value="HORS_SERVICE">Hors service</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Prochain entretien</label>
-                    <input type="date" className={inputCls} value={form.prochainEntretien}
-                      onChange={e => setForm(f => ({ ...f, prochainEntretien: e.target.value }))} />
-                    {form.prochainEntretien && (() => {
-                      const s = entretienStyle(form.prochainEntretien)
-                      return s ? (
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
-                          <span className="text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
-                        </div>
-                      ) : null
-                    })()}
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Date d'assurance</label>
-                    <input type="date" className={inputCls} value={form.dateAssurance}
-                      onChange={e => setForm(f => ({ ...f, dateAssurance: e.target.value }))} />
-                  </div>
-                  <div className="col-md-3">
-                    <label className={labelCls}>Durée assurance (mois)</label>
-                    <input type="number" className={inputCls} value={form.dureeAssurance} min="1" max="24" placeholder="12"
-                      onChange={e => setForm(f => ({ ...f, dureeAssurance: e.target.value }))} />
-                  </div>
-                  <div className="col-md-3">
-                    <label className={labelCls}>Montant assurance (F CFA)</label>
-                    <input type="number" className={inputCls} value={form.montantAssurance} min="0" placeholder="0"
-                      onChange={e => setForm(f => ({ ...f, montantAssurance: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Date visite technique</label>
-                    <input type="date" className={inputCls} value={form.dateVisiteTechnique}
-                      onChange={e => setForm(f => ({ ...f, dateVisiteTechnique: e.target.value }))} />
-                    {form.dateVisiteTechnique && (() => {
-                      const next = new Date(new Date(form.dateVisiteTechnique).setFullYear(new Date(form.dateVisiteTechnique).getFullYear() + 1)).toISOString().split('T')[0]
-                      const s = entretienStyle(next)
-                      return s ? (
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
-                          <span className="text-xs font-semibold" style={{ color: s.color }}>Expire le {new Date(next).toLocaleDateString('fr-SN', { day:'2-digit', month:'short', year:'numeric' })} — {s.label}</span>
-                        </div>
-                      ) : null
-                    })()}
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Observations</label>
-                    <textarea className={inputCls} rows="2" value={form.observations}
-                      style={{ resize: 'vertical' }}
-                      onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2" style={{ background: '#f8fafc' }}>
-                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                  onClick={() => setShowModal(false)}>Annuler</button>
-                <button className="btn fw-bold text-white px-5" style={{
-                  background: 'linear-gradient(135deg,#0d9488,#2dd4bf)', borderRadius: '.75rem', border: 'none' }}
-                  onClick={save}>
-                  <i className="bi bi-check-lg me-1" />Enregistrer
-                </button>
-              </div>
+      {/* ── Fenêtre ajout / modification ─────────────────────── */}
+      {showModal && (() => {
+        const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+        const badge = (dateStr, prefixe = '') => {
+          const s = entretienStyle(dateStr)
+          return s ? (
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.dot }} />
+              <span className="text-xs font-semibold" style={{ color: s.color }}>{prefixe}{s.label}</span>
             </div>
-          </div>
-        </div>
-      )}
+          ) : null
+        }
+        const finVisite = form.dateVisiteTechnique
+          ? new Date(new Date(form.dateVisiteTechnique).setFullYear(new Date(form.dateVisiteTechnique).getFullYear() + 1)).toISOString().split('T')[0]
+          : null
+        return (
+          <FenetreModerne
+            surTitre={editId ? 'Modifier le véhicule' : 'Nouveau véhicule'}
+            titre={form.immatriculation || 'Nouveau véhicule'}
+            icone="car-front-fill"
+            details={[
+              (form.marque || form.modele) && ['tag', `${form.marque} ${form.modele}`.trim()],
+              form.categorie && ['award', `Permis ${form.categorie}`],
+              form.annee && ['calendar3', form.annee],
+            ]}
+            onClose={() => setShowModal(false)} onSave={save}
+            libelleSave={editId ? 'Enregistrer' : 'Ajouter le véhicule'}>
+            <Etape n={1} icon="card-text" titre="Identification">
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <Etiquette requis>Immatriculation</Etiquette>
+                  <input className={champCls} style={{ fontFamily: 'ui-monospace,monospace', textTransform: 'uppercase' }}
+                    value={form.immatriculation} placeholder="DK-1234-AB" onChange={e => set('immatriculation', e.target.value)} />
+                </div>
+                <div className="col-md-6">
+                  <Etiquette requis>Année</Etiquette>
+                  <input type="number" className={champCls} value={form.annee} min="1990" max="2030"
+                    onChange={e => set('annee', parseInt(e.target.value))} />
+                </div>
+                <div className="col-md-6">
+                  <Etiquette requis>Marque</Etiquette>
+                  <input className={champCls} value={form.marque} placeholder="Toyota" onChange={e => set('marque', e.target.value)} />
+                </div>
+                <div className="col-md-6">
+                  <Etiquette requis>Modèle</Etiquette>
+                  <input className={champCls} value={form.modele} placeholder="Corolla" onChange={e => set('modele', e.target.value)} />
+                </div>
+              </div>
+            </Etape>
+
+            <Etape n={2} icon="speedometer2" titre="Utilisation">
+              <Etiquette requis>Catégorie de permis</Etiquette>
+              <div className="mb-4">
+                <Choix tuiles cols={4} value={form.categorie} onChange={v => set('categorie', v)} options={[
+                  { v: 'A', label: 'A', icon: 'scooter',          sous: 'Moto' },
+                  { v: 'B', label: 'B', icon: 'car-front-fill',   sous: 'Voiture' },
+                  { v: 'C', label: 'C', icon: 'truck-front-fill', sous: 'Poids lourd' },
+                  { v: 'D', label: 'D', icon: 'bus-front-fill',   sous: 'Transport' },
+                ]} />
+              </div>
+              <div className="row g-3">
+                <div className="col-md-4">
+                  <Etiquette>Kilométrage</Etiquette>
+                  <ChampMontant suffixe="km" value={form.kilometrage} onChange={v => set('kilometrage', parseInt(v) || 0)} />
+                </div>
+                <div className="col-md-8">
+                  <Etiquette>Statut</Etiquette>
+                  <Choix cols={2} value={form.statut} onChange={v => set('statut', v)}
+                    options={Object.entries(STATUT_V).map(([v, s]) => ({ v, label: s.label, color: s.color, bg: s.bg }))} />
+                </div>
+              </div>
+            </Etape>
+
+            <Etape n={3} icon="calendar-check" titre="Échéances">
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <Etiquette>Prochain entretien</Etiquette>
+                  <input type="date" className={champCls} value={form.prochainEntretien} onChange={e => set('prochainEntretien', e.target.value)} />
+                  {form.prochainEntretien && badge(form.prochainEntretien)}
+                </div>
+                <div className="col-md-6">
+                  <Etiquette>Visite technique</Etiquette>
+                  <input type="date" className={champCls} value={form.dateVisiteTechnique} onChange={e => set('dateVisiteTechnique', e.target.value)} />
+                  {finVisite && badge(finVisite, `Expire le ${new Date(finVisite).toLocaleDateString('fr-SN', { day: '2-digit', month: 'short', year: 'numeric' })} — `)}
+                </div>
+                <div className="col-md-4">
+                  <Etiquette>Assurance (début)</Etiquette>
+                  <input type="date" className={champCls} value={form.dateAssurance} onChange={e => set('dateAssurance', e.target.value)} />
+                </div>
+                <div className="col-md-4">
+                  <Etiquette>Durée</Etiquette>
+                  <ChampMontant suffixe="mois" min={1} placeholder="12" value={form.dureeAssurance} onChange={v => set('dureeAssurance', v)} />
+                </div>
+                <div className="col-md-4">
+                  <Etiquette>Montant assurance</Etiquette>
+                  <ChampMontant placeholder="0" value={form.montantAssurance} onChange={v => set('montantAssurance', v)} />
+                </div>
+                <div className="col-12">
+                  <Etiquette>Observations</Etiquette>
+                  <textarea className={champCls} rows="2" value={form.observations} style={{ resize: 'vertical' }}
+                    onChange={e => set('observations', e.target.value)} />
+                </div>
+              </div>
+            </Etape>
+          </FenetreModerne>
+        )
+      })()}
       {/* ── Modal Profil ─────────────────────────────────────── */}
       {profil && (() => {
         const st = STATUT_V[profil.statut] || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: profil.statut }

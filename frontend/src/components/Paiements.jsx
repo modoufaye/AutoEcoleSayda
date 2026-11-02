@@ -3,6 +3,8 @@ import { api } from '../api'
 import { fmtDate, fmtMontant } from '../utils'
 import { toast } from './Toast'
 import Pagination from './Pagination'
+import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
+import { champCls } from './fenetreStyles'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -27,8 +29,6 @@ const MOYEN_P = {
   ORANGE_MONEY: { label: 'Orange Money', color: '#ea580c' },
 }
 
-const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
-const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
 export default function Paiements({ onEleveClick }) {
   const [list, setList]               = useState([])
@@ -323,79 +323,91 @@ export default function Paiements({ onEleveClick }) {
         <Pagination page={page} setPage={setPage} total={list.length} pageSize={PAGE_SIZE} />
       </div>
 
-      {/* ── Modal ────────────────────────────────────────────── */}
-      {showModal && (
-        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-              <div className="modal-header border-0 px-6 pt-5 pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
-                    <i className="bi bi-receipt" />
+      {/* ── Fenêtre ajout / modification ─────────────────────── */}
+      {showModal && (() => {
+        const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+        const eleve = eleves.find(e => String(e.id) === String(form.eleveId))
+        // Situation de l'élève : ses autres versements payés, plus celui-ci s'il est « Payé ».
+        const dejaPaye = list.filter(p => p.eleve && String(p.eleve.id) === String(form.eleveId) && p.statut === 'PAYE' && p.id !== editId)
+                             .reduce((s, p) => s + Number(p.montant), 0)
+        const montant = parseFloat(form.montant) || 0
+        const apres = dejaPaye + (form.statut === 'PAYE' ? montant : 0)
+        const total = eleve?.montantTotal != null ? Number(eleve.montantTotal) : null
+        const pct = total ? Math.min(100, Math.round(apres / total * 100)) : 0
+        return (
+          <FenetreModerne
+            surTitre={editId ? 'Modifier le paiement' : 'Nouveau paiement'}
+            titre={eleve ? `${eleve.prenom} ${eleve.nom}` : 'Nouveau paiement'}
+            icone="receipt"
+            details={[
+              montant > 0 && ['cash-stack', fmtMontant(montant)],
+              form.date && ['calendar-event', fmtDate(form.date)],
+              STATUT_P[form.statut] && ['circle-fill', STATUT_P[form.statut].label],
+            ]}
+            onClose={() => setShowModal(false)} onSave={save}
+            libelleSave={editId ? 'Enregistrer' : 'Enregistrer le paiement'}
+            piedGauche={total != null ? <>Reliquat après ce versement : <strong className="text-slate-700">{fmtMontant(Math.max(0, total - apres))}</strong></> : null}>
+            <Etape n={1} icon="person" titre="Élève">
+              <Etiquette requis>Élève</Etiquette>
+              <select className={champCls} value={form.eleveId} onChange={e => set('eleveId', e.target.value)}>
+                <option value="">Choisir un élève…</option>
+                {eleves.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+              </select>
+              {eleve && (
+                <div className="mt-3 rounded-xl p-3" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
+                  <div className="grid grid-cols-3 text-center">
+                    {[['Prix', total, '#fff'], ['Payé après', apres, '#86efac'], ['Reliquat', total != null ? Math.max(0, total - apres) : null, '#fcd34d']].map(([l, v, c]) => (
+                      <div key={l}>
+                        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#93c5fd' }}>{l}</div>
+                        <div className="text-sm sm:text-base font-extrabold" style={{ color: c }}>{v != null ? fmtMontant(v) : '—'}</div>
+                      </div>
+                    ))}
                   </div>
-                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
-                    {editId ? 'Modifier le paiement' : 'Nouveau paiement'}
-                  </h5>
-                </div>
-                <button className="btn-close" onClick={() => setShowModal(false)} />
-              </div>
-              <div className="modal-body px-6 py-4">
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="date" className={inputCls} value={form.date}
-                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Statut</label>
-                    <select className={inputCls} value={form.statut}
-                      onChange={e => setForm(f => ({ ...f, statut: e.target.value }))}>
-                      <option value="PAYE">Payé</option>
-                      <option value="EN_ATTENTE">En attente</option>
-                      <option value="ANNULE">Annulé</option>
-                    </select>
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.eleveId}
-                      onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
-                      <option value="">Choisir un élève…</option>
-                      {eleves.map(e => (
-                        <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Montant (FCFA) <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="number" className={inputCls} value={form.montant} min="1"
-                      placeholder="Ex: 50000"
-                      onChange={e => setForm(f => ({ ...f, montant: e.target.value }))} />
-                    <p className="text-xs text-slate-400 mt-1 mb-0">
-                      La tranche est attribuée automatiquement selon l'ordre des versements de l'élève.
-                    </p>
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Description</label>
-                    <input className={inputCls} value={form.description}
-                      placeholder="Ex: Paiement mensuel…"
-                      onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+                  {total != null && (
+                    <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)', transition: 'width .3s' }} />
+                    </div>
+                  )}
+                  <div className="text-[11px] mt-1.5" style={{ color: '#bfdbfe' }}>
+                    {total == null ? "Prix de la formation non renseigné dans la fiche de l'élève"
+                      : apres > total ? '⚠️ Ce versement dépasse le prix de la formation' : `${pct} % payé après ce versement`}
                   </div>
                 </div>
+              )}
+            </Etape>
+
+            <Etape n={2} icon="wallet2" titre="Versement">
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <Etiquette requis>Montant</Etiquette>
+                  <ChampMontant min={1} placeholder="50000" value={form.montant} onChange={v => set('montant', v)} />
+                  {eleve && total != null && total - dejaPaye > 0 && !form.montant && (
+                    <button type="button" onClick={() => set('montant', String(total - dejaPaye))}
+                      className="mt-1.5 text-[11px] font-semibold border-0 bg-transparent p-0 cursor-pointer" style={{ color: '#b45309' }}>
+                      <i className="bi bi-lightning-charge-fill me-1" />Mettre le reliquat ({fmtMontant(total - dejaPaye)})
+                    </button>
+                  )}
+                </div>
+                <div className="col-md-6">
+                  <Etiquette requis>Date</Etiquette>
+                  <input type="date" className={champCls} value={form.date} onChange={e => set('date', e.target.value)} />
+                </div>
+                <div className="col-12">
+                  <Etiquette>Statut</Etiquette>
+                  <Choix cols={3} value={form.statut} onChange={v => set('statut', v)}
+                    options={['PAYE', 'EN_ATTENTE', 'ANNULE'].map(v => ({ v, label: STATUT_P[v].label, color: STATUT_P[v].color, bg: STATUT_P[v].bg,
+                      icon: { PAYE: 'check-circle-fill', EN_ATTENTE: 'hourglass-split', ANNULE: 'x-circle-fill' }[v] }))} />
+                </div>
+                <div className="col-12">
+                  <Etiquette>Description</Etiquette>
+                  <input className={champCls} value={form.description} placeholder="Facultatif" onChange={e => set('description', e.target.value)} />
+                  <div className="text-[11px] text-slate-400 mt-1">La tranche (1re, 2e, 3e) est attribuée automatiquement selon la date des versements.</div>
+                </div>
               </div>
-              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
-                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                  onClick={() => setShowModal(false)}>Annuler</button>
-                <button className="btn fw-bold text-white px-5" style={{
-                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
-                  onClick={save}>
-                  <i className="bi bi-check-lg me-1" />Enregistrer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </Etape>
+          </FenetreModerne>
+        )
+      })()}
     </div>
   )
 }
