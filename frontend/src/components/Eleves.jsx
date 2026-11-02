@@ -692,7 +692,7 @@ function CompteEleveCard({ eleve }) {
 }
 
 /* ══════════════════════════════════════════════════════════ */
-export default function Eleves({ initialEleveId }) {
+export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
 
@@ -783,6 +783,10 @@ export default function Eleves({ initialEleveId }) {
     } catch { toast('Erreur chargement profil', 'danger') }
     finally { setLoadingProfile(false) }
   }
+
+  /* Fiche ouverte depuis la liste : on passe par l'adresse (…/eleves/42), qui empile une étape
+     d'historique. Sinon le bouton Retour sautait la liste et revenait à la page d'avant. */
+  const ouvrirFiche = (eleve) => onOuvrirEleve ? onOuvrirEleve(eleve.id) : openProfile(eleve)
 
   const closeProfile = () => { setSelected(null); setProfileData({ lecons: [], examens: [], paiements: [], totalPaye: 0 }) }
 
@@ -1728,7 +1732,7 @@ export default function Eleves({ initialEleveId }) {
                 <div className="flex items-center gap-3 min-w-0">
                   <AvatarRond photoUrl={e.photoUrl} prenom={e.prenom} nom={e.nom} />
                   <div className="min-w-0">
-                    <button onClick={() => openProfile(e)}
+                    <button onClick={() => ouvrirFiche(e)}
                       className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
                       {e.nom} {e.prenom}
                     </button>
@@ -1769,7 +1773,7 @@ export default function Eleves({ initialEleveId }) {
                 <div className="flex items-center justify-between md:justify-end gap-2">
                   <Pastille couleur={st.color} fond={st.bg}>{st.label}</Pastille>
                   <div className="flex items-center gap-1.5">
-                    <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => openProfile(e)} />
+                    <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => ouvrirFiche(e)} />
                     {!isMoniteur && !e.archive && <>
                       <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(e)} />
                       <BoutonRond title="Archiver" icon="archive-fill" couleur="#a16207" fond="#fef9c3" onClick={() => archiver(e)} />

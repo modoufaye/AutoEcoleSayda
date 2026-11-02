@@ -323,7 +323,7 @@ export default function AppLayout() {
             : section === 'td-eleve'
             ? <TravauxDirigesEleve key="td-eleve" onBack={handleBack} />
             : section === 'eleves'
-            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} />
+            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick} />
             : section === 'moniteurs'
             ? <Moniteurs key={`moniteurs-${retourListe}`} onProfilChange={setMoniteurEnProfil} />
             : <ActiveComponent key={section} />}
