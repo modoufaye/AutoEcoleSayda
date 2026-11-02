@@ -3,7 +3,7 @@ import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
-import { EnteteListe, BoutonRond, ListeVide, BarreFiltres, Recherche, Filtre } from './ListeModerne'
+import { EnteteListe, BoutonRond, ListeVide, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import '../landing.css'
 
 const CAT_STYLE = {
@@ -109,7 +109,6 @@ function CoursEcritCard({ c, onSelect, onEdit, onDelete }) {
 function ThemeDetail({ theme, cours, setCours, onBack }) {
   const { user } = useAuth()
   const isMoniteur   = user?.role === 'MONITEUR'
-  const isEleve      = user?.role === 'ELEVE'
   const [selected, setSelected]     = useState(null)
   const [typeFilter, setTypeFilter] = useState('TOUS')
   const [search, setSearch]         = useState('')
@@ -219,40 +218,9 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
-      {/* Barre de navigation */}
-      {isEleve ? (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div className="px-5 py-3.5 flex items-center gap-3"
-            style={{ background: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)', borderBottom: '2px solid #0f3d21' }}>
-            <button
-              onClick={onBack}
-              className="w-9 h-9 rounded-xl flex items-center justify-center border-0 cursor-pointer transition-all flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.32)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.2)'}
-              title="Retour aux thèmes"
-            >
-              <i className="bi bi-arrow-left" style={{ fontSize: '.9rem' }} />
-            </button>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,.18)' }}>
-              <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{theme.emoji}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-extrabold text-white leading-tight" style={{ fontSize: '.95rem' }}>{theme.label}</div>
-              <div style={{ fontSize: '.73rem', color: 'rgba(187,247,208,.85)' }}>
-                {theme.subtopics.length} sous-thèmes{themeCours.length > 0 ? ` · ${themeCours.length} cours disponibles` : ''}
-              </div>
-            </div>
-            <span className="px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-              {themeCours.length > 0 ? `${themeCours.length} cours` : 'Bientôt disponible'}
-            </span>
-          </div>
-        </div>
-      ) : (
-        /* Admin / moniteur : même disposition que les autres pages (Retour, puis recherche, filtre et ajout).
-           Valable pour tous les thèmes de THEMES, y compris ceux ajoutés plus tard. */
+      {/* Barre de navigation : même disposition pour tous (le bouton « + Cours » reste réservé au moniteur) */}
+        {/* Même disposition que les autres pages (Retour, puis recherche, filtre et ajout ; « + Cours » pour le moniteur).
+            Valable pour tous les thèmes de THEMES, y compris ceux ajoutés plus tard. */}
         <>
           <div style={{ marginBottom: '1rem' }}>
             <button onClick={onBack} className="btn-retour">
@@ -268,23 +236,17 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
               <option value="ECRITE">Écrits</option>
             </Filtre>
             {isMoniteur && (
-              <button onClick={openAdd}
-                className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-                style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-                <i className="bi bi-plus-lg" />Cours
-              </button>
+              <BoutonAjout onClick={openAdd}>Cours</BoutonAjout>
             )}
           </BarreFiltres>
         </>
-      )}
 
       {/* Admin / moniteur : bandeau bleu nuit souligné d'or (comme « Véhicules »), puis sous-thèmes et cours dans la même carte */}
-      <div className={isEleve ? 'space-y-5' : 'bg-white rounded-2xl overflow-hidden'} style={isEleve ? undefined : { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
-      {!isEleve && <EnteteListe emoji={theme.emoji} titre={theme.label}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      {<EnteteListe emoji={theme.emoji} titre={theme.label}
         sousTitre={`${theme.subtopics.length} sous-thèmes · ${themeCours.length} cours`} nombre={filtered.length} />}
 
       {/* Sous-thèmes */}
-      {!isEleve ? (
         <div style={{ borderBottom: '1.5px solid #dbe2ec' }}>
           <div className="px-5 pt-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
             <i className="bi bi-list-ul me-1" />Sous-thèmes à maîtriser
@@ -301,55 +263,10 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
             ))}
           </div>
         </div>
-      ) : (
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-        <div className="px-6 py-3 flex items-center gap-3" style={{ background: theme.gradient, borderBottom: `2px solid ${theme.border}` }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: theme.iconBg }}>
-            <i className="bi bi-list-ul" style={{ color: theme.key === 'vehicule' ? '#1e3a5f' : '#fff', fontSize: '.9rem' }} />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-sm" style={{ color: theme.key === 'vehicule' ? '#1e3a5f' : '#fff' }}>Sous-thèmes</div>
-            <div style={{ fontSize: '.72rem', color: theme.key === 'vehicule' ? '#3d2a0a' : 'rgba(255,255,255,.7)' }}>
-              {theme.subtopics.length} sous-thèmes à maîtriser
-            </div>
-          </div>
-        </div>
-        <div className="p-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {theme.subtopics.map((s, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: '#f8fafc' }}>
-              <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: theme.gradient, color: theme.key === 'vehicule' ? '#1e3a5f' : '#fff' }}>
-                {i + 1}
-              </span>
-              <span className="text-sm text-slate-700">{s}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      )}
 
       {/* Cours disponibles */}
       {filtered.length > 0 && (
-        <div className={isEleve ? 'space-y-5' : 'space-y-5 p-5'}>
-          {/* Filtre type (élèves ; l'admin et le moniteur l'ont dans la barre du haut) */}
-          {isEleve && (
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrer :</span>
-              {['TOUS', 'IMAGE', 'ECRITE'].map(t => (
-                <button key={t}
-                  className="text-xs font-bold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-                  style={{
-                    background: typeFilter === t
-                      ? (isEleve ? 'linear-gradient(135deg,#14532d,#15803d)' : 'linear-gradient(135deg,#1e3a5f,#2a4f7c)')
-                      : '#f1f5f9',
-                    color: typeFilter === t ? '#fff' : '#64748b',
-                  }}
-                  onClick={() => setTypeFilter(t)}>
-                  {t === 'TOUS' ? 'Tous' : t === 'IMAGE' ? '🖼 Images' : '📝 Écrits'}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="space-y-5 p-5">
 
           {/* Cours par catégorie */}
           {byCategory.map(({ cat, images, ecritsFr, ecritsWo }) => {
@@ -647,8 +564,6 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
 
 /* ── Vue accueil : grille des thèmes ── */
 export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }) {
-  const { user } = useAuth()
-  const isEleve = user?.role === 'ELEVE'
   const [cours, setCours]           = useState([])
   const [loading, setLoading]       = useState(true)
   const [activeTheme, setActiveTheme] = useState(null)
@@ -689,7 +604,7 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {onBack && (
-        <div style={{ marginBottom: isEleve ? 0 : '1rem' }}>
+        <div style={{ marginBottom: '1rem' }}>
           <button onClick={onBack} className="btn-retour">
             <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
             Retour
@@ -698,57 +613,26 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
       )}
 
       {/* En-tête page */}
-      {isEleve ? (
-        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div className="px-6 py-4 flex items-center gap-4"
-            style={{ background: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)', borderBottom: '2px solid #0f3d21' }}>
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }}>
-              <i className="bi bi-sign-turn-right-fill" style={{ color: '#fff', fontSize: '1.2rem' }} />
-            </div>
-            <div className="flex-1">
-              <div className="font-extrabold text-white leading-tight" style={{ fontSize: '1.1rem' }}>Cours Code de la Route</div>
-              <div style={{ fontSize: '.78rem', color: 'rgba(187,247,208,.85)' }}>
-                Maîtrisez la théorie en {THEMES.length} grands thèmes
-              </div>
-            </div>
-            <span className="px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-              <i className="bi bi-book-fill me-1" />
-              {cours.length > 0 ? `${cours.length} cours` : `${THEMES.length} thèmes`}
-            </span>
-          </div>
-          <div className="px-5 py-2.5 flex items-center gap-3 flex-wrap" style={{ background: '#f0fdf4' }}>
-            <i className="bi bi-lightbulb-fill" style={{ color: '#15803d', fontSize: '.85rem' }} />
-            <span className="text-xs font-medium" style={{ color: '#14532d' }}>
-              Révisez chaque thème avant votre examen théorique
-            </span>
-            <div className="flex-1 h-px hidden sm:block" style={{ background: '#bbf7d0' }} />
-            <span className="text-xs font-semibold" style={{ color: '#15803d' }}>
-              {THEMES.length} thèmes · {cours.length} cours disponibles
-            </span>
-          </div>
-        </div>
-      ) : (
-        /* Comme « Mes élèves » : directement la recherche (les cours s'ajoutent depuis un thème) */
+      {(
+        /* Même disposition pour tous : directement la recherche (les cours s'ajoutent depuis un thème) */
         <BarreFiltres>
           <Recherche value={search} onChange={setSearch} placeholder="Thème ou sous-thème…" />
         </BarreFiltres>
       )}
 
-      {/* Grille des thèmes ; pour l'admin et le moniteur, sous un bandeau bleu nuit souligné d'or comme « Véhicules » */}
-      <div className={isEleve ? '' : 'bg-white rounded-2xl overflow-hidden'} style={isEleve ? undefined : { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
-      {!isEleve && <EnteteListe icone="sign-turn-right-fill" titre="Cours Code de la Route"
-        sousTitre={`Maîtrisez la théorie en ${THEMES.length} grands thèmes · ${cours.length} cours`} nombre={themesVisibles.length} />}
+      {/* Grille des thèmes sous un bandeau bleu nuit souligné d'or, comme « Véhicules » */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      <EnteteListe icone="sign-turn-right-fill" titre="Cours Code de la Route"
+        sousTitre={`Maîtrisez la théorie en ${THEMES.length} grands thèmes · ${cours.length} cours`} nombre={themesVisibles.length} />
       {themesVisibles.length === 0 && <ListeVide texte="Aucun thème trouvé" icone="search" />}
-      <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-4${isEleve ? '' : ' p-4'}`}>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {themesVisibles.map(theme => {
           const count = cours.filter(c => theme.categories.includes(c.categorie)).length
           return (
             <div
               key={theme.key}
               className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all"
-              style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)', border: isEleve ? undefined : '1px solid #eef2f7' }}
+              style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)', border: '1px solid #eef2f7' }}
               onClick={() => onOuvrirTheme ? onOuvrirTheme(theme.key) : setActiveTheme(theme)}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,.12)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,.07)' }}
@@ -766,7 +650,7 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
                 <ul className="space-y-1.5 mb-0">
                   {theme.subtopics.slice(0, 4).map((s, i) => (
                     <li key={i} className="flex items-center gap-2" style={{ fontSize: '.83rem', color: '#475569' }}>
-                      <i className="bi bi-check-circle-fill flex-shrink-0" style={{ color: isEleve ? '#15803d' : '#1e3a5f', fontSize: '.72rem' }} />
+                      <i className="bi bi-check-circle-fill flex-shrink-0" style={{ color: '#1e3a5f', fontSize: '.72rem' }} />
                       {s}
                     </li>
                   ))}
@@ -783,7 +667,7 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
                 <span className="text-xs text-slate-400">{theme.subtopics.length} sous-thèmes</span>
                 {count > 0
                   ? <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-                      style={{ background: isEleve ? 'linear-gradient(135deg,#14532d,#15803d)' : 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>
+                      style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>
                       <i className="bi bi-book-fill" style={{ fontSize: '.65rem' }} />
                       {count} cours
                     </span>

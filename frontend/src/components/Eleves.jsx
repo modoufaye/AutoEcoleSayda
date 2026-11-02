@@ -12,7 +12,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
-import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule } from './ListeModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
 
 const PAGE_SIZE = 10
 
@@ -1605,32 +1605,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* En-tête */}
-      {!isMoniteur && (
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Élèves</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{filtered.length} élève{filtered.length > 1 ? 's' : ''}</p>
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button onClick={() => setShowImport(true)}
-              className="group flex-1 sm:flex-none flex items-center justify-center gap-2.5 text-sm font-bold text-white pl-2 pr-4 sm:pr-5 py-2 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-              style={{ borderRadius: '.85rem', background: 'linear-gradient(135deg,#047857,#10b981)', boxShadow: '0 4px 12px rgba(16,185,129,.3)' }}>
-              <span className="w-7 h-7 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
-                style={{ background: 'rgba(255,255,255,.2)' }}>
-                <i className="bi bi-file-earmark-spreadsheet-fill" style={{ fontSize: '.95rem' }} />
-              </span>
-              Importer
-            </button>
-            <button onClick={() => openModal()}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-sm font-bold text-white px-4 sm:px-5 py-2.5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-              style={{ borderRadius: '.85rem', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-              <i className="bi bi-plus-lg" />Élève
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Actifs / Archivés : deux onglets explicites (un simple bouton bascule ne montrait pas clairement
           dans quelle liste on se trouvait, ni comment en sortir). Les filtres s'appliquent à la liste affichée. */}
       {!isMoniteur && (
@@ -1662,6 +1636,13 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </Filtre>
         <FiltreBascule actif={nouveauMois} onClick={() => setNouveauMois(v => !v)} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
+        {/* Admin : import Excel et inscription (le moniteur ne fait que consulter ses élèves) */}
+        {!isMoniteur && (
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
+            <BoutonAjout vert icone="file-earmark-spreadsheet-fill" onClick={() => setShowImport(true)}>Importer</BoutonAjout>
+            <BoutonAjout onClick={() => openModal()}>Élève</BoutonAjout>
+          </div>
+        )}
       </BarreFiltres>
 
       {/* Liste des élèves */}

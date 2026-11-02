@@ -7,7 +7,7 @@ import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
-import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser } from './ListeModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser, BoutonAjout } from './ListeModerne'
 import { champCls } from './fenetreStyles'
 import '../landing.css'
 
@@ -139,28 +139,58 @@ export default function Examens({ onEleveClick, onBack }) {
 
       {/* ── Bouton retour (élève) ────────────────────────────── */}
       {isEleve && onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-          Retour
-        </button>
-      )}
-
-      {/* ── En-tête page (admin uniquement) ─────────────────── */}
-      {!isEleve && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Examens</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{filtered.length} examen{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button
-            onClick={openModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}
-          >
-            <i className="bi bi-plus-lg" />
-            Examen
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+            Retour
           </button>
         </div>
+      )}
+
+      {/* ── En-tête (élève) : filtres sur ses propres examens (pas de recherche par nom, pas d'ajout) ── */}
+      {isEleve && (
+        <BarreFiltres>
+          <Filtre icone="journal-text" value={filterType} onChange={setFilterType}>
+            <option value="">Tous les types</option>
+            <option value="CODE">Code</option>
+            <option value="CONDUITE">Conduite</option>
+          </Filtre>
+          <Filtre icone="trophy" value={filterResultat} onChange={setFilterResultat}>
+            <option value="">Tous les résultats</option>
+            <option value="ADMIS">Admis</option>
+            <option value="REFUSE">Refusé</option>
+            <option value="EN_ATTENTE">En attente</option>
+          </Filtre>
+          {(filterType || filterResultat) && <Reinitialiser onClick={() => { setFilterType(''); setFilterResultat('') }} />}
+        </BarreFiltres>
+      )}
+
+      {/* ── En-tête (admin) : filtres et bouton d'ajout, même disposition que les autres pages ── */}
+      {!isEleve && (
+        <BarreFiltres>
+          <Recherche value={search} onChange={setSearch} placeholder="Rechercher par nom ou prénom…" />
+          <Filtre icone="journal-text" value={filterType} onChange={setFilterType}>
+            <option value="">Tous les types</option>
+            <option value="CODE">Code</option>
+            <option value="CONDUITE">Conduite</option>
+          </Filtre>
+          <Filtre icone="trophy" value={filterResultat} onChange={setFilterResultat}>
+            <option value="">Tous les résultats</option>
+            <option value="ADMIS">Admis</option>
+            <option value="REFUSE">Refusé</option>
+            <option value="EN_ATTENTE">En attente</option>
+          </Filtre>
+          <Filtre icone="arrow-repeat" value={filterTentative} onChange={setFilterTentative}>
+            <option value="">Toutes les tentatives</option>
+            {tentatives.map(t => <option key={t} value={t}>{t}{t === 1 ? 're' : 'e'} tentative</option>)}
+          </Filtre>
+          <FiltreDate libelle="Du" value={filterDateDe} onChange={setFilterDateDe} />
+          <FiltreDate libelle="Au" value={filterDateA} onChange={setFilterDateA} />
+          {(search || filterType || filterResultat || filterTentative || filterDateDe || filterDateA) && (
+            <Reinitialiser onClick={() => { setSearch(''); setFilterType(''); setFilterResultat(''); setFilterTentative(''); setFilterDateDe(''); setFilterDateA('') }} />
+          )}
+          <BoutonAjout onClick={openModal}>Examen</BoutonAjout>
+        </BarreFiltres>
       )}
 
       {/* ── Rappels à envoyer : examens des 7 prochains jours (admin) ── */}
@@ -209,32 +239,6 @@ export default function Examens({ onEleveClick, onBack }) {
         </div>
       )}
 
-      {/* ── Filtres (admin uniquement) ───────────────────────── */}
-      {!isEleve && (
-        <BarreFiltres>
-          <Recherche value={search} onChange={setSearch} placeholder="Rechercher par nom ou prénom…" />
-          <Filtre icone="journal-text" value={filterType} onChange={setFilterType}>
-            <option value="">Tous les types</option>
-            <option value="CODE">Code</option>
-            <option value="CONDUITE">Conduite</option>
-          </Filtre>
-          <Filtre icone="trophy" value={filterResultat} onChange={setFilterResultat}>
-            <option value="">Tous les résultats</option>
-            <option value="ADMIS">Admis</option>
-            <option value="REFUSE">Refusé</option>
-            <option value="EN_ATTENTE">En attente</option>
-          </Filtre>
-          <Filtre icone="arrow-repeat" value={filterTentative} onChange={setFilterTentative}>
-            <option value="">Toutes les tentatives</option>
-            {tentatives.map(t => <option key={t} value={t}>{t}{t === 1 ? 're' : 'e'} tentative</option>)}
-          </Filtre>
-          <FiltreDate libelle="Du" value={filterDateDe} onChange={setFilterDateDe} />
-          <FiltreDate libelle="Au" value={filterDateA} onChange={setFilterDateA} />
-          {(search || filterType || filterResultat || filterTentative || filterDateDe || filterDateA) && (
-            <Reinitialiser onClick={() => { setSearch(''); setFilterType(''); setFilterResultat(''); setFilterTentative(''); setFilterDateDe(''); setFilterDateA('') }} />
-          )}
-        </BarreFiltres>
-      )}
 
       {/* ── Liste des examens ─────────────────────────────────── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>

@@ -6,7 +6,7 @@ import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
-import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, Reinitialiser } from './ListeModerne'
+import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, Reinitialiser, BoutonAjout } from './ListeModerne'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -127,27 +127,14 @@ export default function Vehicules({ onBack }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* Moniteur : même disposition que « Mes élèves » : Retour, puis la barre de filtres, sans titre */}
+      {/* Même disposition sur toutes les pages : Retour, puis la barre de filtres (+ Véhicule pour l'admin), sans titre */}
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
-        </button>
-      )}
-
-      {/* ── En-tête de page ─────────────────────────────────── */}
-      {!isMoniteur && <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Véhicules</h2>
-          <p className="text-sm text-slate-400 mt-0.5">Gérez votre flotte de véhicules et leur entretien</p>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
+          </button>
         </div>
-        <button
-          onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}>
-          <i className="bi bi-plus-lg" style={{ fontSize: '.9rem' }} />
-          Véhicule
-        </button>
-      </div>}
+      )}
 
       {/* ── Barre de filtres ─────────────────────────────────── */}
       <BarreFiltres>
@@ -161,6 +148,7 @@ export default function Vehicules({ onBack }) {
           {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>Permis {c}</option>)}
         </Filtre>
         {(search || statutFilter || catFilter) && <Reinitialiser onClick={() => { setSearch(''); setStatutFilter(''); setCatFilter('') }} />}
+        {!isMoniteur && <BoutonAjout onClick={() => openModal()}>Véhicule</BoutonAjout>}
       </BarreFiltres>
 
       {/* ── Liste des véhicules ───────────────────────────────── */}

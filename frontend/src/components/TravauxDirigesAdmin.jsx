@@ -40,12 +40,6 @@ export default function TravauxDirigesAdmin() {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* En-tête */}
-      <div>
-        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
-        <p className="text-sm text-slate-400 mt-0.5">{exercices.length} exercice{exercices.length !== 1 ? 's' : ''}</p>
-      </div>
-
       <BarreFiltres>
         <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice ou moniteur…" />
       </BarreFiltres>

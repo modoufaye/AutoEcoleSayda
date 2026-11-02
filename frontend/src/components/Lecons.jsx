@@ -3,7 +3,7 @@ import { api } from '../api'
 import { fmtDate, fmtTime, BADGES, BUREAUX } from '../utils'
 import Badge from './Badge'
 import { toast } from './Toast'
-import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre } from './ListeModerne'
+import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
@@ -144,20 +144,19 @@ export default function Lecons({ onBack }) {
         </div>
       )}
 
-      {!isEleve && (
-        <BarreFiltres>
-          <Recherche value={search} onChange={setSearch} placeholder="Élève, moniteur ou véhicule…" />
-          <Filtre icone="building" value={site} onChange={setSite}>
-            <option value="">Tous les bureaux</option>
-            {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </Filtre>
-          <button onClick={() => openModal()}
-            className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-            style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-            <i className="bi bi-plus-lg" />Leçon
-          </button>
-        </BarreFiltres>
-      )}
+      {/* L'élève ne voit que ses leçons : recherche seule, sans filtre bureau ni ajout */}
+      <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder={isEleve ? 'Moniteur ou véhicule…' : 'Élève, moniteur ou véhicule…'} />
+        {!isEleve && (
+          <>
+            <Filtre icone="building" value={site} onChange={setSite}>
+              <option value="">Tous les bureaux</option>
+              {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </Filtre>
+            <BoutonAjout onClick={() => openModal()}>Leçon</BoutonAjout>
+          </>
+        )}
+      </BarreFiltres>
 
       {/* ── Tableau : bandeau bleu nuit souligné d'or, comme « Véhicules » ── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>

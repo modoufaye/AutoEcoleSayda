@@ -9,7 +9,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
-import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, BoutonAjout } from './ListeModerne'
 import { champCls, stylePastille } from './fenetreStyles'
 
 const PAGE_SIZE = 10
@@ -605,25 +605,10 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* En-tête page */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Moniteurs</h2>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {filtered.length} moniteur{filtered.length !== 1 ? 's' : ''} enregistré{filtered.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <button onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-          style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-          <i className="bi bi-plus-lg" />
-          Moniteur
-        </button>
-      </div>
-
-      {/* Barre de filtres */}
+      {/* En-tête : barre de recherche avec le bouton d'ajout (même disposition sur toutes les pages) */}
       <BarreFiltres>
         <Recherche value={search} onChange={setSearch} placeholder="Rechercher par nom ou prénom…" />
+        <BoutonAjout onClick={() => openModal()}>Moniteur</BoutonAjout>
       </BarreFiltres>
 
       {/* Liste des moniteurs */}

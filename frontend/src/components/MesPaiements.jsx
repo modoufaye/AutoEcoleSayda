@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
+import { EnteteListe, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { toast } from './Toast'
 import '../landing.css'
 
@@ -73,47 +74,44 @@ export default function MesPaiements({ onBack }) {
     .reduce((s, p) => s + parseFloat(p.montant), 0)
 
   if (loading) return (
-    <div className="flex items-center justify-center py-20" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-[#14532d] rounded-full animate-spin" />
-        <span className="text-sm text-slate-400">Chargement…</span>
-      </div>
-    </div>
+    <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}><ListeChargement /></div>
   )
 
   return (
-    <div className="space-y-5 max-w-3xl mx-auto" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* Bouton retour */}
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-          Retour
-        </button>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+            Retour
+          </button>
+        </div>
       )}
 
-      {/* Bannière */}
+      {/* Bannière : bleu nuit souligné d'or, comme la caisse de l'auto-école */}
       <div className="rounded-2xl overflow-hidden relative"
-        style={{ background: 'linear-gradient(135deg,#14532d 0%,#15803d 55%,#16a34a 100%)', boxShadow: '0 8px 32px rgba(20,83,45,.28)' }}>
+        style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017', boxShadow: '0 8px 32px rgba(15,34,64,.25)' }}>
         <div className="absolute top-0 right-0 w-64 h-64 opacity-5 rounded-full -translate-y-1/3 translate-x-1/4"
           style={{ background: 'radial-gradient(circle,#d4a017,transparent)' }} />
-        <div className="relative px-6 py-4 flex items-center gap-4">
+        <div className="relative px-6 py-4 flex flex-wrap items-center gap-4">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,.15)' }}>
-            <i className="bi bi-cash-stack" style={{ color: '#fff', fontSize: '1.3rem' }} />
+            style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)' }}>
+            <i className="bi bi-cash-stack" style={{ color: '#1e3a5f', fontSize: '1.3rem' }} />
           </div>
-          <div className="flex-1">
-            <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(187,247,208,.7)' }}>Mes Paiements</div>
-            <div className="text-xl font-extrabold text-white leading-tight">{user?.nom}</div>
-            {user?.email && <div className="text-sm mt-0.5" style={{ color: 'rgba(187,247,208,.85)' }}>{user.email}</div>}
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#f0bb2a' }}>Mes Paiements</div>
+            <div className="text-xl font-extrabold text-white leading-tight truncate">{user?.nom}</div>
+            {user?.email && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{user.email}</div>}
           </div>
-          <div className="text-right flex-shrink-0">
-            <div className="text-xs font-semibold mb-0.5" style={{ color: 'rgba(187,247,208,.8)' }}>Total payé</div>
-            <div className="text-xl font-extrabold text-white">
+          <div className="w-full sm:w-auto text-left sm:text-right flex-shrink-0">
+            <div className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: '#bfdbfe' }}>Total payé</div>
+            <div className="text-xl font-extrabold" style={{ color: '#86efac' }}>
               {total.toLocaleString('fr-FR')} <span className="text-sm font-semibold">FCFA</span>
             </div>
             {montantTotal != null && (
-              <div className="text-xs font-semibold mt-1" style={{ color: 'rgba(187,247,208,.9)' }}>
+              <div className="text-xs font-semibold mt-1" style={{ color: '#bfdbfe' }}>
                 sur {Number(montantTotal).toLocaleString('fr-FR')} · reste {Math.max(0, montantTotal - total).toLocaleString('fr-FR')} FCFA
               </div>
             )}
@@ -149,47 +147,28 @@ export default function MesPaiements({ onBack }) {
         </div>
       )}
 
-      {/* Liste */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-
-        <div className="px-5 py-3.5 flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg,#14532d 0%,#15803d 100%)', borderBottom: '2px solid #14532d' }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.15)' }}>
-            <i className="bi bi-receipt" style={{ color: '#fff', fontSize: '.9rem' }} />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-white text-sm">Historique des paiements</div>
-            <div style={{ fontSize: '.72rem', color: 'rgba(187,247,208,.85)' }}>Suivi de vos règlements</div>
-          </div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-bold"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {paiements.length}
-          </span>
-        </div>
+      {/* Liste : bandeau bleu nuit souligné d'or, comme les autres pages */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="receipt" titre="Historique des paiements" sousTitre="Suivi de vos règlements" nombre={paiements.length} />
 
         {paiements.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-              <i className="bi bi-cash-stack" style={{ color: '#16a34a', fontSize: '1.5rem' }} />
-            </div>
-            <p className="text-slate-400 text-sm">Aucun paiement enregistré</p>
-          </div>
+          <ListeVide icone="cash-stack" texte="Aucun paiement enregistré" />
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div>
             {paiements.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(p => {
               const cfg = STATUT_CFG[p.statut] || STATUT_CFG.PAYE
               return (
-                <div key={p.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                <div key={p.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors" style={{ borderBottom: '1.5px solid #dbe2ec' }}>
 
                   {/* Icône type */}
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: '#f0fdf4' }}>
-                    <i className="bi bi-receipt-cutoff" style={{ color: '#15803d', fontSize: '1rem' }} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
+                    <i className="bi bi-receipt-cutoff" style={{ color: '#f0bb2a', fontSize: '1rem' }} />
                   </div>
 
                   {/* Infos */}
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-slate-800 text-sm">{TYPE_LABEL[p.typePaiement] || p.typePaiement}</div>
+                    <div className="font-bold text-sm" style={{ color: '#1e3a5f' }}>{TYPE_LABEL[p.typePaiement] || p.typePaiement}</div>
                     <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
                       <span>{new Date(p.date).toLocaleDateString('fr-FR')}</span>
                       {p.moyenPaiement && MOYENS[p.moyenPaiement]
@@ -199,11 +178,7 @@ export default function MesPaiements({ onBack }) {
                   </div>
 
                   {/* Statut */}
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
-                    style={{ background: cfg.bg, color: cfg.color }}>
-                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ background: cfg.dot }} />
-                    {cfg.label}
-                  </span>
+                  <span className="flex-shrink-0"><Pastille couleur={cfg.color} fond={cfg.bg}>{cfg.label}</Pastille></span>
 
                   {/* Montant */}
                   <div className="text-right flex-shrink-0">

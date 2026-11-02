@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
-import { Pastille, ListeVide, ListeChargement } from './ListeModerne'
+import { EnteteListe, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -69,6 +69,7 @@ export default function TravauxDirigesEleve({ onBack }) {
   const [loadingRep, setLoadingRep] = useState(false)
   const [pending, setPending]       = useState([])
   const [reviewMode, setReviewMode] = useState(false)
+  const [search, setSearch]         = useState('')
 
   useEffect(() => { charger() }, [])
   useEffect(() => { setPending([]) }, [currentQ, selected])
@@ -151,28 +152,32 @@ export default function TravauxDirigesEleve({ onBack }) {
   )
 
   // ── Vue liste ──────────────────────────────────────────────────────────────
+  const recherche = search.trim().toLowerCase()
+  const visibles = recherche ? exercices.filter(ex => (ex.titre || '').toLowerCase().includes(recherche)) : exercices
+
   if (!selected) return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Même disposition que les autres pages : Retour, recherche, puis bandeau bleu nuit souligné d'or */}
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
-        </button>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
+          </button>
+        </div>
       )}
 
-      <div>
-        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
-        <p className="text-sm text-slate-400 mt-0.5">
-          {exercices.length} exercice{exercices.length !== 1 ? 's' : ''} disponible{exercices.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+      <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice…" />
+      </BarreFiltres>
 
-      {exercices.length === 0 ? (
-        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}>
-          <ListeVide texte="Aucun exercice disponible pour l'instant" icone="journal-x" />
-        </div>
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      <EnteteListe icone="pencil-square" titre="Mes exercices" sousTitre="Séries de questions préparées par vos moniteurs" nombre={visibles.length} />
+      {visibles.length === 0 ? (
+        <ListeVide texte={recherche ? 'Aucun exercice trouvé' : "Aucun exercice disponible pour l'instant"} icone="journal-x" />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {exercices.map((ex, i) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+          {visibles.map(ex => {
+            const i = exercices.indexOf(ex)
             const { total, repondues, correctes } = scoreExercice(ex)
             const termine = repondues === total && total > 0
             const pct = total > 0 ? Math.round((correctes / total) * 100) : 0
@@ -183,7 +188,7 @@ export default function TravauxDirigesEleve({ onBack }) {
             return (
               <button key={ex.id} type="button" onClick={() => openExercice(ex)}
                 className="text-left bg-white rounded-2xl overflow-hidden border-0 p-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                style={{ borderRadius: '1rem', boxShadow: '0 2px 12px rgba(15,34,64,.07)', outline: '1px solid #eef2f7' }}>
+                style={{ borderRadius: '1rem', boxShadow: '0 2px 12px rgba(15,34,64,.07)', outline: '1px solid #e2e8f0' }}>
                 {/* En-tête bleu nuit souligné d'or */}
                 <div className="flex items-center gap-3 px-4 py-3"
                   style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
@@ -218,6 +223,7 @@ export default function TravauxDirigesEleve({ onBack }) {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 

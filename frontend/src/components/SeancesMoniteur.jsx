@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
-import { EnteteListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre } from './ListeModerne'
+import { EnteteListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import '../landing.css'
 
 const THEMES = [
@@ -458,11 +458,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
           <option value="PUBLIE">Publié</option>
           <option value="BROUILLON">Brouillon</option>
         </Filtre>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-          style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-          <i className="bi bi-plus-lg" />Séance
-        </button>
+        <BoutonAjout onClick={openCreate}>Séance</BoutonAjout>
       </BarreFiltres>
 
       {/* Liste : bandeau bleu nuit souligné d'or, comme « Véhicules · Flotte de l'auto-école » */}

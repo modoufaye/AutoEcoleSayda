@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
-import { EnteteListe, BoutonRond, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
+import { EnteteListe, BoutonRond, ListeVide, ListeChargement, BarreFiltres, Recherche, BoutonAjout } from './ListeModerne'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -336,11 +336,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
       {/* En-tête : comme « Mes élèves », la barre de recherche directement, avec le bouton d'ajout */}
       <BarreFiltres>
         <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice…" />
-        <button onClick={openForm}
-          className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-          style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-          <i className="bi bi-plus-lg" />Exercice
-        </button>
+        <BoutonAjout onClick={openForm}>Exercice</BoutonAjout>
       </BarreFiltres>
 
       {/* Formulaire de création */}
