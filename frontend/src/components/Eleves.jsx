@@ -1502,9 +1502,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           </div>
 
           {/* Colonne droite — onglets */}
-          {/* Colonne de droite : onglets Leçons / Examens / Paiements, puis le suivi de formation */}
-          <div className="lg:col-span-2 space-y-5">
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)', minHeight: '480px' }}>
+          {/* Colonne de droite : onglets Leçons / Examens / Paiements, puis le suivi de formation.
+              Elle s'étire à la hauteur de la carte Informations (les onglets prennent la place
+              restante) : les deux colonnes finissent sur la même ligne. */}
+          <div className="lg:col-span-2 flex flex-col" style={{ gap: '1.25rem' }}>
+            <div className="bg-white rounded-2xl overflow-hidden flex-1" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)', minHeight: '260px' }}>
               {/* Onglets */}
               <div className="flex border-b border-slate-100 px-2 pt-2">
                 {[
