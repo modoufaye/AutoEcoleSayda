@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, waLink } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -956,9 +956,11 @@ export default function Eleves({ initialEleveId }) {
                 <div className="col-md-6">
                   <label className={labelCls}>Lieu d'inscription</label>
                   <select className={inputCls} value={form.lieuInscription}
-                    onChange={e => setForm(fm => ({ ...fm, lieuInscription: e.target.value }))}>
+                    onChange={e => setForm(fm => ({ ...fm, lieuInscription: e.target.value,
+                      // Inscrit en ligne : suivi par Massalikoul Djinane, sauf bureau déjà choisi.
+                      site: e.target.value === 'EN_LIGNE' && !fm.site ? 'MAZALIK_JINAN' : fm.site }))}>
                     <option value="">Comme le bureau</option>
-                    {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    {LIEUX_INSCRIPTION.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div className="col-md-6">

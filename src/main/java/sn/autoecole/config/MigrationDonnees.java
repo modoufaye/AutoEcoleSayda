@@ -177,6 +177,9 @@ public class MigrationDonnees {
     private void lieuInscription() {
         int n = jdbc.update("UPDATE eleves SET lieu_inscription = site WHERE lieu_inscription IS NULL AND site IS NOT NULL");
         if (n > 0) log.info("Migration : lieu d'inscription recopié du bureau pour {} élève(s)", n);
+        // « En ligne » n'est plus un bureau : ces élèves sont suivis par Massalikoul Djinane.
+        int m = jdbc.update("UPDATE eleves SET site = 'MAZALIK_JINAN' WHERE site = 'EN_LIGNE'");
+        if (m > 0) log.info("Migration : {} élève(s) inscrit(s) en ligne rattaché(s) au bureau de Massalikoul Djinane", m);
     }
 
     /** Pour les ALTER déjà appliqués (ou sans objet) : l'échec est normal et ignoré. */

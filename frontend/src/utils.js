@@ -53,11 +53,13 @@ export const LABELS = {
   MAZALIK_JINAN: 'Massalikoul Djinane', GUEDIAWAYE: 'Guédiawaye', KEUR_MASSAR: 'Keur Massar', EN_LIGNE: 'En ligne',
 }
 
-/* Bureaux de rattachement des élèves (champ `site` côté API) ; « En ligne » : inscription sans bureau. */
+/* Bureaux de rattachement des élèves (champ `site` côté API). */
 export const BUREAUX = [
   { value: 'MAZALIK_JINAN', label: 'Massalikoul Djinane' },
   { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
   { value: 'GUEDIAWAYE',    label: 'Guédiawaye' },
-  { value: 'EN_LIGNE',      label: 'En ligne' },
 ]
+
+/* Lieux d'inscription : les bureaux, plus « En ligne » (l'élève est alors suivi par Massalikoul Djinane). */
+export const LIEUX_INSCRIPTION = [...BUREAUX, { value: 'EN_LIGNE', label: 'En ligne' }]
 

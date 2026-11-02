@@ -8,7 +8,7 @@ public enum Site {
     MAZALIK_JINAN("Massalikoul Djinane"),
     GUEDIAWAYE("Guédiawaye"),
     KEUR_MASSAR("Keur Massar"),
-    /** Inscription faite en ligne, sans passage par un bureau. */
+    /** Lieu d'inscription seulement (jamais un bureau) : l'élève est alors suivi par Massalikoul Djinane. */
     EN_LIGNE("En ligne");
 
     private final String libelle;

@@ -74,6 +74,11 @@ public class EleveService {
     }
 
     /** Guédiawaye est fermé : refusé pour une inscription ou un changement, toléré s'il est déjà en place. */
+    /** « En ligne » est un lieu d'inscription, pas un bureau : ces élèves sont suivis par Massalikoul Djinane. */
+    private static Site bureau(Site site) {
+        return site == Site.EN_LIGNE ? Site.MAZALIK_JINAN : site;
+    }
+
     /** Un numéro identifie un seul élève : c'est son identifiant de connexion. */
     private String verifierTelephone(String telephone, Long idActuel) {
         String tel = Telephones.normaliser(telephone);
@@ -101,7 +106,7 @@ public class EleveService {
                 .dateNaissance(request.getDateNaissance())
                 .telephone(telephone)
                 .adresse(request.getAdresse())
-                .site(request.getSite())
+                .site(bureau(request.getSite()))
                 .lieuInscription(request.getLieuInscription() != null ? request.getLieuInscription() : request.getSite())
                 .numeroCni(request.getNumeroCni())
                 .photoUrl(request.getPhotoUrl())
@@ -203,7 +208,7 @@ public class EleveService {
         if (request.getDateInscription() != null) eleve.setDateInscription(request.getDateInscription());
         eleve.setTelephone(telephone);
         eleve.setAdresse(request.getAdresse());
-        eleve.setSite(request.getSite());
+        eleve.setSite(bureau(request.getSite()));
         if (request.getLieuInscription() != null) eleve.setLieuInscription(request.getLieuInscription());
         eleve.setNumeroCni(request.getNumeroCni());
         eleve.setPhotoUrl(request.getPhotoUrl());
