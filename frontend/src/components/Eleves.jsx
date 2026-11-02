@@ -981,13 +981,13 @@ export default function Eleves({ initialEleveId }) {
                     </select>
                   </div>
                 )}
-                <div className="col-12">
+                <div className={editId ? 'col-md-6' : 'col-12'}>
                   <label className={labelCls}>Adresse</label>
                   <input className={inputCls} value={form.adresse}
                     onChange={e => setForm(fm => ({ ...fm, adresse: e.target.value }))} />
                 </div>
                 {/* Prix convenu : total fixé par élève, acompte à l'inscription, reliquat = le reste */}
-                <div className={editId ? 'col-12' : 'col-md-4'}>
+                <div className={editId ? 'col-md-6' : 'col-md-4'}>
                   <label className={labelCls}>
                     Montant total de la formation (FCFA) {!editId && <span className="text-red-500">*</span>}
                   </label>
