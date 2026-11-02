@@ -163,7 +163,7 @@ export default function Examens({ onEleveClick, onBack }) {
             style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}
           >
             <i className="bi bi-plus-lg" />
-            Nouvel examen
+            Examen
           </button>
         </div>
       )}
