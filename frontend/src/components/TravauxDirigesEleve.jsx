@@ -237,14 +237,8 @@ export default function TravauxDirigesEleve({ onBack }) {
   // ── Écran de score final ──────────────────────────────────────────────────
   if (termine && !reviewMode) return (
     <div>
-      <button onClick={() => setSelected(null)} style={{
-        display: 'inline-flex', alignItems: 'center', gap: '.45rem',
-        background: '#f1f5f9', color: '#475569',
-        border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
-        fontSize: '.8rem', fontWeight: 600,
-        padding: '.45rem 1rem', cursor: 'pointer', marginBottom: '1.5rem',
-      }}>
-        <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />Retour aux exercices
+      <button onClick={() => setSelected(null)} className="btn-retour" style={{ marginBottom: '1.5rem' }}>
+        <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour aux exercices
       </button>
 
       <div className="card border-0 shadow-sm" style={{ borderRadius: '1.25rem', maxWidth: 480, margin: '0 auto' }}>
@@ -324,14 +318,8 @@ export default function TravauxDirigesEleve({ onBack }) {
     <div>
       {/* Barre de navigation supérieure */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <button onClick={() => setSelected(null)} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '.4rem',
-          background: '#f1f5f9', color: '#475569',
-          border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
-          fontSize: '.8rem', fontWeight: 600,
-          padding: '.4rem .9rem', cursor: 'pointer', flexShrink: 0,
-        }}>
-          <i className="bi bi-arrow-left" style={{ fontSize: '.75rem' }} />Exercices
+        <button onClick={() => setSelected(null)} className="btn-retour" style={{ flexShrink: 0 }}>
+          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Exercices
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>

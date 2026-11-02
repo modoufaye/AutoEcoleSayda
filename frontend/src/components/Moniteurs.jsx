@@ -453,10 +453,8 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
       </div>
 
       {/* Bouton retour */}
-      <button onClick={fermerFiche}
-        className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-0 cursor-pointer transition-all"
-        style={{ background: '#f1f5f9', color: '#475569' }}>
-        <i className="bi bi-arrow-left" />
+      <button onClick={fermerFiche} className="btn-retour">
+        <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
         Retour
       </button>
 
