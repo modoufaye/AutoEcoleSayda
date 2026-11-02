@@ -1342,7 +1342,7 @@ export default function Eleves({ initialEleveId }) {
                 style={{ background: 'rgba(255,255,255,.2)' }}>
                 <i className="bi bi-file-earmark-spreadsheet-fill" style={{ fontSize: '.95rem' }} />
               </span>
-              Importer Excel
+              Importer
             </button>
             <button onClick={() => openModal()}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-sm font-bold text-white px-4 sm:px-5 py-2.5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
