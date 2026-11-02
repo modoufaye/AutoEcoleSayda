@@ -926,8 +926,6 @@ export default function Eleves({ initialEleveId }) {
                   { key: 'dateNaissance', label: 'Date de naissance', req: false, type: 'date' },
                   { key: 'dateInscription', label: "Date d'inscription", req: true, type: 'date', max: today() },
                   { key: 'telephone',     label: 'Téléphone (identifiant de connexion)', req: true, type: 'tel', ph: '7XXXXXXXX' },
-                  // CNI : pas à l'inscription, complété ensuite avec « Modifier ».
-                  ...(editId ? [{ key: 'numeroCni', label: 'Numéro CNI', req: false, type: 'text' }] : []),
                 ].map(f => (
                   <div key={f.key} className="col-md-6">
                     <label className={labelCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
