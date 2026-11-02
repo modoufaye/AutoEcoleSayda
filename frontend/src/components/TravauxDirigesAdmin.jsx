@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
+import { EnteteListe, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', text: '#1d4ed8' },
@@ -24,6 +25,7 @@ export default function TravauxDirigesAdmin() {
   const [exercices, setExercices] = useState([])
   const [loading, setLoading]     = useState(true)
   const [expanded, setExpanded]   = useState(null)
+  const [search, setSearch]       = useState('')
 
   useEffect(() => {
     api('GET', '/admin/exercices-td')
@@ -32,44 +34,40 @@ export default function TravauxDirigesAdmin() {
       .finally(() => setLoading(false))
   }, [])
 
+  const q = search.trim().toLowerCase()
+  const visibles = q ? exercices.filter(ex => `${ex.titre} ${ex.moniteur?.prenom || ''} ${ex.moniteur?.nom || ''}`.toLowerCase().includes(q)) : exercices
+
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {/* En-tête */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
-          <p className="text-sm text-slate-400 mt-0.5">{exercices.length} exercice{exercices.length !== 1 ? 's' : ''}</p>
-        </div>
+      <div>
+        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
+        <p className="text-sm text-slate-400 mt-0.5">{exercices.length} exercice{exercices.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#f97316] rounded-full animate-spin" />
-          <span className="text-sm text-slate-400">Chargement…</span>
-        </div>
-      ) : exercices.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#fff7ed' }}>
-            <i className="bi bi-journal-x" style={{ fontSize: '1.8rem', color: '#f97316' }} />
-          </div>
-          <p className="text-slate-400 text-sm">Aucun exercice créé pour l'instant</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {exercices.map((ex, i) => {
+      <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice ou moniteur…" />
+      </BarreFiltres>
+
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="pencil-square" titre="Exercices" sousTitre="Séries créées par les moniteurs" nombre={visibles.length} />
+      {loading ? <ListeChargement />
+      : visibles.length === 0 ? <ListeVide texte={q ? 'Aucun exercice trouvé' : "Aucun exercice créé pour l'instant"} icone="journal-x" />
+      : (
+        <div>
+          {visibles.map((ex, i) => {
             const isOpen = expanded === ex.id
             return (
-              <div key={ex.id} className="bg-white rounded-2xl overflow-hidden"
-                style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+              <div key={ex.id} style={{ borderBottom: '1.5px solid #dbe2ec' }}>
 
                 {/* En-tête carte */}
                 <button
                   onClick={() => setExpanded(isOpen ? null : ex.id)}
                   className="w-full text-left px-5 py-4 flex items-center gap-4 border-0 bg-transparent cursor-pointer transition-colors hover:bg-slate-50"
                 >
-                  <span className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)' }}>
+<span className="flex-shrink-0 rounded-full flex items-center justify-center text-xs font-extrabold"
+                    style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
                     {i + 1}
                   </span>
 
@@ -97,18 +95,18 @@ export default function TravauxDirigesAdmin() {
                   </div>
 
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                      style={{ background: ex.eleves.length > 0 ? '#f0fdf4' : '#f8fafc', color: ex.eleves.length > 0 ? '#15803d' : '#94a3b8' }}>
-                      <i className="bi bi-people me-1" />
+                    <Pastille couleur={ex.eleves.length > 0 ? '#15803d' : '#94a3b8'} fond={ex.eleves.length > 0 ? '#dcfce7' : '#f1f5f9'}>
                       {ex.eleves.length} élève{ex.eleves.length !== 1 ? 's' : ''}
+                    </Pastille>
+                    <span className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: isOpen ? '#1e3a5f' : '#eff6ff', color: isOpen ? '#fff' : '#1e3a5f' }}>
+                      <i className={`bi bi-chevron-${isOpen ? 'up' : 'down'}`} style={{ fontSize: '.75rem' }} />
                     </span>
-                    <i className={`bi bi-chevron-${isOpen ? 'up' : 'down'} text-slate-400`} style={{ fontSize: '.8rem' }} />
                   </div>
                 </button>
 
                 {/* Panneau dépliable */}
                 {isOpen && (
-                  <div className="border-t border-slate-100">
+                  <div style={{ background: '#f8fafc', borderTop: '1px solid #eef2f7' }}>
 
                     {/* Questions */}
                     <div className="px-5 pt-4 pb-3">
@@ -120,7 +118,7 @@ export default function TravauxDirigesAdmin() {
                           const bonnes = q.bonneReponse ? q.bonneReponse.split(',') : []
                           return (
                             <div key={q.id} style={{
-                              background: '#f8fafc', border: '1.5px solid #e2e8f0',
+                              background: '#fff', border: '1.5px solid #e2e8f0',
                               borderRadius: '.75rem', overflow: 'hidden', width: 140, flexShrink: 0,
                             }}>
                               <img src={q.imageUrl} alt={`Q${qi + 1}`}
@@ -139,7 +137,7 @@ export default function TravauxDirigesAdmin() {
                     </div>
 
                     {/* Élèves ayant participé */}
-                    <div className="px-5 pb-4 pt-1" style={{ borderTop: '1px dashed #f1f5f9' }}>
+                    <div className="px-5 pb-4 pt-3" style={{ borderTop: '1px dashed #dbe2ec' }}>
                       <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
                         <i className="bi bi-people me-1" />Élèves ayant participé
                       </div>
@@ -172,6 +170,7 @@ export default function TravauxDirigesAdmin() {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

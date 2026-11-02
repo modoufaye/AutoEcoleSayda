@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
+import { Pastille, ListeVide, ListeChargement } from './ListeModerne'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -146,74 +147,73 @@ export default function TravauxDirigesEleve({ onBack }) {
   }
 
   if (loading) return (
-    <div className="text-center py-5 text-muted">
-      <span className="spinner-border spinner-border-sm me-2" />Chargement…
-    </div>
+    <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}><ListeChargement /></div>
   )
 
   // ── Vue liste ──────────────────────────────────────────────────────────────
   if (!selected) return (
-    <div>
-      <h4 className="fw-bold mb-1" style={{ color: '#1e3a5f' }}>Travaux Dirigés</h4>
-      <p className="text-muted mb-4" style={{ fontSize: '.85rem' }}>
-        {exercices.length} exercice{exercices.length !== 1 ? 's' : ''} disponible{exercices.length !== 1 ? 's' : ''}
-      </p>
+    <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {onBack && (
+        <button onClick={onBack} className="btn-retour">
+          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
+        </button>
+      )}
+
+      <div>
+        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
+        <p className="text-sm text-slate-400 mt-0.5">
+          {exercices.length} exercice{exercices.length !== 1 ? 's' : ''} disponible{exercices.length !== 1 ? 's' : ''}
+        </p>
+      </div>
 
       {exercices.length === 0 ? (
-        <div className="text-center py-5" style={{ color: '#94a3b8' }}>
-          <i className="bi bi-journal-x" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '.75rem' }} />
-          Aucun exercice disponible pour l'instant
+        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}>
+          <ListeVide texte="Aucun exercice disponible pour l'instant" icone="journal-x" />
         </div>
       ) : (
-        <div className="row g-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {exercices.map((ex, i) => {
             const { total, repondues, correctes } = scoreExercice(ex)
             const termine = repondues === total && total > 0
             const pct = total > 0 ? Math.round((correctes / total) * 100) : 0
+            const etat = termine
+              ? (pct >= 50 ? { label: `Réussi · ${pct} %`, couleur: '#15803d', fond: '#dcfce7' } : { label: `À revoir · ${pct} %`, couleur: '#b91c1c', fond: '#fee2e2' })
+              : repondues > 0 ? { label: 'En cours', couleur: '#b45309', fond: '#fef3c7' }
+              : { label: 'À commencer', couleur: '#1d4ed8', fond: '#dbeafe' }
             return (
-              <div key={ex.id} className="col-12 col-md-6 col-lg-4">
-                <div
-                  className="card border-0 shadow-sm h-100"
-                  style={{ borderRadius: '1rem', cursor: 'pointer', transition: 'transform .15s, box-shadow .15s' }}
-                  onClick={() => openExercice(ex)}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,.1)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
-                >
-                  <div className="card-body p-4">
-                    <div className="d-flex align-items-start justify-content-between mb-3">
-                      <div style={{
-                        width: 40, height: 40, borderRadius: '.75rem', background: '#eff6ff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#2563eb', fontWeight: 800, fontSize: '1rem',
-                      }}>{i + 1}</div>
-                      {termine && (
-                        <span style={{
-                          background: pct >= 50 ? '#f0fdf4' : '#fef2f2',
-                          color: pct >= 50 ? '#15803d' : '#dc2626',
-                          border: `1.5px solid ${pct >= 50 ? '#86efac' : '#fca5a5'}`,
-                          borderRadius: '.5rem', padding: '.2rem .6rem',
-                          fontSize: '.72rem', fontWeight: 700,
-                        }}>{pct}%</span>
-                      )}
-                    </div>
-                    <h6 className="fw-bold mb-1" style={{ color: '#1e3a5f' }}>{ex.titre}</h6>
-                    <p className="mb-3" style={{ fontSize: '.8rem', color: '#94a3b8' }}>
-                      {total} question{total !== 1 ? 's' : ''}
-                    </p>
-                    <div style={{ background: '#f1f5f9', borderRadius: 99, height: 6, overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', borderRadius: 99, transition: 'width .3s',
-                        width: total > 0 ? `${(repondues / total) * 100}%` : '0%',
-                        background: 'linear-gradient(90deg,#3b82f6,#6366f1)',
-                      }} />
-                    </div>
-                    <p className="mb-0 mt-1" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
-                      {repondues}/{total} répondue{repondues !== 1 ? 's' : ''}
-                      {repondues > 0 && ` · ${correctes} correcte${correctes !== 1 ? 's' : ''}`}
-                    </p>
+              <button key={ex.id} type="button" onClick={() => openExercice(ex)}
+                className="text-left bg-white rounded-2xl overflow-hidden border-0 p-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ borderRadius: '1rem', boxShadow: '0 2px 12px rgba(15,34,64,.07)', outline: '1px solid #eef2f7' }}>
+                {/* En-tête bleu nuit souligné d'or */}
+                <div className="flex items-center gap-3 px-4 py-3"
+                  style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
+                  <span className="rounded-full flex items-center justify-center text-sm font-extrabold flex-shrink-0"
+                    style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{i + 1}</span>
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-white truncate">{ex.titre}</div>
+                    <div className="text-xs" style={{ color: '#bfdbfe' }}>{total} question{total !== 1 ? 's' : ''}</div>
                   </div>
                 </div>
-              </div>
+                <div className="px-4 py-4">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <Pastille couleur={etat.couleur} fond={etat.fond}>{etat.label}</Pastille>
+                    <span className="text-xs font-bold" style={{ color: '#1e3a5f' }}>
+                      {termine ? 'Revoir' : repondues > 0 ? 'Continuer' : 'Commencer'} <i className="bi bi-arrow-right" />
+                    </span>
+                  </div>
+                  <div style={{ background: '#eef2f7', borderRadius: 99, height: 8, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 99, transition: 'width .3s',
+                      width: total > 0 ? `${(repondues / total) * 100}%` : '0%',
+                      background: 'linear-gradient(90deg,#d4a017,#f0bb2a)',
+                    }} />
+                  </div>
+                  <p className="mb-0 mt-2 text-xs text-slate-400">
+                    {repondues}/{total} répondue{repondues !== 1 ? 's' : ''}
+                    {repondues > 0 && ` · ${correctes} correcte${correctes !== 1 ? 's' : ''}`}
+                  </p>
+                </div>
+              </button>
             )
           })}
         </div>

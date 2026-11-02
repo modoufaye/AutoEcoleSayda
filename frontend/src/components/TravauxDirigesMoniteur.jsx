@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
+import { BoutonRond, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -25,15 +27,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
   const [editingTitre, setEditingTitre] = useState(null)
   const [addingQ, setAddingQ]           = useState(null)
   const [stats, setStats]     = useState([])
-  const [confirm, setConfirm] = useState(null)
-
-  useEffect(() => {
-    if (!confirm) return
-    const handler = e => { if (e.key === 'Escape') setConfirm(null) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [confirm])
-  // confirm = { message, onConfirm }
+  const [search, setSearch]   = useState('')
   // editingTitre = { exId, valeur, saving }
   // editingQ     = { exId, qId, qIdx, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
   // addingQ      = { exId, avecOptionC, avecOptionD, bonneReponse, imageUrl, uploading, uploadError, saving }
@@ -129,20 +123,14 @@ export default function TravauxDirigesMoniteur({ onBack }) {
     finally { setSaving(false) }
   }
 
-  function handleDelete(id) {
-    setConfirm({
-      message: 'Supprimer cet exercice et toutes ses questions ?',
-      icon: 'trash3-fill',
-      color: '#dc2626',
-      onConfirm: async () => {
-        try {
-          await api('DELETE', `/moniteur/exercices-td/${id}`)
-          toast('Exercice supprimé')
-          setExercices(prev => prev.filter(e => e.id !== id))
-          if (editingQ?.exId === id) setEditingQ(null)
-        } catch (e) { toast(e.message, 'danger') }
-      },
-    })
+  async function handleDelete(id) {
+    if (!(await confirmer({ titre: 'Supprimer cet exercice ?', ton: 'danger', libelle: 'Supprimer', message: 'L\'exercice et toutes ses questions seront supprimés.' }))) return
+    try {
+      await api('DELETE', `/moniteur/exercices-td/${id}`)
+      toast('Exercice supprimé')
+      setExercices(prev => prev.filter(e => e.id !== id))
+      if (editingQ?.exId === id) setEditingQ(null)
+    } catch (e) { toast(e.message, 'danger') }
   }
 
   // ── Édition d'une question ────────────────────────────────────────────────
@@ -228,22 +216,16 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
   // ── Suppression d'une question ───────────────────────────────────────────
 
-  function handleDeleteQuestion(exId, qId) {
-    setConfirm({
-      message: 'Supprimer cette question ?',
-      icon: 'image-fill',
-      color: '#dc2626',
-      onConfirm: async () => {
-        try {
-          await api('DELETE', `/moniteur/exercices-td/questions/${qId}`)
-          setExercices(prev => prev.map(ex => ex.id !== exId ? ex : {
-            ...ex, questions: ex.questions.filter(q => q.id !== qId),
-          }))
-          if (editingQ?.qId === qId) setEditingQ(null)
-          toast('Question supprimée')
-        } catch (e) { toast(e.message, 'danger') }
-      },
-    })
+  async function handleDeleteQuestion(exId, qId) {
+    if (!(await confirmer({ titre: 'Supprimer cette question ?', ton: 'danger', libelle: 'Supprimer', message: 'Cette action est définitive.' }))) return
+    try {
+      await api('DELETE', `/moniteur/exercices-td/questions/${qId}`)
+      setExercices(prev => prev.map(ex => ex.id !== exId ? ex : {
+        ...ex, questions: ex.questions.filter(q => q.id !== qId),
+      }))
+      if (editingQ?.qId === qId) setEditingQ(null)
+      toast('Question supprimée')
+    } catch (e) { toast(e.message, 'danger') }
   }
 
   // ── Ajout d'une question à un exercice existant ───────────────────────────
@@ -338,24 +320,35 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
 
+  const recherche = search.trim().toLowerCase()
+  const visibles = recherche ? exercices.filter(ex => (ex.titre || '').toLowerCase().includes(recherche)) : exercices
+
   return (
-    <div>
+    <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {onBack && (
+        <button onClick={onBack} className="btn-retour">
+          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
+        </button>
+      )}
+
       {/* En-tête */}
-      <div className="d-flex align-items-center justify-content-between mb-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h4 className="fw-bold mb-0" style={{ color: '#1e3a5f' }}>Travaux Dirigés</h4>
-          <p className="text-muted mb-0" style={{ fontSize: '.85rem' }}>
-            {exercices.length} exercice{exercices.length !== 1 ? 's' : ''}
-          </p>
+          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
+          <p className="text-sm text-slate-400 mt-0.5">{exercices.length} exercice{exercices.length !== 1 ? 's' : ''}</p>
         </div>
-        <button
-          className="btn fw-bold text-white"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none', padding: '.55rem 1.2rem' }}
-          onClick={openForm}
-        >
-          <i className="bi bi-plus-lg me-2" />Nouvel exercice
+        <button onClick={openForm}
+          className="flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
+          style={{ borderRadius: '.85rem', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+          <i className="bi bi-plus-lg" />Exercice
         </button>
       </div>
+
+      {exercices.length > 0 && (
+        <BarreFiltres>
+          <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice…" />
+        </BarreFiltres>
+      )}
 
       {/* Formulaire de création */}
       {showForm && (
@@ -542,28 +535,25 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
       {/* Liste des exercices */}
       {loading ? (
-        <div className="text-center py-5 text-muted">
-          <span className="spinner-border spinner-border-sm me-2" />Chargement…
-        </div>
-      ) : exercices.length === 0 ? (
-        <div className="text-center py-5" style={{ color: '#94a3b8' }}>
-          <i className="bi bi-journal-x" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '.75rem' }} />
-          Aucun exercice créé pour l'instant
+        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}><ListeChargement /></div>
+      ) : visibles.length === 0 ? (
+        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}>
+          <ListeVide texte={recherche ? 'Aucun exercice trouvé' : "Aucun exercice créé pour l'instant"} icone="journal-x" />
         </div>
       ) : (
-        <div className="d-flex flex-column gap-3">
-          {exercices.map((ex, ei) => (
-            <div key={ex.id} className="card border-0 shadow-sm" style={{ borderRadius: '1rem' }}>
-              <div className="card-body p-0">
+        <div className="d-flex flex-column gap-4">
+          {visibles.map((ex, ei) => (
+            <div key={ex.id} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+              <div>
 
-                {/* En-tête exercice */}
+                {/* En-tête exercice : bleu nuit souligné d'or, comme les autres listes */}
                 <div className="d-flex align-items-center justify-content-between px-4 py-3"
-                  style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '1rem 1rem 0 0' }}>
+                  style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
                   <div className="d-flex align-items-center gap-3 flex-grow-1 me-3" style={{ minWidth: 0 }}>
-                    <span style={{
-                      background: '#1e3a5f', color: '#fff', borderRadius: '.5rem',
-                      padding: '.2rem .55rem', fontSize: '.72rem', fontWeight: 700, flexShrink: 0,
-                    }}>#{ei + 1}</span>
+                    <span className="rounded-full flex items-center justify-center text-xs font-extrabold" style={{
+                      width: 34, height: 34, flexShrink: 0,
+                      background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f',
+                    }}>{ei + 1}</span>
 
                     {editingTitre?.exId === ex.id ? (
                       /* Champ d'édition inline du titre */
@@ -593,24 +583,23 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                       </div>
                     ) : (
                       /* Affichage normal du titre avec bouton crayon */
-                      <div className="d-flex align-items-center gap-2">
-                        <span className="fw-bold" style={{ color: '#1e3a5f' }}>{ex.titre}</span>
-                        <button onClick={() => openEditTitre(ex)} title="Modifier le titre" style={{
-                          background: 'none', border: 'none', color: '#94a3b8',
-                          cursor: 'pointer', padding: '0 .25rem', fontSize: '.78rem', lineHeight: 1,
-                        }}>
-                          <i className="bi bi-pencil" />
-                        </button>
-                        <span style={{ fontSize: '.78rem', color: '#94a3b8' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="font-extrabold text-white truncate">{ex.titre}</span>
+                          <button onClick={() => openEditTitre(ex)} title="Modifier le titre" style={{
+                            background: 'rgba(255,255,255,.12)', border: 'none', color: '#fff', width: 26, height: 26,
+                            borderRadius: 999, cursor: 'pointer', fontSize: '.72rem', flexShrink: 0,
+                          }}>
+                            <i className="bi bi-pencil-fill" />
+                          </button>
+                        </div>
+                        <div style={{ fontSize: '.75rem', color: '#bfdbfe' }}>
                           {ex.questions?.length || 0} question{(ex.questions?.length || 0) !== 1 ? 's' : ''}
-                        </span>
+                        </div>
                       </div>
                     )}
                   </div>
-                  <button onClick={() => handleDelete(ex.id)} style={{
-                    background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
-                    borderRadius: '.5rem', padding: '.3rem .65rem', cursor: 'pointer', fontSize: '.8rem', flexShrink: 0,
-                  }}><i className="bi bi-trash3" /></button>
+                  <BoutonRond title="Supprimer l'exercice" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => handleDelete(ex.id)} />
                 </div>
 
                 {/* Questions miniatures */}
@@ -999,34 +988,6 @@ export default function TravauxDirigesMoniteur({ onBack }) {
         </div>
       )}
 
-      {/* Modal de confirmation */}
-      {confirm && (
-        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 400 }}>
-            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-              <div className="modal-body px-6 py-5 text-center">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                  style={{ background: '#fef2f2', width: 56, height: 56, borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                  <i className={`bi bi-${confirm.icon}`} style={{ fontSize: '1.5rem', color: confirm.color }} />
-                </div>
-                <h6 className="fw-bold mb-2" style={{ color: '#1e293b' }}>Confirmer la suppression</h6>
-                <p className="text-muted mb-0" style={{ fontSize: '.9rem' }}>{confirm.message}</p>
-              </div>
-              <div className="modal-footer border-0 px-6 pb-5 pt-0 gap-2 justify-content-center">
-                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                  onClick={() => setConfirm(null)}>
-                  Annuler
-                </button>
-                <button className="btn fw-bold text-white px-4" style={{
-                  background: 'linear-gradient(135deg,#dc2626,#b91c1c)', borderRadius: '.75rem', border: 'none' }}
-                  onClick={() => { setConfirm(null); confirm.onConfirm() }}>
-                  <i className="bi bi-trash3 me-2" />Supprimer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
