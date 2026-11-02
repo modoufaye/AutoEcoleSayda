@@ -2,14 +2,14 @@
    Même présentation que l'historique des versements (Paiements.jsx) : en-tête bleu nuit
    souligné d'or, lignes séparées en grille (cartes sur téléphone), avatars et actions ronds. */
 
-export function EnteteListe({ icone, titre, sousTitre, nombre }) {
+export function EnteteListe({ icone, emoji, titre, sousTitre, nombre }) {
   return (
     <div className="flex items-center justify-between gap-3 px-5 py-4"
       style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
-          <i className={`bi bi-${icone}`} />
+          {emoji ? <span style={{ fontSize: '1.15rem', lineHeight: 1 }}>{emoji}</span> : <i className={`bi bi-${icone}`} />}
         </div>
         <div className="min-w-0">
           <div className="font-extrabold text-white leading-tight">{titre}</div>

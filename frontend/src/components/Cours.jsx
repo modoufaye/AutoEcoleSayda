@@ -3,7 +3,7 @@ import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
-import { EnteteListe, ListeVide, BarreFiltres, Recherche } from './ListeModerne'
+import { EnteteListe, BoutonRond, ListeVide, BarreFiltres, Recherche, Filtre } from './ListeModerne'
 import '../landing.css'
 
 const CAT_STYLE = {
@@ -97,22 +97,8 @@ function CoursEcritCard({ c, onSelect, onEdit, onDelete }) {
       </div>
       {(onEdit || onDelete) && (
         <div className="flex justify-end gap-2 px-4 py-2.5 border-t border-slate-50">
-          {onEdit && (
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-              style={{ background: '#f1f5f9', color: '#475569' }}
-              onClick={e => { e.stopPropagation(); onEdit(c) }}
-              title="Modifier">
-              <i className="bi bi-pencil-fill" style={{ fontSize: '.72rem' }} />
-            </button>
-          )}
-          {onDelete && (
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-              style={{ background: '#fef2f2', color: '#dc2626' }}
-              onClick={e => { e.stopPropagation(); onDelete(c.id) }}
-              title="Supprimer">
-              <i className="bi bi-trash-fill" style={{ fontSize: '.72rem' }} />
-            </button>
-          )}
+          {onEdit && <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={e => { e.stopPropagation(); onEdit(c) }} />}
+          {onDelete && <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={e => { e.stopPropagation(); onDelete(c.id) }} />}
         </div>
       )}
     </div>
@@ -126,6 +112,7 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
   const isEleve      = user?.role === 'ELEVE'
   const [selected, setSelected]     = useState(null)
   const [typeFilter, setTypeFilter] = useState('TOUS')
+  const [search, setSearch]         = useState('')
   const [showForm, setShowForm]     = useState(false)
   const [editId, setEditId]         = useState(null)
   const [form, setForm]             = useState(EMPTY_FORM)
@@ -205,9 +192,9 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
   }
 
   const themeCours = cours.filter(c => theme.categories.includes(c.categorie))
-  const filtered = isMoniteur
-    ? themeCours
-    : themeCours.filter(c => typeFilter === 'TOUS' || c.typeContenu === typeFilter)
+  const recherche = search.trim().toLowerCase()
+  const filtered = themeCours.filter(c => (typeFilter === 'TOUS' || c.typeContenu === typeFilter)
+    && (!recherche || `${c.titre || ''} ${c.description || ''}`.toLowerCase().includes(recherche)))
 
   const catOrder = theme.categories.length > 0
     ? theme.categories
@@ -264,33 +251,57 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4 flex-wrap">
-          <button onClick={onBack} className="btn-retour">
-            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-            Retour aux thèmes
-          </button>
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
-              {theme.emoji} {theme.label}
-            </h2>
-            {themeCours.length > 0 && (
-              <p className="text-slate-400 text-sm mt-0.5">{themeCours.length} cours disponibles</p>
-            )}
-          </div>
-          {isMoniteur && (
-            <button
-              onClick={openAdd}
-              className="ml-auto flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl border-0 cursor-pointer text-white transition-all"
-              style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}
-            >
-              <i className="bi bi-plus-lg" />
-              Ajouter un cours
+        /* Admin / moniteur : même disposition que les autres pages (Retour, puis recherche, filtre et ajout).
+           Valable pour tous les thèmes de THEMES, y compris ceux ajoutés plus tard. */
+        <>
+          <div style={{ marginBottom: '1rem' }}>
+            <button onClick={onBack} className="btn-retour">
+              <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+              Retour aux thèmes
             </button>
-          )}
-        </div>
+          </div>
+          <BarreFiltres>
+            <Recherche value={search} onChange={setSearch} placeholder="Titre du cours…" />
+            <Filtre icone="collection" value={typeFilter === 'TOUS' ? '' : typeFilter} onChange={v => setTypeFilter(v || 'TOUS')}>
+              <option value="">Tous les cours</option>
+              <option value="IMAGE">Images</option>
+              <option value="ECRITE">Écrits</option>
+            </Filtre>
+            {isMoniteur && (
+              <button onClick={openAdd}
+                className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
+                style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+                <i className="bi bi-plus-lg" />Cours
+              </button>
+            )}
+          </BarreFiltres>
+        </>
       )}
 
+      {/* Admin / moniteur : bandeau bleu nuit souligné d'or (comme « Véhicules »), puis sous-thèmes et cours dans la même carte */}
+      <div className={isEleve ? 'space-y-5' : 'bg-white rounded-2xl overflow-hidden'} style={isEleve ? undefined : { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      {!isEleve && <EnteteListe emoji={theme.emoji} titre={theme.label}
+        sousTitre={`${theme.subtopics.length} sous-thèmes · ${themeCours.length} cours`} nombre={filtered.length} />}
+
       {/* Sous-thèmes */}
+      {!isEleve ? (
+        <div style={{ borderBottom: '1.5px solid #dbe2ec' }}>
+          <div className="px-5 pt-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <i className="bi bi-list-ul me-1" />Sous-thèmes à maîtriser
+          </div>
+          <div className="p-5 pt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {theme.subtopics.map((s, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: '#f8fafc' }}>
+                <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+                  {i + 1}
+                </span>
+                <span className="text-sm text-slate-700">{s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
         <div className="px-6 py-3 flex items-center gap-3" style={{ background: theme.gradient, borderBottom: `2px solid ${theme.border}` }}>
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: theme.iconBg }}>
@@ -315,12 +326,13 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Cours disponibles */}
-      {themeCours.length > 0 && (
-        <div className="space-y-5">
-          {/* Filtre type (élèves seulement) */}
-          {!isMoniteur && (
+      {filtered.length > 0 && (
+        <div className={isEleve ? 'space-y-5' : 'space-y-5 p-5'}>
+          {/* Filtre type (élèves ; l'admin et le moniteur l'ont dans la barre du haut) */}
+          {isEleve && (
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtrer :</span>
               {['TOUS', 'IMAGE', 'ECRITE'].map(t => (
@@ -371,17 +383,9 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
                         <div className="p-2 text-center">
                           <div className="font-semibold text-xs text-slate-700 leading-tight">{c.titre}</div>
                           {isMoniteur && (
-                            <div className="flex justify-center gap-1 mt-1.5">
-                              <button className="w-6 h-6 rounded-lg flex items-center justify-center border-0 cursor-pointer"
-                                style={{ background: '#f1f5f9', color: '#475569' }}
-                                onClick={e => { e.stopPropagation(); openEdit(c) }}>
-                                <i className="bi bi-pencil-fill" style={{ fontSize: '.6rem' }} />
-                              </button>
-                              <button className="w-6 h-6 rounded-lg flex items-center justify-center border-0 cursor-pointer"
-                                style={{ background: '#fef2f2', color: '#dc2626' }}
-                                onClick={e => { e.stopPropagation(); delCours(c.id) }}>
-                                <i className="bi bi-trash-fill" style={{ fontSize: '.6rem' }} />
-                              </button>
+                            <div className="flex justify-center gap-1.5 mt-1.5">
+                              <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={e => { e.stopPropagation(); openEdit(c) }} />
+                              <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={e => { e.stopPropagation(); delCours(c.id) }} />
                             </div>
                           )}
                         </div>
@@ -439,16 +443,8 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
                         <div className="font-semibold text-xs text-slate-700 leading-tight">{c.titre}</div>
                         {isMoniteur && (
                           <div className="flex justify-center gap-1 mt-1.5">
-                            <button className="w-6 h-6 rounded-lg flex items-center justify-center border-0 cursor-pointer"
-                              style={{ background: '#f1f5f9', color: '#475569' }}
-                              onClick={e => { e.stopPropagation(); openEdit(c) }}>
-                              <i className="bi bi-pencil-fill" style={{ fontSize: '.6rem' }} />
-                            </button>
-                            <button className="w-6 h-6 rounded-lg flex items-center justify-center border-0 cursor-pointer"
-                              style={{ background: '#fef2f2', color: '#dc2626' }}
-                              onClick={e => { e.stopPropagation(); delCours(c.id) }}>
-                              <i className="bi bi-trash-fill" style={{ fontSize: '.6rem' }} />
-                            </button>
+                            <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={e => { e.stopPropagation(); openEdit(c) }} />
+                            <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={e => { e.stopPropagation(); delCours(c.id) }} />
                           </div>
                         )}
                       </div>
@@ -473,15 +469,11 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
         </div>
       )}
 
-      {themeCours.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
-            <i className="bi bi-journal-x" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-          </div>
-          <div className="text-sm font-medium text-slate-400">Aucun cours disponible pour ce thème</div>
-          {isMoniteur && <div className="text-xs text-slate-300">Cliquez sur "Ajouter un cours" pour commencer</div>}
-        </div>
+      {filtered.length === 0 && (
+        <ListeVide icone="journal-x" texte={themeCours.length > 0 ? 'Aucun cours trouvé'
+          : isMoniteur ? 'Aucun cours pour ce thème · cliquez sur « + Cours » pour commencer' : 'Aucun cours disponible pour ce thème'} />
       )}
+      </div>
 
       {/* Modal ajout / modification cours */}
       {showForm && (
