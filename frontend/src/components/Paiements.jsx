@@ -39,6 +39,7 @@ export default function Paiements({ onEleveClick }) {
   const [loading, setLoading]         = useState(true)
   const [eleves, setEleves]           = useState([])
   const [page, setPage]               = useState(1)
+  const [periode, setPeriode]         = useState('')   // '' | 'jour' | 'semaine' | 'mois'
 
   const load = async () => {
     setLoading(true)
@@ -99,6 +100,21 @@ export default function Paiements({ onEleveClick }) {
 
   const enAttente = list.filter(p => p.statut === 'EN_ATTENTE').length
 
+  // Filtres de période sur la date du paiement (jour local ; semaine du lundi au dimanche).
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const auj = new Date()
+  const lundi = new Date(auj); lundi.setDate(auj.getDate() - ((auj.getDay() + 6) % 7))
+  const dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6)
+  const PERIODES = [
+    { v: '',        label: 'Tous',          dans: () => true },
+    { v: 'jour',    label: "Aujourd'hui",   dans: d => d === iso(auj) },
+    { v: 'semaine', label: 'Cette semaine', dans: d => d >= iso(lundi) && d <= iso(dimanche) },
+    { v: 'mois',    label: 'Ce mois',       dans: d => d?.slice(0, 7) === iso(auj).slice(0, 7) },
+  ]
+  const dansPeriode = (p, v) => PERIODES.find(x => x.v === v).dans(p.date)
+  const encaisse = v => list.filter(p => p.statut === 'PAYE' && dansPeriode(p, v)).reduce((s, p) => s + Number(p.montant), 0)
+  const affiches = list.filter(p => dansPeriode(p, periode))
+
   // Par élève : acompte (1re tranche payée) et total payé, pour les colonnes Acompte / Reliquat / Total.
   const parEleve = {}
   for (const p of list) {
@@ -157,6 +173,28 @@ export default function Paiements({ onEleveClick }) {
         </div>
       </div>
 
+      {/* ── Filtres de période ───────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {PERIODES.map(o => {
+          const actif = periode === o.v
+          const n = list.filter(p => dansPeriode(p, o.v)).length
+          return (
+            <button key={o.v || 'tous'} type="button" onClick={() => { setPeriode(o.v); setPage(1) }}
+              className="text-left px-4 py-3 cursor-pointer transition-all"
+              style={{ borderRadius: '1rem', border: `2px solid ${actif ? '#15803d' : '#e2e8f0'}`,
+                background: actif ? '#f0fdf4' : '#fff', boxShadow: actif ? '0 4px 12px rgba(22,163,74,.15)' : 'none' }}>
+              <div className="text-xs font-bold uppercase tracking-wider" style={{ color: actif ? '#15803d' : '#64748b' }}>
+                {o.label}
+              </div>
+              <div className="text-[15px] sm:text-lg font-extrabold leading-tight mt-0.5 whitespace-nowrap" style={{ color: actif ? '#14532d' : '#1e293b' }}>
+                {fmtMontant(encaisse(o.v))}
+              </div>
+              <div className="text-xs text-slate-400">{n} paiement{n !== 1 ? 's' : ''}</div>
+            </button>
+          )
+        })}
+      </div>
+
       {/* ── Tableau ──────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
 
@@ -175,7 +213,7 @@ export default function Paiements({ onEleveClick }) {
           </div>
           <span className="text-xs font-bold px-3 py-1 rounded-full"
             style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {list.length}
+            {affiches.length}
           </span>
         </div>
 
@@ -201,7 +239,7 @@ export default function Paiements({ onEleveClick }) {
                     </div>
                   </td>
                 </tr>
-              ) : list.length === 0 ? (
+              ) : affiches.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -209,11 +247,11 @@ export default function Paiements({ onEleveClick }) {
                         style={{ background: '#f1f5f9' }}>
                         <i className="bi bi-receipt" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
                       </div>
-                      <div className="text-sm font-medium text-slate-400">Aucun paiement enregistré</div>
+                      <div className="text-sm font-medium text-slate-400">{periode ? 'Aucun paiement sur cette période' : 'Aucun paiement enregistré'}</div>
                     </div>
                   </td>
                 </tr>
-              ) : list.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((p, i) => {
+              ) : affiches.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((p, i) => {
                 const tp = TYPE_P[p.typePaiement]   || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.typePaiement }
                 const st = STATUT_P[p.statut]       || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: p.statut }
                 const isEven = i % 2 === 0
@@ -320,7 +358,7 @@ export default function Paiements({ onEleveClick }) {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} setPage={setPage} total={list.length} pageSize={PAGE_SIZE} />
+        <Pagination page={page} setPage={setPage} total={affiches.length} pageSize={PAGE_SIZE} />
       </div>
 
       {/* ── Fenêtre ajout / modification ─────────────────────── */}
