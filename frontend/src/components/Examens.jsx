@@ -26,8 +26,6 @@ const TYPE_STYLE = {
   CONDUITE: { bg: '#f0fdf4', color: '#15803d', dot: '#16a34a', label: 'Conduite' },
 }
 
-const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all'
-const labelCls = 'block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5'
 
 export default function Examens({ onEleveClick, onBack }) {
   const { user } = useAuth()
@@ -482,57 +480,43 @@ export default function Examens({ onEleveClick, onBack }) {
         )
       })()}
 
-      {/* ── Modal résultat (petit) ───────────────────────────── */}
-      {showResModal && (
-        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-              <div className="modal-header border-0 px-6 pt-5 pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(21,128,61,.1)', color: '#15803d' }}>
-                    <i className="bi bi-clipboard2-check-fill" />
-                  </div>
-                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>Mettre à jour le résultat</h5>
+      {/* ── Fenêtre saisie du résultat ───────────────────────── */}
+      {showResModal && (() => {
+        const ex = list.find(e => e.id === resId)
+        const setR = (k, v) => setResForm(f => ({ ...f, [k]: v }))
+        return (
+          <FenetreModerne taille={null}
+            surTitre="Résultat de l'examen"
+            titre={ex?.eleve ? `${ex.eleve.prenom} ${ex.eleve.nom}` : "Résultat de l'examen"}
+            icone="clipboard2-check-fill"
+            details={[
+              ex?.type && ['journal-text', TYPE_STYLE[ex.type]?.label || ex.type],
+              ex?.date && ['calendar-event', fmtDate(ex.date)],
+              ex?.tentative > 1 && ['arrow-repeat', `${ex.tentative}e tentative`],
+            ]}
+            onClose={() => setShowResModal(false)} onSave={saveResultat} libelleSave="Valider"
+            piedGauche={RES_STYLE[resForm.resultat] && <>Résultat : <strong style={{ color: RES_STYLE[resForm.resultat].color }}>{RES_STYLE[resForm.resultat].label}</strong></>}>
+            <Etape n={1} icon="trophy" titre="Résultat">
+              <Choix tuiles cols={3} value={resForm.resultat} onChange={v => setR('resultat', v)}
+                options={['ADMIS', 'REFUSE', 'EN_ATTENTE'].map(v => ({ v, label: RES_STYLE[v].label, color: RES_STYLE[v].color, bg: RES_STYLE[v].bg,
+                  icon: { EN_ATTENTE: 'hourglass-split', ADMIS: 'check-circle-fill', REFUSE: 'x-circle-fill' }[v] }))} />
+            </Etape>
+            <Etape n={2} icon="pencil-square" titre="Détails">
+              <div className="row g-3">
+                <div className="col-sm-5">
+                  <Etiquette>Score</Etiquette>
+                  <ChampMontant suffixe="/ 100" placeholder="—" value={resForm.score} onChange={v => setR('score', v)} />
                 </div>
-                <button className="btn-close" onClick={() => setShowResModal(false)} />
-              </div>
-              <div className="modal-body px-6 py-4">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className={labelCls}>Résultat <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={resForm.resultat}
-                      onChange={e => setResForm(f => ({ ...f, resultat: e.target.value }))}>
-                      <option value="EN_ATTENTE">En attente</option>
-                      <option value="ADMIS">Admis</option>
-                      <option value="REFUSE">Refusé</option>
-                    </select>
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Score (/100)</label>
-                    <input type="number" className={inputCls} value={resForm.score} min="0" max="100"
-                      onChange={e => setResForm(f => ({ ...f, score: e.target.value }))} />
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Observations</label>
-                    <textarea className={inputCls} rows={2} value={resForm.observations}
-                      onChange={e => setResForm(f => ({ ...f, observations: e.target.value }))} />
-                  </div>
+                <div className="col-sm-7">
+                  <Etiquette>Observations</Etiquette>
+                  <input className={champCls} value={resForm.observations} placeholder="Facultatif"
+                    onChange={e => setR('observations', e.target.value)} />
                 </div>
               </div>
-              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
-                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                  onClick={() => setShowResModal(false)}>Annuler</button>
-                <button className="btn fw-bold text-white px-5" style={{
-                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
-                  onClick={saveResultat}>
-                  <i className="bi bi-check-lg me-1" />Valider
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </Etape>
+          </FenetreModerne>
+        )
+      })()}
     </div>
   )
 }

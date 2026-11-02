@@ -18,7 +18,7 @@ export function FenetreModerne({ surTitre, titre, icone, avatar, details = [], o
   libelleSave = 'Enregistrer', piedGauche, taille = 'lg', children }) {
   return (
     <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.6)', backdropFilter: 'blur(6px)' }}>
-      <div className={`modal-dialog modal-${taille} modal-dialog-centered modal-dialog-scrollable`}>
+      <div className={`modal-dialog ${taille ? `modal-${taille}` : ''} modal-dialog-centered modal-dialog-scrollable`}>
         <div className="modal-content border-0" style={{ borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,.3)' }}>
           <div className="px-6 pt-5 pb-5 relative" style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 55%,#2a4f7c 100%)' }}>
             <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
