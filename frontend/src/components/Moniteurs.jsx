@@ -553,7 +553,7 @@ export default function Moniteurs({ onProfilChange }) {
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
           style={{ background: 'linear-gradient(135deg, #1e3a5f, #2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
           <i className="bi bi-plus-lg" />
-          Nouveau moniteur
+          Moniteur
         </button>
       </div>
 
