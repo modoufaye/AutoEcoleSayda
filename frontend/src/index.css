@@ -420,3 +420,25 @@ body {
   .sidebar-menu .nav-link:hover { background: transparent; color: rgba(255,255,255,.6); }
   .sidebar-menu .nav-link.active:hover { background: rgba(212,160,23,.12); color: var(--gold-light); }
 }
+
+/* Bouton « Retour » des pages de l'administration : pastille blanche, flèche dans un rond bleu nuit. */
+.btn-retour {
+  display: inline-flex; align-items: center; gap: .6rem;
+  padding: .3rem 1.1rem .3rem .3rem;
+  background: #fff; color: #1e3a5f;
+  border: 1.5px solid #e2e8f0; border-radius: 999px;
+  font-size: .85rem; font-weight: 700; cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 34, 64, .08);
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.btn-retour-icone {
+  width: 28px; height: 28px; border-radius: 999px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1e3a5f, #2a4f7c); color: #fff; font-size: .85rem;
+  transition: transform .15s;
+}
+.btn-retour:hover, .btn-retour:focus-visible {
+  border-color: #d4a017; box-shadow: 0 4px 14px rgba(212, 160, 23, .25); outline: none;
+}
+.btn-retour:hover .btn-retour-icone { transform: translateX(-2px); }
+@media (prefers-reduced-motion: reduce) { .btn-retour, .btn-retour-icone { transition: none; } }

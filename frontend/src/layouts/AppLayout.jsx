@@ -286,19 +286,8 @@ export default function AppLayout() {
         <main className="main-content">
           {user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && moniteurEnProfil) && (
             <div style={{ marginBottom: '1rem' }}>
-              <button
-                onClick={handleBack}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '.45rem',
-                  background: '#f1f5f9', color: '#475569',
-                  border: '1.5px solid #e2e8f0', borderRadius: '.75rem',
-                  fontSize: '.8rem', fontWeight: 600,
-                  padding: '.45rem 1rem', cursor: 'pointer', transition: 'all .15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#1e3a5f' }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#475569' }}
-              >
-                <i className="bi bi-arrow-left" style={{ fontSize: '.8rem' }} />
+              <button onClick={handleBack} className="btn-retour">
+                <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
                 Retour
               </button>
             </div>
