@@ -16,11 +16,9 @@ public class MoniteurRequest {
     @NotBlank(message = "Le prénom est obligatoire")
     private String prenom;
 
+    // Identifiant de connexion du moniteur (Telephones.normaliser).
     @NotBlank(message = "Le téléphone est obligatoire")
     private String telephone;
-
-    @Email(message = "Format d'email invalide")
-    private String email;
 
     private String numeroCni;
 

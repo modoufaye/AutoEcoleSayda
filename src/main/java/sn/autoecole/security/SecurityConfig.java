@@ -71,6 +71,12 @@ public class SecurityConfig {
                 // Gestion des élèves (liste, fiches, comptes) : jamais pour un élève,
                 // qui passe par /api/eleve/** (au singulier) pour ses propres données.
                 .requestMatchers("/api/eleves/**").hasAnyRole("SUPER_ADMIN", "MONITEUR")
+                // Créer, modifier, supprimer un moniteur ou lui créer son compte : admin uniquement.
+                // Avant, ces routes relevaient de anyRequest().authenticated() : un élève pouvait les appeler.
+                .requestMatchers(HttpMethod.POST, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 // Statistiques globales (dont le total encaissé) : pas pour les élèves.
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "MONITEUR")
 

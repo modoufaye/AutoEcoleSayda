@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, LABELS } from '../utils'
+import { fmtDate, LABELS, waLink } from '../utils'
+import { msgBienvenueMoniteur } from '../messages'
 import { toast } from './Toast'
 import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
@@ -16,7 +17,7 @@ const CATS = [
   { value: 'D', label: 'D', bg: '#d1fae5', color: '#065f46' },
 ]
 const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
-const EMPTY = { nom: '', prenom: '', telephone: '', email: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true }
+const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true }
 
 /* ── Statut élève styles ──────────────────────────────────── */
 const STATUT_ELEVE = {
@@ -69,6 +70,79 @@ function StatutBadge({ statut }) {
       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
       {s.label}
     </span>
+  )
+}
+
+/* ── Message de bienvenue : crée le compte du moniteur (identifiant = téléphone) ──
+   et ouvre WhatsApp avec ses identifiants. Comme pour l'élève, le lien WhatsApp est
+   dans la fenêtre de confirmation : un window.open après un await est bloqué sur mobile. */
+function BienvenueMoniteur({ moniteur }) {
+  const [loading, setLoading] = useState(false)
+  const [creds, setCreds]     = useState(null)
+  const [ecole, setEcole]     = useState('')
+
+  if (!waLink(moniteur.telephone)) return null
+
+  const generer = async () => {
+    if (!moniteur.actif) { toast('Moniteur inactif : réactivez-le d\'abord', 'warning'); return }
+    if (!confirm(`Générer un nouveau mot de passe pour ${moniteur.prenom} ?\nS'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus.`)) return
+    setLoading(true)
+    try {
+      const [c, cfg] = await Promise.all([
+        api('POST', `/moniteurs/${moniteur.id}/identifiants`),
+        api('GET', '/config').catch(() => ({})),
+      ])
+      setEcole(cfg?.nom || ''); setCreds(c)
+    } catch (e) { toast(e.message, 'danger') }
+    finally { setLoading(false) }
+  }
+
+  const message = creds && msgBienvenueMoniteur(moniteur, ecole, creds)
+
+  return (
+    <div className="px-5 py-3 border-t border-slate-100">
+      <button onClick={generer} disabled={loading}
+        className="w-full flex items-center justify-center gap-2 py-2 text-sm font-bold border-0 cursor-pointer"
+        style={{ background: '#25d366', color: '#fff', borderRadius: '.75rem', opacity: loading ? .7 : 1 }}>
+        {loading
+          ? <span className="spinner-border spinner-border-sm" style={{ width: 14, height: 14 }} />
+          : <i className="bi bi-whatsapp" />}
+        Message de bienvenue
+      </button>
+
+      {creds && (
+        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
+              <div className="modal-header border-0 px-6 pt-5 pb-2">
+                <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
+                  {creds.compteCree ? 'Compte créé' : 'Nouveau mot de passe généré'}
+                </h5>
+                <button className="btn-close" onClick={() => setCreds(null)} />
+              </div>
+              <div className="modal-body px-6 py-3">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm mb-3">
+                  <div>Identifiant : <code className="bg-white px-1 rounded">{creds.identifiant}</code></div>
+                  <div className="mt-1">Mot de passe : <code className="bg-white px-1 rounded">{creds.motDePasse}</code></div>
+                </div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Aperçu du message</div>
+                <div className="text-sm text-slate-700 bg-slate-50 rounded-xl p-3" style={{ whiteSpace: 'pre-wrap' }}>{message}</div>
+              </div>
+              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
+                  onClick={() => setCreds(null)}>Fermer</button>
+                <a href={waLink(moniteur.telephone, message)} target="_blank" rel="noopener noreferrer"
+                  onClick={() => setTimeout(() => setCreds(null), 300)}
+                  className="btn fw-bold text-white px-4 d-inline-flex align-items-center gap-2"
+                  style={{ background: '#25d366', borderRadius: '.75rem', border: 'none' }}>
+                  <i className="bi bi-whatsapp" />Envoyer sur WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -157,7 +231,7 @@ export default function Moniteurs({ onProfilChange }) {
     if (m) {
       setEditId(m.id)
       setForm({
-        nom: m.nom, prenom: m.prenom, telephone: m.telephone, email: m.email || '',
+        nom: m.nom, prenom: m.prenom, telephone: m.telephone,
         numeroCni: m.numeroCni || '', numeroPermis: m.numeroPermis || '',
         dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif
       })
@@ -182,7 +256,7 @@ export default function Moniteurs({ onProfilChange }) {
     }
     const data = {
       ...form,
-      email: form.email || null, numeroCni: form.numeroCni || null,
+      numeroCni: form.numeroCni || null,
       numeroPermis: form.numeroPermis || null, dateEmbauche: form.dateEmbauche || null,
       photoUrl: form.photoUrl || null
     }
@@ -248,8 +322,7 @@ export default function Moniteurs({ onProfilChange }) {
                 {[
                   { key: 'nom',         label: 'Nom',         req: true,  type: 'text',  ph: 'Nom de famille' },
                   { key: 'prenom',      label: 'Prénom',      req: true,  type: 'text',  ph: 'Prénom' },
-                  { key: 'telephone',   label: 'Téléphone',   req: true,  type: 'text',  ph: '77 000 00 00' },
-                  { key: 'email',       label: 'Email',       req: false, type: 'email', ph: 'email@exemple.com' },
+                  { key: 'telephone',   label: 'Téléphone (identifiant de connexion)', req: true, type: 'tel', ph: '77 000 00 00' },
                   { key: 'numeroCni',   label: 'Numéro CNI',  req: false, type: 'text',  ph: 'N° CNI' },
                   { key: 'numeroPermis',label: 'N° Permis',   req: false, type: 'text',  ph: 'Numéro de permis' },
                 ].map(f => (
@@ -353,7 +426,7 @@ export default function Moniteurs({ onProfilChange }) {
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>Fiche moniteur</div>
               <div className="text-xl font-extrabold text-white leading-tight">{selected.nom} {selected.prenom}</div>
-              {selected.email && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{selected.email}</div>}
+              {selected.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{selected.telephone}</div>}
             </div>
           </div>
 
@@ -420,7 +493,6 @@ export default function Moniteurs({ onProfilChange }) {
           <div className="px-5 py-2">
             {[
               { icon: 'telephone',    label: 'Téléphone',       value: selected.telephone,                           iconBg: '#fef9c3', iconColor: '#b45309' },
-              { icon: 'envelope',     label: 'Email',           value: selected.email,                               iconBg: '#eff6ff', iconColor: '#2563eb' },
               { icon: 'credit-card',  label: 'Numéro CNI',      value: selected.numeroCni,                           iconBg: '#f0fdf4', iconColor: '#15803d' },
               { icon: 'card-checklist', label: 'N° Permis',     value: selected.numeroPermis,                        iconBg: '#eef2ff', iconColor: '#4f46e5' },
               { icon: 'calendar-event', label: "Date d'embauche", value: selected.dateEmbauche ? fmtDate(selected.dateEmbauche) : null, iconBg: '#fdf4ff', iconColor: '#9333ea' },
@@ -455,6 +527,7 @@ export default function Moniteurs({ onProfilChange }) {
               </div>
             )}
           </div>
+          <BienvenueMoniteur moniteur={selected} />
         </div>
 
         {/* ── Colonne droite : élèves assignés ──────────────── */}
@@ -506,7 +579,6 @@ export default function Moniteurs({ onProfilChange }) {
                       </td>
                       <td className="py-3.5 px-4 cell-title">
                         <div className="text-sm font-semibold text-slate-700">{e.nom} {e.prenom}</div>
-                        {e.email && <div className="text-xs text-slate-400 mt-0.5">{e.email}</div>}
                       </td>
                       <td className="py-3.5 px-4" data-label="Téléphone">
                         <span className="text-sm text-slate-600">{e.telephone}</span>
@@ -623,7 +695,6 @@ export default function Moniteurs({ onProfilChange }) {
                         <Avatar m={m} />
                         <div>
                           <div className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{m.nom} {m.prenom}</div>
-                          {m.email && <div className="text-xs text-slate-400 mt-0.5">{m.email}</div>}
                         </div>
                       </button>
                     </td>

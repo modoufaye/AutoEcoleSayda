@@ -50,7 +50,7 @@ export default function LoginPage() {
   const fillDemo = (role) => {
     const map = {
       admin:    { email: 'admin@autoecole.sn',    motDePasse: 'Admin@2024' },
-      moniteur: { email: 'moniteur@autoecole.sn', motDePasse: 'Moniteur@2024' },
+      moniteur: { email: '776900400',             motDePasse: 'Moniteur@2024' },
       eleve:    { email: '771234567',             motDePasse: 'Eleve@2024' },
     }
     setForm(map[role])

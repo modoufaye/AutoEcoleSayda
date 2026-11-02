@@ -26,7 +26,7 @@ Application web complète de gestion d'auto-école développée pour le marché 
 | Rôle | Email | Mot de passe |
 |---|---|---|
 | Administrateur | admin@autoecole.sn | Admin@2024 |
-| Moniteur | moniteur@autoecole.sn | Moniteur@2024 |
+| Moniteur | 776900400 (téléphone) | Moniteur@2024 |
 | Élève | 771234567 (téléphone) | Eleve@2024 |
 
 Les comptes moniteur et élève, ainsi que les données de démonstration, n'existent qu'en

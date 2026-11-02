@@ -53,7 +53,7 @@ public class ExerciceTDController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins une question est requise");
 
         Moniteur moniteur = auth != null
-                ? moniteurRepository.findByEmailIgnoreCase(auth.getName()).orElse(null)
+                ? moniteurRepository.findFirstByTelephone(auth.getName()).orElse(null)
                 : null;
 
         ExerciceTD exercice = ExerciceTD.builder().titre(titre).moniteur(moniteur).build();

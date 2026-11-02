@@ -26,6 +26,21 @@ function quand(dateIso) {
   return `le ${fmtDate(dateIso)}`
 }
 
+/* identifiants : { identifiant, motDePasse } renvoyés par POST /moniteurs/{id}/identifiants */
+export function msgBienvenueMoniteur(moniteur, ecole, identifiants) {
+  const nom = ecole || ECOLE_DEFAUT
+  return [
+    `Bonjour ${moniteur.prenom} 👋`,
+    '',
+    `Votre compte moniteur ${nom} est prêt.`,
+    `Retrouvez vos élèves, vos séances et les travaux dirigés : ${window.location.origin}`,
+    `Identifiant : ${identifiants.identifiant}`,
+    `Mot de passe : ${identifiants.motDePasse}`,
+    '',
+    'Pensez à changer votre mot de passe après la première connexion.',
+  ].join('\n')
+}
+
 /* identifiants : { identifiant, motDePasse } renvoyés par POST /eleves/{id}/identifiants */
 export function msgBienvenue(eleve, ecole, identifiants) {
   const nom = ecole || ECOLE_DEFAUT

@@ -14,4 +14,9 @@ public interface MoniteurRepository extends JpaRepository<Moniteur, Long> {
     List<Moniteur> findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(String nom, String prenom);
 
     java.util.Optional<Moniteur> findByEmailIgnoreCase(String email);
+
+    /* Le téléphone normalisé est l'identifiant de connexion du moniteur (unique, contrôlé par MoniteurService). */
+    java.util.Optional<Moniteur> findFirstByTelephone(String telephone);
+
+    java.util.Optional<Moniteur> findFirstByTelephoneAndIdNot(String telephone, Long id);
 }

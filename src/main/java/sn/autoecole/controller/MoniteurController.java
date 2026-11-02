@@ -55,6 +55,12 @@ public class MoniteurController {
         return ResponseEntity.ok(moniteurService.modifier(id, request));
     }
 
+    /** Message de bienvenue : (re)génère les identifiants du moniteur. Réservé à l'admin (SecurityConfig). */
+    @PostMapping("/{id}/identifiants")
+    public ResponseEntity<java.util.Map<String, Object>> genererIdentifiants(@PathVariable Long id) {
+        return ResponseEntity.ok(moniteurService.genererIdentifiants(id));
+    }
+
     @PatchMapping("/{id}/toggle-actif")
     public ResponseEntity<Moniteur> toggleActif(@PathVariable Long id) {
         return ResponseEntity.ok(moniteurService.toggleActif(id));

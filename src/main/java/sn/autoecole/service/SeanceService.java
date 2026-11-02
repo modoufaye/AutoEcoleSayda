@@ -73,7 +73,7 @@ public class SeanceService {
     /** Retourne les élèves assignés à ce moniteur (via le profil Moniteur matchant l'email du compte User) */
     @Transactional(readOnly = true)
     public List<Eleve> findElevesByMoniteur(String moniteurEmail) {
-        Moniteur moniteur = moniteurRepo.findByEmailIgnoreCase(moniteurEmail).orElse(null);
+        Moniteur moniteur = moniteurRepo.findFirstByTelephone(moniteurEmail).orElse(null);
         if (moniteur == null) return List.of();
         return eleveRepo.findByMoniteurAndArchiveFalse(moniteur);
     }

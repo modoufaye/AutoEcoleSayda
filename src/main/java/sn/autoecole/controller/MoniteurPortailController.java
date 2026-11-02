@@ -22,7 +22,7 @@ public class MoniteurPortailController {
     private final EleveRepository    eleveRepository;
 
     private Moniteur moniteurConnecte(Authentication auth) {
-        return moniteurRepository.findByEmailIgnoreCase(auth.getName())
+        return moniteurRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Aucun profil moniteur associé à ce compte"));
     }

@@ -34,6 +34,7 @@ public class MigrationDonnees {
         etape("types de paiement", this::typesPaiement);
         etape("champs élève facultatifs", this::champsEleveFacultatifs);
         etape("téléphones des élèves", this::telephonesEleves);
+        etape("téléphones des moniteurs", this::telephonesMoniteurs);
     }
 
     private void etape(String nom, Runnable r) {
@@ -158,6 +159,17 @@ public class MigrationDonnees {
             }
         }
         if (n > 0) log.info("Migration : {} téléphone(s) d'élève normalisé(s)", n);
+    }
+
+    /** Le téléphone est aussi l'identifiant de connexion du moniteur. */
+    private void telephonesMoniteurs() {
+        int n = 0;
+        for (Map<String, Object> m : jdbc.queryForList("SELECT id, telephone FROM moniteurs WHERE telephone IS NOT NULL")) {
+            String brut = String.valueOf(m.get("telephone"));
+            String norm = sn.autoecole.util.Telephones.normaliser(brut);
+            if (!brut.equals(norm)) n += jdbc.update("UPDATE moniteurs SET telephone = ? WHERE id = ?", norm, m.get("id"));
+        }
+        if (n > 0) log.info("Migration : {} téléphone(s) de moniteur normalisé(s)", n);
     }
 
     /** Pour les ALTER déjà appliqués (ou sans objet) : l'échec est normal et ignoré. */

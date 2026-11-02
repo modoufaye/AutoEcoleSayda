@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.repository.EleveRepository;
+import sn.autoecole.repository.MoniteurRepository;
 import sn.autoecole.repository.UserRepository;
 
 import java.util.List;
@@ -28,6 +29,7 @@ public class CompteOrphelinCleanup {
 
     private final UserRepository  userRepository;
     private final EleveRepository eleveRepository;
+    private final MoniteurRepository moniteurRepository;
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
@@ -42,10 +44,21 @@ public class CompteOrphelinCleanup {
     }
 
     /**
-     * Les élèves se connectaient avec leur email ; c'est désormais leur numéro de téléphone.
+     * Élèves et moniteurs se connectaient avec leur email ; c'est désormais leur numéro de téléphone.
      * Un ancien compte garde son mot de passe : seul son identifiant devient le téléphone de la fiche.
      */
     private void convertirComptesEmail() {
+        for (User u : userRepository.findAllByRole(RoleUser.MONITEUR)) {
+            if (!u.getEmail().contains("@")) continue;
+            moniteurRepository.findByEmailIgnoreCase(u.getEmail())
+                    .map(m -> m.getTelephone())
+                    .filter(tel -> tel != null && !userRepository.existsByEmailIgnoreCase(tel))
+                    .ifPresent(tel -> {
+                        log.info("Compte moniteur {} : identifiant remplacé par le téléphone", u.getEmail());
+                        u.setEmail(tel);
+                        userRepository.save(u);
+                    });
+        }
         for (User u : userRepository.findAllByRole(RoleUser.ELEVE)) {
             if (!u.getEmail().contains("@")) continue;
             eleveRepository.findByEmailIgnoreCase(u.getEmail())
