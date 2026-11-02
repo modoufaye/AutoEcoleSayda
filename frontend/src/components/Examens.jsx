@@ -189,7 +189,10 @@ export default function Examens({ onEleveClick, onBack }) {
           {(search || filterType || filterResultat || filterTentative || filterDateDe || filterDateA) && (
             <Reinitialiser onClick={() => { setSearch(''); setFilterType(''); setFilterResultat(''); setFilterTentative(''); setFilterDateDe(''); setFilterDateA('') }} />
           )}
-          <BoutonAjout onClick={openModal}>Examen</BoutonAjout>
+          {/* Calé à droite comme les boutons de la page Élèves (pleine largeur sur téléphone) */}
+          <div className="grid grid-cols-1 sm:flex w-full sm:w-auto sm:ms-auto">
+            <BoutonAjout onClick={openModal}>Examen</BoutonAjout>
+          </div>
         </BarreFiltres>
       )}
 
