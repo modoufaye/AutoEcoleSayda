@@ -1384,17 +1384,6 @@ export default function Eleves({ initialEleveId }) {
           ))}
         </div>
       )}
-      {archives && (
-        <div className="flex items-center gap-3 flex-wrap rounded-xl px-4 py-3"
-          style={{ background: '#f1f5f9', border: '1.5px solid #cbd5e1', color: '#334155' }}>
-          <i className="bi bi-archive-fill" />
-          <span className="text-sm flex-1 min-w-48">Vous consultez les <strong>élèves archivés</strong>. Ils ne peuvent pas se connecter ; leur historique est conservé.</span>
-          <button onClick={() => setArchives(false)}
-            className="text-sm font-bold border-0 bg-transparent cursor-pointer p-0" style={{ color: '#1e3a5f' }}>
-            <i className="bi bi-arrow-left me-1" />Retour aux élèves actifs
-          </button>
-        </div>
-      )}
 
       {/* Filtres */}
       <div className="bg-white rounded-2xl p-4 flex gap-3 flex-wrap" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
