@@ -1475,9 +1475,9 @@ export default function Eleves({ initialEleveId }) {
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
                   { label: 'Inscription', value: fmtDate(s.dateInscription) },
-                  { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
                   { label: 'Catégorie', value: s.categoriePermis },
                   { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.nom} ${s.moniteur.prenom}` : 'Aucun' },
+                  { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
                 ].map(({ label, value }) => value ? (
                   <div key={label} className="flex items-center justify-between px-5 py-2.5">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</span>
