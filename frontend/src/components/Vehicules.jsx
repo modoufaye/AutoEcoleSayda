@@ -6,7 +6,7 @@ import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
-import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Filtre, Reinitialiser } from './ListeModerne'
+import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, Reinitialiser } from './ListeModerne'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -54,6 +54,7 @@ export default function Vehicules({ onBack }) {
   const [filtered, setFiltered]       = useState([])
   const [statutFilter, setStatutFilter] = useState('')
   const [catFilter, setCatFilter]     = useState('')
+  const [search, setSearch]           = useState('')
   const [form, setForm]               = useState(EMPTY)
   const [editId, setEditId]           = useState(null)
   const [showModal, setShowModal]     = useState(false)
@@ -76,9 +77,16 @@ export default function Vehicules({ onBack }) {
     let result = list
     if (statutFilter) result = result.filter(v => v.statut === statutFilter)
     if (catFilter)    result = result.filter(v => v.categorie === catFilter)
+    // Recherche sur l'immatriculation (sans tenir compte des tirets ni des espaces), la marque et le modèle
+    const q = search.trim().toLowerCase()
+    if (q) {
+      const sans = s => (s || '').toLowerCase().replace(/[\s-]/g, '')
+      result = result.filter(v => sans(v.immatriculation).includes(sans(q))
+        || `${v.marque || ''} ${v.modele || ''}`.toLowerCase().includes(q))
+    }
     setFiltered(result)
     setPage(1)
-  }, [statutFilter, catFilter, list])
+  }, [statutFilter, catFilter, search, list])
 
   const openModal = (v = null) => {
     if (v) {
@@ -143,6 +151,7 @@ export default function Vehicules({ onBack }) {
 
       {/* ── Barre de filtres ─────────────────────────────────── */}
       <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder="Immatriculation, marque, modèle…" />
         <Filtre icone="funnel" value={statutFilter} onChange={setStatutFilter}>
           <option value="">Tous les statuts</option>
           {Object.entries(STATUT_V).map(([v, s]) => <option key={v} value={v}>{s.label}</option>)}
@@ -151,7 +160,7 @@ export default function Vehicules({ onBack }) {
           <option value="">Toutes catégories</option>
           {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>Permis {c}</option>)}
         </Filtre>
-        {(statutFilter || catFilter) && <Reinitialiser onClick={() => { setStatutFilter(''); setCatFilter('') }} />}
+        {(search || statutFilter || catFilter) && <Reinitialiser onClick={() => { setSearch(''); setStatutFilter(''); setCatFilter('') }} />}
       </BarreFiltres>
 
       {/* ── Liste des véhicules ───────────────────────────────── */}
