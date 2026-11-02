@@ -211,7 +211,7 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }
           className="flex items-center gap-2 text-sm font-bold text-white px-4 py-2 rounded-xl border-0 cursor-pointer"
           style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
           <i className={`bi bi-${showForm ? 'x-lg' : 'plus-lg'}`} />
-          {showForm ? 'Annuler' : 'Nouveau versement'}
+          {showForm ? 'Annuler' : 'Versement'}
         </button>
       </div>
 
