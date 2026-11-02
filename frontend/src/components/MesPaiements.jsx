@@ -131,15 +131,15 @@ export default function MesPaiements({ onBack }) {
             {moyensDispo.map(k => (
               <a key={k} href={liens[k]} target="_blank" rel="noopener noreferrer"
                 onClick={() => ouvrirDeclaration(k)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold no-underline"
-                style={{ background: MOYENS[k].bg, color: MOYENS[k].color }}>
+                className="inline-flex items-center gap-2 px-5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ minHeight: 44, borderRadius: 999, textDecoration: 'none', background: MOYENS[k].bg, color: MOYENS[k].color }}>
                 <i className={`bi bi-${MOYENS[k].icon}`} />
                 Payer avec {MOYENS[k].label}
               </a>
             ))}
             <button onClick={() => ouvrirDeclaration(moyensDispo.length === 1 ? moyensDispo[0] : '')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer"
-              style={{ background: '#f0fdf4', color: '#15803d' }}>
+              className="inline-flex items-center gap-2 px-5 text-sm font-bold cursor-pointer transition-all hover:-translate-y-0.5"
+              style={{ minHeight: 44, borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1.5px solid #bbf7d0' }}>
               <i className="bi bi-check2-circle" />
               J'ai payé
             </button>
