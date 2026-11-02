@@ -289,10 +289,10 @@ export default function AppLayout() {
 
         <main className="main-content">
           <HoteConfirmation />
-          {/* Admin : Retour sur toutes les pages (sauf celles qui ont le leur). Moniteur : sur la fiche
-              d'un élève, qui n'a pas d'autre bouton pour revenir à « Mes élèves ». */}
+          {/* Admin : Retour sur toutes les pages (sauf celles qui ont le leur). Moniteur : sur « Mes élèves »
+              et sur la fiche d'un élève (les Véhicules ont le leur). */}
           {((user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && detail))
-            || (user?.role === 'MONITEUR' && section === 'eleves' && detail)) && (
+            || (user?.role === 'MONITEUR' && section === 'eleves' && (detail || canGoBack))) && (
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={detail ? fermerDetail : handleBack} className="btn-retour">
                 <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>

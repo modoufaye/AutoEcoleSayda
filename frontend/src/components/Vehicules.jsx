@@ -127,8 +127,8 @@ export default function Vehicules({ onBack }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
-      {/* Moniteur : même disposition que « Mes élèves », la barre de filtres en haut, sans Retour ni titre */}
-      {onBack && !isMoniteur && (
+      {/* Moniteur : même disposition que « Mes élèves » : Retour, puis la barre de filtres, sans titre */}
+      {onBack && (
         <button onClick={onBack} className="btn-retour">
           <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
         </button>
