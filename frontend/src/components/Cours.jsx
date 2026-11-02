@@ -3,6 +3,7 @@ import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
+import { EnteteListe, ListeVide, BarreFiltres, Recherche } from './ListeModerne'
 import '../landing.css'
 
 const CAT_STYLE = {
@@ -659,6 +660,7 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
   const [cours, setCours]           = useState([])
   const [loading, setLoading]       = useState(true)
   const [activeTheme, setActiveTheme] = useState(null)
+  const [search, setSearch]         = useState('')
 
   useEffect(() => {
     api('GET', '/cours')
@@ -687,14 +689,20 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
     />
   )
 
+  // Recherche sur le nom du thème et ses sous-thèmes
+  const q = search.trim().toLowerCase()
+  const themesVisibles = q ? THEMES.filter(t => [t.label, ...t.subtopics].join(' ').toLowerCase().includes(q)) : THEMES
+
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-          Retour
-        </button>
+        <div style={{ marginBottom: isEleve ? 0 : '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+            Retour
+          </button>
+        </div>
       )}
 
       {/* En-tête page */}
@@ -730,28 +738,25 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Cours Code de la Route</h2>
-            <p className="text-slate-400 text-sm mt-0.5">Maîtrisez la théorie en {THEMES.length} grands thèmes</p>
-          </div>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full"
-            style={{ background: '#eff6ff', color: '#1e3a5f' }}>
-            <i className="bi bi-sign-turn-right-fill" />
-            {THEMES.length} thèmes
-          </span>
-        </div>
+        /* Comme « Mes élèves » : directement la recherche (les cours s'ajoutent depuis un thème) */
+        <BarreFiltres>
+          <Recherche value={search} onChange={setSearch} placeholder="Thème ou sous-thème…" />
+        </BarreFiltres>
       )}
 
-      {/* Grille des thèmes */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {THEMES.map(theme => {
+      {/* Grille des thèmes ; pour l'admin et le moniteur, sous un bandeau bleu nuit souligné d'or comme « Véhicules » */}
+      <div className={isEleve ? '' : 'bg-white rounded-2xl overflow-hidden'} style={isEleve ? undefined : { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      {!isEleve && <EnteteListe icone="sign-turn-right-fill" titre="Cours Code de la Route"
+        sousTitre={`Maîtrisez la théorie en ${THEMES.length} grands thèmes · ${cours.length} cours`} nombre={themesVisibles.length} />}
+      {themesVisibles.length === 0 && <ListeVide texte="Aucun thème trouvé" icone="search" />}
+      <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-4${isEleve ? '' : ' p-4'}`}>
+        {themesVisibles.map(theme => {
           const count = cours.filter(c => theme.categories.includes(c.categorie)).length
           return (
             <div
               key={theme.key}
               className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-all"
-              style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}
+              style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)', border: isEleve ? undefined : '1px solid #eef2f7' }}
               onClick={() => onOuvrirTheme ? onOuvrirTheme(theme.key) : setActiveTheme(theme)}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,.12)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,.07)' }}
@@ -799,6 +804,7 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
             </div>
           )
         })}
+      </div>
       </div>
     </div>
   )

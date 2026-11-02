@@ -3,7 +3,7 @@ import { api } from '../api'
 import { fmtDate, fmtTime, BADGES, BUREAUX } from '../utils'
 import Badge from './Badge'
 import { toast } from './Toast'
-import { Filtre } from './ListeModerne'
+import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre } from './ListeModerne'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
@@ -36,6 +36,7 @@ export default function Lecons({ onBack }) {
 
   const [list, setList]           = useState([])
   const [site, setSite]           = useState('')
+  const [search, setSearch]       = useState('')
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
@@ -57,7 +58,7 @@ export default function Lecons({ onBack }) {
   }
 
   useEffect(() => { load() }, [])
-  useEffect(() => { setPage(1) }, [site])
+  useEffect(() => { setPage(1) }, [site, search])
 
   const openModal = async (l = null) => {
     const [ev, mo, ve] = await Promise.all([
@@ -123,71 +124,45 @@ export default function Lecons({ onBack }) {
     catch (e) { toast(e.message, 'danger') }
   }
 
-  const filtered = site ? list.filter(l => l.eleve?.site === site) : list
+  // Recherche sur l'élève, le moniteur et l'immatriculation du véhicule
+  const q = search.trim().toLowerCase()
+  const filtered = list.filter(l => (!site || l.eleve?.site === site)
+    && (!q || [l.eleve?.nom, l.eleve?.prenom, l.moniteur?.nom, l.moniteur?.prenom, l.vehicule?.immatriculation].join(' ').toLowerCase().includes(q)))
 
   const colSpan = isEleve ? 6 : 9
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
+      {/* En-tête : comme « Mes élèves », Retour puis directement la recherche avec le bouton d'ajout */}
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-          Retour
-        </button>
-      )}
-
-      {/* ── En-tête page (admin uniquement) ─────────────────── */}
-      {!isEleve && (
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Gestion des Cours Conduite</h2>
-            <p className="text-sm text-slate-400 mt-0.5">{filtered.length} leçon{filtered.length !== 1 ? 's' : ''} au total</p>
-          </div>
-          <Filtre icone="building" value={site} onChange={setSite}>
-            <option value="">Tous les bureaux</option>
-            {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </Filtre>
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white border-0 cursor-pointer transition-all"
-            style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.3)' }}
-          >
-            <i className="bi bi-plus-lg" />
-            Planifier une leçon
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+            Retour
           </button>
         </div>
       )}
 
-      {/* ── Tableau ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+      {!isEleve && (
+        <BarreFiltres>
+          <Recherche value={search} onChange={setSearch} placeholder="Élève, moniteur ou véhicule…" />
+          <Filtre icone="building" value={site} onChange={setSite}>
+            <option value="">Tous les bureaux</option>
+            {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </Filtre>
+          <button onClick={() => openModal()}
+            className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
+            style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+            <i className="bi bi-plus-lg" />Leçon
+          </button>
+        </BarreFiltres>
+      )}
 
-        {/* En-tête tableau */}
-        <div className="flex items-center justify-between px-6 py-3"
-          style={isEleve
-            ? { background: 'linear-gradient(135deg, #78350f 0%, #b45309 100%)', borderBottom: '2px solid #4d1f04' }
-            : { background: 'linear-gradient(135deg, #db2777, #f472b6)', borderBottom: '2px solid #be185d' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.18)' }}>
-              <i className={`bi bi-${isEleve ? 'car-front-fill' : 'calendar2-check'}`}
-                style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm text-white leading-tight">
-                {isEleve ? 'Cours Conduite' : 'Cours Conduite'}
-              </div>
-              <div className="text-xs mt-0.5"
-                style={{ color: isEleve ? 'rgba(253,230,138,.85)' : 'rgba(251,207,232,.85)' }}>
-                {isEleve ? 'Formation pratique à la conduite' : 'Planning des leçons'}
-              </div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {filtered.length}
-          </span>
-        </div>
+      {/* ── Tableau : bandeau bleu nuit souligné d'or, comme « Véhicules » ── */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone={isEleve ? 'car-front-fill' : 'calendar2-check-fill'} titre="Cours Conduite"
+          sousTitre={isEleve ? 'Formation pratique à la conduite' : 'Planning des leçons'} nombre={filtered.length} />
 
         {/* Tableau */}
         <div className="overflow-x-auto">
@@ -205,23 +180,12 @@ export default function Lecons({ onBack }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={colSpan} className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#f472b6] rounded-full animate-spin" />
-                      <span className="text-sm text-slate-400 font-medium">Chargement…</span>
-                    </div>
-                  </td>
+                  <td colSpan={colSpan}><ListeChargement /></td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={colSpan}>
-                    <div className="flex flex-col items-center justify-center py-12 gap-3">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: '#f1f5f9' }}>
-                        <i className="bi bi-calendar2-check" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-                      </div>
-                      <div className="text-sm font-medium text-slate-400">Aucune leçon planifiée</div>
-                    </div>
+                    <ListeVide texte={q || site ? 'Aucune leçon trouvée' : 'Aucune leçon planifiée'} icone="calendar2-check" />
                   </td>
                 </tr>
               ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((l, i) => {
