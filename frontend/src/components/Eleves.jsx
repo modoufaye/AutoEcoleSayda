@@ -1547,50 +1547,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           </div>
         </div>
 
-        {/* Ligne du bas : Documents, Suivi formation, Compte élève */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Ligne du bas : Dossier, Suivi formation, Compte élève (admin) ; le moniteur ne voit que le suivi. */}
+        <div className={`grid grid-cols-1 ${isMoniteur ? 'md:grid-cols-2' : 'lg:grid-cols-3'} gap-5`}>
 
           {/* Dossier de l'élève : le fichier déposé au Service des Mines (admin) */}
           {!isMoniteur && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
-
-          {/* Documents du dossier (vue moniteur) */}
-          {isMoniteur && <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#fdf4ff' }}>
-                  <i className="bi bi-folder2-open" style={{ color: '#9333ea', fontSize: '.8rem' }} />
-                </div>
-                <span className="font-bold text-slate-700 text-sm">Documents du dossier</span>
-              </div>
-              <span style={{
-                background: DOCS.every(d => s[d.key]) ? '#f0fdf4' : '#fef9c3',
-                color: DOCS.every(d => s[d.key]) ? '#15803d' : '#a16207',
-                border: `1px solid ${DOCS.every(d => s[d.key]) ? '#86efac' : '#fde68a'}`,
-                borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
-              }}>
-                {DOCS.filter(d => s[d.key]).length}/{DOCS.length}
-              </span>
-            </div>
-            <div className="px-5 py-3">
-              <div className="row g-1">
-                {DOCS.map(doc => (
-                  <div key={doc.key} className="col-6">
-                    <div className="flex items-center gap-1.5 py-1">
-                      <i className={`bi bi-${s[doc.key] ? 'check-circle-fill' : 'circle'}`}
-                        style={{ color: s[doc.key] ? '#15803d' : '#cbd5e1', fontSize: '.78rem', flexShrink: 0 }} />
-                      <span style={{ fontSize: '.78rem', color: s[doc.key] ? '#1e293b' : '#94a3b8', fontWeight: s[doc.key] ? 600 : 400 }}>
-                        {doc.label}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="px-5 py-3 border-t border-slate-100">
-              <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">Pièces jointes</div>
-              <PiecesJointes key={`${s.id}-${showModal}`} eleveId={s.id} peutSupprimer={!isMoniteur} />
-            </div>
-          </div>}
 
           {/* Suivi formation */}
           <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
