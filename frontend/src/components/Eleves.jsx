@@ -892,16 +892,18 @@ export default function Eleves({ initialEleveId }) {
   }
 
   /* ── Modal ─────────────────────────────────────────────── */
-  /* ── Inscription « moderne » (+ Élève) ─────────────────────
+  /* ── Fenêtre élève « moderne » (inscription et modification) ──
      La fenêtre classique (Modal) reste disponible : lien « Ancienne vue » dans l'en-tête,
-     choix retenu dans le navigateur. La modification d'un élève garde la fenêtre classique. */
+     choix retenu dans le navigateur. */
   function ModalModerne() {
     const inputCls = "w-full px-3.5 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#d4a017] transition-all"
     const labelCls = "block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5"
     const set = (k, v) => setForm(fm => ({ ...fm, [k]: v }))
     const total = parseFloat(form.montantTotal) || 0
     const acompte = parseFloat(form.montantAvance) || 0
-    const pct = total > 0 ? Math.min(100, Math.round(acompte / total * 100)) : 0
+    // En modification : ce qui est déjà payé (fiche ouverte) remplace l'acompte saisi.
+    const paye = editId ? (selected?.id === editId ? Number(profileData.totalPaye || 0) : 0) : acompte
+    const pct = total > 0 ? Math.min(100, Math.round(paye / total * 100)) : 0
     const nbDocs = DOCS.filter(d => form[d.key]).length
     const PERMIS = [
       { v: 'A', icon: 'scooter',          txt: 'Moto' },
@@ -953,7 +955,7 @@ export default function Eleves({ initialEleveId }) {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>Nouvelle inscription</div>
+                  <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>{editId ? "Modifier l'élève" : 'Nouvelle inscription'}</div>
                   <div className="text-xl font-extrabold text-white leading-tight truncate">{nomComplet || 'Nouvel élève'}</div>
                   <div className="text-xs mt-1 flex flex-wrap gap-x-3" style={{ color: '#bfdbfe' }}>
                     {form.categoriePermis && <span><i className="bi bi-award me-1" />Permis {form.categoriePermis}</span>}
@@ -982,7 +984,7 @@ export default function Eleves({ initialEleveId }) {
                     <input className={inputCls} value={form.nom} onChange={e => set('nom', e.target.value)} />
                   </div>
                   <div className="col-md-6">
-                    <label className={labelCls}>Téléphone <span className="text-red-500">*</span></label>
+                    <label className={labelCls}>Téléphone {!editId && <span className="text-red-500">*</span>}</label>
                     <div className="flex">
                       <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
                         style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
@@ -1015,10 +1017,18 @@ export default function Eleves({ initialEleveId }) {
                   ))}
                 </div>
                 <div className="row g-3">
-                  <div className="col-md-6">
+                  <div className={editId ? 'col-12' : 'col-md-6'}>
                     <label className={labelCls}>Date d'inscription <span className="text-red-500">*</span></label>
                     <input type="date" className={inputCls} max={today()} value={form.dateInscription} onChange={e => set('dateInscription', e.target.value)} />
                   </div>
+                  {editId && (
+                    <div className="col-md-6">
+                      <label className={labelCls}>Statut</label>
+                      <select className={inputCls} value={form.statut} onChange={e => set('statut', e.target.value)}>
+                        {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      </select>
+                    </div>
+                  )}
                   <div className="col-md-6">
                     <label className={labelCls}>Moniteur</label>
                     <select className={inputCls} value={form.moniteurId} onChange={e => set('moniteurId', e.target.value)}>
@@ -1032,8 +1042,9 @@ export default function Eleves({ initialEleveId }) {
                       {LIEUX_INSCRIPTION.map(l => (
                         <button key={l.value} type="button"
                           onClick={() => setForm(fm => ({ ...fm, lieuInscription: l.value,
-                            // Inscrit en ligne : suivi par Massalikoul Djinane ; sinon le bureau suit le lieu.
-                            site: l.value === 'EN_LIGNE' ? (fm.site || 'MAZALIK_JINAN') : l.value }))}
+                            // Inscription : en ligne → Massalikoul Djinane, sinon le bureau suit le lieu.
+                            // Modification : le bureau de suivi ne change pas.
+                            site: editId ? fm.site : l.value === 'EN_LIGNE' ? (fm.site || 'MAZALIK_JINAN') : l.value }))}
                           className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.lieuInscription === l.value)}>
                           {l.value === 'EN_LIGNE' && <i className="bi bi-globe2 me-1" />}{l.label}
                         </button>
@@ -1056,23 +1067,23 @@ export default function Eleves({ initialEleveId }) {
 
               {section(3, "wallet2", "Paiement", <>
                 <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className={labelCls}>Prix de la formation <span className="text-red-500">*</span></label>
+                  <div className={editId ? 'col-12' : 'col-md-6'}>
+                    <label className={labelCls}>Prix de la formation {!editId && <span className="text-red-500">*</span>}</label>
                     <div className="relative">
                       <input type="number" min="0" className={inputCls} style={{ paddingRight: '3.5rem' }} placeholder="150000"
                         value={form.montantTotal} onChange={e => set('montantTotal', e.target.value)} />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span>
                     </div>
                   </div>
-                  <div className="col-md-6">
+                  {!editId && <div className="col-md-6">
                     <label className={labelCls}>Acompte versé <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <input type="number" min="0" className={inputCls} style={{ paddingRight: '3.5rem' }} placeholder="50000"
                         value={form.montantAvance} onChange={e => set('montantAvance', e.target.value)} />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span>
                     </div>
-                  </div>
-                  <div className="col-12">
+                  </div>}
+                  {!editId && <div className="col-12">
                     <label className={labelCls}>Mode de règlement</label>
                     <div className="grid grid-cols-3 gap-2">
                       {MODES.map(m => (
@@ -1083,12 +1094,12 @@ export default function Eleves({ initialEleveId }) {
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </div>}
                 </div>
                 {/* Récapitulatif en direct */}
                 <div className="mt-4 rounded-xl p-3" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
                   <div className="grid grid-cols-3 text-center">
-                    {[['Total', total, '#fff'], ['Acompte', acompte, '#86efac'], ['Reliquat', Math.max(0, total - acompte), '#fcd34d']].map(([l, v, c]) => (
+                    {[['Total', total, '#fff'], [editId ? 'Déjà payé' : 'Acompte', paye, '#86efac'], ['Reliquat', Math.max(0, total - paye), '#fcd34d']].map(([l, v, c]) => (
                       <div key={l}>
                         <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#93c5fd' }}>{l}</div>
                         <div className="text-sm sm:text-base font-extrabold" style={{ color: c }}>{fmtMontant(v)}</div>
@@ -1099,7 +1110,8 @@ export default function Eleves({ initialEleveId }) {
                     <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)', transition: 'width .3s' }} />
                   </div>
                   <div className="text-[11px] mt-1.5" style={{ color: '#bfdbfe' }}>
-                    {acompte > total && total > 0 ? "⚠️ L'acompte dépasse le prix" : `${pct} % payé · l'acompte devient la 1re tranche`}
+                    {editId ? `${pct} % payé · les versements se gèrent dans l'onglet Paiements de la fiche`
+                      : acompte > total && total > 0 ? "⚠️ L'acompte dépasse le prix" : `${pct} % payé · l'acompte devient la 1re tranche`}
                   </div>
                 </div>
               </>)}
@@ -1120,7 +1132,7 @@ export default function Eleves({ initialEleveId }) {
                 </div>
                 <label className={labelCls}>Dossier Service des Mines</label>
                 <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1' }}>
-                  <PiecesJointes eleveId={null} attente={piecesAttente} setAttente={setPiecesAttente}
+                  <PiecesJointes eleveId={editId} attente={piecesAttente} setAttente={setPiecesAttente}
                     peutSupprimer={!isMoniteur} seulDossier />
                 </div>
               </>)}
@@ -1128,13 +1140,13 @@ export default function Eleves({ initialEleveId }) {
 
             <div className="modal-footer border-0 px-6 py-3 flex items-center justify-between gap-2" style={{ background: '#fff', borderTop: '1px solid #eef2f7' }}>
               <div className="text-xs text-slate-500 hidden sm:block">
-                {total > 0 ? <>Reliquat à percevoir : <strong className="text-slate-700">{fmtMontant(Math.max(0, total - acompte))}</strong></> : 'Les champs * sont obligatoires'}
+                {total > 0 ? <>Reliquat à percevoir : <strong className="text-slate-700">{fmtMontant(Math.max(0, total - paye))}</strong></> : 'Les champs * sont obligatoires'}
               </div>
               <div className="flex gap-2 ms-auto">
                 <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.85rem' }} onClick={() => setShowModal(false)}>Annuler</button>
                 <button className="btn fw-bold px-4" onClick={save}
                   style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', borderRadius: '.85rem', border: 'none', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
-                  <i className="bi bi-check2-circle me-1" />Inscrire l'élève
+                  <i className="bi bi-check2-circle me-1" />{editId ? 'Enregistrer' : "Inscrire l'élève"}
                 </button>
               </div>
             </div>
@@ -1173,6 +1185,10 @@ export default function Eleves({ initialEleveId }) {
                         {form.nom} {form.prenom}
                       </div>
                       {form.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{form.telephone}</div>}
+                      <button type="button" onClick={() => choisirVue('moderne')}
+                        className="text-[11px] font-semibold border-0 bg-transparent p-0 mt-1 cursor-pointer" style={{ color: '#f0bb2a' }}>
+                        <i className="bi bi-stars me-1" />Essayer la nouvelle vue
+                      </button>
                     </>
                   ) : (
                     <>
@@ -1605,7 +1621,7 @@ export default function Eleves({ initialEleveId }) {
           {!isMoniteur && <CompteEleveCard eleve={s} />}
         </div>
 
-        {showModal && (!editId && vueModale === 'moderne' ? ModalModerne() : Modal())}
+        {showModal && (vueModale === 'moderne' ? ModalModerne() : Modal())}
       </div>
     )
   }
@@ -1825,7 +1841,7 @@ export default function Eleves({ initialEleveId }) {
       </div>
 
       {showImport && <ImportEleves onClose={() => setShowImport(false)} onDone={load} />}
-      {showModal && (!editId && vueModale === 'moderne' ? ModalModerne() : Modal())}
+      {showModal && (vueModale === 'moderne' ? ModalModerne() : Modal())}
     </div>
   )
 }
