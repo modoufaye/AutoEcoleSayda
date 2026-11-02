@@ -25,7 +25,6 @@ const FIELD_META_PERSO = [
   { key: 'nom',       label: 'Nom',        icon: 'person-badge-fill', iconBg: '#f5f3ff', iconColor: '#7c3aed' },
   { key: 'telephone', label: 'Téléphone',  icon: 'telephone-fill',    iconBg: '#fef9c3', iconColor: '#a16207' },
   { key: 'adresse',   label: 'Adresse',    icon: 'geo-alt-fill',      iconBg: '#fdf4ff', iconColor: '#9333ea' },
-  { key: 'numeroCni', label: 'Numéro CNI', icon: 'credit-card-fill',  iconBg: '#f0fdf4', iconColor: '#16a34a' },
 ]
 
 function initials(prenom = '', nom = '') {
@@ -113,8 +112,9 @@ export default function ElevePortail({ onGoSection }) {
   }, [])
 
   function toForm(p) {
+    // Pas de numéro CNI : l'élève ne le voit ni ne le modifie (non envoyé, le serveur garde la valeur existante)
     return { prenom: p.prenom || '', nom: p.nom || '', telephone: p.telephone || '',
-      adresse: p.adresse || '', numeroCni: p.numeroCni || '' }
+      adresse: p.adresse || '' }
   }
 
   const saveInfos = async () => {
@@ -432,7 +432,6 @@ export default function ElevePortail({ onGoSection }) {
               </div>
               {[
                 { key: 'adresse',   label: 'Adresse',   type: 'text' },
-                { key: 'numeroCni', label: 'Numéro CNI', type: 'text' },
               ].map(f => (
                 <div key={f.key}>
                   <label className={labelCls}>{f.label}</label>
