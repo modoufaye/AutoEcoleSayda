@@ -5,6 +5,7 @@ import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
+import { EnteteListe, LigneListe, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -42,9 +43,6 @@ const STATUT_V = {
   HORS_SERVICE:   { bg: '#fee2e2', color: '#b91c1c', dot: '#dc2626', label: 'Hors service' },
 }
 
-const CAT_STYLE = {
-  bg: '#eff6ff', color: '#1d4ed8',
-}
 
 
 export default function Vehicules({ onBack }) {
@@ -178,197 +176,80 @@ export default function Vehicules({ onBack }) {
         )}
       </div>
 
-      {/* ── Tableau ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
+      {/* ── Liste des véhicules ───────────────────────────────── */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="car-front-fill" titre="Véhicules" sousTitre="Flotte de l'auto-école" nombre={filtered.length} />
+        {loading ? <ListeChargement />
+          : filtered.length === 0 ? <ListeVide texte="Aucun véhicule enregistré" icone="car-front" />
+          : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(v => {
+            const st = STATUT_V[v.statut] || { bg: '#f1f5f9', color: '#64748b', label: v.statut }
+            const assuranceExpiry = expiryDate(v.dateAssurance, v.dureeAssurance)
+            const finVisite = v.dateVisiteTechnique
+              ? new Date(new Date(v.dateVisiteTechnique).setFullYear(new Date(v.dateVisiteTechnique).getFullYear() + 1)).toISOString().split('T')[0]
+              : null
+            const fmt = d => new Date(d).toLocaleDateString('fr-SN', { day: '2-digit', month: 'short', year: 'numeric' })
+            // Échéance : libellé, date et pastille OK / Bientôt / En retard.
+            const echeance = (libelle, icone, date) => {
+              const s = entretienStyle(date)
+              return (
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-slate-500 whitespace-nowrap"><i className={`bi bi-${icone} me-1`} />{libelle}</span>
+                  {date ? (
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-semibold text-slate-700 whitespace-nowrap">{fmt(date)}</span>
+                      {s && <span className="w-2 h-2 rounded-full flex-shrink-0" title={s.label} style={{ background: s.dot }} />}
+                    </span>
+                  ) : <span className="text-slate-300 italic">Non défini</span>}
+                </div>
+              )
+            }
+            const icone = { A: 'scooter', B: 'car-front-fill', C: 'truck-front-fill', D: 'bus-front-fill' }[v.categorie] || 'car-front-fill'
+            return (
+              <LigneListe key={v.id} attenue={v.statut === 'HORS_SERVICE'}>
+                {/* Identification */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 flex flex-col items-center justify-center flex-shrink-0"
+                    style={{ borderRadius: '.85rem', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>
+                    <i className={`bi bi-${icone}`} style={{ fontSize: '1rem' }} />
+                    <span className="text-[9px] font-extrabold leading-none mt-0.5" style={{ color: '#f0bb2a' }}>{v.categorie}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <button onClick={() => setProfil(v)}
+                      className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full"
+                      style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
+                      {v.immatriculation}
+                    </button>
+                    <div className="text-xs text-slate-500 truncate">{v.marque} {v.modele} · {v.annee}</div>
+                  </div>
+                </div>
 
-        {/* En-tête tableau gold */}
-        <div className="flex items-center justify-between px-6 py-3"
-          style={{ background: 'linear-gradient(135deg, #0d9488, #2dd4bf)', borderBottom: '2px solid #0f766e' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.2)' }}>
-              <i className="bi bi-car-front-fill" style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm leading-tight" style={{ color: '#fff' }}>Véhicules</div>
-              <div className="text-xs mt-0.5" style={{ color: 'rgba(209,250,229,.85)' }}>Flotte de l'auto-école</div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {filtered.length}
-          </span>
-        </div>
+                {/* Entretien et visite technique */}
+                <div className="min-w-0 space-y-1">
+                  {echeance('Entretien', 'wrench-adjustable', v.prochainEntretien)}
+                  {echeance('Visite technique', 'clipboard-check', finVisite)}
+                </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full table-cards">
-            <thead>
-              <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Immatriculation', 'Marque / Modèle', 'Assurance', 'Prochain entretien', 'Visite technique', 'Catégorie', 'Statut', 'Actions'].map((h, i) => (
-                  <th key={h}
-                    className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 8 ? 'text-right' : i === 0 ? 'text-center w-10' : 'text-left'}`}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="9" className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#2dd4bf] rounded-full animate-spin" />
-                      <span className="text-sm text-slate-400 font-medium">Chargement…</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: '#f1f5f9' }}>
-                        <i className="bi bi-car-front" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
-                      </div>
-                      <div className="text-sm font-medium text-slate-400">Aucun véhicule enregistré</div>
-                    </div>
-                  </td>
-                </tr>
-              ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((v, i) => {
-                const st = STATUT_V[v.statut] || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: v.statut }
-                const ent = entretienStyle(v.prochainEntretien)
-                const assuranceExpiry = expiryDate(v.dateAssurance, v.dureeAssurance)
-                const assuranceSt = entretienStyle(assuranceExpiry)
-                const visiteSt = entretienStyle(
-                  v.dateVisiteTechnique
-                    ? new Date(new Date(v.dateVisiteTechnique).setFullYear(new Date(v.dateVisiteTechnique).getFullYear() + 1)).toISOString().split('T')[0]
-                    : null
-                )
-                const isEven = i % 2 === 0
-                return (
-                  <tr key={v.id}
-                    style={{ background: isEven ? '#fff' : '#fafbfc' }}
-                    className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center cell-hide">
-                      <span className="text-xs font-bold text-slate-300">{i + 1}</span>
-                    </td>
-                    <td className="py-3.5 px-4 cell-title">
-                      <button onClick={() => setProfil(v)} className="border-0 bg-transparent p-0 cursor-pointer"
-                        style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
-                        <span className="font-bold text-sm text-[#1e3a5f] hover:text-[#0d9488] transition-colors">
-                          {v.immatriculation}
-                        </span>
-                      </button>
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Marque / Modèle">
-                      <div className="text-sm font-semibold text-slate-800">{v.marque}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{v.modele}</div>
-                    </td>
+                {/* Assurance et kilométrage */}
+                <div className="min-w-0 space-y-1">
+                  {echeance('Assurance', 'shield-check', assuranceExpiry)}
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-slate-500"><i className="bi bi-speedometer2 me-1" />Kilométrage</span>
+                    <span className="font-semibold text-slate-700 whitespace-nowrap">{Number(v.kilometrage || 0).toLocaleString('fr-FR')} km</span>
+                  </div>
+                </div>
 
-                    {/* Assurance — date d'expiration uniquement */}
-                    <td className="py-3.5 px-4" data-label="Assurance">
-                      {assuranceExpiry ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-700 font-medium whitespace-nowrap">
-                            {new Date(assuranceExpiry).toLocaleDateString('fr-SN', { day:'2-digit', month:'short', year:'numeric' })}
-                          </span>
-                          {assuranceSt && (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                              style={{ background: assuranceSt.bg, color: assuranceSt.color }}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: assuranceSt.dot }} />
-                              {assuranceSt.label}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300 italic">Non définie</span>
-                      )}
-                    </td>
-
-                    {/* Prochain entretien */}
-                    <td className="py-3.5 px-4" data-label="Prochain entretien">
-                      {v.prochainEntretien ? (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-xs text-slate-700 font-medium">
-                            {new Date(v.prochainEntretien).toLocaleDateString('fr-SN', { day:'2-digit', month:'short', year:'numeric' })}
-                          </span>
-                          {ent && (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full w-fit"
-                              style={{ background: ent.bg, color: ent.color }}>
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: ent.dot }} />
-                              {ent.label}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300 italic">Non défini</span>
-                      )}
-                    </td>
-
-                    {/* Visite technique */}
-                    <td className="py-3.5 px-4" data-label="Visite technique">
-                      {v.dateVisiteTechnique ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-700 font-medium whitespace-nowrap">
-                            {new Date(v.dateVisiteTechnique).toLocaleDateString('fr-SN', { day:'2-digit', month:'short', year:'numeric' })}
-                          </span>
-                          {visiteSt && (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                              style={{ background: visiteSt.bg, color: visiteSt.color }}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: visiteSt.dot }} />
-                              {visiteSt.label}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300 italic">Non définie</span>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4" data-label="Catégorie">
-                      <span className="inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full"
-                        style={{ background: CAT_STYLE.bg, color: CAT_STYLE.color }}>
-                        {v.categorie}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Statut">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{ background: st.bg, color: st.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: st.dot }} />
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 cell-actions">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setProfil(v)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#f0fdf4', color: '#16a34a' }}
-                          title="Voir le profil">
-                          <i className="bi bi-eye-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
-                        <button
-                          onClick={() => openModal(v)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#eff6ff', color: '#2563eb' }}
-                          title="Modifier">
-                          <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
-                        <button
-                          onClick={() => del(v.id)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all"
-                          style={{ background: '#fee2e2', color: '#b91c1c' }}
-                          title="Supprimer">
-                          <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                {/* Statut et actions */}
+                <div className="flex items-center justify-between md:justify-end gap-2">
+                  <Pastille couleur={st.color} fond={st.bg}>{st.label}</Pastille>
+                  <div className="flex items-center gap-1.5">
+                    <BoutonRond title="Voir le véhicule" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => setProfil(v)} />
+                    <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(v)} />
+                    <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(v.id)} />
+                  </div>
+                </div>
+              </LigneListe>
+            )
+          })}
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
