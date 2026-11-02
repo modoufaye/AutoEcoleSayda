@@ -37,6 +37,8 @@ public class EleveImportService {
 
     private final EleveService eleveService;
     private final EleveRepository eleveRepository;
+    private final sn.autoecole.repository.AutoEcoleConfigRepository configRepository;
+    private final sn.autoecole.repository.MoniteurRepository moniteurRepository;
 
     public record Ligne(int numero, String prenom, String nom, String telephone, String permis,
                         LocalDate dateInscription, BigDecimal acompte, BigDecimal total, String mode,
@@ -130,11 +132,22 @@ public class EleveImportService {
             throw new BusinessException("Fichier illisible : envoyez un fichier Excel (.xlsx)");
         }
 
-        if (confirmer) aCreer.forEach(eleveService::creer);
+        if (confirmer) {
+            // Les inscrits du fichier n'ont pas de moniteur : celui des cours de code (Paramètres).
+            Long moniteurDefaut = moniteurParDefaut();
+            aCreer.forEach(req -> { req.setMoniteurId(moniteurDefaut); eleveService.creer(req); });
+        }
 
         int valides = (int) lignes.stream().filter(l -> OK.equals(l.statut())).count();
         int ignorees = (int) lignes.stream().filter(l -> IGNOREE.equals(l.statut())).count();
         return new Resultat(confirmer, valides, ignorees, lignes.size() - valides - ignorees, lignes);
+    }
+
+    private Long moniteurParDefaut() {
+        return configRepository.findAll().stream().findFirst()
+                .map(c -> c.getMoniteurParDefautId())
+                .filter(id -> moniteurRepository.findById(id).map(m -> m.isActif()).orElse(false))
+                .orElse(null);
     }
 
     private boolean dejaInscritSansTel(String prenom, String nom, LocalDate date) {

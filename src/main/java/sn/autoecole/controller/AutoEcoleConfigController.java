@@ -50,6 +50,10 @@ public class AutoEcoleConfigController {
             cfg.setTarifHeureCode(toBD(body.get("tarifHeureCode")));
         if (body.containsKey("tarifHeureConduite"))
             cfg.setTarifHeureConduite(toBD(body.get("tarifHeureConduite")));
+        if (body.containsKey("moniteurParDefautId")) {
+            Object v = body.get("moniteurParDefautId");
+            cfg.setMoniteurParDefautId(v == null || v.toString().isBlank() ? null : Long.valueOf(v.toString()));
+        }
 
         return repo.save(cfg);
     }

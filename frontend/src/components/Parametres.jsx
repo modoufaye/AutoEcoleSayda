@@ -68,8 +68,9 @@ export default function Parametres() {
     nom: '', adresse: '', telephone: '', email: '',
     logoUrl: '', signatureUrl: '',
     tarifInscription: '', tarifHeureCode: '', tarifHeureConduite: '',
-    lienWave: '', lienOrangeMoney: '',
+    lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
   })
+  const [moniteurs, setMoniteurs] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
 
@@ -87,9 +88,11 @@ export default function Parametres() {
         tarifHeureConduite:data.tarifHeureConduite ?? '',
         lienWave:          data.lienWave          || '',
         lienOrangeMoney:   data.lienOrangeMoney   || '',
+        moniteurParDefautId: data.moniteurParDefautId ?? '',
       }))
       .catch(e => toast(e.message, 'danger'))
       .finally(() => setLoading(false))
+    api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => {})
   }, [])
 
   function set(field, value) {
@@ -222,6 +225,39 @@ export default function Parametres() {
                     onChange={e => set('tarifHeureConduite', e.target.value)} />
                   <span className="input-group-text" style={{ fontSize: '.8rem', color: '#64748b' }}>FCFA</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section : Inscriptions */}
+      <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '1.1rem' }}>
+        <div className="card-body p-0">
+
+          <div className="d-flex align-items-center gap-3 px-5 py-4"
+            style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <div className="d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ background: 'rgba(212,160,23,.15)', color: '#b45309', width: 38, height: 38, borderRadius: '.75rem' }}>
+              <i className="bi bi-person-badge" />
+            </div>
+            <div>
+              <div className="fw-bold" style={{ color: '#1e293b' }}>Inscriptions</div>
+              <div className="text-slate-400" style={{ fontSize: '.82rem' }}>
+                Moniteur assigné d'office aux nouveaux élèves (formulaire et import Excel).
+              </div>
+            </div>
+          </div>
+
+          <div className="px-5 py-4">
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className={labelCls}>Moniteur par défaut</label>
+                <select className={inputCls} value={form.moniteurParDefautId}
+                  onChange={e => set('moniteurParDefautId', e.target.value)}>
+                  <option value="">— Aucun —</option>
+                  {moniteurs.map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+                </select>
               </div>
             </div>
           </div>

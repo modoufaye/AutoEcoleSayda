@@ -712,10 +712,11 @@ export default function Eleves({ initialEleveId }) {
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
   const [ecole, setEcole]         = useState('')
+  const [moniteurDefaut, setMoniteurDefaut] = useState('')
   const [piecesAttente, setPiecesAttente] = useState([])
 
   useEffect(() => {
-    if (!isMoniteur) api('GET', '/config').then(c => setEcole(c.nom || '')).catch(() => {})
+    if (!isMoniteur) api('GET', '/config').then(c => { setEcole(c.nom || ''); setMoniteurDefaut(c.moniteurParDefautId ?? '') }).catch(() => {})
   }, [])
 
   const load = async () => {
@@ -805,7 +806,11 @@ export default function Eleves({ initialEleveId }) {
         docEnrolement: eleve.docEnrolement || false,
         docDelivrance: eleve.docDelivrance || false,
       })
-    } else { setEditId(null); setForm({ ...EMPTY, dateInscription: today() }) }
+    } else {
+      // Moniteur des cours de code (Paramètres), pré-sélectionné s'il est actif.
+      const defaut = moniteurs.some(m => m.actif && String(m.id) === String(moniteurDefaut)) ? String(moniteurDefaut) : ''
+      setEditId(null); setForm({ ...EMPTY, dateInscription: today(), moniteurId: defaut })
+    }
     setPiecesAttente([])
     setShowModal(true)
   }

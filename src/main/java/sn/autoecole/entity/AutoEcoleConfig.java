@@ -41,4 +41,8 @@ public class AutoEcoleConfig {
     @Builder.Default
     @Column(precision = 12, scale = 2)
     private BigDecimal tarifHeureConduite = BigDecimal.ZERO;
+
+    /** Moniteur assigné d'office aux nouveaux inscrits (celui des cours de code) ; null : aucun. */
+    @Column(name = "moniteur_par_defaut_id")
+    private Long moniteurParDefautId;
 }
