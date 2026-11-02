@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
-import { BoutonRond, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
+import { EnteteListe, BoutonRond, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -526,22 +526,22 @@ export default function TravauxDirigesMoniteur({ onBack }) {
         </div>
       )}
 
-      {/* Liste des exercices */}
-      {loading ? (
-        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}><ListeChargement /></div>
-      ) : visibles.length === 0 ? (
-        <div className="bg-white rounded-2xl" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}>
-          <ListeVide texte={recherche ? 'Aucun exercice trouvé' : "Aucun exercice créé pour l'instant"} icone="journal-x" />
-        </div>
+      {/* Liste des exercices : bandeau bleu nuit souligné d'or (comme « Véhicules · Flotte de l'auto-école »),
+          puis chaque série dans la même carte, séparée par un trait */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="pencil-square" titre="Exercices" sousTitre="Séries de questions pour les élèves" nombre={visibles.length} />
+      {loading ? <ListeChargement />
+      : visibles.length === 0 ? (
+        <ListeVide texte={recherche ? 'Aucun exercice trouvé' : "Aucun exercice créé pour l'instant"} icone="journal-x" />
       ) : (
-        <div className="d-flex flex-column gap-4">
+        <div>
           {visibles.map((ex, ei) => (
-            <div key={ex.id} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+            <div key={ex.id} style={{ borderBottom: '1.5px solid #dbe2ec' }}>
               <div>
 
-                {/* En-tête exercice : bleu nuit souligné d'or, comme les autres listes */}
+                {/* En-tête de la série */}
                 <div className="d-flex align-items-center justify-content-between px-4 py-3"
-                  style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
+                  style={{ background: '#f8fafc', borderBottom: '1px solid #eef2f7' }}>
                   <div className="d-flex align-items-center gap-3 flex-grow-1 me-3" style={{ minWidth: 0 }}>
                     <span className="rounded-full flex items-center justify-center text-xs font-extrabold" style={{
                       width: 34, height: 34, flexShrink: 0,
@@ -578,15 +578,15 @@ export default function TravauxDirigesMoniteur({ onBack }) {
                       /* Affichage normal du titre avec bouton crayon */
                       <div style={{ minWidth: 0 }}>
                         <div className="d-flex align-items-center gap-2">
-                          <span className="font-extrabold text-white truncate">{ex.titre}</span>
+                          <span className="font-extrabold truncate" style={{ color: '#1e3a5f' }}>{ex.titre}</span>
                           <button onClick={() => openEditTitre(ex)} title="Modifier le titre" style={{
-                            background: 'rgba(255,255,255,.12)', border: 'none', color: '#fff', width: 26, height: 26,
+                            background: '#eff6ff', border: 'none', color: '#2563eb', width: 26, height: 26,
                             borderRadius: 999, cursor: 'pointer', fontSize: '.72rem', flexShrink: 0,
                           }}>
                             <i className="bi bi-pencil-fill" />
                           </button>
                         </div>
-                        <div style={{ fontSize: '.75rem', color: '#bfdbfe' }}>
+                        <div style={{ fontSize: '.75rem', color: '#94a3b8' }}>
                           {ex.questions?.length || 0} question{(ex.questions?.length || 0) !== 1 ? 's' : ''}
                         </div>
                       </div>
@@ -980,6 +980,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
           ))}
         </div>
       )}
+      </div>
 
     </div>
   )
