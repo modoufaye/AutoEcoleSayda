@@ -318,7 +318,7 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined}
                 themeKey={detail} onOuvrirTheme={ouvrirDetail} onFermerTheme={fermerDetail} />
             : section === 'vehicules'
-            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' && canGoBack ? handleBack : undefined} />
             : section === 'mon-profil'
             ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
             : section === 'mes-paiements'
