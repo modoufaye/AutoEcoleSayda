@@ -7,6 +7,7 @@ import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
+import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { champCls } from './fenetreStyles'
 import '../landing.css'
 
@@ -132,7 +133,6 @@ export default function Examens({ onEleveClick, onBack }) {
     .filter(e => !filterDateDe    || e.date >= filterDateDe)
     .filter(e => !filterDateA     || e.date <= filterDateA)
 
-  const colSpan = isEleve ? 6 : 8
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -268,156 +268,93 @@ export default function Examens({ onEleveClick, onBack }) {
         </div>
       )}
 
-      {/* ── Tableau ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-
-        {/* En-tête tableau */}
-        <div className="flex items-center justify-between px-6 py-3"
-          style={isEleve
-            ? { background: 'linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%)', borderBottom: '2px solid #450a0a' }
-            : { background: 'linear-gradient(135deg, #ea580c, #fb923c)', borderBottom: '2px solid #c2410c' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: 'rgba(255,255,255,.2)' }}>
-              <i className="bi bi-clipboard2-check-fill"
-                style={{ color: '#fff', fontSize: '.85rem' }} />
-            </div>
-            <div>
-              <div className="font-extrabold text-sm leading-tight"
-                style={{ color: '#fff' }}>
-                {isEleve ? 'Mes Examens' : 'Examens'}
-              </div>
-              <div className="text-xs mt-0.5"
-                style={{ color: isEleve ? 'rgba(255,237,213,.85)' : 'rgba(255,237,213,.85)' }}>
-                {isEleve ? 'Historique de vos passages' : 'Résultats et suivi des passages'}
-              </div>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-3 py-1 rounded-full"
-            style={isEleve
-              ? { background: 'rgba(255,255,255,.18)', color: '#fff' }
-              : { background: 'rgba(255,255,255,.18)', color: '#fff' }}>
-            {filtered.length}
-          </span>
-        </div>
-
-        {/* Tableau */}
-        <div className="overflow-x-auto">
-          <table className="w-full table-cards">
-            <thead>
-              <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Date', ...(!isEleve ? ['Élève'] : []), 'Type', 'Résultat', 'Score', 'Tentative', ...(!isEleve ? ['Actions'] : [])].map((h, i) => (
-                  <th key={h + i}
-                    className={`py-3 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 0 ? 'text-center w-10' : h === 'Actions' ? 'text-right' : 'text-left'}`}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={colSpan} className="py-16 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-slate-100 border-t-[#fb923c] rounded-full animate-spin" />
-                      <span className="text-sm text-slate-400 font-medium">Chargement…</span>
+      {/* ── Liste des examens ─────────────────────────────────── */}
+      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+        <EnteteListe icone="clipboard2-check-fill" titre={isEleve ? 'Mes examens' : 'Examens'}
+          sousTitre={isEleve ? 'Historique de vos passages' : 'Résultats et suivi des passages'} nombre={filtered.length} />
+        {loading ? <ListeChargement />
+          : filtered.length === 0 ? <ListeVide texte="Aucun examen trouvé" icone="clipboard2-check" />
+          : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(e => {
+            const resSt  = RES_STYLE[e.resultat] || { bg: '#f1f5f9', color: '#64748b', label: e.resultat }
+            const typeSt = TYPE_STYLE[e.type]    || { bg: '#f1f5f9', color: '#64748b', label: e.type }
+            const j = e.date ? joursAvant(e.date) : null
+            const quand = j == null ? '' : j === 0 ? "Aujourd'hui" : j === 1 ? 'Demain' : j > 1 ? `Dans ${j} jours` : j === -1 ? 'Hier' : `Il y a ${-j} jours`
+            const rappel = !isEleve && lienRappel(e)
+            return (
+              <LigneListe key={e.id}>
+                {/* Élève (ou, côté élève, l'épreuve) */}
+                <div className="flex items-center gap-3 min-w-0">
+                  {isEleve ? (
+                    <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-lg"
+                      style={{ borderRadius: '999px', background: typeSt.bg, color: typeSt.color }}>
+                      <i className={`bi bi-${e.type === 'CODE' ? 'signpost-2-fill' : 'car-front-fill'}`} />
                     </div>
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={colSpan}>
-                    <div className="flex flex-col items-center justify-center py-12 gap-3">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                        style={{ background: '#f1f5f9' }}>
-                        <i className="bi bi-clipboard2-check" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
+                  ) : <AvatarRond photoUrl={e.eleve?.photoUrl} prenom={e.eleve?.prenom} nom={e.eleve?.nom} />}
+                  <div className="min-w-0">
+                    {isEleve ? (
+                      <div className="font-bold text-[#1e3a5f]">Examen de {typeSt.label.toLowerCase()}</div>
+                    ) : e.eleve && onEleveClick ? (
+                      <button onClick={() => onEleveClick(e.eleve.id)}
+                        className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
+                        {e.eleve.nom} {e.eleve.prenom}
+                      </button>
+                    ) : <div className="font-bold text-slate-700 truncate">{e.eleve ? `${e.eleve.nom} ${e.eleve.prenom}` : '—'}</div>}
+                    <div className="text-xs text-slate-500">
+                      {e.eleve?.categoriePermis && <span className="me-2"><i className="bi bi-award me-1" />Permis {e.eleve.categoriePermis}</span>}
+                      <span><i className="bi bi-arrow-repeat me-1" />{e.tentative > 1 ? `${e.tentative}e tentative` : '1re tentative'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Épreuve et date */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 flex flex-col items-center justify-center flex-shrink-0"
+                    style={{ borderRadius: '.8rem', background: typeSt.bg, color: typeSt.color }}>
+                    <i className={`bi bi-${e.type === 'CODE' ? 'signpost-2-fill' : 'car-front-fill'}`} />
+                    <span className="text-[9px] font-extrabold uppercase leading-none mt-0.5">{typeSt.label}</span>
+                  </div>
+                  <div className="min-w-0 text-xs">
+                    <div className="font-bold text-slate-700">{fmtDate(e.date)}</div>
+                    <div className="font-semibold" style={{ color: j != null && j >= 0 && e.resultat === 'EN_ATTENTE' ? '#b45309' : '#94a3b8' }}>{quand}</div>
+                  </div>
+                </div>
+
+                {/* Score */}
+                <div className="min-w-0 text-xs">
+                  {e.score != null ? (
+                    <>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-slate-500">Score</span>
+                        <span><b className="text-sm text-slate-800">{e.score}</b><span className="text-slate-400">/100</span></span>
                       </div>
-                      <div className="text-sm font-medium text-slate-400">Aucun examen trouvé</div>
+                      <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ background: '#eef2f7' }}>
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, e.score)}%`, background: resSt.color }} />
+                      </div>
+                    </>
+                  ) : <span className="text-slate-400">Pas encore de score</span>}
+                  {e.observations && <div className="text-slate-400 mt-1 truncate" title={e.observations}>{e.observations}</div>}
+                </div>
+
+                {/* Résultat et actions */}
+                <div className="flex items-center justify-between md:justify-end gap-2">
+                  <Pastille couleur={resSt.color} fond={resSt.bg}>{resSt.label}</Pastille>
+                  {!isEleve && (
+                    <div className="flex items-center gap-1.5">
+                      {rappel && (
+                        <a href={rappel} target="_blank" rel="noopener noreferrer" title="Rappel WhatsApp"
+                          className="w-8 h-8 flex items-center justify-center no-underline transition-transform hover:scale-110"
+                          style={{ borderRadius: '999px', background: '#dcfce7', color: '#16a34a' }}>
+                          <i className="bi bi-whatsapp" style={{ fontSize: '.85rem' }} />
+                        </a>
+                      )}
+                      <BoutonRond title="Saisir le résultat" icon="pencil-square" couleur="#2563eb" fond="#eff6ff" onClick={() => openResultat(e)} />
+                      <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(e.id)} />
                     </div>
-                  </td>
-                </tr>
-              ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((e, i) => {
-                const resSt  = RES_STYLE[e.resultat]  || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: e.resultat }
-                const typeSt = TYPE_STYLE[e.type]      || { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8', label: e.type }
-                const isEven = i % 2 === 0
-                return (
-                  <tr key={e.id} style={{ background: isEven ? '#fff' : '#fafbfc' }}
-                    className="transition-colors hover:bg-blue-50/40">
-                    <td className="py-3.5 px-4 text-center cell-hide">
-                      <span className="text-xs font-bold text-slate-300">{i + 1}</span>
-                    </td>
-                    {/* Côté élève la date fait office de titre ; côté admin c'est le nom de l'élève. */}
-                    <td className={`py-3.5 px-4 text-sm font-semibold text-slate-700${isEleve ? ' cell-title' : ''}`}
-                      data-label="Date">
-                      {fmtDate(e.date)}
-                    </td>
-                    {!isEleve && (
-                      <td className="py-3.5 px-4 cell-title">
-                        {e.eleve
-                          ? onEleveClick
-                            ? <button
-                                onClick={() => onEleveClick(e.eleve.id)}
-                                className="text-sm font-semibold text-[#1e3a5f] underline-offset-2 hover:underline bg-transparent border-0 cursor-pointer p-0 text-left">
-                                {e.eleve.nom} {e.eleve.prenom}
-                              </button>
-                            : <span className="text-sm font-medium text-slate-700">{e.eleve.nom} {e.eleve.prenom}</span>
-                          : <span className="text-slate-300">—</span>}
-                      </td>
-                    )}
-                    <td className="py-3.5 px-4" data-label="Type">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{ background: typeSt.bg, color: typeSt.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: typeSt.dot }} />
-                        {typeSt.label}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Résultat">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
-                        style={{ background: resSt.bg, color: resSt.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: resSt.dot }} />
-                        {resSt.label}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Score">
-                      {e.score != null
-                        ? <><span className="text-sm font-bold text-slate-700">{e.score}</span><span className="text-xs text-slate-400">/100</span></>
-                        : <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="py-3.5 px-4" data-label="Tentative">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
-                        style={{ background: '#f1f5f9', color: '#475569' }}>
-                        {e.tentative}
-                      </span>
-                    </td>
-                    {!isEleve && (
-                      <td className="py-3.5 px-4 cell-actions">
-                        <div className="flex items-center justify-end gap-1">
-                          {lienRappel(e) && (
-                            <a href={lienRappel(e)} target="_blank" rel="noopener noreferrer" title="Rappel WhatsApp"
-                              className="w-8 h-8 rounded-lg flex items-center justify-center no-underline transition-all hover:opacity-80"
-                              style={{ background: '#dcfce7', color: '#16a34a' }}>
-                              <i className="bi bi-whatsapp" style={{ fontSize: '.85rem' }} />
-                            </a>
-                          )}
-                          <button onClick={() => openResultat(e)} title="Saisir le résultat"
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all hover:opacity-80"
-                            style={{ background: '#eff6ff', color: '#2563eb' }}>
-                            <i className="bi bi-pencil-square" style={{ fontSize: '.82rem' }} />
-                          </button>
-                          <button onClick={() => del(e.id)} title="Supprimer"
-                            className="w-8 h-8 rounded-lg flex items-center justify-center border-0 cursor-pointer transition-all hover:opacity-80"
-                            style={{ background: '#fee2e2', color: '#b91c1c' }}>
-                            <i className="bi bi-trash-fill" style={{ fontSize: '.78rem' }} />
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                  )}
+                </div>
+              </LigneListe>
+            )
+          })}
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
       </div>
 
