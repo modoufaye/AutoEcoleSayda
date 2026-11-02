@@ -326,29 +326,22 @@ export default function TravauxDirigesMoniteur({ onBack }) {
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       {onBack && (
-        <button onClick={onBack} className="btn-retour">
-          <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
-        </button>
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour
+          </button>
+        </div>
       )}
 
-      {/* En-tête */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-800 leading-tight">Travaux Dirigés</h2>
-          <p className="text-sm text-slate-400 mt-0.5">{exercices.length} exercice{exercices.length !== 1 ? 's' : ''}</p>
-        </div>
+      {/* En-tête : comme « Mes élèves », la barre de recherche directement, avec le bouton d'ajout */}
+      <BarreFiltres>
+        <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice…" />
         <button onClick={openForm}
-          className="flex items-center gap-2 text-sm font-bold text-white px-5 py-2.5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-          style={{ borderRadius: '.85rem', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+          className="flex items-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
+          style={{ minHeight: 40, borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
           <i className="bi bi-plus-lg" />Exercice
         </button>
-      </div>
-
-      {exercices.length > 0 && (
-        <BarreFiltres>
-          <Recherche value={search} onChange={setSearch} placeholder="Titre de l'exercice…" />
-        </BarreFiltres>
-      )}
+      </BarreFiltres>
 
       {/* Formulaire de création */}
       {showForm && (
