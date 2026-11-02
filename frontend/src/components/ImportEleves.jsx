@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { uploadFile } from '../api'
 import { fmtDate, fmtMontant } from '../utils'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 
 /* ── Import des nouveaux inscrits depuis un fichier Excel ──
    1. Le fichier est analysé (rien n'est écrit) : chaque ligne reçoit un statut.
@@ -30,7 +31,8 @@ export default function ImportEleves({ onClose, onDone }) {
   }
 
   const importer = async () => {
-    if (!confirm(`Importer ${analyse.valides} élève${analyse.valides > 1 ? 's' : ''} ?`)) return
+    if (!(await confirmer({ titre: `Importer ${analyse.valides} élève${analyse.valides > 1 ? 's' : ''} ?`, ton: 'succes', icone: 'file-earmark-spreadsheet-fill', libelle: 'Importer',
+      message: 'Chaque élève sera créé avec son acompte (1re tranche) et son compte de connexion.' }))) return
     setBusy(true)
     try {
       const r = await uploadFile('/eleves/import', fichier, { confirmer: 'true' })

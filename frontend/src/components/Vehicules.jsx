@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
@@ -108,7 +109,7 @@ export default function Vehicules({ onBack }) {
   }
 
   const del = async (id) => {
-    if (!confirm('Supprimer ce véhicule ?')) return
+    if (!(await confirmer({ titre: 'Supprimer ce véhicule ?', ton: 'danger', libelle: 'Supprimer', message: 'Cette action est définitive.' }))) return
     try { await api('DELETE', `/vehicules/${id}`); toast('Véhicule supprimé'); load() }
     catch (e) { toast(e.message, 'danger') }
   }

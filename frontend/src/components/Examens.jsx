@@ -3,6 +3,7 @@ import { api } from '../api'
 import { fmtDate, waLink } from '../utils'
 import { msgRappelExamen, joursAvant } from '../messages'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
@@ -114,7 +115,7 @@ export default function Examens({ onEleveClick, onBack }) {
   }
 
   const del = async (id) => {
-    if (!confirm('Supprimer cet examen ?')) return
+    if (!(await confirmer({ titre: 'Supprimer cet examen ?', ton: 'danger', libelle: 'Supprimer', message: 'Cette action est définitive.' }))) return
     try { await api('DELETE', `/examens/${id}`); toast('Examen supprimé'); load() }
     catch (e) { toast(e.message, 'danger') }
   }

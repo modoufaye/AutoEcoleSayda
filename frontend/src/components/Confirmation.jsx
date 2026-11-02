@@ -50,7 +50,7 @@ export default function HoteConfirmation() {
           </div>
           <div className="px-6 pb-6 grid grid-cols-2 gap-2">
             <button className="btn btn-light fw-semibold py-2.5" style={{ borderRadius: '.9rem' }} onClick={() => repondre(false)}>
-              Annuler
+              {demande.libelleRetour || 'Annuler'}
             </button>
             <button className="btn fw-bold py-2.5 border-0" autoFocus onClick={() => repondre(true)}
               style={{ borderRadius: '.9rem', background: ton.bouton, color: ton.texte }}>

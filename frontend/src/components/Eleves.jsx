@@ -5,6 +5,7 @@ import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTIO
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
@@ -300,7 +301,8 @@ function BienvenueWhatsApp({ eleve, ecole }) {
   if (!waLink(eleve.telephone)) return null
 
   const generer = async () => {
-    if (!confirm(`Générer un nouveau mot de passe pour ${eleve.prenom} ?\nS'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus.`)) return
+    if (!(await confirmer({ titre: `Nouveau mot de passe pour ${eleve.prenom} ?`, ton: 'alerte', icone: 'key-fill', libelle: 'Générer',
+      message: "S'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus. Vous pourrez ensuite lui envoyer ses identifiants par WhatsApp." }))) return
     setLoading(true)
     try { setCreds(await api('POST', `/eleves/${eleve.id}/identifiants`)) }
     catch (e) { toast(e.message, 'danger') }
@@ -461,7 +463,7 @@ function PiecesJointes({ eleveId, attente = [], setAttente, onTypeAjoute, peutSu
   }
 
   const supprimer = async (doc) => {
-    if (!confirm(`Supprimer « ${doc.nomFichier} » ?`)) return
+    if (!(await confirmer({ titre: 'Supprimer ce document ?', ton: 'danger', libelle: 'Supprimer', details: [['Fichier', doc.nomFichier]] }))) return
     try { await api('DELETE', `/eleves/${eleveId}/documents/${doc.id}`); setDocs(d => d.filter(x => x.id !== doc.id)) }
     catch (e) { toast(e.message, 'danger') }
   }
@@ -539,7 +541,8 @@ function DossierEleve({ eleveId }) {
     if (!f) return
     if (!(f.type.startsWith('image/') || f.type === 'application/pdf')) { toast('Image ou PDF uniquement', 'warning'); return }
     if (f.size > TAILLE_MAX) { toast('10 Mo maximum', 'warning'); return }
-    if (dossier && !confirm(`Remplacer « ${dossier.nomFichier} » par « ${f.name} » ?`)) return
+    if (dossier && !(await confirmer({ titre: 'Remplacer le dossier ?', ton: 'alerte', icone: 'arrow-repeat', libelle: 'Remplacer',
+      details: [['Actuel', dossier.nomFichier], ['Nouveau', f.name]] }))) return
     setEnvoi(true)
     try {
       setDossier(await uploadFile(`/eleves/${eleveId}/documents`, f, { type: 'DOSSIER' }))
@@ -869,13 +872,15 @@ export default function Eleves({ initialEleveId }) {
 
   // Suppression définitive : seulement depuis les archives, et refusée par le serveur si l'élève a un historique.
   const del = async (id) => {
-    if (!confirm('Supprimer cet élève DÉFINITIVEMENT ?\n\nPossible uniquement pour une fiche créée par erreur (sans paiement ni leçon).')) return
+    if (!(await confirmer({ titre: 'Supprimer cet élève définitivement ?', ton: 'danger', libelle: 'Supprimer',
+      message: "Possible uniquement pour une fiche créée par erreur (sans paiement ni leçon). Pour un élève qui a un historique, utilisez « Archiver »." }))) return
     try { await api('DELETE', `/eleves/${id}`); toast('Élève supprimé'); closeProfile(); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
   const archiver = async (eleve) => {
-    if (!confirm(`Archiver ${eleve.prenom} ${eleve.nom} ?\n\nIl disparaît de la liste et ne peut plus se connecter. Ses paiements et son historique sont conservés : vous pourrez le réactiver à tout moment.`)) return
+    if (!(await confirmer({ titre: `Archiver ${eleve.prenom} ${eleve.nom} ?`, ton: 'alerte', icone: 'archive-fill', libelle: 'Archiver',
+      message: "Il disparaît de la liste et ne peut plus se connecter. Ses paiements et son historique sont conservés : vous pourrez le réactiver à tout moment." }))) return
     try {
       const maj = await api('PATCH', `/eleves/${eleve.id}/archiver`)
       toast('Élève archivé'); await load()

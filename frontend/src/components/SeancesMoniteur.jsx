@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import '../landing.css'
 
 const THEMES = [
@@ -234,7 +235,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack }) {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Supprimer cette séance ?')) return
+    if (!(await confirmer({ titre: 'Supprimer cette séance ?', ton: 'danger', libelle: 'Supprimer', message: 'Cette action est définitive.' }))) return
     await api('DELETE', `/moniteur/seances/${id}`)
     load()
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 const inputCls = 'form-control'
@@ -104,7 +105,8 @@ export default function Parametres() {
   async function appliquerMoniteur() {
     const m = moniteurs.find(x => String(x.id) === String(form.moniteurParDefautId))
     if (!m) { toast('Choisissez d\'abord un moniteur par défaut', 'warning'); return }
-    if (!confirm(`Assigner ${m.prenom} ${m.nom} à tous les élèves actifs qui n'ont pas de moniteur ?`)) return
+    if (!(await confirmer({ titre: `Assigner ${m.prenom} ${m.nom} ?`, ton: 'alerte', icone: 'people-fill', libelle: 'Assigner',
+      message: "Il sera donné à tous les élèves actifs qui n'ont pas de moniteur. Les autres élèves ne changent pas." }))) return
     setApplying(true)
     try {
       await api('PUT', '/admin/config', { moniteurParDefautId: form.moniteurParDefautId })

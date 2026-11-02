@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import '../landing.css'
 
@@ -194,7 +195,7 @@ function ThemeDetail({ theme, cours, setCours, onBack }) {
   }
 
   const delCours = async (id) => {
-    if (!confirm('Supprimer ce cours ?')) return
+    if (!(await confirmer({ titre: 'Supprimer ce cours ?', ton: 'danger', libelle: 'Supprimer', message: 'Cette action est définitive.' }))) return
     try {
       await api('DELETE', `/cours/${id}`)
       setCours(prev => prev.filter(c => c.id !== id))

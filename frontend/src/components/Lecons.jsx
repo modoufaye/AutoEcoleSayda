@@ -3,6 +3,7 @@ import { api } from '../api'
 import { fmtDate, fmtTime, BADGES, BUREAUX } from '../utils'
 import Badge from './Badge'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
 import '../landing.css'
@@ -104,19 +105,19 @@ export default function Lecons({ onBack }) {
   }
 
   const terminer = async (id) => {
-    if (!confirm('Marquer cette leçon comme terminée ?')) return
+    if (!(await confirmer({ titre: 'Marquer cette leçon comme terminée ?', ton: 'succes', libelle: 'Terminer' }))) return
     try { await api('PATCH', `/lecons/${id}/terminer`); toast('Leçon terminée'); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
   const annuler = async (id) => {
-    if (!confirm('Annuler cette leçon ?')) return
+    if (!(await confirmer({ titre: 'Annuler cette leçon ?', ton: 'alerte', icone: 'x-circle-fill', libelle: 'Annuler la leçon', libelleRetour: 'Garder' }))) return
     try { await api('PATCH', `/lecons/${id}/annuler`); toast('Leçon annulée'); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
   const del = async (id) => {
-    if (!confirm('Supprimer cette leçon ?')) return
+    if (!(await confirmer({ titre: 'Supprimer cette leçon ?', ton: 'danger', libelle: 'Supprimer', message: 'Cette action est définitive.' }))) return
     try { await api('DELETE', `/lecons/${id}`); toast('Leçon supprimée'); load() }
     catch (e) { toast(e.message, 'danger') }
   }

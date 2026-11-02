@@ -1,5 +1,6 @@
 /* Demande de confirmation dans le style de l'application, à la place de window.confirm().
    Usage : if (!(await confirmer({ titre, message, details, libelle, ton: 'danger' }))) return
+   Options : icone (Bootstrap Icons), libelleRetour (bouton d'annulation, « Annuler » par défaut).
    La fenêtre (HoteConfirmation) est montée une fois dans AppLayout ; sans elle, on retombe
    sur la boîte du navigateur. */
 let ouvrir = null

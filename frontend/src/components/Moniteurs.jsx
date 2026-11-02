@@ -3,6 +3,7 @@ import { api } from '../api'
 import { fmtDate, LABELS, waLink } from '../utils'
 import { msgBienvenueMoniteur } from '../messages'
 import { toast } from './Toast'
+import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
 import '../landing.css'
@@ -87,7 +88,8 @@ function BienvenueMoniteur({ moniteur }) {
 
   const generer = async () => {
     if (!moniteur.actif) { toast('Moniteur inactif : réactivez-le d\'abord', 'warning'); return }
-    if (!confirm(`Générer un nouveau mot de passe pour ${moniteur.prenom} ?\nS'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus.`)) return
+    if (!(await confirmer({ titre: `Nouveau mot de passe pour ${moniteur.prenom} ?`, ton: 'alerte', icone: 'key-fill', libelle: 'Générer',
+      message: "S'il avait déjà un compte, son ancien mot de passe ne fonctionnera plus. Vous pourrez ensuite lui envoyer ses identifiants par WhatsApp." }))) return
     setLoading(true)
     try {
       const [c, cfg] = await Promise.all([
@@ -285,7 +287,8 @@ export default function Moniteurs({ onProfilChange }) {
   }
 
   const del = async (id) => {
-    if (!confirm('Supprimer ce moniteur ?')) return
+    if (!(await confirmer({ titre: 'Supprimer ce moniteur ?', ton: 'danger', libelle: 'Supprimer',
+      message: 'Son compte de connexion sera aussi supprimé. Cette action est définitive.' }))) return
     try { await api('DELETE', `/moniteurs/${id}`); toast('Moniteur supprimé'); closeProfile(); load() }
     catch (e) { toast(e.message, 'danger') }
   }
