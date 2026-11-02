@@ -8,9 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // Au redéploiement, le nouveau service worker attend : le bandeau MiseAJour propose
-      // de recharger (pas de rechargement surprise au milieu d'une saisie). L'élève n'a
-      // jamais à réinstaller l'application.
+      // Au redéploiement, le nouveau service worker attend : MiseAJour l'installe tout seul
+      // dès qu'aucune saisie n'est en cours (pas de rechargement au milieu d'un formulaire).
+      // L'utilisateur n'a jamais à réinstaller l'application.
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
 

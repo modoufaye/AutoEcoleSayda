@@ -341,7 +341,7 @@ export default function TravauxDirigesMoniteur({ onBack }) {
 
       {/* Formulaire de création */}
       {showForm && (
-        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '1rem' }}>
+        <div data-saisie className="card border-0 shadow-sm mb-4" style={{ borderRadius: '1rem' }}>
           <div className="card-body p-4">
             <h6 className="fw-bold mb-4" style={{ color: '#1e3a5f' }}>
               <i className="bi bi-pencil-square me-2 text-warning" />Nouvel exercice

@@ -106,7 +106,7 @@ export default function MonProfil({ onBack }) {
   const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div data-saisie className="space-y-5 max-w-2xl mx-auto" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
 
       {onBack && (
         <button onClick={onBack} className="btn-retour">

@@ -140,7 +140,7 @@ export default function Parametres() {
   )
 
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 780 }}>
+    <div data-saisie style={{ fontFamily: 'Inter, system-ui, sans-serif', maxWidth: 780 }}>
 
       {/* En-tête */}
       <div className="mb-5">

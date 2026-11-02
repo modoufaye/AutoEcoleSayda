@@ -258,7 +258,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
 
   /* ── ÉDITEUR ── */
   if (enEditeur) return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
+    <div data-saisie style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
       {/* Barre du haut */}
       <div className="flex items-center gap-4 flex-wrap">
