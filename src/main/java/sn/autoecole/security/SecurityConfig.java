@@ -64,6 +64,9 @@ public class SecurityConfig {
                 // Réinitialise un mot de passe élève : admin uniquement.
                 .requestMatchers(HttpMethod.POST, "/api/eleves/*/identifiants").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/eleves/import").hasRole("SUPER_ADMIN")
+                // Documents du dossier d'un élève (CNI, certificats, dossier Service des Mines) :
+                // admin uniquement ; les moniteurs n'y ont plus accès, ni à l'écran ni par l'API.
+                .requestMatchers("/api/eleves/*/documents", "/api/eleves/*/documents/**").hasRole("SUPER_ADMIN")
                 // Archiver / réactiver un élève : admin uniquement.
                 .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/archiver", "/api/eleves/*/reactiver").hasRole("SUPER_ADMIN")
                 // Supprimer un élève (et son compte de connexion) : admin uniquement.
