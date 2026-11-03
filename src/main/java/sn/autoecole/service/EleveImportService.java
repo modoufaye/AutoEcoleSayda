@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import sn.autoecole.dto.EleveRequest;
+import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.CategoriePermis;
+import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.MoyenPaiement;
 import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
@@ -77,6 +79,9 @@ public class EleveImportService {
 
                 String tel = Telephones.normaliser(telBrut);
                 CategoriePermis permis = permis(permisBrut);
+                // « CP M » / « CP A » dans Type de permis : cours de perfectionnement (boîte manuelle ou automatique)
+                boolean perf = simplifier(permisBrut).startsWith("cp");
+                BoiteVitesse boite = perf ? boite(permisBrut) : null;
                 LocalDate date = date(row.getCell(col.get("date")), fmt);
                 BigDecimal acompte = montant(row.getCell(col.get("acompte")), fmt);
                 BigDecimal total = montant(row.getCell(col.get("total")), fmt);
@@ -86,7 +91,8 @@ public class EleveImportService {
 
                 String statut = OK, message = "";
                 if (prenom.isEmpty() || nom.isEmpty()) { statut = ERREUR; message = "Prénom ou nom manquant"; }
-                else if (permis == null) { statut = ERREUR; message = "Type de permis inconnu : « " + permisBrut + " » (A, B, C ou D)"; }
+                else if (perf && boite == null) { statut = ERREUR; message = "Perfectionnement : précisez la boîte, « CP M » (manuelle) ou « CP A » (automatique)"; }
+                else if (!perf && permis == null) { statut = ERREUR; message = "Type de permis inconnu : « " + permisBrut + " » (A, B, C, D, CP M ou CP A)"; }
                 else if (date == null) { statut = ERREUR; message = "Date d'inscription illisible"; }
                 else if (date.isAfter(LocalDate.now())) { statut = ERREUR; message = "Date d'inscription dans le futur"; }
                 else if (total == null || total.signum() <= 0) { statut = ERREUR; message = "Total manquant"; }
@@ -105,7 +111,9 @@ public class EleveImportService {
                     message = "Sans téléphone : pas de compte tant que le numéro n'est pas ajouté";
                 }
 
-                lignes.add(new Ligne(r + 1, prenom, nom, tel, permis != null ? permis.name() : permisBrut, date,
+                String permisAffiche = boite != null ? (boite == BoiteVitesse.MANUELLE ? "CP manuelle" : "CP automatique")
+                        : permis != null && !perf ? permis.name() : permisBrut;
+                lignes.add(new Ligne(r + 1, prenom, nom, tel, permisAffiche, date,
                         acompte, total, mode != null ? mode.name() : modeBrut,
                         lieu != null ? lieu.getLibelle() : lieuBrut, statut, message));
 
@@ -115,7 +123,12 @@ public class EleveImportService {
                     req.setNom(nom);
                     req.setTelephone(tel);
                     req.setAdresse(adresse.isEmpty() ? null : adresse);
-                    req.setCategoriePermis(permis);
+                    if (perf) {
+                        req.setTypeFormation(TypeFormation.PERFECTIONNEMENT);
+                        req.setBoiteVitesse(boite);   // catégorie B fixée par EleveService
+                    } else {
+                        req.setCategoriePermis(permis);
+                    }
                     req.setDateInscription(date);
                     req.setMontantAvance(acompte);
                     req.setMontantTotal(total);
@@ -135,7 +148,11 @@ public class EleveImportService {
         if (confirmer) {
             // Les inscrits du fichier n'ont pas de moniteur : celui des cours de code (Paramètres).
             Long moniteurDefaut = moniteurParDefaut();
-            aCreer.forEach(req -> { req.setMoniteurId(moniteurDefaut); eleveService.creer(req); });
+            // Perfectionnement : pas de cours de code, donc pas ce moniteur.
+            aCreer.forEach(req -> {
+                if (req.getTypeFormation() != TypeFormation.PERFECTIONNEMENT) req.setMoniteurId(moniteurDefaut);
+                eleveService.creer(req);
+            });
         }
 
         int valides = (int) lignes.stream().filter(l -> OK.equals(l.statut())).count();
@@ -227,6 +244,14 @@ public class EleveImportService {
             case "d" -> CategoriePermis.D;
             default -> null;
         };
+    }
+
+    /** « CP M », « CP manuelle » → manuelle ; « CP A », « CP auto », « CP automatique » → automatique. */
+    private static BoiteVitesse boite(String s) {
+        String t = simplifier(s).replaceFirst("^cp", "");
+        if (t.equals("m") || t.startsWith("manu")) return BoiteVitesse.MANUELLE;
+        if (t.equals("a") || t.startsWith("auto")) return BoiteVitesse.AUTOMATIQUE;
+        return null;
     }
 
     private static Site lieu(String s) {

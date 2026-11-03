@@ -62,6 +62,11 @@ export default function ImportEleves({ onClose, onDone }) {
                   Colonnes attendues : <strong>Prénoms, Noms, Adresse, Tel, Type de permis, Date d'inscription,
                   Acompte, Total, Mode de règlement, Lieu d'inscription</strong>. Le reliquat est calculé tout seul.
                 </p>
+                <p className="text-sm text-slate-500 mb-2">
+                  <i className="bi bi-speedometer2 me-1" style={{ color: '#d4a017' }} />
+                  Perfectionnement : dans <strong>Type de permis</strong>, écrivez <strong>CP M</strong> (boîte manuelle)
+                  ou <strong>CP A</strong> (boîte automatique).
+                </p>
                 <label className="btn fw-bold text-white mb-3" style={{ borderRadius: '.75rem',
                   background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', border: 'none', cursor: busy ? 'wait' : 'pointer' }}>
                   <i className="bi bi-file-earmark-excel me-1" />{fichier ? 'Choisir un autre fichier' : 'Choisir le fichier'}
