@@ -144,18 +144,6 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   const [err, setErr]                 = useState('')
   const [selectedSeance, setSelectedSeance] = useState(null)
 
-  const load = () => {
-    setLoading(true)
-    const seancesUrl = isAdmin ? '/moniteur/seances?all=true' : '/moniteur/seances'
-    Promise.all([
-      api('GET', seancesUrl),
-      api('GET', '/moniteur/seances/eleves'),
-    ]).then(([s, e]) => { setSeances(s); setEleves(e) })
-      .finally(() => setLoading(false))
-  }
-
-  useEffect(() => { load() }, [])
-
   const openCreate = () => {
     setEditId(null)
     setForm({ ...defaultForm(), eleveIds: eleves.map(e => e.id) })
@@ -164,7 +152,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
     onOuvrir?.('nouvelle')
   }
 
-  const openEdit = (s) => {
+  const openEdit = (s, dejaDansUrl = false) => {
     setEditId(s.id)
     setForm({
       titre:     s.titre     || '',
@@ -176,10 +164,28 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
     })
     setErr('')
     setView('editor')
-    onOuvrir?.(s.id)
+    if (!dejaDansUrl) onOuvrir?.(s.id)
   }
+
+  const load = (premier = false) => {
+    setLoading(true)
+    const seancesUrl = isAdmin ? '/moniteur/seances?all=true' : '/moniteur/seances'
+    Promise.all([
+      api('GET', seancesUrl),
+      api('GET', '/moniteur/seances/eleves'),
+    ]).then(([s, e]) => {
+      setSeances(s); setEleves(e)
+      // Page rechargée sur …/seances-moniteur/12 : on rouvre cette séance plutôt que la liste
+      const ouverte = premier && seanceId && s.find(x => String(x.id) === String(seanceId))
+      if (ouverte) openEdit(ouverte, true)
+    })
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load(true) }, [])
+
   // Éditeur dans l'URL (…/seances-moniteur/12 ou /nouvelle) : Retour du navigateur ou
-  // d'Android revient à la liste ; arrivé directement sur l'URL sans formulaire, on montre la liste.
+  // d'Android revient à la liste ; « nouvelle » ou une séance inconnue montre la liste.
   const fermerEditeur = () => onFermer ? onFermer() : setView('list')
   const enEditeur = view === 'editor' && (!onOuvrir || !!seanceId)
 
@@ -483,7 +489,8 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
             {visibles.map(s => {
               const isPub = s.statut === 'PUBLIE'
               return (
-                <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 transition-colors hover:bg-slate-50"
+                <div key={s.id} onClick={() => openEdit(s)} title="Ouvrir la séance"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 transition-colors hover:bg-slate-50 cursor-pointer"
                   style={{ borderBottom: '1.5px solid #dbe2ec' }}>
                   <div className="flex items-center gap-4 flex-1 min-w-0">
 
@@ -517,7 +524,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                   {/* Statut et actions : sous le titre sur téléphone, à droite sur ordinateur */}
                   <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                     <Pastille couleur={isPub ? '#15803d' : '#a16207'} fond={isPub ? '#dcfce7' : '#fef9c3'}>{isPub ? 'Publié' : 'Brouillon'}</Pastille>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                       <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
                       <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => handleDelete(s.id)} />
                     </div>
