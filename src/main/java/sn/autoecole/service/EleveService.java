@@ -22,6 +22,7 @@ import sn.autoecole.util.Telephones;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.EleveRepository;
+import sn.autoecole.repository.LeconRepository;
 import sn.autoecole.repository.MoniteurRepository;
 import sn.autoecole.repository.PaiementRepository;
 import sn.autoecole.repository.UserRepository;
@@ -42,6 +43,7 @@ public class EleveService {
     private final MoniteurRepository moniteurRepository;
     private final UserRepository     userRepository;
     private final PaiementRepository paiementRepository;
+    private final LeconRepository    leconRepository;
     private final PasswordEncoder    passwordEncoder;
     private final DocumentEleveService documentService;
 
@@ -218,6 +220,7 @@ public class EleveService {
         eleve.setCategoriePermis(request.getCategoriePermis());
         if (request.getStatut() != null) {
             eleve.setStatut(request.getStatut());
+            archiverSiTermine(eleve);
         }
         eleve.setDocCertResidence(request.isDocCertResidence());
         eleve.setDocCniLegalisee(request.isDocCniLegalisee());
@@ -311,7 +314,12 @@ public class EleveService {
      */
     public void supprimer(Long id) {
         Eleve eleve = trouverParId(id);
-        if (!paiementRepository.findByEleveId(id).isEmpty()) {
+        if (eleve.estPerfectionnement() && eleve.getStatut() == StatutEleve.ABANDONNE) {
+            // Perfectionnement abandonné : supprimé avec ses paiements (l'acompte sort de la caisse)
+            // et ses leçons, choix de l'auto-école. Pas d'examen ni de travaux dirigés en perfectionnement.
+            paiementRepository.deleteAll(paiementRepository.findByEleveId(id));
+            leconRepository.deleteAll(leconRepository.findByEleveId(id));
+        } else if (!paiementRepository.findByEleveId(id).isEmpty()) {
             throw new BusinessException("Cet élève a des paiements : archivez-le plutôt que de le supprimer");
         }
         // Supprime aussi le compte de connexion, sinon l'élève supprimé peut encore se connecter.
@@ -334,6 +342,16 @@ public class EleveService {
     public Eleve changerStatut(Long id, StatutEleve statut) {
         Eleve eleve = trouverParId(id);
         eleve.setStatut(statut);
+        archiverSiTermine(eleve);
         return eleveRepository.save(eleve);
+    }
+
+    /** Perfectionnement terminé (« Diplômé ») : archivé d'office, comme avec le bouton Archiver. */
+    private void archiverSiTermine(Eleve eleve) {
+        if (eleve.estPerfectionnement() && eleve.getStatut() == StatutEleve.DIPLOME && !eleve.isArchive()) {
+            eleve.setArchive(true);
+            eleve.setDateArchivage(LocalDate.now());
+            activerCompte(eleve, false);
+        }
     }
 }

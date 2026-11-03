@@ -810,10 +810,23 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
   const changerStatut = async (id, newStatut) => {
     try {
-      await api('PATCH', `/eleves/${id}/statut`, { statut: newStatut })
-      toast('Statut mis à jour'); await load()
-      if (selected?.id === id) setSelected(s => ({ ...s, statut: newStatut }))
+      const maj = await api('PATCH', `/eleves/${id}/statut`, { statut: newStatut })
+      // Perfectionnement terminé : le serveur l'archive d'office
+      toast(maj?.archive ? 'Formation terminée : élève archivé' : 'Statut mis à jour'); await load()
+      if (selected?.id === id) setSelected(maj)
     } catch (e) { toast(e.message, 'danger') }
+  }
+
+  /* Perfectionnement abandonné : supprimé avec ses paiements et ses leçons (l'acompte sort de
+     la caisse). Les autres élèves s'archivent ; seule une fiche sans historique se supprime. */
+  const abandonPerf = (e) => e.typeFormation === 'PERFECTIONNEMENT' && e.statut === 'ABANDONNE' && !e.archive
+  const supprimerAbandon = async (eleve) => {
+    let paye = 0
+    try { paye = Number((await api('GET', `/eleves/${eleve.id}/total-paye`))?.totalPaye || 0) } catch { /* montant indicatif */ }
+    if (!(await confirmer({ titre: `Supprimer ${eleve.prenom} ${eleve.nom} ?`, ton: 'danger', libelle: 'Supprimer',
+      message: `Perfectionnement abandonné : sa fiche, ses leçons et ses paiements${paye > 0 ? ` (${fmtMontant(paye)})` : ''} seront supprimés définitivement.${paye > 0 ? ' La caisse baisse d\'autant.' : ''}` }))) return
+    try { await api('DELETE', `/eleves/${eleve.id}`); toast('Élève supprimé'); closeProfile(); load() }
+    catch (e) { toast(e.message, 'danger') }
   }
 
   const openModal = (eleve = null, typeFormation = 'PERMIS') => {
@@ -881,9 +894,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
       categoriePermis: perf ? null : form.categoriePermis, boiteVitesse: perf ? form.boiteVitesse : null }
     try {
       if (editId) {
-        await api('PUT', `/eleves/${editId}`, data); toast('Élève modifié')
+        const maj = await api('PUT', `/eleves/${editId}`, data)
+        toast(maj?.archive && !selected?.archive && perf ? 'Formation terminée : élève archivé' : 'Élève modifié')
         setShowModal(false); await load()
-        if (selected?.id === editId) setSelected(await api('GET', `/eleves/${editId}`))
+        if (selected?.id === editId) setSelected(maj)
       } else {
         const created = await api('POST', '/eleves', data)
         // L'élève existe : un échec d'envoi n'annule pas la création, on le signale seulement.
@@ -1670,11 +1684,19 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>
                     <i className="bi bi-pencil-fill" />Modifier
                   </button>
-                  <button onClick={() => archiver(s)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
-                    style={{ background: 'rgba(255,255,255,.15)', color: '#fde68a' }}>
-                    <i className="bi bi-archive-fill" />Archiver
-                  </button>
+                  {abandonPerf(s) ? (
+                    <button onClick={() => supprimerAbandon(s)}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
+                      style={{ background: 'rgba(239,68,68,.2)', color: '#fca5a5' }}>
+                      <i className="bi bi-trash-fill" />Supprimer
+                    </button>
+                  ) : (
+                    <button onClick={() => archiver(s)}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
+                      style={{ background: 'rgba(255,255,255,.15)', color: '#fde68a' }}>
+                      <i className="bi bi-archive-fill" />Archiver
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -1965,7 +1987,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     <BoutonRond title="Voir la fiche" icon="eye-fill" couleur="#1e3a5f" fond="#eff6ff" onClick={() => ouvrirFiche(e)} />
                     {!isMoniteur && !e.archive && <>
                       <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(e)} />
-                      <BoutonRond title="Archiver" icon="archive-fill" couleur="#a16207" fond="#fef9c3" onClick={() => archiver(e)} />
+                      {abandonPerf(e)
+                        ? <BoutonRond title="Supprimer (perfectionnement abandonné)" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimerAbandon(e)} />
+                        : <BoutonRond title="Archiver" icon="archive-fill" couleur="#a16207" fond="#fef9c3" onClick={() => archiver(e)} />}
                     </>}
                     {!isMoniteur && e.archive && <>
                       <BoutonRond title="Réactiver" icon="arrow-counterclockwise" couleur="#15803d" fond="#dcfce7" onClick={() => reactiver(e)} />
