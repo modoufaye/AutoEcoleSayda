@@ -1,0 +1,53 @@
+# Met le site (app CapRover « www ») en ligne à chaque push sur main touchant frontend/.
+# Jeton : secret GitHub CAPROVER_TOKEN_WWW (CapRover → app www → Deployment → App Token).
+name: Déploiement du site
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un seul déploiement à la fois ; le suivant attend au lieu d'interrompre celui en cours
+concurrency:
+  group: deploy-www
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Construit d'abord ici : une erreur arrête tout avant d'envoyer quoi que ce soit au serveur
+      - name: Vérifier que le site se construit
+        working-directory: frontend
+        run: npm ci && npm run build
+
+      # Seuls les fichiers suivis par git partent (ni node_modules, ni dist, ni .DS_Store)
+      - name: Préparer l'archive
+        run: git archive --format=tar -o frontend.tar HEAD:frontend
+
+      - name: Déployer sur CapRover
+        env:
+          CAPROVER_TOKEN: ${{ secrets.CAPROVER_TOKEN_WWW }}
+        run: |
+          npx --yes caprover@2.4.4 deploy \
+            --caproverUrl https://captain.khadija.auto-ecole.sn \
+            --appToken "$CAPROVER_TOKEN" \
+            --appName www \
+            --tarFile frontend.tar
+
+      - name: Vérifier que la nouvelle version est en ligne
+        run: |
+          attendu=$(grep -o 'assets/index-[^"]*\.js' frontend/dist/index.html | head -1)
+          for i in $(seq 1 30); do
+            servi=$(curl -s https://www.khadija.auto-ecole.sn/ | grep -o 'assets/index-[^"]*\.js' | head -1)
+            [ "$servi" = "$attendu" ] && { echo "En ligne : $servi"; exit 0; }
+            sleep 10
+          done
+          echo "Le site sert encore $servi au lieu de $attendu"; exit 1

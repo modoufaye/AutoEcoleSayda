@@ -1,0 +1,58 @@
+# Met le serveur (app CapRover « sayda-backend ») en ligne à chaque push sur main touchant le backend.
+# Jeton : secret GitHub CAPROVER_TOKEN_BACKEND (CapRover → app sayda-backend → Deployment → App Token).
+name: Déploiement du serveur
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'pom.xml', 'Dockerfile', 'captain-definition']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Compile et lance les tests ici : une erreur arrête tout avant de toucher au serveur
+      - name: Vérifier que le serveur se construit
+        run: mvn -q -B package
+
+      - name: Préparer l'archive
+        run: git archive --format=tar -o backend.tar HEAD Dockerfile captain-definition pom.xml src
+
+      - name: Déployer sur CapRover
+        env:
+          CAPROVER_TOKEN: ${{ secrets.CAPROVER_TOKEN_BACKEND }}
+        run: |
+          npx --yes caprover@2.4.4 deploy \
+            --caproverUrl https://captain.khadija.auto-ecole.sn \
+            --appToken "$CAPROVER_TOKEN" \
+            --appName sayda-backend \
+            --tarFile backend.tar
+
+      # Le serveur n'a pas d'adresse publique : on passe par le site, qui relaie /api.
+      # Une connexion vide doit être refusée (400/401) et non échouer (502/503 = serveur absent).
+      - name: Vérifier que le serveur répond
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+              -d '{}' https://www.khadija.auto-ecole.sn/api/auth/login)
+            case "$code" in 400|401|403) echo "Serveur en ligne (réponse $code)"; exit 0 ;; esac
+            sleep 10
+          done
+          echo "Le serveur ne répond pas (dernière réponse $code)"; exit 1
