@@ -35,8 +35,9 @@ jobs:
       - name: Déployer sur CapRover
         env:
           CAPROVER_TOKEN: ${{ secrets.CAPROVER_TOKEN_WWW }}
-        # Sans jeton, l'outil demande un mot de passe puis quitte en signalant un succès :
-        # on refuse donc de partir sans jeton, et on exige « Deployed successfully » dans sa sortie.
+        # Sans jeton, l'outil demande un mot de passe puis quitte en signalant un succès : on refuse
+        # donc de partir sans jeton. Avec un jeton, CapRover rend la main dès l'envoi (« in progress »)
+        # sans attendre la construction : l'étape suivante vérifie la vraie mise en ligne.
         run: |
           if [ -z "$CAPROVER_TOKEN" ]; then
             echo "::error::Secret CAPROVER_TOKEN_WWW absent (CapRover → app www → Deployment → App Token)"; exit 1
@@ -46,12 +47,14 @@ jobs:
             --appToken "$CAPROVER_TOKEN" \
             --appName www \
             --tarFile frontend.tar < /dev/null 2>&1 | tee deploy.log
-          grep -q "Deployed successfully" deploy.log || { echo "::error::Le déploiement CapRover a échoué"; exit 1; }
+          grep -qE "Deployed successfully|using app token is in progress" deploy.log \
+            || { echo "::error::CapRover a refusé l'envoi"; exit 1; }
 
       - name: Vérifier que la nouvelle version est en ligne
         run: |
           attendu=$(grep -o 'assets/index-[^"]*\.js' frontend/dist/index.html | head -1)
-          for i in $(seq 1 30); do
+          # Construction sur le serveur comprise : jusqu'à 10 minutes
+          for i in $(seq 1 60); do
             servi=$(curl -s https://www.khadija.auto-ecole.sn/ | grep -o 'assets/index-[^"]*\.js' | head -1)
             [ "$servi" = "$attendu" ] && { echo "En ligne : $servi"; exit 0; }
             sleep 10

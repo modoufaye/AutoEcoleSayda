@@ -22,3 +22,6 @@ frontend/dist/
 
 # OS
 .DS_Store
+
+# Version déployée, écrite par le workflow de déploiement
+src/main/resources/build-version.txt

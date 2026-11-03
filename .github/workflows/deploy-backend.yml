@@ -32,14 +32,20 @@ jobs:
       - name: Vérifier que le serveur se construit
         run: mvn -q -B package
 
+      # La version (commit) part avec l'archive : /api/auth/version la renvoie une fois en ligne
       - name: Préparer l'archive
-        run: git archive --format=tar -o backend.tar HEAD Dockerfile captain-definition pom.xml src
+        run: |
+          git archive --format=tar -o backend.tar HEAD Dockerfile captain-definition pom.xml src
+          mkdir -p version/src/main/resources
+          echo "$GITHUB_SHA" > version/src/main/resources/build-version.txt
+          tar -rf backend.tar -C version src/main/resources/build-version.txt
 
       - name: Déployer sur CapRover
         env:
           CAPROVER_TOKEN: ${{ secrets.CAPROVER_TOKEN_BACKEND }}
-        # Sans jeton, l'outil demande un mot de passe puis quitte en signalant un succès :
-        # on refuse donc de partir sans jeton, et on exige « Deployed successfully » dans sa sortie.
+        # Sans jeton, l'outil demande un mot de passe puis quitte en signalant un succès : on refuse
+        # donc de partir sans jeton. Avec un jeton, CapRover rend la main dès l'envoi (« in progress »)
+        # sans attendre la construction : l'étape suivante vérifie la vraie mise en ligne.
         run: |
           if [ -z "$CAPROVER_TOKEN" ]; then
             echo "::error::Secret CAPROVER_TOKEN_BACKEND absent (CapRover → app sayda-backend → Deployment → App Token)"; exit 1
@@ -49,16 +55,16 @@ jobs:
             --appToken "$CAPROVER_TOKEN" \
             --appName sayda-backend \
             --tarFile backend.tar < /dev/null 2>&1 | tee deploy.log
-          grep -q "Deployed successfully" deploy.log || { echo "::error::Le déploiement CapRover a échoué"; exit 1; }
+          grep -qE "Deployed successfully|using app token is in progress" deploy.log \
+            || { echo "::error::CapRover a refusé l'envoi"; exit 1; }
 
       # Le serveur n'a pas d'adresse publique : on passe par le site, qui relaie /api.
-      # Une connexion vide doit être refusée (400/401) et non échouer (502/503 = serveur absent).
-      - name: Vérifier que le serveur répond
+      # On attend que /api/auth/version renvoie ce commit (construction Maven comprise : ~15 min max).
+      - name: Vérifier que le nouveau serveur est en ligne
         run: |
-          for i in $(seq 1 30); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-              -d '{}' https://www.khadija.auto-ecole.sn/api/auth/login)
-            case "$code" in 400|401|403) echo "Serveur en ligne (réponse $code)"; exit 0 ;; esac
+          for i in $(seq 1 90); do
+            v=$(curl -s https://www.khadija.auto-ecole.sn/api/auth/version | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+            [ "$v" = "$GITHUB_SHA" ] && { echo "Serveur en ligne : $v"; exit 0; }
             sleep 10
           done
-          echo "Le serveur ne répond pas (dernière réponse $code)"; exit 1
+          echo "::error::Le serveur en ligne est toujours la version « $v », pas $GITHUB_SHA"; exit 1
