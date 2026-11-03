@@ -1674,10 +1674,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
                 {/* Formation */}
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 flex flex-col items-center justify-center flex-shrink-0"
-                    style={{ borderRadius: '.8rem', background: '#eff6ff', color: '#1e3a5f', border: '1.5px solid #bfdbfe' }}>
-                    <span className="text-[9px] font-bold uppercase leading-none">Permis</span>
-                    <span className="text-base font-extrabold leading-tight">{e.categoriePermis}</span>
+                  {/* Catégorie de permis : la lettre seule, en or sur bleu nuit (le mot « Permis » en info-bulle) */}
+                  <div title={`Permis ${e.categoriePermis}`}
+                    className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-lg font-extrabold"
+                    style={{ borderRadius: '.8rem', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#f0bb2a',
+                      borderBottom: '3px solid #d4a017', boxShadow: '0 2px 6px rgba(15,34,64,.18)' }}>
+                    {e.categoriePermis}
                   </div>
                   <div className="min-w-0 text-xs">
                     <div className="text-slate-400 uppercase tracking-wider font-bold text-[10px]">Moniteur</div>
