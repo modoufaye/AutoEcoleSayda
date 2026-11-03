@@ -10,6 +10,7 @@ import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Moniteur;
 import sn.autoecole.entity.Paiement;
 import sn.autoecole.entity.User;
+import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.Site;
@@ -124,6 +125,7 @@ public class EleveService {
                 .docDelivrance(request.isDocDelivrance())
                 .build();
         eleve.setMoniteur(resolveMoniteur(request.getMoniteurId()));
+        appliquerFormation(eleve, request);
         Eleve saved = eleveRepository.save(eleve);
         creerCompteParDefaut(saved);
         if (request.getMontantAvance() != null && request.getMontantAvance().compareTo(BigDecimal.ZERO) > 0) {
@@ -226,9 +228,34 @@ public class EleveService {
         eleve.setDocEnrolement(request.isDocEnrolement());
         eleve.setDocDelivrance(request.isDocDelivrance());
         eleve.setMoniteur(resolveMoniteur(request.getMoniteurId()));
+        appliquerFormation(eleve, request);
         Eleve saved = eleveRepository.save(eleve);
         creerCompteParDefaut(saved);   // numéro ajouté après coup (élève importé sans téléphone)
         return saved;
+    }
+
+    /**
+     * Permis : catégorie obligatoire, pas de boîte. Perfectionnement (conduite seule) : boîte
+     * obligatoire, catégorie B, aucune pièce du dossier du permis. Type absent : celui de la
+     * fiche (modification) ou permis (inscription).
+     */
+    private void appliquerFormation(Eleve eleve, EleveRequest request) {
+        TypeFormation type = request.getTypeFormation() != null ? request.getTypeFormation()
+                : eleve.getTypeFormation() != null ? eleve.getTypeFormation() : TypeFormation.PERMIS;
+        eleve.setTypeFormation(type);
+        if (type == TypeFormation.PERFECTIONNEMENT) {
+            if (request.getBoiteVitesse() == null)
+                throw new BusinessException("Choisissez la boîte de vitesses (manuelle ou automatique)");
+            eleve.setBoiteVitesse(request.getBoiteVitesse());
+            eleve.setCategoriePermis(CategoriePermis.B);
+            eleve.setDocCertResidence(false); eleve.setDocCniLegalisee(false); eleve.setDocGroupeSanguin(false);
+            eleve.setDocVisiteMedicale(false); eleve.setDocPhotos(false); eleve.setDocTimbre(false);
+            eleve.setDocEnrolement(false); eleve.setDocDelivrance(false);
+        } else {
+            if (request.getCategoriePermis() == null)
+                throw new BusinessException("La catégorie de permis est obligatoire");
+            eleve.setBoiteVitesse(null);
+        }
     }
 
     private Moniteur resolveMoniteur(Long moniteurId) {

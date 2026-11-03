@@ -148,13 +148,14 @@ export function Reinitialiser({ onClick }) {
 }
 
 /* Bouton d'ajout en pilule bleu nuit, placé à droite dans la barre de filtres (« + Élève », « + Cours »…). */
-export function BoutonAjout({ onClick, children, icone = 'plus-lg', vert = false }) {
+// Variantes : bleu nuit (défaut), vert, or (texte bleu nuit sur dégradé doré)
+export function BoutonAjout({ onClick, children, icone = 'plus-lg', vert = false, or = false }) {
   return (
     <button type="button" onClick={onClick}
-      className="flex items-center justify-center gap-2 text-sm font-bold text-white px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
-      style={{ minHeight: 40, borderRadius: 999,
-        background: vert ? 'linear-gradient(135deg,#047857,#10b981)' : 'linear-gradient(135deg,#1e3a5f,#2a4f7c)',
-        boxShadow: vert ? '0 4px 12px rgba(16,185,129,.25)' : '0 4px 12px rgba(30,58,95,.25)' }}>
+      className="flex items-center justify-center gap-2 text-sm font-bold px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg whitespace-nowrap"
+      style={{ minHeight: 40, borderRadius: 999, color: or ? '#1e3a5f' : '#fff',
+        background: vert ? 'linear-gradient(135deg,#047857,#10b981)' : or ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : 'linear-gradient(135deg,#1e3a5f,#2a4f7c)',
+        boxShadow: vert ? '0 4px 12px rgba(16,185,129,.25)' : or ? '0 4px 12px rgba(212,160,23,.3)' : '0 4px 12px rgba(30,58,95,.25)' }}>
       <i className={`bi bi-${icone}`} />{children}
     </button>
   )

@@ -43,6 +43,8 @@ const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
   adresse: '', site: '', lieuInscription: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
   montantAvance: '', montantTotal: '', moyenAcompte: 'ESPECES',
+  // PERMIS (code + conduite) ou PERFECTIONNEMENT (conduite seule, boîte manuelle ou automatique)
+  typeFormation: 'PERMIS', boiteVitesse: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
   docVisiteMedicale: false, docPhotos: false, docTimbre: false,
   docEnrolement: false, docDelivrance: false,
@@ -716,6 +718,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [site, setSite]           = useState('')
   // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
   const [moisInscription, setMoisInscription] = useState('')
+  const [formation, setFormation] = useState('')   // '' | PERMIS | PERFECTIONNEMENT
   const [archives, setArchives]   = useState(false)
   const loadReq = useRef(0)
   const [form, setForm]           = useState(EMPTY)
@@ -773,9 +776,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     if (statut) r = r.filter(e => e.statut === statut)
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
+    if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     setFiltered(r)
     setPage(1)
-  }, [search, statut, site, moisInscription, list])
+  }, [search, statut, site, moisInscription, formation, list])
 
   // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
   const moisDisponibles = Object.entries(list.reduce((acc, e) => {
@@ -812,7 +816,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     } catch (e) { toast(e.message, 'danger') }
   }
 
-  const openModal = (eleve = null) => {
+  const openModal = (eleve = null, typeFormation = 'PERMIS') => {
     if (eleve) {
       setEditId(eleve.id)
       setForm({ nom: eleve.nom, prenom: eleve.prenom, dateNaissance: eleve.dateNaissance || '',
@@ -822,6 +826,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
         montantTotal: eleve.montantTotal ?? '',
+        typeFormation: eleve.typeFormation || 'PERMIS', boiteVitesse: eleve.boiteVitesse || '',
         docCertResidence: eleve.docCertResidence || false,
         docCniLegalisee: eleve.docCniLegalisee || false,
         docGroupeSanguin: eleve.docGroupeSanguin || false,
@@ -834,7 +839,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     } else {
       // Moniteur des cours de code (Paramètres), pré-sélectionné s'il est actif.
       const defaut = moniteurs.some(m => m.actif && String(m.id) === String(moniteurDefaut)) ? String(moniteurDefaut) : ''
-      setEditId(null); setForm({ ...EMPTY, dateInscription: today(), moniteurId: defaut })
+      setEditId(null)
+      setForm({ ...EMPTY, typeFormation, dateInscription: today(), moniteurId: typeFormation === 'PERMIS' ? defaut : '' })
     }
     setPiecesAttente([])
     setShowModal(true)
@@ -843,9 +849,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const save = async () => {
     // Téléphone obligatoire à l'inscription seulement : un élève importé sans numéro doit
     // rester modifiable (son compte se crée dès que le numéro est ajouté).
+    const perf = form.typeFormation === 'PERFECTIONNEMENT'
     const manquants = [
       !form.nom && 'nom', !form.prenom && 'prénom', !editId && !form.telephone && 'téléphone',
-      !form.categoriePermis && 'catégorie de permis', !form.dateInscription && "date d'inscription", !form.site && 'bureau',
+      !perf && !form.categoriePermis && 'catégorie de permis', perf && !form.boiteVitesse && 'boîte de vitesses',
+      !form.dateInscription && "date d'inscription",
+      perf ? !form.lieuInscription && "lieu d'inscription" : !form.site && 'bureau',
     ].filter(Boolean)
     if (manquants.length) {
       toast(`Champ${manquants.length > 1 ? 's' : ''} obligatoire${manquants.length > 1 ? 's' : ''} : ${manquants.join(', ')}`, 'warning'); return
@@ -867,7 +876,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
       lieuInscription: form.lieuInscription || null,
       numeroCni: form.numeroCni || null, photoUrl: form.photoUrl || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null,
-      montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null }
+      montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null,
+      // Perfectionnement : catégorie B fixée par le serveur ; permis : pas de boîte
+      categoriePermis: perf ? null : form.categoriePermis, boiteVitesse: perf ? form.boiteVitesse : null }
     try {
       if (editId) {
         await api('PUT', `/eleves/${editId}`, data); toast('Élève modifié')
@@ -1171,6 +1182,209 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <button className="btn fw-bold px-4" onClick={save}
                   style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', borderRadius: '.85rem', border: 'none', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
                   <i className="bi bi-check2-circle me-1" />{editId ? 'Enregistrer' : "Inscrire l'élève"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Perfectionnement : sa propre fenêtre, réduite à l'essentiel ; permis : vue moderne ou classique
+  const fenetreEleve = () => form.typeFormation === 'PERFECTIONNEMENT' ? ModalPerfectionnement()
+    : vueModale === 'moderne' ? ModalModerne() : Modal()
+
+  /* ── Fenêtre « Perfectionnement » : conduite seule (boîte manuelle ou automatique).
+     Prénom, nom, téléphone, date et lieu d'inscription, total, acompte et reliquat : pas de
+     catégorie de permis, de moniteur, de bureau ni de dossier. Le bureau suit le lieu. ── */
+  function ModalPerfectionnement() {
+    const inputCls = "w-full px-3.5 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#d4a017] transition-all"
+    const labelCls = "block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5"
+    const set = (k, v) => setForm(fm => ({ ...fm, [k]: v }))
+    const total = parseFloat(form.montantTotal) || 0
+    const acompte = parseFloat(form.montantAvance) || 0
+    // En modification : ce qui est déjà payé (fiche ouverte) remplace l'acompte saisi.
+    const paye = editId ? (selected?.id === editId ? Number(profileData.totalPaye || 0) : 0) : acompte
+    const pct = total > 0 ? Math.min(100, Math.round(paye / total * 100)) : 0
+    const BOITES = [
+      { v: 'MANUELLE',    icon: 'gear-wide-connected',   txt: 'Manuelle',    sous: 'Boîte de vitesses manuelle' },
+      { v: 'AUTOMATIQUE', icon: 'lightning-charge-fill', txt: 'Automatique', sous: 'Boîte de vitesses automatique' },
+    ]
+    const MODES = [
+      { v: 'ESPECES',      icon: 'cash-coin', txt: 'Espèces',      color: '#15803d', bg: '#dcfce7' },
+      { v: 'WAVE',         icon: 'water',     txt: 'Wave',         color: '#0284c7', bg: '#e0f2fe' },
+      { v: 'ORANGE_MONEY', icon: 'phone-fill', txt: 'Orange Money', color: '#ea580c', bg: '#ffedd5' },
+    ]
+    // Appelées comme fonctions (voir ModalModerne) : le champ garde le focus à chaque frappe.
+    const section = (n, icon, titre, children) => (
+      <div className="bg-white rounded-2xl p-4 sm:p-5" style={{ boxShadow: '0 1px 4px rgba(15,34,64,.06)', border: '1px solid #eef2f7' }}>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-extrabold flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{n}</span>
+          <i className={`bi bi-${icon}`} style={{ color: '#1e3a5f' }} />
+          <span className="font-extrabold text-slate-800">{titre}</span>
+        </div>
+        {children}
+      </div>
+    )
+    const montant = (key, ph) => (
+      <div className="relative">
+        <input type="number" min="0" className={inputCls} style={{ paddingRight: '3.5rem' }} placeholder={ph}
+          value={form[key]} onChange={e => set(key, e.target.value)} />
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span>
+      </div>
+    )
+    const pill = (actif, extra = {}) => ({
+      borderRadius: '.85rem', border: `2px solid ${actif ? (extra.color || '#1e3a5f') : '#e2e8f0'}`,
+      background: actif ? (extra.bg || '#eff6ff') : '#fff', color: actif ? (extra.color || '#1e3a5f') : '#64748b',
+      transition: 'all .15s',
+    })
+    const nomComplet = `${form.prenom} ${form.nom}`.trim()
+    const boite = BOITES.find(b => b.v === form.boiteVitesse)
+
+    return (
+      <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.6)', backdropFilter: 'blur(6px)' }}>
+        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div className="modal-content border-0" style={{ borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 30px 70px rgba(0,0,0,.3)' }}>
+            {/* En-tête : aperçu de l'inscription en cours */}
+            <div className="px-6 pt-5 pb-5 relative" style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 55%,#2a4f7c 100%)' }}>
+              <div className="absolute inset-x-0 bottom-0 h-1" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
+              <button className="btn-close btn-close-white position-absolute top-4 end-4" onClick={() => setShowModal(false)} />
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-extrabold"
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+                  {nomComplet ? initials(form.nom, form.prenom) : <i className="bi bi-speedometer2" />}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>
+                    {editId ? 'Modifier · perfectionnement' : 'Nouveau perfectionnement'}
+                  </div>
+                  <div className="text-xl font-extrabold text-white leading-tight truncate">{nomComplet || 'Nouvel élève'}</div>
+                  <div className="text-xs mt-1 flex flex-wrap gap-x-3" style={{ color: '#bfdbfe' }}>
+                    <span><i className="bi bi-car-front-fill me-1" />Conduite seule</span>
+                    {boite && <span><i className={`bi bi-${boite.icon} me-1`} />{boite.txt}</span>}
+                    {total > 0 && <span><i className="bi bi-cash-stack me-1" />{fmtMontant(total)}</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-body px-4 sm:px-6 py-5 space-y-4" style={{ background: '#f4f6fa' }}>
+              {section(1, 'person-vcard', 'Élève', <>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Prénom <span className="text-red-500">*</span></label>
+                    <input className={inputCls} value={form.prenom} onChange={e => set('prenom', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Nom <span className="text-red-500">*</span></label>
+                    <input className={inputCls} value={form.nom} onChange={e => set('nom', e.target.value)} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Téléphone {!editId && <span className="text-red-500">*</span>}</label>
+                    <div className="flex">
+                      <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
+                        style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
+                      <input type="tel" className={inputCls} style={{ borderRadius: '0 .75rem .75rem 0' }} placeholder="77 123 45 67"
+                        value={form.telephone} onChange={e => set('telephone', e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Date d'inscription <span className="text-red-500">*</span></label>
+                    <input type="date" className={inputCls} max={today()} value={form.dateInscription} onChange={e => set('dateInscription', e.target.value)} />
+                  </div>
+                </div>
+              </>)}
+
+              {section(2, 'speedometer2', 'Perfectionnement', <>
+                <label className={labelCls}>Boîte de vitesses <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {BOITES.map(b => (
+                    <button key={b.v} type="button" onClick={() => set('boiteVitesse', b.v)}
+                      className="flex flex-col items-center py-3 cursor-pointer" style={pill(form.boiteVitesse === b.v, { color: '#1e3a5f', bg: '#fef9c3' })}>
+                      <i className={`bi bi-${b.icon}`} style={{ fontSize: '1.4rem', color: form.boiteVitesse === b.v ? '#d4a017' : undefined }} />
+                      <span className="text-sm font-extrabold leading-none mt-1.5">{b.txt}</span>
+                      <span className="text-[10px] font-semibold mt-1 hidden sm:block">{b.sous}</span>
+                    </button>
+                  ))}
+                </div>
+                <label className={labelCls}>Lieu d'inscription <span className="text-red-500">*</span></label>
+                <div className="flex flex-wrap gap-2">
+                  {LIEUX_INSCRIPTION.map(l => (
+                    <button key={l.value} type="button"
+                      onClick={() => setForm(fm => ({ ...fm, lieuInscription: l.value,
+                        // Pas de choix du bureau : à l'inscription il suit le lieu (en ligne → Massalikoul
+                        // Djinane) ; en modification, le bureau de suivi ne change pas.
+                        site: editId && fm.site ? fm.site : l.value === 'EN_LIGNE' ? 'MAZALIK_JINAN' : l.value }))}
+                      className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.lieuInscription === l.value)}>
+                      <i className={`bi bi-${l.value === 'EN_LIGNE' ? 'globe2' : 'building'} me-1`} />{l.label}
+                    </button>
+                  ))}
+                </div>
+                {editId && (
+                  <div className="mt-4">
+                    <label className={labelCls}>Statut</label>
+                    <select className={inputCls} value={form.statut} onChange={e => set('statut', e.target.value)}>
+                      {STATUTS.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                    </select>
+                  </div>
+                )}
+              </>)}
+
+              {section(3, 'wallet2', 'Paiement', <>
+                <div className="row g-3">
+                  <div className={editId ? 'col-12' : 'col-md-6'}>
+                    <label className={labelCls}>Total {!editId && <span className="text-red-500">*</span>}</label>
+                    {montant('montantTotal', '100000')}
+                  </div>
+                  {!editId && <div className="col-md-6">
+                    <label className={labelCls}>Acompte <span className="text-red-500">*</span></label>
+                    {montant('montantAvance', '50000')}
+                  </div>}
+                  {!editId && <div className="col-12">
+                    <label className={labelCls}>Mode de règlement de l'acompte</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {MODES.map(m => (
+                        <button key={m.v} type="button" onClick={() => set('moyenAcompte', m.v)}
+                          className="flex items-center justify-center gap-2 py-2.5 text-sm font-bold cursor-pointer"
+                          style={pill(form.moyenAcompte === m.v, m)}>
+                          <i className={`bi bi-${m.icon}`} /><span className="truncate">{m.txt}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>}
+                </div>
+                {/* Total, acompte et reliquat calculés en direct */}
+                <div className="mt-4 rounded-xl p-3" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
+                  <div className="grid grid-cols-3 text-center">
+                    {[['Total', total, '#fff'], [editId ? 'Déjà payé' : 'Acompte', paye, '#86efac'], ['Reliquat', Math.max(0, total - paye), '#fcd34d']].map(([l, v, c]) => (
+                      <div key={l}>
+                        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#93c5fd' }}>{l}</div>
+                        <div className="text-sm sm:text-base font-extrabold" style={{ color: c }}>{fmtMontant(v)}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2.5 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)', transition: 'width .3s' }} />
+                  </div>
+                  <div className="text-[11px] mt-1.5" style={{ color: '#bfdbfe' }}>
+                    {editId ? `${pct} % payé · les versements se gèrent dans l'onglet Paiements de la fiche`
+                      : acompte > total && total > 0 ? "⚠️ L'acompte dépasse le total" : `${pct} % payé · l'acompte devient la 1re tranche`}
+                  </div>
+                </div>
+              </>)}
+            </div>
+
+            <div className="modal-footer border-0 px-6 py-3 flex items-center justify-between gap-2" style={{ background: '#fff', borderTop: '1px solid #eef2f7' }}>
+              <div className="text-xs text-slate-500 hidden sm:block">
+                {total > 0 ? <>Reliquat à percevoir : <strong className="text-slate-700">{fmtMontant(Math.max(0, total - paye))}</strong></> : 'Les champs * sont obligatoires'}
+              </div>
+              <div className="flex gap-2 ms-auto">
+                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.85rem' }} onClick={() => setShowModal(false)}>Annuler</button>
+                <button className="btn fw-bold px-4" onClick={save}
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', borderRadius: '.85rem', border: 'none', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
+                  <i className="bi bi-check2-circle me-1" />{editId ? 'Enregistrer' : 'Inscrire'}
                 </button>
               </div>
             </div>
@@ -1499,7 +1713,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
                   { label: 'Inscription', value: fmtDate(s.dateInscription) },
-                  { label: 'Catégorie', value: s.categoriePermis },
+                  s.typeFormation === 'PERFECTIONNEMENT'
+                    ? { label: 'Formation', value: `Perfectionnement · boîte ${s.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}` }
+                    : { label: 'Catégorie', value: s.categoriePermis },
                   { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.nom} ${s.moniteur.prenom}` : 'Aucun' },
                   { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
                 ].map(({ label, value }) => value ? (
@@ -1524,7 +1740,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               <div className="flex border-b border-slate-100 px-2 pt-2">
                 {[
                   { key: 'lecons',    icon: 'journal-text',          label: 'Leçons',    count: profileData.lecons.length },
-                  { key: 'examens',   icon: 'clipboard2-check-fill', label: 'Examens',   count: profileData.examens.length },
+                  // Perfectionnement : pas d'examen du permis
+                  ...(s.typeFormation !== 'PERFECTIONNEMENT' ? [{ key: 'examens', icon: 'clipboard2-check-fill', label: 'Examens', count: profileData.examens.length }] : []),
                   ...(!isMoniteur ? [{ key: 'paiements', icon: 'cash-stack', label: 'Paiements', count: profileData.paiements.length }] : []),
                 ].map(tab => (
                   <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -1569,12 +1786,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 </div>
                 <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
               </div>
-              <div className="grid grid-cols-3 divide-x divide-slate-100 text-center py-4">
-                {[
+              <div className={`grid ${s.typeFormation === 'PERFECTIONNEMENT' ? 'grid-cols-1' : 'grid-cols-3'} divide-x divide-slate-100 text-center py-4`}>
+                {(s.typeFormation === 'PERFECTIONNEMENT' ? [
+                  { val: s.nombreLeconsConduite,   label: 'Leçons de conduite', color: '#10b981' },
+                ] : [
                   { val: s.nombreLeconsCode,      label: 'Code',     color: '#1e3a5f' },
                   { val: s.nombreLeconsConduite,   label: 'Conduite', color: '#10b981' },
                   { val: s.nombreLeconsCode + s.nombreLeconsConduite, label: 'Total', color: '#6366f1' },
-                ].map(({ val, label, color }) => (
+                ]).map(({ val, label, color }) => (
                   <div key={label}>
                     <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
                     <div className="text-xs text-slate-400 mt-0.5">{label}</div>
@@ -1602,14 +1821,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
         {/* Ligne du bas (admin) : dossier Service des Mines et compte de l'élève */}
         {!isMoniteur && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
-          {/* Dossier de l'élève : le fichier déposé au Service des Mines */}
-          <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />
+          {/* Dossier de l'élève : le fichier déposé au Service des Mines (permis seulement) */}
+          {s.typeFormation !== 'PERFECTIONNEMENT' && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
 
           {/* Compte élève */}
           <CompteEleveCard eleve={s} />
         </div>}
 
-        {showModal && (vueModale === 'moderne' ? ModalModerne() : Modal())}
+        {showModal && fenetreEleve()}
       </div>
     )
   }
@@ -1648,6 +1867,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           <option value="">Tous les bureaux</option>
           {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </Filtre>
+        <Filtre icone="mortarboard" value={formation} onChange={setFormation}>
+          <option value="">Toutes les formations</option>
+          <option value="PERMIS">Permis</option>
+          <option value="PERFECTIONNEMENT">Perfectionnement</option>
+        </Filtre>
         {/* Admin : n'importe quel mois d'inscription ; moniteur : bascule sur le mois en cours */}
         {isMoniteur
           ? <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
@@ -1662,6 +1886,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
             <BoutonAjout vert icone="file-earmark-spreadsheet-fill" onClick={() => setShowImport(true)}>Importer</BoutonAjout>
             <BoutonAjout onClick={() => openModal()}>Élève</BoutonAjout>
+            {/* Perfectionnement : conduite seule, inscription simplifiée */}
+            <div className="col-span-2 sm:col-span-1 grid">
+              <BoutonAjout or icone="speedometer2" onClick={() => openModal(null, 'PERFECTIONNEMENT')}>Perfectionnement</BoutonAjout>
+            </div>
           </div>
         )}
       </BarreFiltres>
@@ -1695,13 +1923,20 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
                 {/* Formation */}
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Catégorie de permis : la lettre seule, en or sur bleu nuit (le mot « Permis » en info-bulle) */}
-                  <div title={`Permis ${e.categoriePermis}`}
+                  {/* Perfectionnement : compteur doré (boîte en info-bulle) ; permis : la lettre de la catégorie */}
+                  {e.typeFormation === 'PERFECTIONNEMENT' ? (
+                    <div title={`Perfectionnement · boîte ${e.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}`}
+                      className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-lg"
+                      style={{ borderRadius: '.8rem', background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f',
+                        borderBottom: '3px solid #1e3a5f', boxShadow: '0 2px 6px rgba(212,160,23,.3)' }}>
+                      <i className="bi bi-speedometer2" />
+                    </div>
+                  ) : <div title={`Permis ${e.categoriePermis}`}
                     className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-lg font-extrabold"
                     style={{ borderRadius: '.8rem', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#f0bb2a',
                       borderBottom: '3px solid #d4a017', boxShadow: '0 2px 6px rgba(15,34,64,.18)' }}>
                     {e.categoriePermis}
-                  </div>
+                  </div>}
                   <div className="min-w-0 text-xs">
                     <div className="text-slate-400 uppercase tracking-wider font-bold text-[10px]">Moniteur</div>
                     <div className="font-semibold text-slate-700 truncate">
@@ -1713,7 +1948,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 {/* Suivi */}
                 <div className="text-xs min-w-0">
                   <div className="flex items-center gap-3 text-slate-600">
-                    <span title="Leçons de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode}</b> code</span>
+                    {e.typeFormation === 'PERFECTIONNEMENT'
+                      ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
+                      : <span title="Leçons de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode}</b> code</span>}
                     <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>
                   </div>
                   <div className="text-slate-400 mt-1">
@@ -1743,7 +1980,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
       </div>
 
       {showImport && <ImportEleves onClose={() => setShowImport(false)} onDone={load} />}
-      {showModal && (vueModale === 'moderne' ? ModalModerne() : Modal())}
+      {showModal && fenetreEleve()}
     </div>
   )
 }

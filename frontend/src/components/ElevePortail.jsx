@@ -161,10 +161,18 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
   const statutLabel    = { DIPLOME: 'Diplômé', EN_COURS: 'En formation', SUSPENDU: 'Suspendu', ABANDONNE: 'Abandonné' }[profil.statut] || profil.statut
   const statutColor    = { DIPLOME: { bg: 'rgba(212,160,23,.28)', color: '#fbbf24' }, EN_COURS: { bg: 'rgba(255,255,255,.15)', color: 'rgba(255,255,255,.92)' }, SUSPENDU: { bg: 'rgba(239,68,68,.25)', color: '#fca5a5' }, ABANDONNE: { bg: 'rgba(100,116,139,.25)', color: '#cbd5e1' } }[profil.statut] || { bg: 'rgba(255,255,255,.15)', color: '#fff' }
 
+  // Perfectionnement : conduite seule (ni code, ni examen, ni dossier du permis)
+  const perf = profil.typeFormation === 'PERFECTIONNEMENT'
+  const BOITES = { MANUELLE: 'Boîte manuelle', AUTOMATIQUE: 'Boîte automatique' }
+
   const admisCode     = examens.some(e => e.type === 'CODE'     && e.resultat === 'ADMIS')
   const admisConduite = examens.some(e => e.type === 'CONDUITE' && e.resultat === 'ADMIS')
 
-  const journeySteps = [
+  const journeySteps = perf ? [
+    { icon: 'pencil-fill',           label: 'Inscription',        done: true },
+    { icon: 'car-front-fill',        label: 'Cours Conduite',     done: leconsConduite.length > 0 },
+    { icon: 'award-fill',            label: 'Formation terminée', done: profil.statut === 'DIPLOME' },
+  ] : [
     { icon: 'pencil-fill',           label: 'Inscription',     done: true },
     { icon: 'sign-turn-right-fill',  label: 'Cours Code',      done: leconsCode.length > 0 },
     { icon: 'car-front-fill',        label: 'Cours Conduite',  done: leconsConduite.length > 0 },
@@ -241,13 +249,16 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
         </div>
 
         {/* Barre de stats */}
-        <div className="grid grid-cols-4 border-t" style={{ borderColor: 'rgba(255,255,255,.08)', background: 'rgba(0,0,0,.15)' }}>
-          {[
+        <div className={`grid ${perf ? 'grid-cols-2' : 'grid-cols-4'} border-t`} style={{ borderColor: 'rgba(255,255,255,.08)', background: 'rgba(0,0,0,.15)' }}>
+          {(perf ? [
+            { label: 'Cours conduite', value: leconsConduite.length, icon: 'car-front-fill',        color: '#60a5fa' },
+            { label: 'Perfectionnement', value: profil.boiteVitesse === 'AUTOMATIQUE' ? 'Auto' : 'Manuelle', icon: 'gear-wide-connected', color: '#fbbf24' },
+          ] : [
             { label: 'Cours conduite', value: leconsConduite.length, icon: 'car-front-fill',        color: '#60a5fa' },
             { label: 'Cours code',     value: leconsCode.length,     icon: 'sign-turn-right-fill',  color: '#a78bfa' },
             { label: 'Examens',        value: examens.length,        icon: 'clipboard2-check-fill', color: '#38bdf8' },
             { label: 'Admis',          value: examensAdmis.length,   icon: 'patch-check-fill',      color: '#4ade80' },
-          ].map(({ label, value, icon, color }, i) => (
+          ]).map(({ label, value, icon, color }, i) => (
             <div key={label} className={`flex flex-col items-center py-2 ${i > 0 ? 'border-l' : ''}`}
               style={{ borderColor: 'rgba(255,255,255,.08)' }}>
               <i className={`bi bi-${icon}`} style={{ color, fontSize: '.85rem', marginBottom: 4 }} />
@@ -277,7 +288,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       )}
 
       {/* ── Raccourcis rapides : une colonne sur téléphone, trois sur ordinateur ── */}
-      <div className={`grid grid-cols-1 ${accesCours ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
+      {/* Raccourcis (séances, code, examens) : aucun ne concerne le perfectionnement */}
+      {!perf && <div className={`grid grid-cols-1 ${accesCours ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
         {[
           { icon: 'play-circle-fill',      label: 'Mes Séances',  sub: 'Cours vidéo',                  color: '#06b6d4', bg: 'linear-gradient(135deg,#ecfeff,#f0fdff)', border: '#a5f3fc', sec: 'seances-eleve' },
           // Raccourci Cours Code seulement si l'accès est ouvert (fermé aux élèves pour l'instant)
@@ -301,7 +313,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
             <i className="bi bi-chevron-right flex-shrink-0" style={{ color: '#cbd5e1', fontSize: '.75rem' }} />
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* ── Parcours de formation ── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
@@ -351,10 +363,10 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       </div>
 
       {/* ══ COURS CODE ════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      {!perf && <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone="sign-turn-right-fill" titre="Cours Code" sousTitre="Formation théorique du code de la route" nombre={leconsCode.length} />
         <TableLecons lecons={leconsCode} empty={{ icon: 'book', text: 'Aucun cours de code enregistré' }} />
-      </div>
+      </div>}
 
       {/* ══ COURS CONDUITE ════════════════════════════════════ */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
@@ -443,12 +455,14 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
           <EnteteListe icone="mortarboard-fill" titre="Informations de formation" sousTitre="Gérées par l'administration" />
           <div className="px-6 py-2">
             {[
-              { icon: 'card-checklist', iconBg: '#eff6ff', iconColor: '#2563eb', label: 'Catégorie',     value: profil.categoriePermis },
+              perf
+                ? { icon: 'gear-wide-connected', iconBg: '#fef9c3', iconColor: '#a16207', label: 'Formation', value: `Perfectionnement · ${BOITES[profil.boiteVitesse] || ''}` }
+                : { icon: 'card-checklist', iconBg: '#eff6ff', iconColor: '#2563eb', label: 'Catégorie',     value: profil.categoriePermis },
               { icon: 'circle-fill',    iconBg: '#f0fdf4', iconColor: '#16a34a', label: 'Statut',        value: statutLabel,
                 badge: { DIPLOME: { bg: '#fef9c3', color: '#a16207' }, EN_COURS: { bg: '#dcfce7', color: '#15803d' }, SUSPENDU: { bg: '#fef9c3', color: '#a16207' }, ABANDONNE: { bg: '#fee2e2', color: '#b91c1c' } }[profil.statut] },
               { icon: 'calendar-event', iconBg: '#fdf4ff', iconColor: '#9333ea', label: 'Inscription',   value: fmtDate(profil.dateInscription) },
               { icon: 'person-badge',   iconBg: '#fef9c3', iconColor: '#b45309', label: 'Moniteur',      value: profil.moniteur ? `${profil.moniteur.prenom} ${profil.moniteur.nom}` : null },
-              { icon: 'trophy',         iconBg: '#fef2ff', iconColor: '#a855f7', label: 'Examens admis', value: `${examensAdmis.length} / ${examens.length}` },
+              ...(perf ? [] : [{ icon: 'trophy', iconBg: '#fef2ff', iconColor: '#a855f7', label: 'Examens admis', value: `${examensAdmis.length} / ${examens.length}` }]),
             ].map(({ icon, iconBg, iconColor, label, value, badge }, i, arr) => (
               <div key={label} className={`flex items-center gap-4 py-3 ${i < arr.length - 1 ? 'border-b border-slate-50' : ''}`}>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
@@ -482,8 +496,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
             )
           })()}
 
-          {/* Documents du dossier */}
-          <div className="mx-6 mb-4 mt-1">
+          {/* Documents du dossier (permis seulement) */}
+          {!perf && <div className="mx-6 mb-4 mt-1">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
               <i className="bi bi-folder2-open me-1" />Documents du dossier
             </div>
@@ -515,7 +529,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
                 )
               })}
             </div>
-          </div>
+          </div>}
 
           {examens.length > 0 && (
             <div className="mx-6 mb-5 mt-3 p-4 rounded-2xl" style={{ background: 'linear-gradient(135deg,#f0f9ff,#e0f7fa)', border: '1px solid #bae6fd' }}>
@@ -535,8 +549,8 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
         </div>
       </div>
 
-      {/* ══ EXAMENS ═══════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      {/* ══ EXAMENS (permis seulement) ════════════════════════ */}
+      {!perf && <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone="clipboard2-check-fill" titre="Mes Examens" sousTitre="Historique de vos passages" nombre={examens.length} />
         {examens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -586,7 +600,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
             </table>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   )
 }

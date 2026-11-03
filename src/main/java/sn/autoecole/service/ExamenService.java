@@ -9,6 +9,7 @@ import sn.autoecole.entity.Examen;
 import sn.autoecole.enums.ResultatExamen;
 import sn.autoecole.enums.StatutEleve;
 import sn.autoecole.enums.TypeExamen;
+import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.ExamenRepository;
@@ -48,6 +49,9 @@ public class ExamenService {
     public Examen creer(ExamenRequest request) {
         Eleve eleve = eleveRepository.findById(request.getEleveId())
                 .orElseThrow(() -> new ResourceNotFoundException("Élève", request.getEleveId()));
+        if (eleve.estPerfectionnement()) {
+            throw new BusinessException("Élève en perfectionnement : pas d'examen du permis");
+        }
 
         List<Examen> precedents = examenRepository.findByEleveIdAndType(request.getEleveId(), request.getType());
         int tentative = precedents.size() + 1;

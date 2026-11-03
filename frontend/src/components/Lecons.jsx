@@ -305,7 +305,7 @@ export default function Lecons({ onBack }) {
                       onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
                       <option value="">Choisir un élève…</option>
                       {eleves.map(e => (
-                        <option key={e.id} value={e.id}>{e.nom} {e.prenom} ({e.categoriePermis})</option>
+                        <option key={e.id} value={e.id}>{e.nom} {e.prenom} ({e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : e.categoriePermis})</option>
                       ))}
                     </select>
                   </div>

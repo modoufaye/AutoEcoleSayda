@@ -53,7 +53,7 @@ public class SeanceService {
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)
         Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
-        if (eleve == null) return List.of();
+        if (eleve == null || eleve.estPerfectionnement()) return List.of();
         return seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve).stream()
                 .map(this::toResponse)
                 .toList();

@@ -2,6 +2,8 @@ package sn.autoecole.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import sn.autoecole.enums.BoiteVitesse;
+import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.MoyenPaiement;
 import sn.autoecole.enums.Site;
@@ -43,7 +45,13 @@ public class EleveRequest {
     @Pattern(regexp = "/uploads/images/[\\w.-]+", message = "Photo invalide")
     private String photoUrl;
 
-    @NotNull(message = "La catégorie de permis est obligatoire")
+    /** Absente : permis. */
+    private TypeFormation typeFormation;
+
+    /** Obligatoire pour un perfectionnement. */
+    private BoiteVitesse boiteVitesse;
+
+    /** Obligatoire pour un permis ; perfectionnement : toujours B (fixé par le service). */
     private CategoriePermis categoriePermis;
 
     private StatutEleve statut;

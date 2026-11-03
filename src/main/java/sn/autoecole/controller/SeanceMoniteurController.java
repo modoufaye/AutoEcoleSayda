@@ -53,7 +53,9 @@ public class SeanceMoniteurController {
         List<Eleve> eleves = isAdmin
                 ? seanceService.findAllEleves()
                 : seanceService.findElevesByMoniteur(user.getUsername());
+        // Séances de cours = théorie du code : pas pour les élèves en perfectionnement
         return eleves.stream()
+                .filter(e -> !e.estPerfectionnement())
                 .map(e -> Map.<String, Object>of(
                         "id",    e.getId(),
                         "nom",   e.getNom() + " " + e.getPrenom(),

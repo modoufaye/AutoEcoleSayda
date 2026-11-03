@@ -71,6 +71,10 @@ public class LeconService {
             throw new BusinessException("L'heure de début doit être avant l'heure de fin");
         }
 
+        if (eleve.estPerfectionnement() && request.getType() == TypeLecon.CODE) {
+            throw new BusinessException("Élève en perfectionnement : leçons de conduite uniquement");
+        }
+
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
             vehicule = vehiculeRepository.findById(request.getVehiculeId())
@@ -102,6 +106,10 @@ public class LeconService {
                 .orElseThrow(() -> new ResourceNotFoundException("Élève", request.getEleveId()));
         Moniteur moniteur = moniteurRepository.findById(request.getMoniteurId())
                 .orElseThrow(() -> new ResourceNotFoundException("Moniteur", request.getMoniteurId()));
+
+        if (eleve.estPerfectionnement() && request.getType() == TypeLecon.CODE) {
+            throw new BusinessException("Élève en perfectionnement : leçons de conduite uniquement");
+        }
 
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {

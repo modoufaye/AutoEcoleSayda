@@ -93,7 +93,17 @@ export default function AppLayout() {
     api('GET', '/cours/acces').then(r => setAccesCours(!!r?.acces)).catch(() => setAccesCours(false))
   }, [user])
 
-  const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false))
+  /* Élève en perfectionnement (conduite seule) : ni séances de cours, ni examens, ni travaux
+     dirigés, qui concernent le code. Le serveur ne lui renvoie rien non plus. */
+  const [perfectionnement, setPerfectionnement] = useState(false)
+  useEffect(() => {
+    if (user?.role !== 'ELEVE') return
+    api('GET', '/eleve/profil').then(p => setPerfectionnement(p?.typeFormation === 'PERFECTIONNEMENT')).catch(() => {})
+  }, [user])
+  const CODE_SEUL = ['seances-eleve', 'examens', 'td-eleve']
+
+  const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false)
+    && !(perfectionnement && CODE_SEUL.includes(s.key)))
   const sectionsMenu = sections.filter(s => s.key !== 'cours' || accesCours === true)
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'

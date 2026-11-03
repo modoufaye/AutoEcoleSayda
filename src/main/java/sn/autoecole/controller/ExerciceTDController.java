@@ -262,9 +262,12 @@ public class ExerciceTDController {
 
     // ── Élève ─────────────────────────────────────────────────────────────────
 
+    // Travaux dirigés = exercices de code : rien pour un élève en perfectionnement
     @GetMapping("/api/eleve/exercices-td")
-    public List<ExerciceTD> listerPourEleve() {
-        return exerciceRepo.findAllByOrderByCreatedAtDesc();
+    public List<ExerciceTD> listerPourEleve(Authentication auth) {
+        boolean perfectionnement = eleveRepository.findFirstByTelephone(auth.getName())
+                .map(Eleve::estPerfectionnement).orElse(false);
+        return perfectionnement ? List.of() : exerciceRepo.findAllByOrderByCreatedAtDesc();
     }
 
     @PostMapping("/api/eleve/exercices-td/questions/{id}/repondre")
@@ -277,6 +280,8 @@ public class ExerciceTDController {
 
         Eleve eleve = eleveRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
+        if (eleve.estPerfectionnement())
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Travaux dirigés non disponibles en perfectionnement");
 
         QuestionTD question = questionRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question introuvable"));

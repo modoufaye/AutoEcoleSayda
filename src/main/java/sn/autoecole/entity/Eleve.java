@@ -3,6 +3,8 @@ package sn.autoecole.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import sn.autoecole.enums.BoiteVitesse;
+import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
@@ -53,6 +55,17 @@ public class Eleve {
     @Column(name = "numero_cni", unique = true)
     private String numeroCni;
 
+    // Formation suivie ; null (fiches antérieures) = permis. Voir estPerfectionnement().
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_formation")
+    private TypeFormation typeFormation;
+
+    // Perfectionnement seulement : boîte manuelle ou automatique.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "boite_vitesse")
+    private BoiteVitesse boiteVitesse;
+
+    // Perfectionnement : toujours B (voiture), fixé par le service.
     @Enumerated(EnumType.STRING)
     @Column(name = "categorie_permis", nullable = false)
     @NotNull(message = "La catégorie de permis est obligatoire")
@@ -119,6 +132,12 @@ public class Eleve {
     @JoinColumn(name = "moniteur_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "categoriesAutorisees"})
     private Moniteur moniteur;
+
+    /** Conduite seule : pas de cours ni d'examen de code, pas de dossier du permis. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean estPerfectionnement() {
+        return typeFormation == TypeFormation.PERFECTIONNEMENT;
+    }
 
     @PrePersist
     private void prePersist() {

@@ -79,7 +79,8 @@ export default function Examens({ onEleveClick, onBack }) {
 
   const openModal = async () => {
     const ev = await api('GET', '/eleves')
-    setEleves(ev); setForm(EMPTY); setShowModal(true)
+    // Perfectionnement : conduite seule, pas d'examen du permis (refusé aussi par le serveur)
+    setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setForm(EMPTY); setShowModal(true)
   }
 
   const save = async () => {
