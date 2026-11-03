@@ -91,7 +91,7 @@ public class EleveImportService {
 
                 String statut = OK, message = "";
                 if (prenom.isEmpty() || nom.isEmpty()) { statut = ERREUR; message = "Prénom ou nom manquant"; }
-                else if (perf && boite == null) { statut = ERREUR; message = "Perfectionnement : précisez la boîte, « CP M » (manuelle) ou « CP A » (automatique)"; }
+                else if (perf && boite == null) { statut = ERREUR; message = "Perfectionnement : boîte inconnue « " + permisBrut + " » (CP ou CP M = manuelle, CP A = automatique)"; }
                 else if (!perf && permis == null) { statut = ERREUR; message = "Type de permis inconnu : « " + permisBrut + " » (A, B, C, D, CP M ou CP A)"; }
                 else if (date == null) { statut = ERREUR; message = "Date d'inscription illisible"; }
                 else if (date.isAfter(LocalDate.now())) { statut = ERREUR; message = "Date d'inscription dans le futur"; }
@@ -246,10 +246,10 @@ public class EleveImportService {
         };
     }
 
-    /** « CP M », « CP manuelle » → manuelle ; « CP A », « CP auto », « CP automatique » → automatique. */
+    /** « CP » seul, « CP M », « CP manuelle » → manuelle ; « CP A », « CP auto », « CP automatique » → automatique. */
     private static BoiteVitesse boite(String s) {
         String t = simplifier(s).replaceFirst("^cp", "");
-        if (t.equals("m") || t.startsWith("manu")) return BoiteVitesse.MANUELLE;
+        if (t.isEmpty() || t.equals("m") || t.startsWith("manu")) return BoiteVitesse.MANUELLE;
         if (t.equals("a") || t.startsWith("auto")) return BoiteVitesse.AUTOMATIQUE;
         return null;
     }

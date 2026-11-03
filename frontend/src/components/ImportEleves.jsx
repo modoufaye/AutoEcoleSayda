@@ -64,8 +64,8 @@ export default function ImportEleves({ onClose, onDone }) {
                 </p>
                 <p className="text-sm text-slate-500 mb-2">
                   <i className="bi bi-speedometer2 me-1" style={{ color: '#d4a017' }} />
-                  Perfectionnement : dans <strong>Type de permis</strong>, écrivez <strong>CP M</strong> (boîte manuelle)
-                  ou <strong>CP A</strong> (boîte automatique).
+                  Perfectionnement : dans <strong>Type de permis</strong>, écrivez <strong>CP</strong> ou <strong>CP M</strong> (boîte
+                  manuelle), ou <strong>CP A</strong> (boîte automatique).
                 </p>
                 <label className="btn fw-bold text-white mb-3" style={{ borderRadius: '.75rem',
                   background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', border: 'none', cursor: busy ? 'wait' : 'pointer' }}>
