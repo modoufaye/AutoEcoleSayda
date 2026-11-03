@@ -21,18 +21,17 @@ Application web complète de gestion d'auto-école développée pour le marché 
 
 ---
 
-## 🔐 Rôles & Accès démo (en local uniquement)
+## 🔐 Comptes
 
-| Rôle | Email | Mot de passe |
-|---|---|---|
-| Administrateur | admin@autoecole.sn | Admin@2024 |
-| Moniteur | 776900400 (téléphone) | Moniteur@2024 |
-| Élève | 771234567 (téléphone) | Eleve@2024 |
+Aucun mot de passe n'est publié ici.
 
-Les comptes moniteur et élève, ainsi que les données de démonstration, n'existent qu'en
-profil **dev** (`mvn spring-boot:run`). En production, seul le compte administrateur est
-créé, et uniquement s'il n'existe encore aucun administrateur :
-**changez son mot de passe dès le premier déploiement**.
+- **En local** (`mvn spring-boot:run`, profil **dev**) : des comptes de démonstration (admin,
+  moniteurs, élèves) sont créés ; leurs mots de passe sont dans
+  `src/main/resources/application-dev.properties` et `AdminSeeder.java`. Les boutons
+  « Accès rapide démo » de la page de connexion n'apparaissent qu'en développement.
+- **En production** : un compte administrateur initial n'est créé que s'il n'existe aucun
+  administrateur, avec le mot de passe de la variable d'environnement
+  `ADMIN_MOT_DE_PASSE_INITIAL`. Sans cette variable, aucun compte n'est créé.
 
 ---
 

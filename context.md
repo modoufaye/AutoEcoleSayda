@@ -69,17 +69,11 @@ Routes publiques : `/api/auth/**`, `/uploads/**`, `/h2-console/**`.
 
 ---
 
-## Comptes de test (seedés au démarrage)
+## Comptes de test (profil dev uniquement)
 
-| Rôle | Email | Mot de passe |
-|---|---|---|
-| Admin | admin@autoecole.sn | Admin@2024 |
-| Moniteur | moniteur@autoecole.sn | Moniteur@2024 |
-| Moniteur | fatou.ndiaye@autoecole.sn | Moniteur@2024 |
-| Moniteur | ibrahima.mbaye@autoecole.sn | Moniteur@2024 |
-| Élève | eleve@autoecole.sn | Eleve@2024 |
-
-Tous les élèves de test ont le mot de passe `Eleve@2024`.
+Créés par `AdminSeeder` en local ; mots de passe dans `application-dev.properties` et
+`AdminSeeder.java`, jamais dans ce fichier. En production, l'admin initial prend le mot de
+passe de la variable d'environnement `ADMIN_MOT_DE_PASSE_INITIAL`.
 
 ---
 

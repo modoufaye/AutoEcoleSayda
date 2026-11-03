@@ -47,7 +47,9 @@ export default function LoginPage() {
     }
   }
 
+  // Comptes de démo : écartés du build de production, pour ne pas publier leurs mots de passe
   const fillDemo = (role) => {
+    if (!import.meta.env.DEV) return
     const map = {
       admin:    { email: 'admin@autoecole.sn',    motDePasse: 'Admin@2024' },
       moniteur: { email: '776900400',             motDePasse: 'Moniteur@2024' },
@@ -262,8 +264,8 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* ── Comptes démo (discret) ── */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            {/* ── Comptes démo : poste de développement uniquement, jamais en ligne ── */}
+            {import.meta.env.DEV && <div className="mt-4 pt-4 border-t border-slate-100">
               <p className="text-center text-xs text-slate-400 mb-2 uppercase tracking-widest font-semibold">
                 Accès rapide démo
               </p>
@@ -284,7 +286,7 @@ export default function LoginPage() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
           </div>
         </div>
 

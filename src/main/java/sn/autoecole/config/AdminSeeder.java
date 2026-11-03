@@ -22,14 +22,20 @@ public class AdminSeeder implements CommandLineRunner {
     @Value("${demo.comptes:false}")
     private boolean demoComptes;
 
+    /** Mot de passe du compte admin initial : variable d'environnement, jamais dans le dépôt. */
+    @Value("${ADMIN_MOT_DE_PASSE_INITIAL:}")
+    private String motDePasseAdminInitial;
+
     @Override
     public void run(String... args) {
         // Compte admin initial : seulement s'il n'existe aucun administrateur, pour pouvoir se
-        // connecter à une installation neuve. Changer son mot de passe dès le premier déploiement
-        // (il figure dans le README). Tester l'email ne suffirait pas : un admin qui a changé
-        // d'email verrait réapparaître un second compte admin au mot de passe public.
+        // connecter à une installation neuve. Tester l'email ne suffirait pas : un admin qui a
+        // changé d'email verrait réapparaître un second compte admin.
         if (userRepository.findAllByRole(RoleUser.SUPER_ADMIN).isEmpty()) {
-            createIfAbsent("Administrateur", "admin@autoecole.sn", "Admin@2024", RoleUser.SUPER_ADMIN);
+            if (motDePasseAdminInitial.isBlank())
+                log.warn("Aucun administrateur : définir ADMIN_MOT_DE_PASSE_INITIAL pour en créer un");
+            else
+                createIfAbsent("Administrateur", "admin@autoecole.sn", motDePasseAdminInitial, RoleUser.SUPER_ADMIN);
         }
 
         // Tout le reste n'existe que pour la démo : en production, ces comptes au mot de passe
@@ -103,7 +109,7 @@ public class AdminSeeder implements CommandLineRunner {
      * Crée le compte s'il n'existe pas, sans jamais toucher à un compte existant : réécrire
      * le mot de passe à chaque démarrage annulait tout changement (mot de passe admin,
      * identifiants envoyés par le message de bienvenue) et rétablissait des mots de passe
-     * publiés dans le README.
+     * connus de tous.
      */
     private void createIfAbsent(String nom, String email, String motDePasse, RoleUser role) {
         if (userRepository.findByEmail(email).isPresent()) return;
