@@ -38,12 +38,18 @@ jobs:
       - name: Déployer sur CapRover
         env:
           CAPROVER_TOKEN: ${{ secrets.CAPROVER_TOKEN_BACKEND }}
+        # Sans jeton, l'outil demande un mot de passe puis quitte en signalant un succès :
+        # on refuse donc de partir sans jeton, et on exige « Deployed successfully » dans sa sortie.
         run: |
+          if [ -z "$CAPROVER_TOKEN" ]; then
+            echo "::error::Secret CAPROVER_TOKEN_BACKEND absent (CapRover → app sayda-backend → Deployment → App Token)"; exit 1
+          fi
           npx --yes caprover@2.4.4 deploy \
             --caproverUrl https://captain.khadija.auto-ecole.sn \
             --appToken "$CAPROVER_TOKEN" \
             --appName sayda-backend \
-            --tarFile backend.tar
+            --tarFile backend.tar < /dev/null 2>&1 | tee deploy.log
+          grep -q "Deployed successfully" deploy.log || { echo "::error::Le déploiement CapRover a échoué"; exit 1; }
 
       # Le serveur n'a pas d'adresse publique : on passe par le site, qui relaie /api.
       # Une connexion vide doit être refusée (400/401) et non échouer (502/503 = serveur absent).

@@ -35,12 +35,18 @@ jobs:
       - name: Déployer sur CapRover
         env:
           CAPROVER_TOKEN: ${{ secrets.CAPROVER_TOKEN_WWW }}
+        # Sans jeton, l'outil demande un mot de passe puis quitte en signalant un succès :
+        # on refuse donc de partir sans jeton, et on exige « Deployed successfully » dans sa sortie.
         run: |
+          if [ -z "$CAPROVER_TOKEN" ]; then
+            echo "::error::Secret CAPROVER_TOKEN_WWW absent (CapRover → app www → Deployment → App Token)"; exit 1
+          fi
           npx --yes caprover@2.4.4 deploy \
             --caproverUrl https://captain.khadija.auto-ecole.sn \
             --appToken "$CAPROVER_TOKEN" \
             --appName www \
-            --tarFile frontend.tar
+            --tarFile frontend.tar < /dev/null 2>&1 | tee deploy.log
+          grep -q "Deployed successfully" deploy.log || { echo "::error::Le déploiement CapRover a échoué"; exit 1; }
 
       - name: Vérifier que la nouvelle version est en ligne
         run: |
