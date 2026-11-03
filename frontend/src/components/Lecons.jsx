@@ -299,20 +299,10 @@ export default function Lecons({ onBack }) {
               </div>
               <div className="modal-body px-6 py-4">
                 <div className="row g-3">
-                  <div className="col-md-4">
+                  <div className="col-md-6">
                     <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
                     <input type="date" className={inputCls} value={form.date}
                       onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                  <div className="col-md-4">
-                    <label className={labelCls}>Heure début <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="time" className={inputCls} value={form.heureDebut}
-                      onChange={e => setForm(f => ({ ...f, heureDebut: e.target.value }))} />
-                  </div>
-                  <div className="col-md-4">
-                    <label className={labelCls}>Heure fin <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="time" className={inputCls} value={form.heureFin}
-                      onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
@@ -325,16 +315,16 @@ export default function Lecons({ onBack }) {
                     </select>
                   </div>
                   <div className="col-md-6">
-                    <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.moniteurId}
-                      onChange={e => setForm(f => ({ ...f, moniteurId: e.target.value }))}>
-                      <option value="">Choisir un moniteur…</option>
-                      {moniteurs.map(m => (
-                        <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
-                      ))}
-                    </select>
+                    <label className={labelCls}>Heure début <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="time" className={inputCls} value={form.heureDebut}
+                      onChange={e => setForm(f => ({ ...f, heureDebut: e.target.value }))} />
                   </div>
-                  <div className="col-12">
+                  <div className="col-md-6">
+                    <label className={labelCls}>Heure fin <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="time" className={inputCls} value={form.heureFin}
+                      onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
+                  </div>
+                  <div className="col-md-6">
                     <label className={labelCls}>
                       Véhicule {form.type === 'CONDUITE' && <span className="text-red-500 ml-0.5">*</span>}
                     </label>
@@ -343,6 +333,16 @@ export default function Lecons({ onBack }) {
                       <option value="">{form.type === 'CONDUITE' ? 'Choisir un véhicule…' : 'Aucun / Non applicable'}</option>
                       {vehicules.map(v => (
                         <option key={v.id} value={v.id}>{v.immatriculation} – {v.marque} {v.modele} ({v.categorie})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
+                    <select className={inputCls} value={form.moniteurId}
+                      onChange={e => setForm(f => ({ ...f, moniteurId: e.target.value }))}>
+                      <option value="">Choisir un moniteur…</option>
+                      {moniteurs.map(m => (
+                        <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
                       ))}
                     </select>
                   </div>
