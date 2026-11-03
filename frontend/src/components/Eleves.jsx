@@ -709,6 +709,8 @@ const libelleMois = (m) => {
 export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
+  // Suppression définitive (fiche, et pour un perfectionnement abandonné ses paiements) : admin seulement
+  const isAdmin = user?.role === 'SUPER_ADMIN'
 
   const [list, setList]           = useState([])
   const [moniteurs, setMoniteurs] = useState([])
@@ -819,7 +821,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
   /* Perfectionnement abandonné : supprimé avec ses paiements et ses leçons (l'acompte sort de
      la caisse). Les autres élèves s'archivent ; seule une fiche sans historique se supprime. */
-  const abandonPerf = (e) => e.typeFormation === 'PERFECTIONNEMENT' && e.statut === 'ABANDONNE' && !e.archive
+  const abandonPerf = (e) => isAdmin && e.typeFormation === 'PERFECTIONNEMENT' && e.statut === 'ABANDONNE' && !e.archive
   const supprimerAbandon = async (eleve) => {
     let paye = 0
     try { paye = Number((await api('GET', `/eleves/${eleve.id}/total-paye`))?.totalPaye || 0) } catch { /* montant indicatif */ }
@@ -1665,11 +1667,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     style={{ background: '#d4a017', color: '#1e3a5f' }}>
                     <i className="bi bi-arrow-counterclockwise" />Réactiver
                   </button>
-                  <button onClick={() => del(s.id)}
+                  {isAdmin && <button onClick={() => del(s.id)}
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border-0 cursor-pointer"
                     style={{ background: 'rgba(239,68,68,.2)', color: '#fca5a5' }}>
                     <i className="bi bi-trash-fill" />Supprimer définitivement
-                  </button>
+                  </button>}
                 </>
               )}
               {!isMoniteur && !s.archive && (
@@ -1993,7 +1995,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     </>}
                     {!isMoniteur && e.archive && <>
                       <BoutonRond title="Réactiver" icon="arrow-counterclockwise" couleur="#15803d" fond="#dcfce7" onClick={() => reactiver(e)} />
-                      <BoutonRond title="Supprimer définitivement" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(e.id)} />
+                      {isAdmin && <BoutonRond title="Supprimer définitivement" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(e.id)} />}
                     </>}
                   </div>
                 </div>

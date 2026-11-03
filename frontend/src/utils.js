@@ -4,6 +4,7 @@ export const ROLE_BASE = {
   SUPER_ADMIN: '/dashboard/admin',
   MONITEUR:    '/dashboard/moniteur',
   ELEVE:       '/dashboard/eleve',
+  SECRETAIRE:  '/dashboard/secretariat',
 }
 
 export function fmtDate(s) {

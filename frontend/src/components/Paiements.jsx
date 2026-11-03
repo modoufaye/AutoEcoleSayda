@@ -6,6 +6,7 @@ import { confirmer } from './confirmer'
 import Pagination from './Pagination'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
+import { useAuth } from '../context/AuthContext'
 import '../landing.css'
 
 const PAGE_SIZE = 10
@@ -33,6 +34,8 @@ const MOYEN_P = {
 
 
 export default function Paiements({ onEleveClick }) {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'SUPER_ADMIN'
   const [list, setList]               = useState([])
   const [totalEncaisse, setTotalEncaisse] = useState(null)
   const [form, setForm]               = useState(EMPTY)
@@ -367,10 +370,11 @@ export default function Paiements({ onEleveClick }) {
                             className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#eff6ff', color: '#2563eb' }}>
                             <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
                           </button>
-                          <button onClick={() => del(p)} title="Supprimer"
+                          {/* Supprimer un paiement : admin seulement (refusé aussi par le serveur) */}
+                          {isAdmin && <button onClick={() => del(p)} title="Supprimer"
                             className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: '999px', background: '#fee2e2', color: '#b91c1c' }}>
                             <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
-                          </button>
+                          </button>}
                         </div>
                       </div>
                     </div>

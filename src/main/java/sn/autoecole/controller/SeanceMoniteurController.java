@@ -49,7 +49,7 @@ public class SeanceMoniteurController {
     @GetMapping("/eleves")
     public List<Map<String, Object>> getEleves(@AuthenticationPrincipal UserDetails user) {
         boolean isAdmin = user.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_SECRETAIRE"));
         List<Eleve> eleves = isAdmin
                 ? seanceService.findAllEleves()
                 : seanceService.findElevesByMoniteur(user.getUsername());

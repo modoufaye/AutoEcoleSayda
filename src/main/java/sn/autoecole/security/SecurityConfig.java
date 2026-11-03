@@ -55,25 +55,29 @@ public class SecurityConfig {
                 .requestMatchers("/uploads/**").permitAll()
 
                 // Routes par rôle
+                // Secrétaire : consulte les travaux dirigés comme l'admin (le reste de /api/admin lui est fermé)
+                .requestMatchers(HttpMethod.GET, "/api/admin/exercices-td").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN")
-                .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN")
+                .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
                 // Gestion des paiements réservée à l'admin : sinon un élève pourrait
                 // valider lui-même un paiement déclaré (PATCH /statut).
-                .requestMatchers("/api/paiements/**").hasRole("SUPER_ADMIN")
+                // Secrétaire : encaisse et valide, mais seul l'admin supprime un paiement.
+                .requestMatchers(HttpMethod.DELETE, "/api/paiements/**").hasRole("SUPER_ADMIN")
+                .requestMatchers("/api/paiements/**").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Réinitialise un mot de passe élève : admin uniquement.
-                .requestMatchers(HttpMethod.POST, "/api/eleves/*/identifiants").hasRole("SUPER_ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/eleves/import").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/eleves/*/identifiants").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
+                .requestMatchers(HttpMethod.POST, "/api/eleves/import").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Documents du dossier d'un élève (CNI, certificats, dossier Service des Mines) :
                 // admin uniquement ; les moniteurs n'y ont plus accès, ni à l'écran ni par l'API.
-                .requestMatchers("/api/eleves/*/documents", "/api/eleves/*/documents/**").hasRole("SUPER_ADMIN")
+                .requestMatchers("/api/eleves/*/documents", "/api/eleves/*/documents/**").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Archiver / réactiver un élève : admin uniquement.
-                .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/archiver", "/api/eleves/*/reactiver").hasRole("SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/archiver", "/api/eleves/*/reactiver").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Supprimer un élève (et son compte de connexion) : admin uniquement.
                 .requestMatchers(HttpMethod.DELETE, "/api/eleves/**").hasRole("SUPER_ADMIN")
                 // Gestion des élèves (liste, fiches, comptes) : jamais pour un élève,
                 // qui passe par /api/eleve/** (au singulier) pour ses propres données.
-                .requestMatchers("/api/eleves/**").hasAnyRole("SUPER_ADMIN", "MONITEUR")
+                .requestMatchers("/api/eleves/**").hasAnyRole("SUPER_ADMIN", "MONITEUR", "SECRETAIRE")
                 // Créer, modifier, supprimer un moniteur ou lui créer son compte : admin uniquement.
                 // Avant, ces routes relevaient de anyRequest().authenticated() : un élève pouvait les appeler.
                 .requestMatchers(HttpMethod.POST, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
@@ -84,7 +88,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 // Statistiques globales (dont le total encaissé) : pas pour les élèves.
-                .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "MONITEUR")
+                .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "MONITEUR", "SECRETAIRE")
 
                 // Toutes les autres routes nécessitent une authentification
                 .anyRequest().authenticated()

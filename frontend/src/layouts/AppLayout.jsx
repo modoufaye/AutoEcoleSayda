@@ -26,21 +26,21 @@ import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
-  { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'MONITEUR'] },
-  { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'MONITEUR'] },
+  { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN'] },
-  { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'MONITEUR'] },
+  { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'cours',            label: 'Cours Code',       icon: 'sign-turn-right-fill',  color: '#fbbf24', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE'] },
-  { key: 'lecons',           label: 'Cours Conduite',   icon: 'calendar2-check',       color: '#f472b6', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE'] },
-  { key: 'seances-moniteur', label: 'Séances de cours',  icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR', 'SUPER_ADMIN'] },
+  { key: 'lecons',           label: 'Cours Conduite',   icon: 'calendar2-check',       color: '#f472b6', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE', 'SECRETAIRE'] },
+  { key: 'seances-moniteur', label: 'Séances de cours',  icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR', 'SUPER_ADMIN', 'SECRETAIRE'] },
   { key: 'seances-eleve',    label: 'Mes Séances',      icon: 'play-circle-fill',      color: '#06b6d4', roles: ['ELEVE'] },
-  { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ELEVE'] },
-  { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN'] },
+  { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ELEVE', 'SECRETAIRE'] },
+  { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN', 'SECRETAIRE'] },
   { key: 'mes-paiements',   label: 'Mes Paiements',    icon: 'cash-stack',            color: '#4ade80', roles: ['ELEVE'] },
-  { key: 'td-admin',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['SUPER_ADMIN'] },
+  { key: 'td-admin',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['SUPER_ADMIN', 'SECRETAIRE'] },
   { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
-  { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR'] },
+  { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN'] },
 ]
 
@@ -88,6 +88,8 @@ export default function AppLayout() {
      null = réponse pas encore reçue : on garde la page accessible (lien direct d'un moniteur autorisé)
      mais on n'affiche l'entrée du menu qu'une fois l'accès confirmé. */
   const [accesCours, setAccesCours] = useState(user?.role === 'SUPER_ADMIN' ? true : null)
+  // Secrétariat : mêmes écrans que l'admin (vue de toutes les séances, Retour…), sans les droits sensibles
+  const gestion = user?.role === 'SUPER_ADMIN' || user?.role === 'SECRETAIRE'
   useEffect(() => {
     if (!user || user.role === 'SUPER_ADMIN') return
     api('GET', '/cours/acces').then(r => setAccesCours(!!r?.acces)).catch(() => setAccesCours(false))
@@ -314,7 +316,7 @@ export default function AppLayout() {
           <HoteConfirmation />
           {/* Admin : Retour sur toutes les pages (sauf celles qui ont le leur). Moniteur : sur « Mes élèves »
               et sur la fiche d'un élève (les Véhicules ont le leur). */}
-          {((user?.role === 'SUPER_ADMIN' && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && detail))
+          {((gestion && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && detail))
             || (user?.role === 'MONITEUR' && section === 'eleves' && (detail || canGoBack))) && (
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={detail ? fermerDetail : handleBack} className="btn-retour">
@@ -325,7 +327,7 @@ export default function AppLayout() {
           )}
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} accesCours={accesCours === true} />
-            : section === 'seances-moniteur' && user?.role === 'SUPER_ADMIN'
+            : section === 'seances-moniteur' && gestion
             ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-moniteur'
             ? <SeancesMoniteur key="seances-moniteur" onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
@@ -336,9 +338,9 @@ export default function AppLayout() {
             : section === 'paiements'
             ? <Paiements key="paiements" onEleveClick={handleEleveClick} />
             : section === 'lecons'
-            ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined} />
+            ? <ActiveComponent key={section} onBack={!gestion ? handleBack : undefined} />
             : section === 'cours'
-            ? <ActiveComponent key={section} onBack={user?.role !== 'SUPER_ADMIN' ? handleBack : undefined}
+            ? <ActiveComponent key={section} onBack={!gestion ? handleBack : undefined}
                 themeKey={detail} onOuvrirTheme={ouvrirDetail} onFermerTheme={fermerDetail} />
             : section === 'vehicules'
             ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' && canGoBack ? handleBack : undefined} />

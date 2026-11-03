@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
+import ComptesSecretariat from './ComptesSecretariat'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 const inputCls = 'form-control'
@@ -325,6 +326,9 @@ export default function Parametres() {
           </div>
         </div>
       </div>
+
+      {/* Comptes du secrétariat : enregistrés tout de suite, indépendants du bouton Sauvegarder */}
+      <ComptesSecretariat />
 
       {/* Bouton Sauvegarder */}
       <div className="d-flex justify-content-end">

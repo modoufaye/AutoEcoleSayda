@@ -49,7 +49,8 @@ const STATUT_V = {
 export default function Vehicules({ onBack }) {
   // Le moniteur consulte et modifie les véhicules, mais ne peut ni en ajouter ni en supprimer.
   const { user } = useAuth()
-  const isMoniteur = user?.role === 'MONITEUR'
+  // Moniteur et secrétaire modifient un véhicule ; seul l'admin en ajoute ou en supprime
+  const isMoniteur = user?.role !== 'SUPER_ADMIN'
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [statutFilter, setStatutFilter] = useState('')

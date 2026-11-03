@@ -15,6 +15,7 @@ function DashboardRouter() {
       <Route path="admin/*"    element={<PrivateRoute roles={['SUPER_ADMIN']}><AppLayout /></PrivateRoute>} />
       <Route path="moniteur/*" element={<PrivateRoute roles={['MONITEUR']}><AppLayout /></PrivateRoute>} />
       <Route path="eleve/*"    element={<PrivateRoute roles={['ELEVE']}><AppLayout /></PrivateRoute>} />
+      <Route path="secretariat/*" element={<PrivateRoute roles={['SECRETAIRE']}><AppLayout /></PrivateRoute>} />
       <Route path="*"        element={<Navigate to="/login" replace />} />
     </Routes>
   )

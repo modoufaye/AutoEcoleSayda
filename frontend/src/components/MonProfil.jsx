@@ -8,9 +8,10 @@ const ENDPOINT = {
   ELEVE:       '/eleve/profil',
   MONITEUR:    '/moniteur/profil',
   SUPER_ADMIN: '/compte/profil',
+  SECRETAIRE:  '/compte/profil',
 }
 
-const ROLE_LABEL = { SUPER_ADMIN: 'Administrateur', MONITEUR: 'Moniteur', ELEVE: 'Élève' }
+const ROLE_LABEL = { SUPER_ADMIN: 'Administrateur', MONITEUR: 'Moniteur', ELEVE: 'Élève', SECRETAIRE: 'Secrétaire' }
 
 const FIELD_META = {
   prenom:     { label: 'Prénom',     icon: 'person-fill',       iconBg: '#eff6ff',  iconColor: '#2563eb' },
@@ -54,7 +55,8 @@ export default function MonProfil({ onBack }) {
   }
 
   const save = async () => {
-    const isAdmin = user?.role === 'SUPER_ADMIN'
+    // Admin et secrétaire : compte simple (nom), sans fiche moniteur
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'SECRETAIRE'
     if (!form.nom || (!isAdmin && (!form.prenom || !form.telephone))) {
       toast(isAdmin ? 'Le nom est obligatoire' : 'Nom, prénom et téléphone sont obligatoires', 'warning'); return
     }
@@ -80,7 +82,7 @@ export default function MonProfil({ onBack }) {
 
   if (!profil) return null
 
-  const fields = user?.role === 'SUPER_ADMIN'
+  const fields = user?.role === 'SUPER_ADMIN' || user?.role === 'SECRETAIRE'
     ? [
         { key: 'nom',   editable: true },
         { key: 'email', editable: true },
