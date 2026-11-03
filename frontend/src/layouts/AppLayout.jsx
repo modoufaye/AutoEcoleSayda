@@ -156,6 +156,8 @@ export default function AppLayout() {
 
   const [showMdp, setShowMdp]     = useState(false)
   const [mdpForm, setMdpForm]     = useState({ ancien: '', nouveau: '', confirm: '' })
+  // Champs affichés en clair (bouton œil), un par champ ; tout est masqué à chaque ouverture
+  const [mdpVisible, setMdpVisible] = useState({})
   const [mdpSaving, setMdpSaving] = useState(false)
 
   const saveMdp = async () => {
@@ -244,7 +246,7 @@ export default function AppLayout() {
         {/* Footer utilisateur */}
         <div className="sidebar-footer">
           <button
-            onClick={() => setShowMdp(true)}
+            onClick={() => { setMdpVisible({}); setShowMdp(true) }}
             title="Changer le mot de passe"
             style={{
               display: 'flex', alignItems: 'center', gap: '.6rem',
@@ -383,14 +385,25 @@ export default function AppLayout() {
                 ].map(f => (
                   <div key={f.key}>
                     <label className="form-label fw-semibold" style={{ fontSize: '.82rem', color: '#475569' }}>{f.label}</label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      style={{ borderRadius: '.6rem', borderColor: '#e2e8f0', fontSize: '.875rem' }}
-                      placeholder={f.ph}
-                      value={mdpForm[f.key]}
-                      onChange={e => setMdpForm(fm => ({ ...fm, [f.key]: e.target.value }))}
-                    />
+                    <div className="position-relative">
+                      <input
+                        type={mdpVisible[f.key] ? 'text' : 'password'}
+                        className="form-control"
+                        style={{ borderRadius: '.6rem', borderColor: '#e2e8f0', fontSize: '.875rem', paddingRight: '2.75rem' }}
+                        placeholder={f.ph}
+                        autoComplete={f.key === 'ancien' ? 'current-password' : 'new-password'}
+                        value={mdpForm[f.key]}
+                        onChange={e => setMdpForm(fm => ({ ...fm, [f.key]: e.target.value }))}
+                      />
+                      <button type="button"
+                        onClick={() => setMdpVisible(v => ({ ...v, [f.key]: !v[f.key] }))}
+                        title={mdpVisible[f.key] ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        aria-label={mdpVisible[f.key] ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        className="position-absolute top-50 translate-middle-y border-0 bg-transparent p-0 d-flex align-items-center justify-content-center"
+                        style={{ right: '.4rem', width: 32, height: 32, color: mdpVisible[f.key] ? '#1e3a5f' : '#94a3b8', cursor: 'pointer' }}>
+                        <i className={`bi bi-${mdpVisible[f.key] ? 'eye-slash-fill' : 'eye-fill'}`} style={{ fontSize: '1rem' }} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
