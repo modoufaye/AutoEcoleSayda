@@ -692,6 +692,18 @@ function CompteEleveCard({ eleve }) {
 }
 
 /* ══════════════════════════════════════════════════════════ */
+// Mois courant au format « AAAA-MM », à l'heure locale
+const MOIS_COURANT = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+// « 2026-10 » → « Octobre 2026 »
+const libelleMois = (m) => {
+  const [a, mo] = m.split('-').map(Number)
+  const t = new Date(a, mo - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
 export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
@@ -702,7 +714,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [search, setSearch]       = useState('')
   const [statut, setStatut]       = useState('')
   const [site, setSite]           = useState('')
-  const [nouveauMois, setNouveauMois] = useState(false)
+  // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
+  const [moisInscription, setMoisInscription] = useState('')
   const [archives, setArchives]   = useState(false)
   const loadReq = useRef(0)
   const [form, setForm]           = useState(EMPTY)
@@ -759,17 +772,17 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     }
     if (statut) r = r.filter(e => e.statut === statut)
     if (site) r = r.filter(e => e.site === site)
-    if (nouveauMois) {
-      const now = new Date()
-      r = r.filter(e => {
-        if (!e.dateInscription) return false
-        const d = new Date(e.dateInscription)
-        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-      })
-    }
+    if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     setFiltered(r)
     setPage(1)
-  }, [search, statut, site, nouveauMois, list])
+  }, [search, statut, site, moisInscription, list])
+
+  // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
+  const moisDisponibles = Object.entries(list.reduce((acc, e) => {
+    const m = e.dateInscription?.substring(0, 7)
+    if (m) acc[m] = (acc[m] || 0) + 1
+    return acc
+  }, {})).sort((a, b) => b[0].localeCompare(a[0]))
 
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
@@ -1635,7 +1648,15 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           <option value="">Tous les bureaux</option>
           {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </Filtre>
-        <FiltreBascule actif={nouveauMois} onClick={() => setNouveauMois(v => !v)} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
+        {/* Admin : n'importe quel mois d'inscription ; moniteur : bascule sur le mois en cours */}
+        {isMoniteur
+          ? <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
+          : <Filtre icone="calendar-month" value={moisInscription} onChange={setMoisInscription}>
+              <option value="">Tous les mois</option>
+              {moisDisponibles.map(([m, n]) => (
+                <option key={m} value={m}>{libelleMois(m)} · {n}</option>
+              ))}
+            </Filtre>}
         {/* Admin : import Excel et inscription (le moniteur ne fait que consulter ses élèves) */}
         {!isMoniteur && (
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
