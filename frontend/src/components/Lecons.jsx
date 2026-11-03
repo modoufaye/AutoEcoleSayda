@@ -12,7 +12,8 @@ import '../landing.css'
 const PAGE_SIZE = 10
 
 const today = () => new Date().toISOString().split('T')[0]
-const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: '', eleveId: '', moniteurId: '', vehiculeId: '', observations: '' }
+// Page « Cours Conduite » : toute nouvelle leçon est une leçon de conduite (pas de champ Type)
+const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: 'CONDUITE', eleveId: '', moniteurId: '', vehiculeId: '', observations: '' }
 
 
 const TYPE_STYLE = {
@@ -314,15 +315,6 @@ export default function Lecons({ onBack }) {
                       onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
                   </div>
                   <div className="col-md-6">
-                    <label className={labelCls}>Type <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.type}
-                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                      <option value="">Choisir…</option>
-                      <option value="CODE">Code</option>
-                      <option value="CONDUITE">Conduite</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
                     <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
                     <select className={inputCls} value={form.eleveId}
                       onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
@@ -342,13 +334,13 @@ export default function Lecons({ onBack }) {
                       ))}
                     </select>
                   </div>
-                  <div className="col-md-6" style={{ opacity: form.type === 'CODE' ? 0.5 : 1 }}>
+                  <div className="col-12">
                     <label className={labelCls}>
                       Véhicule {form.type === 'CONDUITE' && <span className="text-red-500 ml-0.5">*</span>}
                     </label>
                     <select className={inputCls} value={form.vehiculeId}
                       onChange={e => setForm(f => ({ ...f, vehiculeId: e.target.value }))}>
-                      <option value="">Aucun / Non applicable</option>
+                      <option value="">{form.type === 'CONDUITE' ? 'Choisir un véhicule…' : 'Aucun / Non applicable'}</option>
                       {vehicules.map(v => (
                         <option key={v.id} value={v.id}>{v.immatriculation} – {v.marque} {v.modele} ({v.categorie})</option>
                       ))}
