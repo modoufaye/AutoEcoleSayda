@@ -64,3 +64,18 @@ export const BUREAUX = [
 /* Lieux d'inscription : les bureaux, plus « En ligne » (l'élève est alors suivi par Massalikoul Djinane). */
 export const LIEUX_INSCRIPTION = [...BUREAUX, { value: 'EN_LIGNE', label: 'En ligne' }]
 
+
+/* Recherche : chaque mot tapé doit se trouver dans le texte, dans n'importe quel ordre,
+   sans tenir compte des accents ni des majuscules (« awa diop » trouve « DIOP Awa »).
+   Les chiffres se comparent sans les espaces (« 77 123 » trouve 771234567). */
+const sansAccents = s => String(s ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+export function correspond(champs, recherche) {
+  const mots = sansAccents(recherche).split(/\s+/).filter(Boolean)
+  if (!mots.length) return true
+  const texte = sansAccents([].concat(champs).join(' '))
+  const chiffres = texte.replace(/\D/g, '')
+  // Une suite de chiffres (« 77 123 45 67 ») se cherche d'un bloc dans les numéros
+  const numero = sansAccents(recherche).replace(/\s+/g, '')
+  if (/^\+?\d{3,}$/.test(numero) && chiffres.includes(numero.replace('+', ''))) return true
+  return mots.every(m => texte.includes(m))
+}

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -773,10 +773,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
   useEffect(() => {
     let r = list
-    if (search.trim()) {
-      const t = search.toLowerCase()
-      r = r.filter(e => `${e.nom} ${e.prenom} ${e.telephone}`.toLowerCase().includes(t))
-    }
+    // Mots dans n'importe quel ordre : « awa diop » trouve DIOP Awa
+    if (search.trim()) r = r.filter(e => correspond([e.prenom, e.nom, e.telephone], search))
     if (statut) r = r.filter(e => e.statut === statut)
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))

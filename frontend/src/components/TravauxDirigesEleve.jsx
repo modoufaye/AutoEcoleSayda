@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { EnteteListe, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
+import { correspond } from '../utils'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8' },
@@ -152,8 +153,7 @@ export default function TravauxDirigesEleve({ onBack }) {
   )
 
   // ── Vue liste ──────────────────────────────────────────────────────────────
-  const recherche = search.trim().toLowerCase()
-  const visibles = recherche ? exercices.filter(ex => (ex.titre || '').toLowerCase().includes(recherche)) : exercices
+  const visibles = exercices.filter(ex => correspond([ex.titre], search))
 
   if (!selected) return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -173,7 +173,7 @@ export default function TravauxDirigesEleve({ onBack }) {
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
       <EnteteListe icone="pencil-square" titre="Mes exercices" sousTitre="Séries de questions préparées par vos moniteurs" nombre={visibles.length} />
       {visibles.length === 0 ? (
-        <ListeVide texte={recherche ? 'Aucun exercice trouvé' : "Aucun exercice disponible pour l'instant"} icone="journal-x" />
+        <ListeVide texte={search.trim() ? 'Aucun exercice trouvé' : "Aucun exercice disponible pour l'instant"} icone="journal-x" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
           {visibles.map(ex => {

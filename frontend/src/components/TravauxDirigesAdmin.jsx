@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { EnteteListe, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
+import { correspond } from '../utils'
 
 const BTN_COLORS = {
   A: { base: '#3b82f6', light: '#eff6ff', text: '#1d4ed8' },
@@ -34,8 +35,7 @@ export default function TravauxDirigesAdmin() {
       .finally(() => setLoading(false))
   }, [])
 
-  const q = search.trim().toLowerCase()
-  const visibles = q ? exercices.filter(ex => `${ex.titre} ${ex.moniteur?.prenom || ''} ${ex.moniteur?.nom || ''}`.toLowerCase().includes(q)) : exercices
+  const visibles = exercices.filter(ex => correspond([ex.titre, ex.moniteur?.prenom, ex.moniteur?.nom], search))
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -47,7 +47,7 @@ export default function TravauxDirigesAdmin() {
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone="pencil-square" titre="Exercices" sousTitre="Séries créées par les moniteurs" nombre={visibles.length} />
       {loading ? <ListeChargement />
-      : visibles.length === 0 ? <ListeVide texte={q ? 'Aucun exercice trouvé' : "Aucun exercice créé pour l'instant"} icone="journal-x" />
+      : visibles.length === 0 ? <ListeVide texte={search.trim() ? 'Aucun exercice trouvé' : "Aucun exercice créé pour l'instant"} icone="journal-x" />
       : (
         <div>
           {visibles.map((ex, i) => {

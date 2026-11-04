@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, LABELS, waLink } from '../utils'
+import { fmtDate, LABELS, waLink, correspond } from '../utils'
 import { msgBienvenueMoniteur } from '../messages'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
@@ -212,8 +212,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
 
   useEffect(() => {
     if (!search.trim()) { setFiltered(list); return }
-    const t = search.toLowerCase()
-    setFiltered(list.filter(m => `${m.nom} ${m.prenom}`.toLowerCase().includes(t)))
+    setFiltered(list.filter(m => correspond([m.prenom, m.nom, m.telephone], search)))
     setPage(1)
   }, [search, list])
 

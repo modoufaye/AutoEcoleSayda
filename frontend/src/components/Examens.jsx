@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, waLink } from '../utils'
+import { fmtDate, waLink, correspond } from '../utils'
 import { msgRappelExamen, joursAvant } from '../messages'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
@@ -127,7 +127,7 @@ export default function Examens({ onEleveClick, onBack }) {
   const tentatives = [...new Set(list.map(e => e.tentative))].sort((a, b) => a - b)
 
   const filtered = list
-    .filter(e => !search.trim() || `${e.eleve?.nom ?? ''} ${e.eleve?.prenom ?? ''}`.toLowerCase().includes(search.toLowerCase()))
+    .filter(e => correspond([e.eleve?.prenom, e.eleve?.nom], search))
     .filter(e => !filterType      || e.type      === filterType)
     .filter(e => !filterResultat  || e.resultat  === filterResultat)
     .filter(e => !filterTentative || e.tentative === parseInt(filterTentative))

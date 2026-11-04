@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtTime, BADGES, BUREAUX } from '../utils'
+import { fmtDate, fmtTime, BADGES, BUREAUX, correspond } from '../utils'
 import Badge from './Badge'
 import { toast } from './Toast'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
@@ -126,9 +126,8 @@ export default function Lecons({ onBack }) {
   }
 
   // Recherche sur l'élève, le moniteur et l'immatriculation du véhicule
-  const q = search.trim().toLowerCase()
   const filtered = list.filter(l => (!site || l.eleve?.site === site)
-    && (!q || [l.eleve?.nom, l.eleve?.prenom, l.moniteur?.nom, l.moniteur?.prenom, l.vehicule?.immatriculation].join(' ').toLowerCase().includes(q)))
+    && correspond([l.eleve?.prenom, l.eleve?.nom, l.moniteur?.prenom, l.moniteur?.nom, l.vehicule?.immatriculation], search))
 
   const colSpan = isEleve ? 6 : 9
 
@@ -185,7 +184,7 @@ export default function Lecons({ onBack }) {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={colSpan}>
-                    <ListeVide texte={q || site ? 'Aucune leçon trouvée' : 'Aucune leçon planifiée'} icone="calendar2-check" />
+                    <ListeVide texte={search.trim() || site ? 'Aucune leçon trouvée' : 'Aucune leçon planifiée'} icone="calendar2-check" />
                   </td>
                 </tr>
               ) : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map((l, i) => {

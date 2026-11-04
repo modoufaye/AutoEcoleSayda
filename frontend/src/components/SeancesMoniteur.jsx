@@ -6,6 +6,7 @@ import { EnteteListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargeme
 import { Etiquette } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
 import '../landing.css'
+import { correspond } from '../utils'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -265,10 +266,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
 
   /* ── ÉDITEUR ── */
   /* Élèves assignables filtrés par la recherche (nom ou téléphone) */
-  const qEleve = rechercheEleve.trim().toLowerCase()
-  const elevesVisibles = qEleve
-    ? eleves.filter(e => `${e.nom} ${e.telephone || ''}`.toLowerCase().includes(qEleve))
-    : eleves
+  const elevesVisibles = eleves.filter(e => correspond([e.nom, e.telephone], rechercheEleve))
   const toutCocher = coche => setForm(f => {
     const ids = new Set(f.eleveIds)
     elevesVisibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
@@ -451,10 +449,10 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   )
 
   /* ── LISTE ── */
-  const q = recherche.trim().toLowerCase()
+  const q = recherche.trim()
   const visibles = seances.filter(s =>
     (!statutFiltre || s.statut === statutFiltre)
-    && (!q || `${s.titre || ''} ${THEME_MAP[s.theme] || s.theme || ''}`.toLowerCase().includes(q)))
+    && correspond([s.titre, THEME_MAP[s.theme] || s.theme], q))
 
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">

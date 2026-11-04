@@ -3,6 +3,7 @@ import { api } from '../api'
 import Pagination from './Pagination'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 import '../landing.css'
+import { correspond } from '../utils'
 
 const PAGE_SIZE = 10
 
@@ -147,10 +148,7 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
   )
 
   /* ── Liste des séances ── */
-  const q = search.trim().toLowerCase()
-  const visibles = q
-    ? seances.filter(s => `${s.titre || ''} ${THEMES[s.theme] || s.theme || ''} ${s.moniteurNom || ''}`.toLowerCase().includes(q))
-    : seances
+  const visibles = seances.filter(s => correspond([s.titre, THEMES[s.theme] || s.theme, s.moniteurNom], search))
 
   return (
     <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
@@ -172,7 +170,7 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
         <EnteteListe icone="collection-play-fill" titre="Mes séances" sousTitre="Cours en ligne publiés par vos moniteurs" nombre={visibles.length} />
 
         {visibles.length === 0 ? (
-          <ListeVide icone="book" texte={q ? 'Aucune séance trouvée' : 'Aucun cours disponible pour le moment · votre moniteur publiera bientôt des séances'} />
+          <ListeVide icone="book" texte={search.trim() ? 'Aucune séance trouvée' : 'Aucun cours disponible pour le moment · votre moniteur publiera bientôt des séances'} />
         ) : (
           <div>
             {visibles.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(s => {
