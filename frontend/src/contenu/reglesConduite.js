@@ -1,0 +1,499 @@
+/* Thèmes 3 à 9 des cours de code : vitesse, dépassement, stationnement, éclairage, sécurité,
+   véhicule et usagers. Textes rédigés pour l'Auto-École Khadija. Même format que
+   contenu/signalisation.js ; les illustrations sans panneau sont des pictogrammes (Pictos.jsx) :
+   ils servent à la leçon, pas au quiz « que signifie… » (quiz: false). */
+
+const p = (code, nom, sens, action, piege) => ({ id: code, image: `/panneaux/${code}.svg`, nom, sens, action, piege })
+const i = (id, icone, couleur, texte, nom, sens, action, piege) => ({ id, picto: { icone, couleur, texte }, nom, sens, action, piege, quiz: false })
+const v = (type, nom, sens, action, piege) => ({ id: `voyant-${type}`, voyant: type, nom, sens, action, piege })
+const m = (id, nom, sens, action, piege) => ({ id, marquage: id, nom, sens, action, piege })
+
+const BLEU = '#1d4ed8', ROUGE = '#dc2626', VERT = '#16a34a', OR = '#d97706', VIOLET = '#7c3aed', GRIS = '#475569'
+
+export const THEMES_REGLES = [
+  /* ── 3 · Vitesse ── */
+  {
+    key: 'vitesse', titre: 'Vitesse', numero: 3,
+    description: 'Les vitesses maximales, et pourquoi la vitesse allonge la distance pour s\'arrêter.',
+    decor: ['B14-30', 'B14', 'B14-90'],
+    chapitres: [
+      {
+        id: 'vitesse-limites', numero: 1, titre: 'Limitations de vitesse', icone: '/panneaux/B14.svg',
+        resume: 'En ville, sur route, sur voie express',
+        aRetenir: [
+          'En agglomération : 50 km/h au plus, sauf panneau qui fixe moins.',
+          'Hors agglomération, sur route ordinaire : 90 km/h au plus.',
+          'Sur voie express (chaussées séparées, sans carrefour à niveau) : 110 km/h au plus.',
+          'Le chiffre du panneau est un maximum, pas une vitesse à atteindre : la route vide ne l\'annule pas.',
+          'Pluie, brouillard, poussière, chaussée abîmée, école ou marché : on roule plus doucement que la limite.',
+        ],
+        piege: 'Rouler à la vitesse maximale n\'est pas toujours autorisé : il faut l\'adapter aux conditions.',
+        panneaux: [
+          p('B14', 'Limitation à 50 km/h', 'Vous ne devez pas dépasser 50 km/h.', 'Restez en dessous jusqu\'au panneau de fin ou à la prochaine intersection.'),
+          p('B14-30', 'Limitation à 30 km/h', 'Vitesse limitée à 30 km/h, souvent près d\'une école ou d\'un marché.', 'Roulez au plus à 30 km/h et guettez les enfants et les piétons.'),
+          p('B14-90', 'Limitation à 90 km/h', 'Vous ne devez pas dépasser 90 km/h.', 'Gardez 90 km/h au maximum, moins s\'il pleut ou si la route est mauvaise.'),
+          p('B14-110', 'Limitation à 110 km/h', 'Vitesse maximale sur voie express.', 'Restez à 110 km/h au plus et gardez de grandes distances.'),
+          p('B33-50', 'Fin de limitation à 50', 'La limitation à 50 km/h s\'arrête.', 'La vitesse normale du lieu s\'applique de nouveau (par exemple 90 hors agglomération).'),
+          i('ville', 'buildings-fill', BLEU, '50', 'En agglomération', 'Entre les panneaux d\'entrée et de sortie de ville.', '50 km/h au maximum, sauf panneau plus bas.'),
+          i('route', 'signpost-split-fill', VERT, '90', 'Route hors agglomération', 'Route ordinaire à double sens.', '90 km/h au maximum.'),
+          i('express', 'sign-merge-right-fill', VIOLET, '110', 'Voie express', 'Chaussées séparées, sans carrefour à niveau.', '110 km/h au maximum.'),
+          i('meteo', 'cloud-rain-heavy-fill', GRIS, null, 'Pluie, brouillard, poussière', 'La route glisse et l\'on voit moins loin.', 'Réduisez votre vitesse bien en dessous de la limite.'),
+        ],
+        questions: [
+          { q: 'Quelle est la vitesse maximale en agglomération, sans autre panneau ?', ok: '50 km/h', non: ['60 km/h', '30 km/h'] },
+          { q: 'Sur une route ordinaire hors agglomération ?', ok: '90 km/h', non: ['110 km/h', '70 km/h'] },
+          { q: 'Sur une voie express ?', ok: '110 km/h', non: ['130 km/h', '90 km/h'] },
+          { q: 'La route est vide et limitée à 50. Pouvez-vous rouler à 70 ?', ok: 'Non, la limite s\'applique toujours', non: ['Oui, si personne ne vient', 'Oui, la nuit'] },
+          { q: 'Il pleut fort sur une route limitée à 90. Que faites-vous ?', ok: 'Je roule moins vite que 90', non: ['Je garde 90 km/h', 'J\'accélère pour sortir de la pluie'] },
+        ],
+      },
+      {
+        id: 'vitesse-distances', numero: 2, titre: 'Distances de sécurité', icone: { icone: 'rulers', couleur: OR },
+        resume: 'Réaction, freinage, arrêt et règle des 2 secondes',
+        aRetenir: [
+          'Temps de réaction : environ 1 seconde entre voir le danger et appuyer sur le frein. Fatigue, alcool, téléphone l\'allongent.',
+          'Distance de réaction ≈ (vitesse ÷ 10) × 3. À 50 km/h : 5 × 3 = 15 m.',
+          'Distance de freinage ≈ (vitesse ÷ 10)². À 50 km/h : 5 × 5 = 25 m.',
+          'Distance d\'arrêt = réaction + freinage. À 50 km/h : 15 + 25 = 40 m ; à 90 km/h : 27 + 81 = 108 m.',
+          'Sur route mouillée, la distance de freinage peut doubler.',
+          'Règle des 2 secondes : quand le véhicule de devant passe un repère, comptez « mille un, mille deux » avant d\'y arriver.',
+        ],
+        piege: 'Quand la vitesse double, la distance de freinage est multipliée par quatre, pas par deux.',
+        panneaux: [
+          i('reaction', 'stopwatch-fill', BLEU, '1 s', 'Temps de réaction', 'Le temps de voir, de comprendre et d\'appuyer sur le frein.', 'Restez reposé et concentré : téléphone, fatigue et alcool l\'allongent.'),
+          i('dist-reaction', 'arrow-right', BLEU, '× 3', 'Distance de réaction', 'Chemin parcouru avant de freiner : (vitesse ÷ 10) × 3.', 'À 50 km/h, vous roulez 15 m avant même de freiner.'),
+          i('dist-freinage', 'exclamation-octagon-fill', ROUGE, '(V÷10)²', 'Distance de freinage', 'Chemin parcouru pendant le freinage : (vitesse ÷ 10)².', 'À 90 km/h, il faut environ 81 m pour s\'arrêter une fois le frein enfoncé.'),
+          i('dist-arret', 'sign-stop-fill', ROUGE, '40 m', 'Distance d\'arrêt à 50', 'Réaction 15 m + freinage 25 m.', 'En ville, laissez-vous de la marge : un enfant peut surgir.'),
+          i('deux-secondes', 'clock-history', VERT, '2 s', 'Règle des 2 secondes', 'L\'écart minimum avec le véhicule de devant.', 'Comptez deux secondes entre son passage et le vôtre devant un repère fixe.'),
+          i('pluie', 'cloud-drizzle-fill', GRIS, '× 2', 'Route mouillée', 'Les pneus accrochent moins.', 'Doublez les distances et freinez en douceur.'),
+          i('aquaplanage', 'water', BLEU, null, 'Aquaplanage', 'Une nappe d\'eau soulève les pneus : la voiture ne répond plus.', 'Levez le pied doucement, tenez le volant droit, ne freinez pas brutalement.'),
+          i('poids-lourd', 'truck', GRIS, null, 'Derrière un camion ou un bus', 'Ils cachent la route et freinent plus longtemps.', 'Gardez encore plus de distance pour voir et pour freiner.'),
+        ],
+        questions: [
+          { q: 'À 50 km/h, quelle est environ la distance d\'arrêt ?', ok: '40 m', non: ['15 m', '100 m'], explication: 'Réaction 15 m + freinage 25 m.' },
+          { q: 'À 90 km/h, quelle est environ la distance d\'arrêt ?', ok: '108 m', non: ['54 m', '27 m'], explication: 'Réaction 27 m + freinage 81 m.' },
+          { q: 'À 70 km/h, quelle est la distance de réaction ?', ok: '21 m', non: ['7 m', '49 m'], explication: '(70 ÷ 10) × 3 = 21 m.' },
+          { q: 'À 30 km/h, quelle est la distance de freinage ?', ok: '9 m', non: ['3 m', '30 m'], explication: '(30 ÷ 10)² = 3 × 3 = 9 m.' },
+          { q: 'Quel écart garder avec le véhicule de devant ?', ok: 'Au moins 2 secondes', non: ['Une demi-seconde', 'Une longueur de voiture'] },
+          { q: 'Que se passe-t-il sur route mouillée ?', ok: 'La distance de freinage peut doubler', non: ['On freine plus court', 'Rien ne change'] },
+          { q: 'La voiture fait de l\'aquaplanage. Que faites-vous ?', ok: 'Je lève le pied doucement, sans freiner fort', non: ['Je freine à fond', 'Je donne un coup de volant'] },
+        ],
+      },
+    ],
+    revision: { id: 'vitesse-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur la vitesse', icone: '/panneaux/B14-90.svg', nombre: 12 },
+  },
+
+  /* ── 4 · Dépassement ── */
+  {
+    key: 'depassement', titre: 'Dépassement', numero: 4,
+    description: 'Quand on peut dépasser, comment le faire sans danger, et où c\'est interdit.',
+    decor: ['B3', 'B34', 'B3a'],
+    chapitres: [
+      {
+        id: 'depassement-methode', numero: 1, titre: 'Bien dépasser', icone: { icone: 'arrow-up-left-circle-fill', couleur: BLEU },
+        resume: 'Par la gauche, en 5 étapes',
+        aRetenir: [
+          'On dépasse par la gauche. Exception : un véhicule qui a signalé qu\'il tourne à gauche et s\'est placé au milieu se dépasse par la droite.',
+          'Avant de dépasser : bonne visibilité, place suffisante pour revenir, ligne discontinue de votre côté, personne qui vous dépasse déjà.',
+          'Les étapes : rétroviseurs, angle mort, clignotant gauche, dépassement franc, clignotant droit et retour à droite.',
+          'Revenez à droite quand vous voyez le véhicule dépassé en entier dans le rétroviseur intérieur.',
+          'Laissez au moins 1 m sur le côté pour dépasser un cycliste ou un piéton en ville, 1,50 m hors agglomération.',
+          'Si l\'on vous dépasse : gardez votre droite et n\'accélérez pas.',
+        ],
+        piege: 'Une ligne discontinue autorise le dépassement ; elle ne l\'impose pas.',
+        panneaux: [
+          i('gauche', 'arrow-up-left', BLEU, null, 'Toujours par la gauche', 'Le dépassement se fait par la voie de gauche.', 'Exception : le véhicule qui tourne à gauche, placé au milieu, se dépasse par la droite.'),
+          i('retro', 'car-front-fill', GRIS, null, 'Rétroviseurs et angle mort', 'Personne ne doit déjà vous dépasser.', 'Regardez les rétroviseurs, puis tournez la tête pour l\'angle mort.'),
+          i('clignotant', 'signpost-2-fill', OR, null, 'Clignotant gauche', 'Les autres doivent connaître votre intention.', 'Mettez-le avant de déboîter, assez tôt.'),
+          i('franc', 'speedometer2', VERT, null, 'Dépasser franchement', 'Le temps passé à côté de l\'autre véhicule doit être court.', 'Passez sans traîner, en restant sous la limite de vitesse.'),
+          i('rabattre', 'arrow-return-right', BLEU, null, 'Se rabattre', 'Le retour à droite ne doit pas couper la route.', 'Clignotant droit, et revenez quand le véhicule dépassé est entier dans le rétroviseur intérieur.'),
+          i('cycliste', 'bicycle', VERT, '1 m', 'Dépasser un cycliste', 'Il peut faire un écart pour éviter un trou.', 'Laissez 1 m en ville, 1,50 m sur route.'),
+          i('depasse', 'person-raised-hand', OR, null, 'Quand on vous dépasse', 'Vous devez faciliter la manœuvre.', 'Restez à droite et n\'accélérez pas.'),
+          m('discontinue', 'Ligne discontinue', 'Elle peut être franchie.', 'Dépassez seulement si la voie d\'en face est libre et la visibilité bonne.'),
+        ],
+        questions: [
+          { q: 'De quel côté dépasse-t-on en général ?', ok: 'Par la gauche', non: ['Par la droite', 'Des deux côtés'] },
+          { q: 'Que faites-vous en premier avant de dépasser ?', ok: 'Je regarde les rétroviseurs et l\'angle mort', non: ['J\'accélère', 'Je klaxonne'] },
+          { q: 'Quand vous rabattre après un dépassement ?', ok: 'Quand je vois le véhicule entier dans le rétroviseur intérieur', non: ['Dès que je l\'ai dépassé d\'un mètre', 'Quand il klaxonne'] },
+          { q: 'Quel espace laisser pour dépasser un cycliste en ville ?', ok: 'Au moins 1 m', non: ['20 cm', 'Aucun, s\'il est au bord'] },
+          { q: 'Le conducteur que vous dépassez accélère. Que faites-vous ?', ok: 'J\'abandonne et je reviens derrière lui', non: ['J\'accélère encore plus', 'Je klaxonne et je force'] },
+          { q: 'On vous dépasse. Que devez-vous faire ?', ok: 'Garder ma droite sans accélérer', non: ['Accélérer', 'Me mettre au milieu'] },
+        ],
+      },
+      {
+        id: 'depassement-interdits', numero: 2, titre: 'Dépassements interdits', icone: '/panneaux/B3.svg',
+        resume: 'Ligne continue, virage, sommet de côte, passages',
+        aRetenir: [
+          'Ligne continue : dépassement interdit, même si la route semble libre.',
+          'Virage ou sommet de côte sans visibilité : on ne voit pas ce qui arrive en face.',
+          'Près d\'un passage à niveau, d\'un passage piéton ou d\'un carrefour sans priorité : on ne dépasse pas.',
+          'Panneau d\'interdiction de dépasser : interdit jusqu\'au panneau de fin ou au prochain carrefour.',
+        ],
+        piege: 'Sur une ligne continue, même un tracteur très lent ne se dépasse pas.',
+        panneaux: [
+          p('B3', 'Interdiction de dépasser', 'Dépasser les véhicules à moteur est interdit, sauf les deux-roues.', 'Restez derrière jusqu\'au panneau de fin.'),
+          p('B3a', 'Dépassement interdit aux poids lourds', 'Les camions de plus de 3,5 t ne doivent pas dépasser.', 'Si vous conduisez une voiture, la règle ne vous vise pas, mais restez prudent.'),
+          p('B34', 'Fin d\'interdiction de dépasser', 'Vous pouvez de nouveau dépasser.', 'Dépassez seulement si les conditions le permettent.'),
+          m('continue', 'Ligne continue', 'Elle ne se franchit jamais.', 'Restez dans votre voie, même derrière un véhicule lent.'),
+          i('virage', 'arrow-90deg-right', ROUGE, null, 'Virage sans visibilité', 'Vous ne voyez pas ce qui arrive en face.', 'Attendez la ligne droite pour dépasser.'),
+          i('cote', 'triangle-fill', ROUGE, null, 'Sommet de côte', 'La route d\'en face est cachée derrière la crête.', 'Ne dépassez pas avant d\'avoir passé le sommet.'),
+          i('pn', 'train-front-fill', ROUGE, null, 'Passage à niveau', 'Un arrêt peut être nécessaire à tout moment.', 'Ne dépassez pas à l\'approche d\'un passage à niveau.'),
+          i('pieton', 'person-walking', ROUGE, null, 'Passage pour piétons', 'Le véhicule dépassé peut cacher un piéton qui traverse.', 'Ne dépassez pas à l\'approche d\'un passage piéton.'),
+        ],
+        questions: [
+          { q: 'Peut-on franchir une ligne continue pour dépasser un tracteur ?', ok: 'Non, jamais', non: ['Oui, s\'il roule très lentement', 'Oui, si la route est droite'] },
+          { q: 'Peut-on dépasser au sommet d\'une côte ?', ok: 'Non, on ne voit pas en face', non: ['Oui, en klaxonnant', 'Oui, de jour'] },
+          { q: 'Jusqu\'où vaut le panneau « interdiction de dépasser » ?', ok: 'Jusqu\'au panneau de fin ou au prochain carrefour', non: ['Sur 100 m seulement', 'Jusqu\'à la prochaine ville'] },
+          { q: 'Peut-on dépasser juste avant un passage piéton ?', ok: 'Non', non: ['Oui, si personne n\'est visible', 'Oui, en ville'] },
+        ],
+      },
+    ],
+    revision: { id: 'depassement-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur le dépassement', icone: '/panneaux/B34.svg', nombre: 12 },
+  },
+
+  /* ── 5 · Stationnement ── */
+  {
+    key: 'stationnement', titre: 'Stationnement', numero: 5,
+    description: 'Faire la différence entre arrêt et stationnement, et savoir où l\'on peut se garer.',
+    decor: ['B6a1', 'C1a', 'B6d'],
+    chapitres: [
+      {
+        id: 'stationnement-regles', numero: 1, titre: 'Arrêt ou stationnement', icone: '/panneaux/C1a.svg',
+        resume: 'Deux notions, des panneaux différents',
+        aRetenir: [
+          'Arrêt : on s\'immobilise un court instant, conducteur au volant ou tout près, pour faire monter ou descendre quelqu\'un, charger ou décharger.',
+          'Stationnement : le véhicule reste immobilisé plus longtemps, conducteur absent ou pas prêt à repartir.',
+          'Stationnement interdit : on peut encore s\'arrêter un instant. Arrêt et stationnement interdits : ni l\'un ni l\'autre.',
+          'Avant d\'ouvrir la portière, regardez le rétroviseur : un cycliste ou une moto peut arriver.',
+          'Pour repartir : rétroviseur, angle mort, clignotant, et vous cédez le passage à ceux qui roulent.',
+        ],
+        piege: 'Panneau à une barre : stationnement interdit. Panneau à croix : arrêt aussi interdit.',
+        panneaux: [
+          p('B6a1', 'Stationnement interdit', 'Vous ne pouvez pas laisser le véhicule ici.', 'Un arrêt bref, conducteur présent, reste permis.'),
+          p('B6d', 'Arrêt et stationnement interdits', 'Ni arrêt ni stationnement.', 'Continuez sans vous arrêter, même une seconde.'),
+          p('B6a2', 'Stationnement interdit du 1er au 15', 'Stationnement alterné : interdit pendant la première quinzaine du mois.', 'Garez-vous de l\'autre côté de la rue du 1er au 15.'),
+          p('B6a3', 'Stationnement interdit du 16 à la fin du mois', 'Stationnement alterné : interdit pendant la seconde quinzaine.', 'Changez de côté à partir du 16.'),
+          p('C1a', 'Parking', 'Une zone de stationnement autorisé.', 'Garez-vous sur les places prévues.'),
+          i('arret', 'pause-circle-fill', VERT, null, 'L\'arrêt', 'Un instant, conducteur présent : déposer ou charger.', 'Restez prêt à repartir et ne gênez personne.'),
+          i('stationnement', 'p-circle-fill', BLEU, null, 'Le stationnement', 'Le véhicule reste là, conducteur parti ou pas prêt à repartir.', 'Seulement là où c\'est autorisé.'),
+          i('portiere', 'door-open-fill', OR, null, 'Ouvrir la portière', 'Un deux-roues peut passer au ras de la voiture.', 'Regardez le rétroviseur et ouvrez doucement.'),
+        ],
+        questions: [
+          { q: 'Quelle est la différence entre arrêt et stationnement ?', ok: 'L\'arrêt est bref, conducteur présent', non: ['Aucune différence', 'Le stationnement dure moins d\'une minute'] },
+          { q: 'Sous un panneau « stationnement interdit », pouvez-vous déposer un passager ?', ok: 'Oui, un arrêt bref est permis', non: ['Non, jamais', 'Oui, et attendre une heure'] },
+          { q: 'Sous un panneau « arrêt et stationnement interdits », pouvez-vous déposer un passager ?', ok: 'Non', non: ['Oui, très vite', 'Oui, avec les feux de détresse'] },
+          { q: 'Que faites-vous avant d\'ouvrir votre portière ?', ok: 'Je regarde le rétroviseur pour les deux-roues', non: ['Rien, je suis garé', 'Je klaxonne'] },
+        ],
+      },
+      {
+        id: 'stationnement-lieux', numero: 2, titre: 'Lieux interdits', icone: { icone: 'slash-circle-fill', couleur: ROUGE },
+        resume: 'Trottoir, passage piéton, virage, double file…',
+        aRetenir: [
+          'Interdit sur un trottoir, un passage piéton, une piste cyclable ou une voie de bus.',
+          'Interdit devant une sortie de garage, d\'école ou d\'immeuble.',
+          'Interdit dans un virage, en haut d\'une côte, ou à moins de 5 m d\'un carrefour : vous cachez la vue des autres.',
+          'Interdit en double file, sur la bande d\'arrêt d\'urgence et sur un passage à niveau.',
+          'Stationnement gênant ou dangereux : même sans panneau, il est sanctionné.',
+        ],
+        piege: 'Mettre les feux de détresse ne rend pas un stationnement autorisé.',
+        panneaux: [
+          i('trottoir', 'person-walking', ROUGE, null, 'Sur le trottoir', 'Le trottoir est aux piétons.', 'Ne vous y garez pas : poussettes et fauteuils doivent passer.'),
+          m('pieton', 'Sur un passage piéton', 'Bandes blanches pour la traversée.', 'Ne vous y arrêtez jamais.'),
+          i('garage', 'house-door-fill', ROUGE, null, 'Devant une sortie', 'Garage, école ou immeuble.', 'Laissez toujours la sortie libre.'),
+          i('carrefour', 'signpost-split-fill', ROUGE, '5 m', 'Près d\'un carrefour', 'Un véhicule garé cache la vue des autres.', 'Garez-vous à plus de 5 m du carrefour.'),
+          i('virage', 'arrow-90deg-right', ROUGE, null, 'Virage ou sommet de côte', 'Les autres conducteurs ne vous voient pas à temps.', 'Ne vous arrêtez jamais là.'),
+          i('double-file', 'car-front-fill', ROUGE, null, 'En double file', 'Vous bloquez une voie de circulation.', 'Cherchez une vraie place.'),
+          m('bus', 'Voie de bus', 'Voie réservée aux transports en commun.', 'Ni arrêt ni stationnement.'),
+          m('bau', 'Bande d\'arrêt d\'urgence', 'Réservée aux pannes et urgences.', 'Ne vous y arrêtez qu\'en cas de vraie urgence.'),
+        ],
+        questions: [
+          { q: 'À quelle distance minimale d\'un carrefour peut-on se garer ?', ok: '5 m', non: ['1 m', 'Juste au coin'] },
+          { q: 'Peut-on se garer sur le trottoir un court instant ?', ok: 'Non', non: ['Oui, avec les feux de détresse', 'Oui, la nuit'] },
+          { q: 'Peut-on s\'arrêter en double file pour faire une course ?', ok: 'Non', non: ['Oui, avec les feux de détresse', 'Oui, 10 minutes'] },
+          { q: 'Pourquoi ne pas stationner dans un virage ?', ok: 'Les autres ne me voient pas à temps', non: ['Ce n\'est pas interdit', 'Pour l\'ombre'] },
+        ],
+      },
+    ],
+    revision: { id: 'stationnement-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur le stationnement', icone: '/panneaux/B6d.svg', nombre: 12 },
+  },
+
+  /* ── 6 · Éclairage ── */
+  {
+    key: 'eclairage', titre: 'Éclairage', numero: 6,
+    description: 'Quels feux allumer la nuit, sous la pluie, dans le brouillard ou la poussière, et en cas de panne.',
+    decor: ['voyant-croisement', 'voyant-route', 'voyant-detresse'],
+    chapitres: [
+      {
+        id: 'eclairage-feux', numero: 1, titre: 'Les feux du véhicule', icone: 'voyant:croisement',
+        resume: 'Position, croisement, route, brouillard, détresse',
+        question: 'Que signifie ce voyant ?',
+        aRetenir: [
+          'Feux de position (veilleuses) : pour être vu à l\'arrêt ou au crépuscule ; ils n\'éclairent pas assez pour rouler la nuit.',
+          'Feux de croisement (codes) : portée d\'environ 30 m, sans éblouir. Ce sont les feux normaux de nuit, sous la pluie, dans un tunnel.',
+          'Feux de route (phares) : portée d\'environ 100 m, seulement sur route sombre et sans personne en face ou devant.',
+          'Feux de brouillard : par brouillard épais, forte pluie ou vent de sable. L\'arrière, très puissant, seulement quand on voit très peu.',
+          'Feux de détresse : panne, accident, danger soudain. Ils ne remplacent pas le triangle.',
+          'Clignotants : pour toute manœuvre (tourner, dépasser, changer de voie, se garer), assez tôt.',
+        ],
+        piege: 'Dès qu\'un véhicule arrive en face ou roule devant vous, quittez les feux de route pour les codes.',
+        panneaux: [
+          v('position', 'Feux de position', 'Les veilleuses sont allumées.', 'Pour être vu à l\'arrêt ou au crépuscule, pas pour rouler la nuit.'),
+          v('croisement', 'Feux de croisement', 'Les codes sont allumés : environ 30 m sans éblouir.', 'Feux de nuit habituels, et sous la pluie ou dans un tunnel.'),
+          v('route', 'Feux de route', 'Les phares sont allumés : environ 100 m.', 'Seulement sans personne en face ni devant ; repassez en codes dès qu\'un véhicule approche.'),
+          v('brouillard-avant', 'Feux de brouillard avant', 'Ils éclairent bas et large.', 'Par brouillard, forte pluie ou vent de sable.'),
+          v('brouillard-arriere', 'Feu de brouillard arrière', 'Un feu rouge très puissant à l\'arrière.', 'Seulement quand la visibilité est très faible : il éblouit ceux qui suivent.'),
+          v('detresse', 'Feux de détresse', 'Les quatre clignotants fonctionnent ensemble.', 'En cas de panne, d\'accident ou de danger soudain, en plus du triangle.'),
+          v('clignotants', 'Clignotants', 'Un clignotant indique votre direction.', 'Avant chaque manœuvre, assez tôt pour être compris.'),
+        ],
+        questions: [
+          { q: 'Quels feux allumer la nuit en ville ?', ok: 'Les feux de croisement', non: ['Les feux de position seuls', 'Les feux de route'] },
+          { q: 'Un véhicule arrive en face, vous êtes en feux de route. Que faites-vous ?', ok: 'Je passe en feux de croisement', non: ['Je garde les feux de route', 'J\'éteins tout'] },
+          { q: 'Quelle est la portée des feux de croisement ?', ok: 'Environ 30 m', non: ['Environ 100 m', 'Environ 5 m'] },
+          { q: 'Les feux de détresse remplacent-ils le triangle ?', ok: 'Non, il faut aussi le triangle', non: ['Oui', 'Oui, la journée'] },
+        ],
+      },
+      {
+        id: 'eclairage-conditions', numero: 2, titre: 'Nuit, pluie, brouillard', icone: { icone: 'cloud-fog2-fill', couleur: GRIS },
+        resume: 'Voir et être vu quand la visibilité baisse',
+        aRetenir: [
+          'De nuit : phares propres, vitesse réduite, distances plus grandes ; regardez le bord droit de la route si vous êtes ébloui.',
+          'Sous la pluie : feux de croisement, vitesse réduite, pas de freinage brusque.',
+          'Brouillard : vitesse très réduite, feux de brouillard avant ; jamais les feux de route, dont la lumière revient vers vous.',
+          'Vent de sable ou forte poussière (harmattan) : mêmes réflexes que dans le brouillard.',
+          'Tunnel : feux de croisement, même en plein jour.',
+        ],
+        piege: 'Dans le brouillard, les feux de route aveuglent : la lumière se reflète sur les gouttelettes.',
+        panneaux: [
+          i('nuit', 'moon-stars-fill', VIOLET, null, 'De nuit', 'On voit moins loin et les distances trompent.', 'Codes allumés, vitesse réduite, phares propres.'),
+          i('eblouissement', 'brightness-high-fill', OR, null, 'Ébloui par en face', 'Vous ne voyez plus la route quelques secondes.', 'Ralentissez et regardez le bord droit de la chaussée.'),
+          i('pluie', 'cloud-rain-heavy-fill', BLEU, null, 'Sous la pluie', 'La route glisse et les vitres s\'embuent.', 'Codes, essuie-glaces, vitesse et freinage doux.'),
+          i('brouillard', 'cloud-fog2-fill', GRIS, null, 'Brouillard', 'On voit à quelques mètres seulement.', 'Feux de brouillard avant, vitesse très réduite, jamais de feux de route.'),
+          i('sable', 'wind', OR, null, 'Vent de sable, harmattan', 'La poussière cache la route comme un brouillard.', 'Mêmes réflexes que dans le brouillard.'),
+          i('tunnel', 'circle-half', GRIS, null, 'Tunnel', 'Il fait sombre même en plein jour.', 'Allumez les feux de croisement avant d\'entrer.'),
+        ],
+        questions: [
+          { q: 'Dans le brouillard, quels feux ne faut-il pas utiliser ?', ok: 'Les feux de route', non: ['Les feux de brouillard avant', 'Les feux de croisement'] },
+          { q: 'Vous êtes ébloui la nuit. Que faites-vous ?', ok: 'Je ralentis et je regarde le bord droit', non: ['Je fais des appels de phares', 'J\'accélère'] },
+          { q: 'Que faire par fort vent de sable ?', ok: 'Comme dans le brouillard : feux et vitesse réduite', non: ['Rouler normalement', 'Allumer les feux de route'] },
+          { q: 'Quels feux dans un tunnel en plein jour ?', ok: 'Les feux de croisement', non: ['Aucun', 'Les feux de brouillard arrière'] },
+          { q: 'Sous la pluie, quels feux allumer ?', ok: 'Les feux de croisement', non: ['Aucun, il fait jour', 'Les feux de route'] },
+          { q: 'De nuit, que faites-vous des distances de sécurité ?', ok: 'Je les augmente', non: ['Je les réduis', 'Je les garde comme le jour'] },
+        ],
+      },
+    ],
+    revision: { id: 'eclairage-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur l\'éclairage', icone: 'voyant:route', nombre: 12 },
+  },
+
+  /* ── 7 · Sécurité ── */
+  {
+    key: 'securite', titre: 'Sécurité', numero: 7,
+    description: 'Alcool, drogues, fatigue et téléphone au volant, et les bons gestes en cas d\'accident.',
+    decor: [{ icone: 'cup-straw', couleur: ROUGE }, { icone: 'phone-fill', couleur: ROUGE }, { icone: 'heart-pulse-fill', couleur: ROUGE }],
+    chapitres: [
+      {
+        id: 'securite-vigilance', numero: 1, titre: 'Alcool, drogues, fatigue', icone: { icone: 'cup-straw', couleur: ROUGE },
+        resume: 'Ce qui diminue vos réflexes au volant',
+        aRetenir: [
+          'L\'alcool ralentit les réflexes, trompe sur les distances et donne trop confiance en soi.',
+          'Seul le temps élimine l\'alcool : ni café, ni air frais, ni douche froide.',
+          'Drogues : interdites au volant ; elles troublent le jugement et les gestes.',
+          'Médicaments : certains endorment ; lisez la notice et le pictogramme de la boîte, demandez au médecin.',
+          'Fatigue : bâillements, yeux lourds, écarts de trajectoire. Une pause toutes les 2 heures, et un vrai repos dès les premiers signes.',
+          'Téléphone tenu en main : interdit au volant. Il détourne les yeux, les mains et l\'attention.',
+        ],
+        piege: 'Ouvrir la fenêtre ou monter le son ne remplace pas le repos.',
+        panneaux: [
+          i('alcool', 'cup-straw', ROUGE, null, 'Alcool', 'Réflexes ralentis, distances mal jugées, excès de confiance.', 'Le plus sûr : zéro alcool avant de conduire. Si vous avez bu, laissez le volant.'),
+          i('temps', 'hourglass-split', ROUGE, null, 'Seul le temps élimine l\'alcool', 'Le corps élimine l\'alcool lentement.', 'Ni café ni air frais ne font baisser le taux.'),
+          i('drogues', 'capsule', ROUGE, null, 'Drogues', 'Elles troublent le jugement et les gestes.', 'Ne conduisez jamais après en avoir pris.'),
+          i('medicaments', 'prescription2', OR, null, 'Médicaments', 'Certains donnent sommeil ou vertiges.', 'Lisez la notice et le pictogramme de la boîte, demandez au médecin.'),
+          i('fatigue', 'emoji-dizzy-fill', OR, '2 h', 'Fatigue', 'Bâillements, paupières lourdes, écarts.', 'Pause toutes les 2 heures ; arrêtez-vous dès les premiers signes.'),
+          i('somnolence', 'eye-slash-fill', ROUGE, '75 m', 'Micro-sommeil', 'Quelques secondes endormi sans le savoir.', 'À 90 km/h, 3 secondes de sommeil font 75 m sans contrôle.'),
+          i('telephone', 'phone-fill', ROUGE, null, 'Téléphone en main', 'Les yeux quittent la route, une main quitte le volant.', 'Interdit en conduisant : arrêtez-vous dans un endroit sûr pour téléphoner.'),
+        ],
+        questions: [
+          { q: 'Qu\'est-ce qui fait disparaître l\'alcool du sang ?', ok: 'Seulement le temps', non: ['Un café fort', 'Une douche froide'] },
+          { q: 'Quand faire une pause sur un long trajet ?', ok: 'Toutes les 2 heures environ', non: ['Toutes les 6 heures', 'Jamais si je suis pressé'] },
+          { q: 'Vous bâillez et vos yeux se ferment. Que faites-vous ?', ok: 'Je m\'arrête dans un endroit sûr pour me reposer', non: ['J\'ouvre la fenêtre et je continue', 'J\'accélère pour arriver vite'] },
+          { q: 'Peut-on téléphoner en tenant le téléphone en conduisant ?', ok: 'Non, c\'est interdit', non: ['Oui, si l\'appel est court', 'Oui, en ville'] },
+          { q: 'Un médicament peut-il empêcher de conduire ?', ok: 'Oui, certains endorment', non: ['Non, jamais', 'Seulement le soir'] },
+          { q: 'Quel effet a l\'alcool sur le conducteur ?', ok: 'Il ralentit les réflexes et donne trop confiance', non: ['Il rend plus attentif', 'Aucun en petite quantité'] },
+        ],
+      },
+      {
+        id: 'securite-secours', numero: 2, titre: 'Accident et premiers secours', icone: { icone: 'heart-pulse-fill', couleur: ROUGE },
+        resume: 'Protéger, alerter, secourir',
+        aRetenir: [
+          'Protéger d\'abord : feux de détresse, gilet, triangle bien en amont, et tout le monde à l\'abri derrière les barrières ou hors de la route.',
+          'Alerter : le lieu exact, ce qui s\'est passé, le nombre de blessés et leur état. Au Sénégal : SAMU 1515, police 17, sapeurs-pompiers 18.',
+          'Secourir sans aggraver : ne déplacez pas un blessé, sauf danger immédiat (feu, noyade).',
+          'Blessé inconscient qui respire : position latérale de sécurité. Parlez-lui, couvrez-le, restez avec lui.',
+          'Ne retirez pas le casque d\'un motard, ni un objet planté dans une plaie.',
+          'Ne quittez jamais les lieux d\'un accident où vous êtes impliqué : c\'est un délit de fuite.',
+        ],
+        piege: 'Le premier geste n\'est pas de secourir mais de protéger, pour éviter un second accident.',
+        panneaux: [
+          i('proteger', 'cone-striped', OR, '1', 'Protéger', 'Éviter un second accident.', 'Feux de détresse, gilet, triangle, et chacun à l\'abri hors de la route.'),
+          i('alerter', 'telephone-fill', BLEU, '2', 'Alerter', 'Faire venir les secours au bon endroit.', 'SAMU 1515, police 17, pompiers 18 : donnez le lieu exact, les faits, le nombre de blessés.'),
+          i('secourir', 'heart-pulse-fill', ROUGE, '3', 'Secourir', 'Aider sans aggraver.', 'Ne déplacez pas le blessé sauf danger immédiat ; parlez-lui et restez près de lui.'),
+          i('pls', 'person-fill-down', VIOLET, 'PLS', 'Position latérale de sécurité', 'Pour un blessé inconscient qui respire.', 'Couchez-le sur le côté pour garder ses voies respiratoires libres.'),
+          i('casque', 'shield-fill-exclamation', ROUGE, null, 'Casque du motard', 'L\'enlever peut blesser la colonne vertébrale.', 'Ne le retirez pas : laissez-le aux secours.'),
+          i('panne', 'exclamation-triangle-fill', OR, null, 'Panne sur la route', 'Votre véhicule devient un obstacle.', 'Feux de détresse, garez-vous au plus loin, gilet puis triangle.'),
+          i('incendie', 'fire', ROUGE, '18', 'Feu dans le véhicule', 'Le feu peut s\'étendre très vite.', 'Faites sortir tout le monde, n\'ouvrez pas le capot, appelez le 18.'),
+        ],
+        questions: [
+          { q: 'Que faites-vous en premier sur un accident ?', ok: 'Protéger les lieux', non: ['Déplacer les blessés', 'Prendre des photos'] },
+          { q: 'Quel est le numéro du SAMU au Sénégal ?', ok: '1515', non: ['112', '17'] },
+          { q: 'Et celui des sapeurs-pompiers ?', ok: '18', non: ['15', '1515'] },
+          { q: 'Un blessé est inconscient mais respire. Que faites-vous ?', ok: 'Je le mets en position latérale de sécurité', non: ['Je le fais asseoir', 'Je lui donne à boire'] },
+          { q: 'Faut-il enlever le casque d\'un motard blessé ?', ok: 'Non', non: ['Oui, pour qu\'il respire', 'Oui, toujours'] },
+          { q: 'Quand peut-on déplacer un blessé ?', ok: 'Seulement en cas de danger immédiat (feu, noyade)', non: ['Toujours, pour le mettre à l\'ombre', 'Pour libérer la route'] },
+          { q: 'Où placer le triangle de présignalisation ?', ok: 'Assez loin en amont pour prévenir les autres', non: ['Juste derrière la voiture', 'Devant la voiture'] },
+        ],
+      },
+    ],
+    revision: { id: 'securite-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur la sécurité', icone: { icone: 'shield-check', couleur: VERT }, nombre: 12 },
+  },
+
+  /* ── 8 · Véhicule ── */
+  {
+    key: 'vehicule', titre: 'Véhicule', numero: 8,
+    description: 'Les papiers à avoir à bord, l\'entretien du véhicule et les responsabilités du conducteur.',
+    decor: [{ icone: 'file-earmark-text-fill', couleur: BLEU }, { icone: 'car-front-fill', couleur: '#1e3a5f' }, { icone: 'tools', couleur: GRIS }],
+    chapitres: [
+      {
+        id: 'vehicule-documents', numero: 1, titre: 'Papiers et obligations', icone: { icone: 'file-earmark-text-fill', couleur: BLEU },
+        resume: 'Ce qu\'il faut avoir à bord',
+        aRetenir: [
+          'À bord : permis de conduire de la bonne catégorie, carte grise, attestation d\'assurance et visite technique à jour.',
+          'L\'assurance est obligatoire : au minimum la responsabilité civile (« au tiers »), qui indemnise les victimes.',
+          'La visite technique se renouvelle régulièrement : elle vérifie que le véhicule est sûr.',
+          'Ceinture obligatoire à toutes les places ; casque attaché à moto.',
+          'Une infraction peut coûter une amende, une suspension du permis, voire une condamnation.',
+          'Quitter les lieux d\'un accident sans s\'arrêter est un délit de fuite.',
+        ],
+        piege: 'L\'assurance « au tiers » paie les dégâts causés aux autres, pas ceux de votre propre voiture.',
+        panneaux: [
+          i('permis', 'person-vcard-fill', BLEU, null, 'Permis de conduire', 'Il doit être valide et correspondre au véhicule conduit.', 'Ayez-le toujours sur vous en conduisant.'),
+          i('carte-grise', 'file-earmark-text-fill', BLEU, null, 'Carte grise', 'Le certificat d\'immatriculation du véhicule.', 'Gardez l\'original à bord.'),
+          i('assurance', 'shield-fill-check', VERT, null, 'Assurance', 'Obligatoire : elle indemnise les victimes.', 'Vérifiez que l\'attestation est à jour.'),
+          i('visite', 'clipboard2-check-fill', OR, null, 'Visite technique', 'Contrôle régulier de l\'état du véhicule.', 'Renouvelez-la avant la date limite.'),
+          i('ceinture', 'person-check-fill', VERT, null, 'Ceinture et casque', 'Obligatoires pour tous : conducteur et passagers.', 'Vérifiez que chacun est attaché avant de démarrer.'),
+          i('fuite', 'sign-stop-fill', ROUGE, null, 'Délit de fuite', 'Partir après un accident où l\'on est impliqué.', 'Arrêtez-vous toujours et restez sur place.'),
+        ],
+        questions: [
+          { q: 'Quels papiers avoir à bord ?', ok: 'Permis, carte grise, assurance, visite technique', non: ['Seulement le permis', 'Seulement la carte d\'identité'] },
+          { q: 'L\'assurance est-elle obligatoire ?', ok: 'Oui, au minimum au tiers', non: ['Non, elle est conseillée', 'Seulement pour les taxis'] },
+          { q: 'L\'assurance au tiers paie…', ok: 'Les dégâts causés aux autres', non: ['La réparation de ma voiture', 'Mon carburant'] },
+          { q: 'Qui doit porter la ceinture ?', ok: 'Tout le monde, à toutes les places', non: ['Seulement le conducteur', 'Seulement à l\'avant'] },
+          { q: 'Partir après un accident sans s\'arrêter, c\'est…', ok: 'Un délit de fuite', non: ['Permis si personne n\'est blessé', 'Une simple erreur'] },
+          { q: 'La visite technique…', ok: 'Se renouvelle régulièrement', non: ['Se fait une seule fois', 'N\'est pas obligatoire'] },
+        ],
+      },
+      {
+        id: 'vehicule-entretien', numero: 2, titre: 'Entretien et contrôles', icone: { icone: 'tools', couleur: GRIS },
+        resume: 'Pneus, freins, feux, rétroviseurs, voyants',
+        aRetenir: [
+          'Pneus : pression vérifiée à froid, usure et coupures. Un pneu lisse n\'accroche plus sous la pluie.',
+          'Freins : bruit, pédale molle ou voiture qui tire d\'un côté : au garage sans attendre.',
+          'Feux : vérifiez régulièrement tous les feux, stop et clignotants compris.',
+          'Rétroviseurs propres et bien réglés ; essuie-glaces et lave-glace en état.',
+          'Voyant rouge au tableau de bord : arrêtez-vous dès que possible. Voyant orange : faites contrôler rapidement.',
+          'Triangle et gilet à bord pour signaler une panne.',
+        ],
+        piege: 'Un voyant rouge allumé ne veut pas dire « plus tard » : il faut s\'arrêter.',
+        panneaux: [
+          i('pneus', 'circle-fill', GRIS, null, 'Pneus', 'Seul contact entre la voiture et la route.', 'Contrôlez pression et usure régulièrement, roue de secours comprise.'),
+          i('freins', 'exclamation-octagon-fill', ROUGE, null, 'Freins', 'Ils doivent arrêter la voiture droit et vite.', 'Au moindre bruit ou pédale molle, faites-les vérifier.'),
+          i('feux', 'lightbulb-fill', OR, null, 'Feux et clignotants', 'Pour voir et être vu.', 'Faites le tour de la voiture feux allumés de temps en temps.'),
+          i('retros', 'window', BLEU, null, 'Rétroviseurs et vitres', 'Ils doivent être propres et bien réglés.', 'Réglez-les avant de démarrer.'),
+          i('essuie', 'droplet-fill', BLEU, null, 'Essuie-glaces', 'Indispensables sous la pluie.', 'Changez les balais quand ils laissent des traces.'),
+          i('voyant-rouge', 'exclamation-circle-fill', ROUGE, null, 'Voyant rouge', 'Problème grave (freins, huile, température).', 'Arrêtez-vous dès que possible en sécurité.'),
+          i('voyant-orange', 'exclamation-circle-fill', OR, null, 'Voyant orange', 'Anomalie à faire vérifier.', 'Faites contrôler le véhicule rapidement.'),
+          i('triangle', 'exclamation-triangle-fill', ROUGE, null, 'Triangle et gilet', 'Pour signaler une panne ou un accident.', 'Gardez-les à portée de main dans le véhicule.'),
+        ],
+        questions: [
+          { q: 'Quand vérifier la pression des pneus ?', ok: 'À froid, régulièrement', non: ['Seulement à la visite technique', 'Jamais, c\'est automatique'] },
+          { q: 'Un voyant rouge s\'allume. Que faites-vous ?', ok: 'Je m\'arrête dès que possible en sécurité', non: ['Je continue jusqu\'à destination', 'J\'accélère'] },
+          { q: 'La pédale de frein est molle. Que faites-vous ?', ok: 'Je fais vérifier les freins sans attendre', non: ['Je freine plus fort', 'J\'attends la prochaine visite'] },
+          { q: 'Quel danger avec un pneu lisse ?', ok: 'Il n\'accroche plus sous la pluie', non: ['Aucun', 'Il consomme moins'] },
+          { q: 'Que garder à bord pour signaler une panne ?', ok: 'Un triangle et un gilet', non: ['Rien de particulier', 'Une corde'] },
+          { q: 'Un voyant orange s\'allume. Que faites-vous ?', ok: 'Je fais contrôler le véhicule rapidement', non: ['Je l\'ignore', 'Je m\'arrête sur la voie'] },
+          { q: 'Les essuie-glaces laissent des traces. Que faites-vous ?', ok: 'Je change les balais', non: ['J\'attends la saison sèche', 'Rien, ce n\'est pas grave'] },
+        ],
+      },
+    ],
+    revision: { id: 'vehicule-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur le véhicule', icone: { icone: 'car-front-fill', couleur: '#1e3a5f' }, nombre: 12 },
+  },
+
+  /* ── 9 · Usagers de la route ── */
+  {
+    key: 'usagers', titre: 'Usagers de la route', numero: 9,
+    description: 'Partager la route avec les piétons, les deux-roues, les poids lourds et les animaux.',
+    decor: ['A13b', 'A13a', 'A15a1'],
+    chapitres: [
+      {
+        id: 'usagers-voie', numero: 1, titre: 'Usagers et voie publique', icone: { icone: 'people-fill', couleur: BLEU },
+        resume: 'Qui utilise la route, et où chacun circule',
+        aRetenir: [
+          'Usager de la route : toute personne sur la voie publique, à pied, à vélo, à moto, en voiture ou comme passager.',
+          'Est piéton aussi celui qui pousse un vélo ou une moto, en fauteuil roulant ou en trottinette.',
+          'Les cyclistes et motocyclistes sont des conducteurs : feux, panneaux et priorités s\'appliquent à eux.',
+          'Chaussée pour les véhicules, trottoir pour les piétons, accotement en dépannage.',
+          'Les poids lourds freinent plus long et ont de grands angles morts : ne restez pas à côté d\'eux.',
+          'Avant toute manœuvre : rétroviseurs, angle mort, clignotant, puis on agit.',
+        ],
+        piege: 'Être prioritaire ne dispense jamais d\'être prudent.',
+        panneaux: [
+          p('B9a', 'Accès interdit aux piétons', 'Les piétons ne peuvent pas emprunter cette voie.', 'Sur ces voies rapides, ne vous attendez pas à des piétons, mais restez vigilant.'),
+          p('B9b', 'Accès interdit aux cycles', 'Les vélos ne peuvent pas emprunter cette voie.', 'Les cyclistes doivent prendre un autre itinéraire.'),
+          p('B22a', 'Piste cyclable obligatoire', 'Les vélos doivent emprunter cette piste.', 'Ne roulez pas et ne vous garez pas dessus en voiture.'),
+          p('C113', 'Piste cyclable conseillée', 'Une piste réservée aux vélos est proposée.', 'Laissez-la libre aux cyclistes.'),
+          i('pieton-pousse', 'bicycle', VERT, null, 'Piéton qui pousse un vélo', 'Il est considéré comme un piéton.', 'Il marche sur le trottoir et traverse aux passages piétons.'),
+          i('chaussee', 'sign-intersection-fill', GRIS, null, 'Chaussée, trottoir, accotement', 'Chaque partie de la route a son usage.', 'Véhicules sur la chaussée, piétons sur le trottoir.'),
+          i('angle-mort', 'eye-slash-fill', OR, null, 'Angle mort', 'Zone que les rétroviseurs ne montrent pas.', 'Tournez la tête avant de changer de direction.'),
+          i('camion', 'truck', GRIS, null, 'Poids lourds et bus', 'Ils freinent plus long et voient mal autour d\'eux.', 'Ne restez pas dans leur angle mort ; si vous ne voyez pas leurs rétroviseurs, ils ne vous voient pas.'),
+        ],
+        questions: [
+          { q: 'Une personne qui pousse sa moto à pied est…', ok: 'Un piéton', non: ['Un motocycliste', 'Un conducteur'] },
+          { q: 'Les cyclistes doivent-ils respecter les feux ?', ok: 'Oui, comme tous les conducteurs', non: ['Non', 'Seulement la nuit'] },
+          { q: 'Qu\'est-ce que l\'angle mort ?', ok: 'Une zone invisible dans les rétroviseurs', non: ['Un virage dangereux', 'Une route sans éclairage'] },
+          { q: 'Que retenir près d\'un camion ?', ok: 'S\'il ne me voit pas dans ses rétroviseurs, il ne me voit pas', non: ['Il freine plus vite qu\'une voiture', 'Je peux rester à côté de lui'] },
+        ],
+      },
+      {
+        id: 'usagers-vulnerables', numero: 2, titre: 'Protéger les plus fragiles', icone: '/panneaux/A13a.svg',
+        resume: 'Piétons, enfants, cyclistes, motos, animaux',
+        aRetenir: [
+          'Le piéton n\'a aucune protection : au passage piéton, s\'il est engagé ou attend, vous vous arrêtez.',
+          'Les enfants jugent mal les vitesses et peuvent surgir derrière un ballon : ralentissez fortement près des écoles.',
+          'Personnes âgées ou handicapées : laissez-leur tout le temps de traverser.',
+          'Cyclistes : 1 m d\'écart en ville pour les dépasser, pas de coup de klaxon brusque.',
+          'Motos : on les voit mal et on sous-estime leur vitesse ; vérifiez l\'angle mort.',
+          'Animaux sur la chaussée (moutons, chèvres, vaches) : ralentissez, sans coup de volant brusque.',
+        ],
+        piege: 'Une moto paraît plus loin et plus lente qu\'elle ne l\'est vraiment.',
+        panneaux: [
+          p('A13b', 'Passage pour piétons', 'Un passage piéton est proche.', 'Ralentissez et soyez prêt à vous arrêter.'),
+          p('A13a', 'Enfants', 'Une école ou une aire de jeux est proche.', 'Ralentissez fortement, un enfant peut surgir.'),
+          p('A15a1', 'Animaux domestiques', 'Des animaux peuvent traverser.', 'Ralentissez et ne klaxonnez pas pour les faire fuir.'),
+          i('ages', 'person-wheelchair', VIOLET, null, 'Personnes âgées ou handicapées', 'Elles traversent plus lentement.', 'Attendez qu\'elles aient fini de traverser.'),
+          i('moto', 'scooter', ROUGE, null, 'Motos et scooters', 'Peu visibles, souvent plus rapides qu\'on ne le croit.', 'Vérifiez rétroviseurs et angle mort avant de tourner ou de changer de voie.'),
+          i('cycliste', 'bicycle', VERT, '1 m', 'Cyclistes', 'Ils peuvent faire un écart.', 'Laissez 1 m en ville pour les dépasser, sans klaxonner brusquement.'),
+          i('car-scolaire', 'bus-front-fill', OR, null, 'Car scolaire à l\'arrêt', 'Des enfants peuvent en descendre et traverser.', 'Passez au pas, prêt à vous arrêter.'),
+        ],
+        questions: [
+          { q: 'Un piéton attend au bord du passage piéton. Que faites-vous ?', ok: 'Je m\'arrête pour le laisser traverser', non: ['Je passe avant lui', 'Je klaxonne'] },
+          { q: 'Un ballon roule sur la route. Que faites-vous ?', ok: 'Je freine : un enfant peut suivre', non: ['Je l\'évite et je continue', 'J\'accélère'] },
+          { q: 'Quelle erreur fait-on souvent avec les motos ?', ok: 'Sous-estimer leur vitesse', non: ['Les voir trop tôt', 'Les croire trop rapides'] },
+          { q: 'Des chèvres traversent la route. Que faites-vous ?', ok: 'Je ralentis fortement, sans coup de volant', non: ['Je klaxonne et je passe', 'Je fais un écart rapide'] },
+          { q: 'Un car scolaire est arrêté. Que faites-vous ?', ok: 'Je passe au pas, prêt à m\'arrêter', non: ['Je le dépasse vite', 'Je garde ma vitesse'] },
+        ],
+      },
+    ],
+    revision: { id: 'usagers-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur les usagers', icone: '/panneaux/A13b.svg', nombre: 12 },
+  },
+]
+
+/* Identifiants de chapitre de ces thèmes (liste aussi tenue dans ProgressionCodeController). */
+export const IDS_REGLES = THEMES_REGLES.flatMap(t => [...t.chapitres.map(c => c.id), t.revision.id])

@@ -3,18 +3,30 @@ import { api } from '../api'
 import { toast } from './Toast'
 import MarquageSol from './MarquageSol'
 import SchemaPriorite from './SchemaPriorite'
+import { Picto, Voyant } from './Pictos'
 import { SEUIL_REUSSITE, questionsChapitre, questionsRevision } from '../contenu/signalisation'
 import { THEMES_CODE } from '../contenu/themes'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
-/* Visuel d'un panneau (dessin officiel), d'un marquage au sol ou d'un schéma de priorité (dessinés). */
+/* Visuel d'un panneau (dessin officiel), d'un marquage au sol, d'un schéma de priorité, d'un
+   voyant ou d'un pictogramme (dessinés). */
 function Visuel({ item, taille = 72 }) {
   if (item.marquage) return <MarquageSol type={item.marquage} taille={taille} />
+  if (item.voyant) return <Voyant type={item.voyant} taille={taille} />
+  if (item.picto) return <Picto {...item.picto} taille={taille} />
   if (item.dessin) return <SchemaPriorite type={item.dessin} taille={taille} />
   return <img src={item.image} alt={item.nom} width={taille} height={taille} style={{ objectFit: 'contain', flexShrink: 0 }} loading="lazy" />
 }
+/* Icône d'un chapitre ou élément de décor : chemin d'image, « marquage:… », « dessin:… »,
+   « voyant:… », code de panneau, ou pictogramme { icone, couleur }. */
+function Decor({ v, taille }) {
+  if (typeof v === 'object') return <Picto {...v} taille={taille} />
+  if (v.startsWith('voyant')) return <Voyant type={v.replace(/^voyant[:-]/, '')} taille={taille} />
+  return <img src={v.startsWith('/') ? v : `/panneaux/${v}.svg`} alt="" width={taille} height={taille} style={{ objectFit: 'contain' }} />
+}
 function IconeChapitre({ ch, taille = 46 }) {
+  if (typeof ch.icone === 'object' || ch.icone.startsWith('voyant:')) return <Decor v={ch.icone} taille={taille} />
   if (ch.icone.startsWith('marquage:')) return <MarquageSol type={ch.icone.slice(9)} taille={taille} />
   if (ch.icone.startsWith('dessin:')) return <SchemaPriorite type={ch.icone.slice(7)} taille={taille} />
   return <img src={ch.icone} alt="" width={taille} height={taille} style={{ objectFit: 'contain' }} />
@@ -22,10 +34,13 @@ function IconeChapitre({ ch, taille = 46 }) {
 
 /* Ce que liste un chapitre : panneaux, marquages, signaux (feux, agent) ou situations. */
 function genre(ch) {
+  const tous = cle => ch.panneaux.every(x => x[cle])
   if (ch.situations) return 'situations'
-  if (ch.panneaux[0]?.marquage) return 'marquages'
-  if (ch.panneaux[0]?.dessin) return 'signaux'
-  return 'panneaux'
+  if (tous('image')) return 'panneaux'
+  if (tous('marquage')) return 'marquages'
+  if (tous('voyant')) return 'voyants'
+  if (tous('dessin')) return 'signaux'
+  return 'repères'   // chapitre mixte : panneaux, pictogrammes, marquages
 }
 const estScene = item => !!item?.dessin?.startsWith('scene-')   // carrefour vu du dessus : affiché en grand
 const majuscule = t => t[0].toUpperCase() + t.slice(1)
@@ -221,7 +236,7 @@ function Bandeau({ surtitre, titre, texte, decor, children }) {
     <div className="rounded-2xl overflow-hidden relative text-white px-6 py-6" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 55%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
       <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
       <div className="absolute hidden sm:flex gap-3 right-6 top-5" style={{ transform: 'rotate(-8deg)' }} aria-hidden="true">
-        {decor.map(c => <img key={c} src={`/panneaux/${c}.svg`} alt="" width="58" height="58" />)}
+        {decor.map((c, i) => <Decor key={i} v={c} taille={58} />)}
       </div>
       <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>{surtitre}</div>
       <h2 className="text-3xl font-black m-0 mt-1">{titre}</h2>
@@ -331,7 +346,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
       {onRetour && <div>{btnRetour(onRetour, 'Retour')}</div>}
       <Bandeau surtitre="AUTO-ÉCOLE KHADIJA" titre="Cours de code" decor={['A14', 'AB4', 'B14']}
         texte="Choisissez un thème : chaque chapitre a une leçon, des exemples et un quiz pour valider." />
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {THEMES_CODE.map(t => {
           const liste = [...t.chapitres, t.revision], valides = liste.filter(c => progression[c.id]?.reussi).length
           return (
@@ -340,8 +355,8 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
               style={{ borderRadius: 20, ...carte }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(15,34,64,.14)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = carte.boxShadow }}>
-              <div className="flex items-center justify-center gap-3 py-5" style={{ background: 'linear-gradient(135deg,#f8fafc,#eef2f7)' }}>
-                {t.decor.map((c, i) => <img key={c} src={`/panneaux/${c}.svg`} alt="" width={i === 1 ? 74 : 56} height={i === 1 ? 74 : 56} />)}
+              <div className="flex items-center justify-center gap-3" style={{ height: 120, background: 'linear-gradient(135deg,#f8fafc,#eef2f7)' }}>
+                {t.decor.map((c, i) => <Decor key={i} v={c} taille={i === 1 ? 74 : 56} />)}
               </div>
               <div className="px-5 py-4">
                 <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#a16207' }}>THÈME {t.numero}</div>
@@ -360,7 +375,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
         })}
       </div>
       <p className="text-[11px] text-slate-400 text-center m-0">
-        Dessins des panneaux : Wikimedia Commons, licences <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer" className="text-slate-400">CC BY-SA</a> (auteurs : Roulex 45, Gigillo83, Jcrovetti et contributeurs).
+        Dessins des panneaux : Wikimedia Commons, licences <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer" className="text-slate-400">CC BY-SA</a> (auteurs : Roulex 45, Gigillo83, Jcrovetti, Grondin et contributeurs).
       </p>
     </div>
   )

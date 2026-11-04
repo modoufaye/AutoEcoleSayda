@@ -24,10 +24,16 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProgressionCodeController {
 
-    /** Chapitres connus (contenu/signalisation.js et contenu/priorite.js) : rien d'autre n'est enregistré. */
+    /** Chapitres connus (contenu/signalisation.js, priorite.js, reglesConduite.js) : rien d'autre n'est enregistré. */
     private static final Set<String> CHAPITRES = Set.of(
             "danger", "obligation-interdiction", "indication", "lignes", "rive", "zones", "revision",
-            "priorite-regles", "priorite-feux", "priorite-situations", "priorite-revision");
+            "priorite-regles", "priorite-feux", "priorite-situations", "priorite-revision",
+            "vitesse-limites", "vitesse-distances", "vitesse-revision", "depassement-methode",
+            "depassement-interdits", "depassement-revision", "stationnement-regles", "stationnement-lieux",
+            "stationnement-revision", "eclairage-feux", "eclairage-conditions", "eclairage-revision",
+            "securite-vigilance", "securite-secours", "securite-revision", "vehicule-documents",
+            "vehicule-entretien", "vehicule-revision", "usagers-voie", "usagers-vulnerables",
+            "usagers-revision");
     private static final double SEUIL = 0.7;
 
     private final EleveRepository eleveRepository;

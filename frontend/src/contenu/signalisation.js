@@ -187,10 +187,11 @@ function melanger(liste, graine) {
 const graineDe = txt => [...txt].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 100000, 7)
 
 /* Questions d'un chapitre : « Que signifie ce panneau ? » (ch.question sinon) pour chaque
-   panneau du quiz (deux autres panneaux du chapitre comme mauvaises réponses), plus les questions
+   panneau du quiz (pas les pictogrammes, quiz: false) (deux autres panneaux du chapitre comme mauvaises réponses), plus les questions
    de règles, qui peuvent porter un visuel et une explication. */
 export function questionsChapitre(ch) {
-  const auQuiz = ch.panneaux.filter(pa => pa.quiz !== false)
+  const visibles = ch.panneaux.filter(pa => pa.quiz !== false)
+  const auQuiz = visibles.length >= 3 ? visibles : []   // il faut deux autres noms comme mauvaises réponses
   const panneaux = auQuiz.map(pa => {
     const autres = melanger(auQuiz.filter(x => x.id !== pa.id), graineDe(pa.id)).slice(0, 2).map(x => x.nom)
     return { id: `${ch.id}:${pa.id}`, visuel: pa, q: ch.question || 'Que signifie ce panneau ?', reponses: melanger([pa.nom, ...autres], graineDe(pa.id + 'r')), bonne: pa.nom, explication: pa.action }

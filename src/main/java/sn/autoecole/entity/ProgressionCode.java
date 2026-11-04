@@ -5,7 +5,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/** Résultat d'un élève à un chapitre des cours de code (Signalisation, Priorité) : meilleure note gardée. */
+/** Résultat d'un élève à un chapitre des cours de code (Signalisation, Priorité, etc.) : meilleure note gardée. */
 @Entity
 @Table(name = "progression_code", uniqueConstraints = @UniqueConstraint(columnNames = {"eleve_id", "chapitre"}))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -18,7 +18,7 @@ public class ProgressionCode {
     @Column(name = "eleve_id", nullable = false)
     private Long eleveId;
 
-    /** Identifiant du chapitre (contenu/signalisation.js, contenu/priorite.js), ex. « danger ». */
+    /** Identifiant du chapitre (fichiers de frontend/src/contenu), ex. « danger ». */
     @Column(nullable = false, length = 40)
     private String chapitre;
 

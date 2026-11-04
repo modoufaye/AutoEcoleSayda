@@ -3,6 +3,7 @@
    d'adresse …/cours/<id> et de clé de progression côté serveur, ProgressionCodeController). */
 import { CHAPITRES, REVISION } from './signalisation'
 import { CHAPITRES_PRIORITE, REVISION_PRIORITE } from './priorite'
+import { THEMES_REGLES } from './reglesConduite'
 
 export const THEMES_CODE = [
   {
@@ -15,4 +16,5 @@ export const THEMES_CODE = [
     description: 'Savoir qui passe en premier : carrefours, STOP, giratoires, feux, agents et véhicules d\'urgence.',
     decor: ['AB1', 'AB4', 'AB25'], chapitres: CHAPITRES_PRIORITE, revision: REVISION_PRIORITE,
   },
+  ...THEMES_REGLES,
 ]
