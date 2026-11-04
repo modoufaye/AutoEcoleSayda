@@ -11,7 +11,7 @@ const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #
 
 /* Visuel d'un panneau (dessin officiel), d'un marquage au sol, d'un schéma de priorité, d'un
    voyant ou d'un pictogramme (dessinés). */
-function Visuel({ item, taille = 72 }) {
+export function Visuel({ item, taille = 72 }) {
   if (item.marquage) return <MarquageSol type={item.marquage} taille={taille} />
   if (item.voyant) return <Voyant type={item.voyant} taille={taille} />
   if (item.picto) return <Picto {...item.picto} taille={taille} />

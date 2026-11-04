@@ -21,6 +21,7 @@ import MesPaiements from '../components/MesPaiements'
 import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
 import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
 import TravauxDirigesAdmin from '../components/TravauxDirigesAdmin'
+import TravauxDiriges from '../components/TravauxDiriges'
 import Parametres from '../components/Parametres'
 import Journal from '../components/Journal'
 import HoteConfirmation from '../components/Confirmation'
@@ -362,11 +363,11 @@ export default function AppLayout() {
             : section === 'mes-paiements'
             ? <ActiveComponent key={section} onBack={handleBack} />
             : section === 'td-admin'
-            ? <TravauxDirigesAdmin key="td-admin" />
+            ? <TravauxDiriges key="td-admin"><TravauxDirigesAdmin /></TravauxDiriges>
             : section === 'td-moniteur'
-            ? <TravauxDirigesMoniteur key="td-moniteur" onBack={handleBack} />
+            ? <TravauxDiriges key="td-moniteur"><TravauxDirigesMoniteur onBack={handleBack} /></TravauxDiriges>
             : section === 'td-eleve'
-            ? <TravauxDirigesEleve key="td-eleve" onBack={handleBack} />
+            ? <TravauxDiriges key="td-eleve" eleve><TravauxDirigesEleve onBack={handleBack} /></TravauxDiriges>
             : section === 'eleves'
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick} />
             : section === 'moniteurs'
