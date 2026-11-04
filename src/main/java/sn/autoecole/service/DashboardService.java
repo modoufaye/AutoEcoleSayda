@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.autoecole.dto.DashboardStats;
+import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.*;
 import sn.autoecole.repository.*;
 import sn.autoecole.enums.StatutSeance;
@@ -35,6 +36,8 @@ public class DashboardService {
                 .elevesDiplomes(diplomes)
                 .elevesSuspendus(suspendus)
                 .elevesNouveauxMois(eleveRepository.countByDateInscriptionBetween(debutMois, finMois))
+                .perfectionnementManuelle(eleveRepository.countPerfectionnementEnCours(BoiteVitesse.MANUELLE))
+                .perfectionnementAutomatique(eleveRepository.countPerfectionnementEnCours(BoiteVitesse.AUTOMATIQUE))
                 .totalMoniteurs(moniteurRepository.count())
                 .moniteursActifs(moniteurRepository.findByActifTrue().size())
                 .totalVehicules(vehiculeRepository.count())

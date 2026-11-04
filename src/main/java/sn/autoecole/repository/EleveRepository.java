@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Moniteur;
+import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
@@ -51,6 +52,11 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
 
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut AND e.archive = false")
     long countByStatut(@Param("statut") StatutEleve statut);
+
+    /** Élèves en cours de perfectionnement (non archivés) pour une boîte de vitesses. */
+    @Query("SELECT COUNT(e) FROM Eleve e WHERE e.typeFormation = sn.autoecole.enums.TypeFormation.PERFECTIONNEMENT "
+         + "AND e.boiteVitesse = :boite AND e.statut = sn.autoecole.enums.StatutEleve.EN_COURS AND e.archive = false")
+    long countPerfectionnementEnCours(@Param("boite") BoiteVitesse boite);
 
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.dateInscription >= :debut AND e.dateInscription <= :fin")
     long countByDateInscriptionBetween(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);

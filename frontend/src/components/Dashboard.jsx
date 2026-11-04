@@ -355,7 +355,8 @@ function DashboardAdmin({ stats, user }) {
           <StatCard title="Diplômés"     value={stats.elevesDiplomes}     icon="award-fill"        accent="#10b981" />
           <StatCard title="Suspendus"    value={stats.elevesSuspendus}    icon="person-x-fill"     accent="#f59e0b" />
         </div>
-        <div className="mt-3">
+        {/* Nouveaux inscrits, puis perfectionnements en cours par boîte de vitesses */}
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatCard
             title="Nouveaux ce mois"
             value={stats.elevesNouveauxMois}
@@ -363,6 +364,10 @@ function DashboardAdmin({ stats, user }) {
             accent="#8b5cf6"
             sub={new Date().toLocaleDateString('fr-SN', { month: 'long', year: 'numeric' })}
           />
+          <StatCard title="Boîte manuelle" value={stats.perfectionnementManuelle ?? 0}
+            icon="gear-wide-connected" accent="#d4a017" sub="Perfectionnement en cours" />
+          <StatCard title="Boîte automatique" value={stats.perfectionnementAutomatique ?? 0}
+            icon="lightning-charge-fill" accent="#0ea5e9" sub="Perfectionnement en cours" />
         </div>
 
         {/* Barre de répartition élèves */}
