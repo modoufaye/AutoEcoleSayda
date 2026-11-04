@@ -144,7 +144,6 @@ export default function InscriptionEnLigne() {
                 style={{ borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 6px 18px rgba(212,160,23,.35)' }}>
                 {envoi ? 'Envoi…' : <>Envoyer ma demande d'inscription <i className="bi bi-arrow-right ms-1" /></>}
               </button>
-              <p className="text-[11px] text-slate-400 text-center m-0">La date d'inscription est celle d'aujourd'hui. Le montant total vous sera confirmé par l'auto-école.</p>
             </form>
           )}
         </div>
