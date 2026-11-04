@@ -4,6 +4,7 @@ import { fmtMontant } from '../utils'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import ComptesBloques from './ComptesBloques'
+import RepartitionLocalites from './RepartitionLocalites'
 import '../landing.css'
 
 /* ══════════════════════════════════════════════════════════
@@ -401,6 +402,9 @@ function DashboardAdmin({ stats, user }) {
             </div>
           </div>
         )}
+
+        {/* Élèves par lieu d'inscription et par quartier */}
+        <RepartitionLocalites />
       </div>
 
       {/* ══ PERSONNEL & FLOTTE ════════════════════════════════ */}
