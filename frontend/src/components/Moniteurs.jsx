@@ -11,6 +11,8 @@ import GrandePhoto from './GrandePhoto'
 import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, BoutonAjout } from './ListeModerne'
 import { champCls, stylePastille } from './fenetreStyles'
+import ChampTelephone from './ChampTelephone'
+import { afficherTelephone } from '../telephones'
 
 const PAGE_SIZE = 10
 
@@ -340,12 +342,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
             </div>
             <div className="col-md-6">
               <Etiquette requis>Téléphone</Etiquette>
-              <div className="flex">
-                <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
-                  style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
-                <input type="tel" className={champCls} style={{ borderRadius: '0 .75rem .75rem 0' }} placeholder="77 123 45 67"
-                  value={form.telephone} onChange={e => set('telephone', e.target.value)} />
-              </div>
+              <ChampTelephone className={champCls} value={form.telephone} onChange={v => set('telephone', v)} />
               <div className="text-[11px] text-slate-400 mt-1">Sert d'identifiant de connexion au moniteur</div>
             </div>
             <div className="col-md-6">
@@ -636,7 +633,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                     {m.nom} {m.prenom}
                   </button>
                   <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
-                    <span><i className="bi bi-telephone me-1" />{m.telephone}</span>
+                    <span><i className="bi bi-telephone me-1" />{afficherTelephone(m.telephone)}</span>
                     {m.numeroPermis && <span><i className="bi bi-card-checklist me-1" />{m.numeroPermis}</span>}
                   </div>
                 </div>

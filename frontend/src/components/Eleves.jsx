@@ -12,6 +12,8 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
+import ChampTelephone from './ChampTelephone'
+import { afficherTelephone } from '../telephones'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
 
 const PAGE_SIZE = 10
@@ -1036,12 +1038,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Téléphone {!editId && <span className="text-red-500">*</span>}</label>
-                    <div className="flex">
-                      <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
-                        style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
-                      <input type="tel" className={inputCls} style={{ borderRadius: '0 .75rem .75rem 0' }} placeholder="77 123 45 67"
-                        value={form.telephone} onChange={e => set('telephone', e.target.value)} />
-                    </div>
+                    <ChampTelephone className={inputCls} value={form.telephone} onChange={v => set('telephone', v)} />
                     <div className="text-[11px] text-slate-400 mt-1">Sert d'identifiant de connexion à l'élève</div>
                   </div>
                   <div className="col-md-6">
@@ -1299,12 +1296,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Téléphone {!editId && <span className="text-red-500">*</span>}</label>
-                    <div className="flex">
-                      <span className="px-3 flex items-center gap-1 text-sm font-semibold text-slate-500 border-2 border-r-0 border-slate-200 bg-slate-50 whitespace-nowrap flex-shrink-0"
-                        style={{ borderRadius: '.75rem 0 0 .75rem' }}>🇸🇳 +221</span>
-                      <input type="tel" className={inputCls} style={{ borderRadius: '0 .75rem .75rem 0' }} placeholder="77 123 45 67"
-                        value={form.telephone} onChange={e => set('telephone', e.target.value)} />
-                    </div>
+                    <ChampTelephone className={inputCls} value={form.telephone} onChange={v => set('telephone', v)} />
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Date d'inscription <span className="text-red-500">*</span></label>
@@ -1495,8 +1487,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 ) : (
                   <div key={f.key} className="col-md-6">
                     <label className={labelCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
-                    <input type={f.type} className={inputCls} placeholder={f.ph || ''} max={f.max}
-                      value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} />
+                    {f.type === 'tel'
+                      ? <ChampTelephone className={inputCls} value={form[f.key]} onChange={v => setForm(fm => ({ ...fm, [f.key]: v }))} />
+                      : <input type={f.type} className={inputCls} placeholder={f.ph || ''} max={f.max}
+                          value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} />}
                   </div>
                 ))}
                 <div className="col-md-6">
@@ -1648,7 +1642,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '2px solid rgba(255,255,255,.85)' }} />
               <div>
                 <div className="font-extrabold text-xl leading-tight">{s.nom} {s.prenom}</div>
-                {s.telephone && <div className="text-blue-200 text-xs">{s.telephone}</div>}
+                {s.telephone && <div className="text-blue-200 text-xs">{afficherTelephone(s.telephone)}</div>}
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -1732,7 +1726,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               )}
               <div className="divide-y divide-slate-50">
                 {[
-                  { label: 'Téléphone', value: s.telephone },
+                  { label: 'Téléphone', value: afficherTelephone(s.telephone) },
                   { label: 'CNI',       value: s.numeroCni },
                   { label: 'Adresse',   value: s.adresse },
                   { label: 'Naissance', value: s.dateNaissance ? `${fmtDate(s.dateNaissance)} (${age(s.dateNaissance)} ans)` : null },
@@ -1939,7 +1933,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                       {e.nom} {e.prenom}
                     </button>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
-                      <span><i className="bi bi-telephone me-1" />{e.telephone || 'Pas de numéro'}</span>
+                      <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
                       {e.site && <span><i className="bi bi-building me-1" />{LABELS[e.site] || e.site}</span>}
                     </div>
                   </div>

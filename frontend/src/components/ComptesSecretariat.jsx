@@ -4,6 +4,7 @@ import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { waLink } from '../utils'
 import { msgBienvenueSecretaire } from '../messages'
+import ChampTelephone from './ChampTelephone'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 
@@ -145,8 +146,7 @@ export default function ComptesSecretariat() {
             </div>
             <div className="col-md-4">
               <label className={labelCls}>Téléphone (identifiant)</label>
-              <input type="tel" className="form-control" value={form.telephone} placeholder="77 123 45 67"
-                onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))} />
+              <ChampTelephone className="form-control" value={form.telephone} onChange={v => setForm(f => ({ ...f, telephone: v }))} />
             </div>
             <div className="col-md-4">
               <button className="btn fw-bold w-100 text-nowrap" disabled={busy} onClick={creer}
