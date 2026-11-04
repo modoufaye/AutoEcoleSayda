@@ -86,6 +86,20 @@ public class AdministrateurController {
         return Map.of("id", id, "actif", user.isActif());
     }
 
+    /** Passe un autre compte de super admin à administrateur, ou l'inverse. Corps : { role }. */
+    @PatchMapping("/{id}/role")
+    public Map<String, Object> changerRole(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
+        User user = autreAdmin(id, auth, "Vous ne pouvez pas changer votre propre rôle");
+        RoleUser role;
+        try { role = RoleUser.valueOf(String.valueOf(body.get("role"))); }
+        catch (IllegalArgumentException e) { role = null; }
+        if (!ROLES.contains(role)) throw new BusinessException("Rôle invalide : choisissez Administrateur ou Super admin");
+        if (user.getRole() == RoleUser.SUPER_ADMIN && role == RoleUser.ADMIN && user.isActif()) garderUnSuperAdminActif(user);
+        user.setRole(role);
+        userRepository.save(user);
+        return Map.of("id", id, "nom", user.getNom(), "identifiant", user.getEmail(), "role", role);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable Long id, Authentication auth) {

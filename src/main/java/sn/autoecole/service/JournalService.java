@@ -43,6 +43,7 @@ public class JournalService {
             {"DELETE /api/admin/administrateurs/{id}", "Suppression d'un compte administrateur"},
             {"PATCH /api/admin/administrateurs/{id}/actif", "Activation ou désactivation d'un administrateur"},
             {"POST /api/admin/administrateurs/{id}/identifiants", "Nouveau mot de passe pour un administrateur"},
+            {"PATCH /api/admin/administrateurs/{id}/role", "Changement de rôle d'un administrateur"},
             {"POST /api/admin/secretaires", "Création d'un compte secrétariat"},
             {"DELETE /api/admin/secretaires/{id}", "Suppression d'un compte secrétariat"},
             {"PATCH /api/admin/secretaires/{id}/actif", "Activation ou désactivation d'un compte secrétariat"},
@@ -155,6 +156,8 @@ public class JournalService {
                 : reponse instanceof Moniteur mo ? Boolean.valueOf(mo.isActif()) : null;
         if (actif != null && libelle.startsWith("Activation ou désactivation"))
             return (actif ? "Réactivation" : "Désactivation") + libelle.substring("Activation ou désactivation".length());
+        if (reponse instanceof Map<?, ?> m && libelle.startsWith("Changement de rôle") && m.get("role") != null)
+            return "SUPER_ADMIN".equals(String.valueOf(m.get("role"))) ? "Passage en super admin" : "Passage en administrateur";
         if (reponse instanceof Paiement p && libelle.startsWith("Validation ou refus") && p.getStatut() != null)
             return switch (p.getStatut().name()) {
                 case "PAYE" -> "Validation d'un paiement"; case "ANNULE" -> "Refus d'un paiement"; default -> libelle;

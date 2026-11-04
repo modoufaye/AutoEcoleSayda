@@ -66,6 +66,17 @@ export default function ComptesSecretariat({ type = 'secretariat' }) {
     catch (e) { toast(e.message, 'danger') }
   }
 
+  /* Comptes administrateurs : passer un autre compte de super admin à administrateur, ou l'inverse */
+  const changerRole = async (c) => {
+    const vers = c.role === 'SUPER_ADMIN' ? 'ADMIN' : 'SUPER_ADMIN'
+    if (!(await confirmer({ titre: `Passer ${c.nom} en ${vers === 'ADMIN' ? 'administrateur' : 'super admin'} ?`, libelle: 'Changer le rôle',
+      message: vers === 'ADMIN'
+        ? "Cette personne gardera tous les droits, sauf la gestion des comptes administrateurs et du super admin. Ses droits changent tout de suite ; son menu se met à jour à sa prochaine connexion."
+        : "Cette personne aura tous les droits, comme vous, y compris la gestion des comptes administrateurs. Ses droits changent tout de suite ; son menu se met à jour à sa prochaine connexion." }))) return
+    try { await api('PATCH', `${T.route}/${c.id}/role`, { role: vers }); toast('Rôle modifié'); load() }
+    catch (e) { toast(e.message, 'danger') }
+  }
+
   const supprimer = async (c) => {
     if (!(await confirmer({ titre: `Supprimer le compte de ${c.nom} ?`, ton: 'danger', libelle: 'Supprimer',
       message: T.suppression }))) return
@@ -141,6 +152,13 @@ export default function ComptesSecretariat({ type = 'secretariat' }) {
                     </div>
                   </div>
                   {!c.moi && <>
+                  {c.role && (
+                    <button className="btn btn-sm btn-light fw-semibold" style={{ borderRadius: '.6rem' }} onClick={() => changerRole(c)}
+                      title={c.role === 'SUPER_ADMIN' ? 'Passer en administrateur' : 'Passer en super admin'}>
+                      <i className={`bi ${c.role === 'SUPER_ADMIN' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle'} me-1`} />
+                      {c.role === 'SUPER_ADMIN' ? 'Passer administrateur' : 'Passer super admin'}
+                    </button>
+                  )}
                   <button className="btn btn-sm btn-light fw-semibold" style={{ borderRadius: '.6rem' }} onClick={() => regenerer(c)}>
                     <i className="bi bi-key me-1" />Nouveau mot de passe
                   </button>
