@@ -19,8 +19,8 @@ import java.util.*;
 
 /**
  * Lecture du journal des actions (SecurityConfig : super admin et administrateurs).
- * Le super admin voit tout ; un administrateur ne voit que ses propres actions et celles du
- * secrétariat (filtré ici, pas seulement à l'écran).
+ * Le super admin voit tout ; un administrateur voit ses propres actions, celles du secrétariat et
+ * celles des élèves (filtré ici, pas seulement à l'écran).
  */
 @RestController
 @RequestMapping("/api/journal")
@@ -28,6 +28,8 @@ import java.util.*;
 public class JournalController {
 
     private static final int TAILLE = 30;
+    /** Rôles dont un administrateur voit les actions, en plus des siennes. */
+    private static final Set<RoleUser> VUS_PAR_ADMIN = Set.of(RoleUser.SECRETAIRE, RoleUser.ELEVE);
 
     private final JournalActionRepository journalRepository;
 
@@ -44,7 +46,7 @@ public class JournalController {
         Specification<JournalAction> spec = (r, query, cb) -> {
             List<Predicate> p = new ArrayList<>();
             if (moi.getRole() != RoleUser.SUPER_ADMIN)
-                p.add(cb.or(cb.equal(r.get("utilisateurId"), moi.getId()), cb.equal(r.get("role"), RoleUser.SECRETAIRE)));
+                p.add(cb.or(cb.equal(r.get("utilisateurId"), moi.getId()), r.get("role").in(VUS_PAR_ADMIN)));
             if (role != null) p.add(cb.equal(r.get("role"), role));
             if (utilisateur != null) p.add(cb.equal(r.get("utilisateurId"), utilisateur));
             if (du != null) p.add(cb.greaterThanOrEqualTo(r.get("date"), du.atStartOfDay()));
@@ -70,7 +72,7 @@ public class JournalController {
         Map<Long, Map<String, Object>> parId = new LinkedHashMap<>();
         for (Object[] x : journalRepository.personnes()) {
             Long id = (Long) x[0]; RoleUser role = (RoleUser) x[2];
-            if (moi.getRole() != RoleUser.SUPER_ADMIN && !Objects.equals(id, moi.getId()) && role != RoleUser.SECRETAIRE) continue;
+            if (moi.getRole() != RoleUser.SUPER_ADMIN && !Objects.equals(id, moi.getId()) && !VUS_PAR_ADMIN.contains(role)) continue;
             parId.putIfAbsent(id, Map.of("id", id, "nom", x[1], "role", role));   // dernier nom connu suffit
         }
         return parId.values().stream().sorted(Comparator.comparing(m -> String.valueOf(m.get("nom")))).toList();

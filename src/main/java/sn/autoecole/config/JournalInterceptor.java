@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * Trace dans le journal chaque modification réussie (POST, PUT, PATCH, DELETE sous /api) faite
- * par le super admin, un administrateur ou le secrétariat. Avant l'action, on note l'élément visé
+ * par le super admin, un administrateur, le secrétariat ou un élève. Avant l'action, on note l'élément visé
  * par l'identifiant du chemin (il existe encore s'il va être supprimé) ; après, on préfère l'élément
  * renvoyé par le serveur (nom d'un élève créé, montant d'un paiement modifié).
  */
@@ -32,6 +32,8 @@ public class JournalInterceptor implements HandlerInterceptor {
 
     static final String CIBLE = "journal.cible";
     static final String REPONSE = "journal.reponse";
+    /** Description de l'élément posée par un contrôleur quand elle dépend de la requête (note d'un quiz). */
+    public static final String CIBLE_PRECISE = "journal.ciblePrecise";
     private static final Set<String> MODIFICATIONS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
     private final JournalService journalService;
@@ -50,7 +52,8 @@ public class JournalInterceptor implements HandlerInterceptor {
         if (ex != null || res.getStatus() >= 400) return;        // action refusée ou en erreur : rien n'a changé
         Object reponse = req.getAttribute(REPONSE);
         journalService.libelle(req.getMethod(), req.getRequestURI(), reponse).ifPresent(action -> {
-            String cible = JournalService.decrire(reponse);
+            String cible = (String) req.getAttribute(CIBLE_PRECISE);
+            if (cible == null) cible = JournalService.decrire(reponse);
             if (cible == null) cible = (String) req.getAttribute(CIBLE);
             journalService.enregistrer(u, action, cible, req);
         });

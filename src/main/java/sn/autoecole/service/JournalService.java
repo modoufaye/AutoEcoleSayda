@@ -17,7 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Journal des actions du super admin, des administrateurs et du secrétariat.
+ * Journal des actions du super admin, des administrateurs, du secrétariat et des élèves.
  * Rempli par JournalInterceptor (toute requête de modification réussie) et par AuthService
  * (connexions). On n'y garde que le libellé de l'action et le nom de l'élément concerné,
  * jamais le contenu des formulaires (mots de passe, pièces…).
@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 public class JournalService {
 
     /** Rôles dont les actions sont tracées. */
-    public static final Set<RoleUser> ROLES_TRACES = Set.of(RoleUser.SUPER_ADMIN, RoleUser.ADMIN, RoleUser.SECRETAIRE);
+    public static final Set<RoleUser> ROLES_TRACES = Set.of(RoleUser.SUPER_ADMIN, RoleUser.ADMIN, RoleUser.SECRETAIRE, RoleUser.ELEVE);
 
     private static final Pattern ID = Pattern.compile("/\\d+(?=/|$)");
 
@@ -59,6 +59,13 @@ public class JournalService {
             {"DELETE /api/cours/{id}", "Suppression d'un cours de code"},
             {"POST /api/demandes-inscription/{id}/approuver", "Approbation d'une inscription en ligne"},
             {"POST /api/demandes-inscription/{id}/refuser", "Refus d'une inscription en ligne"},
+            // Espace élève
+            {"PUT /api/eleve/changer-mot-de-passe", "Changement de son mot de passe"},
+            {"PUT /api/eleve/profil", "Modification de son profil"},
+            {"POST /api/eleve/paiements/declarer", "Déclaration d'un paiement Wave ou Orange Money"},
+            {"POST /api/eleve/code/progression", "Quiz de code terminé"},
+            {"POST /api/eleve/exercices-td/questions/{id}/repondre", "Réponse à une question de travail dirigé"},
+            {"DELETE /api/eleve/exercices-td/{id}/mes-reponses", "Reprise d'un travail dirigé (réponses effacées)"},
             {"POST /api/eleves", "Inscription d'un élève"},
             {"POST /api/eleves/import", "Import d'élèves depuis Excel"},
             {"PUT /api/eleves/{id}", "Modification d'une fiche élève"},
@@ -192,6 +199,8 @@ public class JournalService {
                 + (x.getEleve() != null ? " · " + decrire(x.getEleve()) : "");
         if (o instanceof Lecon l) return "leçon du " + l.getDate() + (l.getEleve() != null ? " · " + decrire(l.getEleve()) : "");
         if (o instanceof Cours c) return c.getTitre();
+        if (o instanceof ProgressionCode pc) return "chapitre « " + pc.getChapitre().replace('-', ' ') + " » · meilleure note "
+                + pc.getMeilleurScore() + "/" + pc.getTotal() + (pc.isReussi() ? " · validé" : "");
         if (o instanceof DemandeInscription d) return nomComplet(d.getPrenom(), d.getNom());
         if (o instanceof User u) return u.getNom() + " (" + u.getEmail() + ")";
         if (o instanceof Map<?, ?> m && m.get("nom") != null)

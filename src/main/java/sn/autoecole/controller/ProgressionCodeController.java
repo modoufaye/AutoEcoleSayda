@@ -1,6 +1,8 @@
 package sn.autoecole.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import sn.autoecole.config.JournalInterceptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +48,7 @@ public class ProgressionCodeController {
 
     /** Corps : { chapitre, score, total } ; garde la meilleure note et le nombre de tentatives. */
     @PostMapping("/api/eleve/code/progression")
-    public ProgressionCode enregistrer(@RequestBody Map<String, Object> body, Authentication auth) {
+    public ProgressionCode enregistrer(@RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
         Eleve e = eleve(auth);
         String chapitre = String.valueOf(body.get("chapitre"));
         int score = ((Number) body.getOrDefault("score", -1)).intValue();
@@ -62,7 +64,12 @@ public class ProgressionCodeController {
         p.setReussi(p.isReussi() || score >= Math.ceil(SEUIL * total));
         p.setTentatives(p.getTentatives() + 1);
         p.setDerniereTentative(LocalDateTime.now());
-        return progressionRepository.save(p);
+        ProgressionCode saved = progressionRepository.save(p);
+        // Journal : la note de cet essai, en plus de la meilleure
+        http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "chapitre « " + chapitre.replace('-', ' ') + " » · " + score + "/" + total
+                + (saved.getMeilleurScore() * total != score * saved.getTotal() ? " (meilleure note " + saved.getMeilleurScore() + "/" + saved.getTotal() + ")" : "")
+                + (saved.isReussi() ? " · validé" : ""));
+        return saved;
     }
 
     @GetMapping("/api/eleves/{id}/progression-code")
