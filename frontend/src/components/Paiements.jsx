@@ -48,6 +48,7 @@ export default function Paiements({ onEleveClick }) {
   const [periode, setPeriode]         = useState('')   // '' | 'jour' | 'semaine' | 'mois'
   const [vue, setVue]                 = useState('versements')   // 'versements' | 'soldes'
   const [rechSolde, setRechSolde]     = useState('')
+  const [rechVers, setRechVers]       = useState('')   // recherche dans les versements, toutes dates
 
   const load = async () => {
     setLoading(true)
@@ -130,7 +131,10 @@ export default function Paiements({ onEleveClick }) {
   ]
   const dansPeriode = (p, v) => PERIODES.find(x => x.v === v).dans(p.date)
   const encaisse = v => list.filter(p => p.statut === 'PAYE' && dansPeriode(p, v)).reduce((s, p) => s + Number(p.montant), 0)
-  const affiches = list.filter(p => dansPeriode(p, periode))
+  // Recherche par élève (prénom, nom, téléphone), référence, transaction ou note : retrouve un
+  // versement quelle que soit sa date (l'acompte est daté du jour d'inscription).
+  const correspondVers = p => correspond([p.eleve?.prenom, p.eleve?.nom, p.eleve?.telephone, p.reference, p.transactionId, p.description], rechVers)
+  const affiches = list.filter(p => dansPeriode(p, periode) && (!rechVers.trim() || correspondVers(p)))
 
   // Par élève : acompte (1re tranche payée) et total payé, pour les colonnes Acompte / Reliquat / Total.
   const parEleve = {}
@@ -299,6 +303,12 @@ export default function Paiements({ onEleveClick }) {
       })()}
 
       {vue === 'versements' && <>
+      {/* ── Recherche dans les versements ────────────────────── */}
+      <div className="bg-white rounded-2xl p-3 flex flex-wrap items-center gap-2" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.06)', border: '1px solid #eef2f7' }}>
+        <Recherche value={rechVers} onChange={v => { setRechVers(v); setPage(1) }} placeholder="Élève, téléphone, référence, transaction…" />
+        {rechVers.trim() && <span className="text-xs font-semibold text-slate-500">{affiches.length} versement{affiches.length !== 1 ? 's' : ''} trouvé{affiches.length !== 1 ? 's' : ''}{periode ? ` · ${PERIODES.find(x => x.v === periode).label.toLowerCase()}` : ' · toutes les dates'}</span>}
+      </div>
+
       {/* ── Filtres de période ───────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {PERIODES.map(o => {
@@ -370,7 +380,7 @@ export default function Paiements({ onEleveClick }) {
                 <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: '#f1f5f9' }}>
                   <i className="bi bi-receipt" style={{ fontSize: '1.4rem', color: '#94a3b8' }} />
                 </div>
-                <div className="text-sm font-medium text-slate-400">{periode ? 'Aucun paiement sur cette période' : 'Aucun paiement enregistré'}</div>
+                <div className="text-sm font-medium text-slate-400">{rechVers.trim() ? 'Aucun versement ne correspond à la recherche' + (periode ? ' sur cette période' : '') : periode ? 'Aucun paiement sur cette période' : 'Aucun paiement enregistré'}</div>
               </div>
             ) : groupes.map(g => (
               <div key={g.date}>

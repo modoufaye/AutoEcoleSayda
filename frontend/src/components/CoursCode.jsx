@@ -226,6 +226,24 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
 }
 
 
+/* Auteurs des dessins de panneaux : la licence CC BY-SA demande de les citer. Discret : un mot
+   « Crédits » qui les affiche au clic. */
+function Credits() {
+  const [ouvert, setOuvert] = useState(false)
+  return (
+    <div className="text-center">
+      <button type="button" onClick={() => setOuvert(o => !o)} className="bg-transparent border-0 p-0 cursor-pointer text-[11px] text-slate-400 hover:text-slate-500">
+        <i className="bi bi-info-circle me-1" />Crédits
+      </button>
+      {ouvert && (
+        <p className="text-[11px] text-slate-400 m-0 mt-1">
+          Dessins des panneaux : Wikimedia Commons, licences <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer" className="text-slate-400">CC BY-SA</a> (Roulex 45, Gigillo83, Jcrovetti, Grondin et contributeurs).
+        </p>
+      )}
+    </div>
+  )
+}
+
 const btnRetour = (onClick, libelle) => (
   <button type="button" onClick={onClick} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>{libelle}</button>
 )
@@ -377,9 +395,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
           )
         })}
       </div>
-      <p className="text-[11px] text-slate-400 text-center m-0">
-        Dessins des panneaux : Wikimedia Commons, licences <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer" className="text-slate-400">CC BY-SA</a> (auteurs : Roulex 45, Gigillo83, Jcrovetti, Grondin et contributeurs).
-      </p>
+      <Credits />
     </div>
   )
 }
