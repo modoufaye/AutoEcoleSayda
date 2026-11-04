@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * Trace dans le journal chaque modification réussie (POST, PUT, PATCH, DELETE sous /api) faite
- * par le super admin, un administrateur, le secrétariat ou un élève. Avant l'action, on note l'élément visé
+ * par le super admin, un administrateur, le secrétariat, un moniteur ou un élève. Avant l'action, on note l'élément visé
  * par l'identifiant du chemin (il existe encore s'il va être supprimé) ; après, on préfère l'élément
  * renvoyé par le serveur (nom d'un élève créé, montant d'un paiement modifié).
  */

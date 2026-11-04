@@ -19,8 +19,8 @@ import java.util.*;
 
 /**
  * Lecture du journal des actions (SecurityConfig : super admin et administrateurs).
- * Le super admin voit tout ; un administrateur voit ses propres actions, celles du secrétariat et
- * celles des élèves (filtré ici, pas seulement à l'écran).
+ * Le super admin voit tout ; un administrateur voit ses propres actions, celles du secrétariat,
+ * des moniteurs et des élèves (filtré ici, pas seulement à l'écran).
  */
 @RestController
 @RequestMapping("/api/journal")
@@ -29,7 +29,7 @@ public class JournalController {
 
     private static final int TAILLE = 30;
     /** Rôles dont un administrateur voit les actions, en plus des siennes. */
-    private static final Set<RoleUser> VUS_PAR_ADMIN = Set.of(RoleUser.SECRETAIRE, RoleUser.ELEVE);
+    private static final Set<RoleUser> VUS_PAR_ADMIN = Set.of(RoleUser.SECRETAIRE, RoleUser.MONITEUR, RoleUser.ELEVE);
 
     private final JournalActionRepository journalRepository;
 

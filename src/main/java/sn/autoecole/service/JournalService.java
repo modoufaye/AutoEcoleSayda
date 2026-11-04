@@ -17,7 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Journal des actions du super admin, des administrateurs, du secrétariat et des élèves.
+ * Journal des actions du super admin, des administrateurs, du secrétariat, des moniteurs et des élèves.
  * Rempli par JournalInterceptor (toute requête de modification réussie) et par AuthService
  * (connexions). On n'y garde que le libellé de l'action et le nom de l'élément concerné,
  * jamais le contenu des formulaires (mots de passe, pièces…).
@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 public class JournalService {
 
     /** Rôles dont les actions sont tracées. */
-    public static final Set<RoleUser> ROLES_TRACES = Set.of(RoleUser.SUPER_ADMIN, RoleUser.ADMIN, RoleUser.SECRETAIRE, RoleUser.ELEVE);
+    public static final Set<RoleUser> ROLES_TRACES = Set.of(RoleUser.SUPER_ADMIN, RoleUser.ADMIN, RoleUser.SECRETAIRE, RoleUser.MONITEUR, RoleUser.ELEVE);
 
     private static final Pattern ID = Pattern.compile("/\\d+(?=/|$)");
 
@@ -96,6 +96,7 @@ public class JournalService {
             {"POST /api/moniteur/seances", "Ajout d'une séance de cours"},
             {"PUT /api/moniteur/seances/{id}", "Modification d'une séance de cours"},
             {"DELETE /api/moniteur/seances/{id}", "Suppression d'une séance de cours"},
+            {"PUT /api/moniteur/profil", "Modification de son profil"},
             {"POST /api/moniteur/upload/image", null},
             {"POST /api/moniteur/upload/audio", null},
             {"POST /api/moniteur/upload/video", null},
@@ -126,6 +127,8 @@ public class JournalService {
     private final UserRepository userRepository;
     private final CoursRepository coursRepository;
     private final DemandeInscriptionRepository demandeRepository;
+    private final SeanceRepository seanceRepository;
+    private final ExerciceTDRepository exerciceTDRepository;
 
     public static boolean estTrace(User u) {
         return u != null && ROLES_TRACES.contains(u.getRole());
@@ -181,6 +184,8 @@ public class JournalService {
                 case "lecons" -> leconRepository::findById;
                 case "cours" -> coursRepository::findById;
                 case "demandes-inscription" -> demandeRepository::findById;
+                case "moniteur/seances" -> seanceRepository::findById;
+                case "moniteur/exercices-td" -> exerciceTDRepository::findById;
                 case "admin/secretaires", "admin/administrateurs", "comptes-bloques" -> userRepository::findById;
                 default -> null;
             };
@@ -202,6 +207,10 @@ public class JournalService {
                 + (x.getEleve() != null ? " · " + decrire(x.getEleve()) : "");
         if (o instanceof Lecon l) return "leçon du " + l.getDate() + (l.getEleve() != null ? " · " + decrire(l.getEleve()) : "");
         if (o instanceof Cours c) return c.getTitre();
+        if (o instanceof Seance s) return "« " + s.getTitre() + " »" + (s.getDateHeure() != null ? " · " + s.getDateHeure().toLocalDate() : "");
+        if (o instanceof sn.autoecole.dto.SeanceResponse s) return "« " + s.titre() + " »" + (s.dateHeure() != null ? " · " + s.dateHeure().toLocalDate() : "");
+        if (o instanceof ExerciceTD x) return "« " + x.getTitre() + " »";
+        if (o instanceof QuestionTD q) return q.getExercice() != null ? "question du travail dirigé « " + q.getExercice().getTitre() + " »" : null;
         if (o instanceof ProgressionCode pc) return "chapitre « " + pc.getChapitre().replace('-', ' ') + " » · meilleure note "
                 + pc.getMeilleurScore() + "/" + pc.getTotal() + (pc.isReussi() ? " · validé" : "");
         if (o instanceof DemandeInscription d) return nomComplet(d.getPrenom(), d.getNom());

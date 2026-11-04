@@ -6,12 +6,13 @@ import Pagination from './Pagination'
 import { EnteteListe, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser, ListeVide, ListeChargement } from './ListeModerne'
 
 /* Journal des actions (super admin et administrateurs). Le serveur ne renvoie à un administrateur
-   que ses propres actions, celles du secrétariat et celles des élèves ; le super admin voit tout. */
+   que ses propres actions, celles du secrétariat, des moniteurs et des élèves ; le super admin voit tout. */
 
 const ROLES = {
   SUPER_ADMIN: { label: 'Super admin', fond: '#fef3c7', couleur: '#92400e' },
   ADMIN:       { label: 'Administrateur', fond: '#e0f2fe', couleur: '#075985' },
   SECRETAIRE:  { label: 'Secrétariat', fond: '#f3e8ff', couleur: '#6b21a8' },
+  MONITEUR:    { label: 'Moniteur', fond: '#ffedd5', couleur: '#9a3412' },
   ELEVE:       { label: 'Élève', fond: '#dcfce7', couleur: '#166534' },
 }
 
@@ -80,7 +81,7 @@ export default function Journal() {
         </Filtre>
         <Filtre icone="shield" value={filtres.role} onChange={v => changer('role', v)}>
           <option value="">Tous les rôles</option>
-          {(superAdmin ? ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE', 'ELEVE'] : ['ADMIN', 'SECRETAIRE', 'ELEVE']).map(r =>
+          {(superAdmin ? ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE', 'MONITEUR', 'ELEVE'] : ['ADMIN', 'SECRETAIRE', 'MONITEUR', 'ELEVE']).map(r =>
             <option key={r} value={r}>{r === 'ADMIN' && !superAdmin ? 'Mes actions' : ROLES[r].label}</option>)}
         </Filtre>
         <FiltreDate libelle="Du" value={filtres.du} onChange={v => changer('du', v)} />
@@ -90,7 +91,7 @@ export default function Journal() {
 
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone="journal-text" titre="Journal des actions"
-          sousTitre={superAdmin ? 'Toutes les actions des administrateurs, du secrétariat et des élèves' : 'Vos actions, celles du secrétariat et celles des élèves'}
+          sousTitre={superAdmin ? 'Toutes les actions des administrateurs, du secrétariat, des moniteurs et des élèves' : 'Vos actions, celles du secrétariat, des moniteurs et des élèves'}
           nombre={donnees.total} />
         {chargement && donnees.entrees.length === 0 ? <ListeChargement />
           : donnees.entrees.length === 0 ? <ListeVide texte={actifs ? 'Aucune action ne correspond aux filtres' : 'Aucune action enregistrée pour le moment'} icone="journal-text" />
