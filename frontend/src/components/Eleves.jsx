@@ -159,9 +159,13 @@ function TabExamens({ examens }) {
 /* ─── Onglet Paiements ──────────────────────────────────── */
 const EMPTY_PAY = { date: new Date().toISOString().slice(0,10), montant: '', statut: 'PAYE', description: '' }
 
-function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }) {
+/* Versements de l'élève : ajout, modification (formulaire prérempli) et suppression d'un
+   versement saisi par erreur. Supprimer est réservé à l'admin, comme sur la page Paiements
+   (refusé aussi par le serveur) ; le secrétariat peut modifier ou passer en « Annulé ». */
+function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh, isAdmin }) {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm]         = useState(EMPTY_PAY)
+  const [editId, setEditId]     = useState(null)
   const [saving, setSaving]     = useState(false)
 
   const total    = montantTotal != null ? Number(montantTotal) : null
@@ -171,18 +175,33 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }
 
   // Nouveau versement : le reliquat est proposé d'office ; la tranche est attribuée par le serveur.
   const ouvrirForm = () => {
-    if (showForm) { setShowForm(false); return }
+    if (showForm) { setShowForm(false); setEditId(null); return }
+    setEditId(null)
     setForm({ ...EMPTY_PAY, montant: reliquat > 0 ? String(reliquat) : '' })
     setShowForm(true)
+  }
+  const modifier = (p) => {
+    setEditId(p.id)
+    setForm({ date: p.date, montant: String(p.montant), statut: p.statut, description: p.description || '' })
+    setShowForm(true)
+  }
+  const supprimer = async (p) => {
+    const ok = await confirmer({ titre: 'Supprimer ce versement ?', ton: 'danger', libelle: 'Supprimer',
+      details: [['Montant', fmtMontant(p.montant)], ['Date', fmtDate(p.date)], ['Référence', p.reference || '—']],
+      message: "Il disparaîtra de la caisse et de la fiche de l'élève. Cette action est définitive." })
+    if (!ok) return
+    try { await api('DELETE', `/paiements/${p.id}`); toast('Versement supprimé'); if (editId === p.id) { setShowForm(false); setEditId(null) }; onRefresh() }
+    catch (e) { toast(e.message, 'danger') }
   }
 
   const save = async () => {
     if (!form.date || !form.montant) { toast('Remplissez tous les champs obligatoires', 'warning'); return }
     setSaving(true)
     try {
-      await api('POST', '/paiements', { ...form, eleveId, montant: parseFloat(form.montant) })
-      toast('Versement ajouté')
-      setShowForm(false); setForm(EMPTY_PAY)
+      const data = { ...form, eleveId, montant: parseFloat(form.montant), description: form.description || null }
+      if (editId) { await api('PUT', `/paiements/${editId}`, data); toast('Versement modifié') }
+      else { await api('POST', '/paiements', data); toast('Versement ajouté') }
+      setShowForm(false); setForm(EMPTY_PAY); setEditId(null)
       onRefresh()
     } catch (e) { toast(e.message, 'danger') }
     finally { setSaving(false) }
@@ -223,7 +242,8 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }
 
       {/* Formulaire inline */}
       {showForm && (
-        <div className="mx-5 mb-3 p-4 rounded-xl" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+        <div className="mx-5 mb-3 p-4 rounded-xl" style={{ background: editId ? '#eff6ff' : '#f8fafc', border: `1.5px solid ${editId ? '#bfdbfe' : '#e2e8f0'}` }}>
+          {editId && <div className="text-xs font-bold mb-2" style={{ color: '#1d4ed8' }}><i className="bi bi-pencil-fill me-1" />Modification du versement {paiements.find(p => p.id === editId)?.reference}</div>}
           <div className="row g-2">
             <div className="col-md-4">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Date *</label>
@@ -271,20 +291,34 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh }
           <table className="w-full text-sm table-cards">
             <thead>
               <tr className="bg-slate-50">
-                {['Réf.','Date','Type','Montant','Statut','Notes'].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">{h}</th>
+                {['Date','Type','Montant','Statut',''].map(h => (
+                  <th key={h} className={`text-left px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider${h ? '' : ' sticky right-0 bg-slate-50'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {paiements.map(p => (
                 <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-slate-400 text-xs cell-title">{p.reference}</td>
-                  <td className="px-4 py-3 text-slate-500" data-label="Date">{fmtDate(p.date)}</td>
-                  <td className="px-4 py-3" data-label="Type"><Badge value={p.typePaiement} map={BADGES.type_paiement} /></td>
-                  <td className="px-4 py-3 font-semibold text-slate-700" data-label="Montant">{fmtMontant(p.montant)}</td>
+                  {/* Référence sous la date et notes sous le type : moins de colonnes, boutons toujours visibles */}
+                  <td className="px-4 py-3 text-slate-500 cell-title whitespace-nowrap">{fmtDate(p.date)}
+                    <div className="text-[11px] text-slate-400 font-normal">{p.reference}</div></td>
+                  <td className="px-4 py-3" data-label="Type"><Badge value={p.typePaiement} map={BADGES.type_paiement} />
+                    {p.description && <div className="text-xs text-slate-400 mt-1">{p.description}</div>}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap" data-label="Montant">{fmtMontant(p.montant)}</td>
                   <td className="px-4 py-3" data-label="Statut"><Badge value={p.statut} map={BADGES.statut_paiement} /></td>
-                  <td className="px-4 py-3 text-slate-400 text-xs" data-label="Notes">{p.description || '—'}</td>
+                  {/* Boutons accrochés au bord droit : visibles même si le tableau défile */}
+                  <td className="px-3 py-3 sticky right-0 bg-white" data-label="" style={{ boxShadow: '-8px 0 8px -8px rgba(15,34,64,.15)' }}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => modifier(p)} title="Modifier ce versement"
+                        className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eff6ff', color: '#2563eb' }}>
+                        <i className="bi bi-pencil-fill" style={{ fontSize: '.75rem' }} />
+                      </button>
+                      {isAdmin && <button onClick={() => supprimer(p)} title="Supprimer ce versement"
+                        className="w-8 h-8 flex items-center justify-center border-0 cursor-pointer" style={{ borderRadius: 999, background: '#fee2e2', color: '#b91c1c' }}>
+                        <i className="bi bi-trash-fill" style={{ fontSize: '.75rem' }} />
+                      </button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1789,7 +1823,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <>
                   {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} />}
                   {activeTab === 'examens'   && <TabExamens   examens={profileData.examens} />}
-                  {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} montantTotal={s.montantTotal} eleveId={s.id} onRefresh={() => openProfile(s, 'paiements')} />}
+                  {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} montantTotal={s.montantTotal} eleveId={s.id} isAdmin={isAdmin} onRefresh={() => openProfile(s, 'paiements')} />}
                 </>
               )}
             </div>
