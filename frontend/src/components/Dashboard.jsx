@@ -4,6 +4,7 @@ import { fmtMontant } from '../utils'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import ComptesBloques from './ComptesBloques'
+import DemandesInscription from './DemandesInscription'
 import RepartitionLocalites from './RepartitionLocalites'
 import '../landing.css'
 
@@ -302,6 +303,8 @@ function DashboardAdmin({ stats, user }) {
 
       {/* Comptes bloqués après 5 essais faux : en tête, pour les débloquer sur demande */}
       <ComptesBloques />
+      {/* Inscriptions faites en ligne, à vérifier et approuver */}
+      <DemandesInscription />
 
       {/* ══ BANNIÈRE ══════════════════════════════════════════ */}
       <div className="rounded-2xl overflow-hidden relative"

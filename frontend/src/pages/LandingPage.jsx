@@ -243,10 +243,10 @@ function Hero() {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                to="/login"
+                to="/inscription"
                 className="inline-flex items-center justify-center gap-2 bg-[#d4a017] hover:bg-[#f0bb2a] text-white font-bold px-8 py-4 rounded-full transition-all duration-200 no-underline text-base shadow-lg"
               >
-                Commencer ma formation
+                S'inscrire en ligne
                 <ArrowIcon />
               </Link>
               <a
@@ -582,11 +582,17 @@ function CtaBanner() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            to="/login"
+            to="/inscription"
             className="inline-flex items-center justify-center gap-2 bg-[#1e3a5f] hover:bg-[#142a47] text-white font-bold px-8 py-4 rounded-full transition-all duration-200 no-underline text-base shadow-lg"
           >
-            Accéder à mon espace
+            S'inscrire en ligne
             <ArrowIcon />
+          </Link>
+          <Link
+            to="/login"
+            className="inline-flex items-center justify-center gap-2 bg-white/80 hover:bg-white text-[#1e3a5f] font-bold px-8 py-4 rounded-full transition-all duration-200 no-underline text-base shadow-lg"
+          >
+            Accéder à mon espace
           </Link>
           <a
             href="#contact"

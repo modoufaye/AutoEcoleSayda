@@ -4,6 +4,7 @@ import PrivateRoute from './components/PrivateRoute'
 import AppLayout from './layouts/AppLayout'
 import LoginPage from './pages/LoginPage'
 import LandingPage from './pages/LandingPage'
+import InscriptionEnLigne from './pages/InscriptionEnLigne'
 import Forbidden from './pages/Forbidden'
 
 function DashboardRouter() {
@@ -26,6 +27,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login"        element={<LoginPage />} />
+        <Route path="/inscription"  element={<InscriptionEnLigne />} />
         <Route path="/403"          element={<Forbidden />} />
         <Route path="/dashboard/*"  element={<DashboardRouter />} />
         <Route path="/"             element={<LandingPage />} />

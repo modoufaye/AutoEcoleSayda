@@ -46,6 +46,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register").hasRole("SUPER_ADMIN")
                 // Routes publiques
                 .requestMatchers("/api/auth/**").permitAll()
+                // Formulaire public « S'inscrire en ligne » (page d'accueil) et ses informations
+                .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 // Page d'erreur Spring : sinon un 403/500 est réécrit en 401 lors du forward
                 // vers /error, et le frontend déconnecte l'utilisateur à tort.
@@ -87,6 +89,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
+                // Demandes d'inscription en ligne : approuvées ou refusées par l'admin ou le secrétariat.
+                .requestMatchers("/api/demandes-inscription/**", "/api/demandes-inscription").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Débloquer un compte (5 mots de passe faux) : admin, et secrétariat pour élèves et moniteurs.
                 .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Statistiques globales (dont le total encaissé) : pas pour les élèves.
