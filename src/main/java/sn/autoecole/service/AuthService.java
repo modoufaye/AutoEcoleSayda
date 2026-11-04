@@ -72,7 +72,7 @@ public class AuthService {
         }
 
         // Admin et secrétariat : 10 caractères au moins ; un mot de passe plus court doit être changé tout de suite
-        boolean aChanger = (user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.SECRETAIRE)
+        boolean aChanger = (user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.ADMIN || user.getRole() == RoleUser.SECRETAIRE)
                 && request.getMotDePasse().length() < MDP_MIN_GESTION;
         return new AuthResponse(token, nomAffiche, user.getEmail(), user.getRole(), aChanger);
     }

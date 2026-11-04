@@ -61,7 +61,7 @@ export function msgBienvenueAdmin(identifiants, ecole) {
   return [
     `Bonjour ${identifiants.nom.split(' ')[0]} 👋`,
     '',
-    `Votre compte administrateur ${nom} est prêt : ${window.location.origin}`,
+    `Votre compte ${identifiants.role === 'SUPER_ADMIN' ? 'super admin' : 'administrateur'} ${nom} est prêt : ${window.location.origin}`,
     `Identifiant : ${identifiants.identifiant}`,
     `Mot de passe : ${identifiants.motDePasse}`,
     '',

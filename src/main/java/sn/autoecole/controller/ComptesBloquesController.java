@@ -46,7 +46,7 @@ public class ComptesBloquesController {
     }
 
     private static boolean peutDebloquer(Authentication auth, User u) {
-        boolean admin = auth.getAuthorities().stream().anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()));
+        boolean admin = auth.getAuthorities().stream().anyMatch(a -> "ROLE_SUPER_ADMIN".equals(a.getAuthority()) || "ROLE_ADMIN".equals(a.getAuthority()));
         return admin || POUR_SECRETARIAT.contains(u.getRole());
     }
 }

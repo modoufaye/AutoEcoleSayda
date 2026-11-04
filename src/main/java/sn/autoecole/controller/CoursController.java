@@ -30,7 +30,7 @@ public class CoursController {
        Fermés aux élèves et aux autres moniteurs (contrôlé ici, pas seulement en masquant le menu). */
     private boolean aAcces(Authentication auth) {
         if (auth == null) return false;
-        if (aRole(auth, "ROLE_SUPER_ADMIN")) return true;
+        if (aRole(auth, "ROLE_SUPER_ADMIN") || aRole(auth, "ROLE_ADMIN")) return true;
         if (!aRole(auth, "ROLE_MONITEUR")) return false;
         return moniteurRepository.findFirstByTelephone(auth.getName())
                 .map(m -> Boolean.TRUE.equals(m.getAccesCoursCode()))

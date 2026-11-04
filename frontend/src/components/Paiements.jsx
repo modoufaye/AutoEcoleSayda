@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtMontant, correspond } from '../utils'
+import { fmtDate, fmtMontant, correspond, estAdmin } from '../utils'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import Pagination from './Pagination'
@@ -36,7 +36,7 @@ const MOYEN_P = {
 
 export default function Paiements({ onEleveClick }) {
   const { user } = useAuth()
-  const isAdmin = user?.role === 'SUPER_ADMIN'
+  const isAdmin = estAdmin(user?.role)
   const [list, setList]               = useState([])
   const [totalEncaisse, setTotalEncaisse] = useState(null)
   const [form, setForm]               = useState(EMPTY)

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond, estAdmin } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -746,7 +746,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
   // Suppression définitive (fiche, et pour un perfectionnement abandonné ses paiements) : admin seulement
-  const isAdmin = user?.role === 'SUPER_ADMIN'
+  const isAdmin = estAdmin(user?.role)
 
   const [list, setList]           = useState([])
   const [moniteurs, setMoniteurs] = useState([])

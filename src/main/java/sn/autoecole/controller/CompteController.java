@@ -47,7 +47,7 @@ public class CompteController {
         var user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         // Admin et secrétariat : 10 caractères au moins ; moniteurs : 6
-        int min = user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.SECRETAIRE ? AuthService.MDP_MIN_GESTION : 6;
+        int min = user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.ADMIN || user.getRole() == RoleUser.SECRETAIRE ? AuthService.MDP_MIN_GESTION : 6;
         if (ancien == null || nouveau == null || nouveau.length() < min)
             return ResponseEntity.badRequest().body(Map.of("erreur", "Le nouveau mot de passe doit faire au moins " + min + " caractères"));
 

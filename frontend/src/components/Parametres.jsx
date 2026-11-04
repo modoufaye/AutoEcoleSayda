@@ -3,6 +3,7 @@ import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import ComptesSecretariat from './ComptesSecretariat'
+import { useAuth } from '../context/AuthContext'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 const inputCls = 'form-control'
@@ -66,6 +67,7 @@ function UploadZone({ label, value, onUploaded, accept = 'image/*' }) {
 }
 
 export default function Parametres() {
+  const { user } = useAuth()
   const [form, setForm] = useState({
     nom: '', adresse: '', telephone: '', email: '',
     logoUrl: '', signatureUrl: '',
@@ -327,8 +329,9 @@ export default function Parametres() {
         </div>
       </div>
 
-      {/* Comptes administrateurs et du secrétariat : enregistrés tout de suite, indépendants du bouton Sauvegarder */}
-      <ComptesSecretariat type="admin" />
+      {/* Comptes administrateurs et du secrétariat : enregistrés tout de suite, indépendants du bouton Sauvegarder.
+          Les comptes administrateurs ne se gèrent que par le super admin (refusé aussi par le serveur). */}
+      {user?.role === 'SUPER_ADMIN' && <ComptesSecretariat type="admin" />}
       <ComptesSecretariat />
 
       {/* Bouton Sauvegarder */}

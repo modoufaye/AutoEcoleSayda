@@ -2,10 +2,15 @@
    Sert à la redirection après connexion et à la navigation entre sections. */
 export const ROLE_BASE = {
   SUPER_ADMIN: '/dashboard/admin',
+  ADMIN:       '/dashboard/admin',
   MONITEUR:    '/dashboard/moniteur',
   ELEVE:       '/dashboard/eleve',
   SECRETAIRE:  '/dashboard/secretariat',
 }
+
+/* Super admin ou administrateur : mêmes écrans et mêmes droits, sauf la gestion des comptes
+   administrateurs (super admin seulement, voir Parametres et AdministrateurController). */
+export const estAdmin = role => role === 'SUPER_ADMIN' || role === 'ADMIN'
 
 export function fmtDate(s) {
   if (!s) return '-'

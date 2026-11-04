@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 
-const ROLES = { ELEVE: 'Élève', MONITEUR: 'Moniteur', SECRETAIRE: 'Secrétariat', SUPER_ADMIN: 'Administrateur' }
+const ROLES = { ELEVE: 'Élève', MONITEUR: 'Moniteur', SECRETAIRE: 'Secrétariat', SUPER_ADMIN: 'Super admin', ADMIN: 'Administrateur' }
 
 /* Comptes bloqués après 5 mots de passe faux (tableau de bord de l'admin et du secrétariat).
    Rien ne s'affiche tant qu'aucun compte n'est bloqué. Le serveur ne renvoie à la secrétaire

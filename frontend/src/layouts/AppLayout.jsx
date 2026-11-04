@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { ROLE_BASE } from '../utils'
+import { ROLE_BASE, estAdmin } from '../utils'
 import { useToastManager, ToastContainer } from '../components/Toast'
 import { api } from '../api'
 import { toast } from '../components/Toast'
@@ -26,22 +26,22 @@ import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
-  { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
-  { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
-  { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN'] },
-  { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
-  { key: 'cours',            label: 'Cours Code',       icon: 'sign-turn-right-fill',  color: '#fbbf24', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE'] },
-  { key: 'lecons',           label: 'Cours Conduite',   icon: 'calendar2-check',       color: '#f472b6', roles: ['SUPER_ADMIN', 'MONITEUR', 'ELEVE', 'SECRETAIRE'] },
-  { key: 'seances-moniteur', label: 'Séances de cours',  icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR', 'SUPER_ADMIN', 'SECRETAIRE'] },
+  { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN', 'ADMIN'] },
+  { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'cours',            label: 'Cours Code',       icon: 'sign-turn-right-fill',  color: '#fbbf24', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'ELEVE'] },
+  { key: 'lecons',           label: 'Cours Conduite',   icon: 'calendar2-check',       color: '#f472b6', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'ELEVE', 'SECRETAIRE'] },
+  { key: 'seances-moniteur', label: 'Séances de cours',  icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR', 'SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'] },
   { key: 'seances-eleve',    label: 'Mes Séances',      icon: 'play-circle-fill',      color: '#06b6d4', roles: ['ELEVE'] },
-  { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ELEVE', 'SECRETAIRE'] },
-  { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN', 'SECRETAIRE'] },
+  { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ADMIN', 'ELEVE', 'SECRETAIRE'] },
+  { key: 'paiements',        label: 'Paiements',        icon: 'cash-stack',            color: '#4ade80', roles: ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'] },
   { key: 'mes-paiements',   label: 'Mes Paiements',    icon: 'cash-stack',            color: '#4ade80', roles: ['ELEVE'] },
-  { key: 'td-admin',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['SUPER_ADMIN', 'SECRETAIRE'] },
+  { key: 'td-admin',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'] },
   { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
-  { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'MONITEUR', 'SECRETAIRE'] },
-  { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN'] },
+  { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN', 'ADMIN'] },
 ]
 
 const COMPONENTS = {
@@ -87,11 +87,11 @@ export default function AppLayout() {
      fermés aux élèves. Le serveur le contrôle aussi ; ici on masque seulement le menu.
      null = réponse pas encore reçue : on garde la page accessible (lien direct d'un moniteur autorisé)
      mais on n'affiche l'entrée du menu qu'une fois l'accès confirmé. */
-  const [accesCours, setAccesCours] = useState(user?.role === 'SUPER_ADMIN' ? true : null)
+  const [accesCours, setAccesCours] = useState(estAdmin(user?.role) ? true : null)
   // Secrétariat : mêmes écrans que l'admin (vue de toutes les séances, Retour…), sans les droits sensibles
-  const gestion = user?.role === 'SUPER_ADMIN' || user?.role === 'SECRETAIRE'
+  const gestion = estAdmin(user?.role) || user?.role === 'SECRETAIRE'
   useEffect(() => {
-    if (!user || user.role === 'SUPER_ADMIN') return
+    if (!user || estAdmin(user.role)) return
     api('GET', '/cours/acces').then(r => setAccesCours(!!r?.acces)).catch(() => setAccesCours(false))
   }, [user])
 

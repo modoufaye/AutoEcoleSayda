@@ -21,7 +21,7 @@ const TYPES = {
   },
   admin: {
     route: '/admin/administrateurs', icone: 'bi-shield-lock-fill', titre: 'Comptes administrateurs', message: msgBienvenueAdmin,
-    sousTitre: 'Tous les droits, comme vous : paiements, suppressions, paramètres et comptes · à réserver aux personnes de confiance',
+    sousTitre: 'Administrateur : tous les droits sauf les comptes administrateurs · Super admin : tous les droits, comme vous',
     suppression: 'Cette personne ne pourra plus se connecter. Les données de l\'auto-école sont conservées.', pronom: 'Cette personne',
   },
 }
@@ -29,7 +29,8 @@ const TYPES = {
 export default function ComptesSecretariat({ type = 'secretariat' }) {
   const T = TYPES[type]
   const [comptes, setComptes] = useState([])
-  const [form, setForm] = useState({ nom: '', telephone: '' })
+  const formVide = { nom: '', telephone: '', ...(type === 'admin' ? { role: 'ADMIN' } : {}) }
+  const [form, setForm] = useState(formVide)
   const [identifiants, setIdentifiants] = useState(null)   // { nom, identifiant, motDePasse }
   const [busy, setBusy] = useState(false)
   const [ecole, setEcole] = useState('')
@@ -48,7 +49,7 @@ export default function ComptesSecretariat({ type = 'secretariat' }) {
     setBusy(true)
     try {
       setIdentifiants(await api('POST', T.route, form))
-      setForm({ nom: '', telephone: '' }); toast('Compte créé'); load()
+      setForm(formVide); toast('Compte créé'); load()
     } catch (e) { toast(e.message, 'danger') }
     finally { setBusy(false) }
   }
@@ -134,7 +135,7 @@ export default function ComptesSecretariat({ type = 'secretariat' }) {
                 <div key={c.id} className="d-flex flex-wrap align-items-center gap-2 px-3 py-2 rounded-xl"
                   style={{ background: '#f8fafc', border: '1px solid #e2e8f0', opacity: c.actif ? 1 : .6 }}>
                   <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                    <div className="fw-semibold text-truncate" style={{ color: '#1e293b' }}>{c.nom}{c.moi && <span className="badge ms-2" style={{ background: '#e0e7ff', color: '#3730a3' }}>vous</span>}</div>
+                    <div className="fw-semibold text-truncate" style={{ color: '#1e293b' }}>{c.nom}{c.role && <span className="badge ms-2" style={c.role === 'SUPER_ADMIN' ? { background: '#fef3c7', color: '#92400e' } : { background: '#e0f2fe', color: '#075985' }}>{c.role === 'SUPER_ADMIN' ? 'Super admin' : 'Administrateur'}</span>}{c.moi && <span className="badge ms-2" style={{ background: '#e0e7ff', color: '#3730a3' }}>vous</span>}</div>
                     <div className="text-slate-500" style={{ fontSize: '.8rem' }}>
                       <i className={`bi ${c.identifiant?.includes('@') ? 'bi-envelope' : 'bi-telephone'} me-1`} />{c.identifiant}{!c.actif && ' · désactivé'}
                     </div>
@@ -158,6 +159,24 @@ export default function ComptesSecretariat({ type = 'secretariat' }) {
 
           {/* Nouveau compte */}
           <div className="row g-3 align-items-end">
+            {type === 'admin' && (
+              <div className="col-12">
+                <label className={labelCls}>Rôle du nouveau compte</label>
+                <div className="d-flex flex-wrap gap-2">
+                  {[['ADMIN', 'Administrateur', 'Tous les droits sauf créer un administrateur ou toucher à un super admin'],
+                    ['SUPER_ADMIN', 'Super admin', 'Tous les droits, dont la gestion des comptes administrateurs']].map(([v, l, d]) => (
+                    <button key={v} type="button" onClick={() => setForm(f => ({ ...f, role: v }))}
+                      className="btn text-start flex-grow-1" style={{ borderRadius: '.75rem', minWidth: 220,
+                        border: `2px solid ${form.role === v ? '#1e3a5f' : '#e2e8f0'}`, background: form.role === v ? '#eff6ff' : '#fff' }}>
+                      <div className="fw-bold" style={{ color: '#1e293b', fontSize: '.9rem' }}>
+                        <i className={`bi ${form.role === v ? 'bi-record-circle-fill' : 'bi-circle'} me-2`} style={{ color: '#1e3a5f' }} />{l}
+                      </div>
+                      <div className="text-slate-500" style={{ fontSize: '.78rem' }}>{d}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="col-md-4">
               <label className={labelCls}>Prénom et nom</label>
               <input className="form-control" value={form.nom} placeholder="Ex : Awa Ndiaye"
