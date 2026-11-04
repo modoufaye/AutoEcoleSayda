@@ -26,47 +26,6 @@ const THEMES = [
       'Marquages au sol', 'Signalisation temporaire (travaux)', 'Signaux des agents de la circulation',
     ],
   },
-  {
-    key: 'regles', emoji: '⚖️', label: 'Règles de circulation',
-    gradient: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', border: '#142a47',
-    iconBg: 'rgba(255,255,255,.15)',
-    categories: [],
-    subtopics: [
-      'Priorités et cédez-le-passage', 'Règles aux intersections', 'Sens unique et voies de circulation',
-      'Distances de sécurité', 'Vitesses et limitations', 'Dépassement',
-      'Changement de direction (tourner à gauche/droite)', 'Marche arrière et demi-tour',
-    ],
-  },
-  {
-    key: 'conditions', emoji: '🌍', label: 'Conduite en conditions particulières',
-    gradient: 'linear-gradient(135deg,#059669,#10b981)', border: '#047857',
-    iconBg: 'rgba(255,255,255,.15)',
-    categories: [],
-    subtopics: [
-      'Conduite de nuit', 'Conduite sous la pluie', 'Conduite en ville',
-      'Conduite sur route nationale', 'Conduite sur autoroute', 'Conduite en cas de brouillard',
-    ],
-  },
-  {
-    key: 'vehicule', emoji: '🚗', label: 'Véhicule et sécurité',
-    gradient: 'linear-gradient(135deg,#d4a017,#f0bb2a)', border: '#b8860b',
-    iconBg: 'rgba(30,58,95,.2)',
-    categories: [],
-    subtopics: [
-      'Vérifications avant départ', 'Ceinture de sécurité', 'Airbags et équipements de sécurité',
-      'Pneus et freinage', 'Éclairages et signaux lumineux', 'Chargement du véhicule',
-    ],
-  },
-  {
-    key: 'secours', emoji: '🚑', label: 'Premiers secours et urgences',
-    gradient: 'linear-gradient(135deg,#0891b2,#06b6d4)', border: '#0e7490',
-    iconBg: 'rgba(255,255,255,.15)',
-    categories: [],
-    subtopics: [
-      "Comportement en cas d'accident", 'Triangle de signalisation et gilet',
-      'Gestes de premiers secours', 'Appel des secours',
-    ],
-  },
 ]
 
 const EMPTY_FORM = { titre: '', description: '', contenu: '', imageUrl: '', langue: 'FRANCAIS', categorie: '', typeContenu: 'IMAGE' }
@@ -623,7 +582,7 @@ export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }
       {/* Grille des thèmes sous un bandeau bleu nuit souligné d'or, comme « Véhicules » */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
       <EnteteListe icone="sign-turn-right-fill" titre="Cours Code de la Route"
-        sousTitre={`Maîtrisez la théorie en ${THEMES.length} grands thèmes · ${cours.length} cours`} nombre={themesVisibles.length} />
+        sousTitre={`Maîtrisez la théorie en ${THEMES.length} ${THEMES.length > 1 ? 'grands thèmes' : 'grand thème'} · ${cours.length} cours`} nombre={themesVisibles.length} />
       {themesVisibles.length === 0 && <ListeVide texte="Aucun thème trouvé" icone="search" />}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {themesVisibles.map(theme => {
