@@ -296,7 +296,11 @@ function Parcours({ theme, eleve, progression, onOuvrir, onRetour }) {
 /* ── Cours de code : choix du thème, puis son parcours, puis un chapitre ──
    `chapitre` (adresse …/cours/<clé>) est la clé d'un thème ou l'identifiant d'un chapitre,
    unique entre thèmes. Sans onOuvrirChapitre, la navigation reste interne au composant. */
-export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre }) {
+const ENTETE_CODE = { titre: 'Cours de code', decor: ['A14', 'AB4', 'B14'],
+  texte: 'Choisissez un thème : chaque chapitre a une leçon, des exemples et un quiz pour valider.' }
+
+/* themes / entete : par défaut les cours de code ; l'onglet Cours Conduite passe ses propres thèmes. */
+export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre, themes = THEMES_CODE, entete = ENTETE_CODE }) {
   const [progression, setProgression] = useState({})
   const [ouvertLocal, setOuvertLocal] = useState(null)
   const cle = onOuvrirChapitre ? chapitre : ouvertLocal
@@ -315,7 +319,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
     catch { toast('Résultat non enregistré : vérifiez votre connexion', 'warning') }
   }
 
-  const theme = THEMES_CODE.find(t => t.key === cle || t.revision.id === cle || t.chapitres.some(c => c.id === cle))
+  const theme = themes.find(t => t.key === cle || t.revision.id === cle || t.chapitres.some(c => c.id === cle))
   const tous = theme ? [...theme.chapitres, theme.revision] : []
   const idx = tous.findIndex(c => c.id === cle)
   const questionsRev = useMemo(() => theme && cle === theme.revision.id ? questionsRevision(theme.chapitres, theme.revision.nombre) : [], [cle])   // eslint-disable-line react-hooks/exhaustive-deps -- nouveau tirage à chaque ouverture
@@ -344,10 +348,9 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
   return (
     <div className="space-y-4" style={police}>
       {onRetour && <div>{btnRetour(onRetour, 'Retour')}</div>}
-      <Bandeau surtitre="AUTO-ÉCOLE KHADIJA" titre="Cours de code" decor={['A14', 'AB4', 'B14']}
-        texte="Choisissez un thème : chaque chapitre a une leçon, des exemples et un quiz pour valider." />
+      <Bandeau surtitre="AUTO-ÉCOLE KHADIJA" titre={entete.titre} decor={entete.decor} texte={entete.texte} />
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {THEMES_CODE.map(t => {
+        {themes.map(t => {
           const liste = [...t.chapitres, t.revision], valides = liste.filter(c => progression[c.id]?.reussi).length
           return (
             <button key={t.key} type="button" onClick={() => aller(t.key)}

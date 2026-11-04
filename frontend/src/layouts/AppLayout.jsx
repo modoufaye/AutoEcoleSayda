@@ -9,7 +9,7 @@ import Dashboard from '../components/Dashboard'
 import Eleves from '../components/Eleves'
 import Moniteurs from '../components/Moniteurs'
 import Vehicules from '../components/Vehicules'
-import Lecons from '../components/Lecons'
+import CoursConduite from '../components/CoursConduite'
 import Examens from '../components/Examens'
 import Paiements from '../components/Paiements'
 import Cours from '../components/Cours'
@@ -49,7 +49,7 @@ const ALL_SECTIONS = [
 const COMPONENTS = {
   'mon-espace': ElevePortail,
   dashboard: Dashboard, eleves: Eleves, moniteurs: Moniteurs,
-  vehicules: Vehicules, lecons: Lecons, cours: Cours,
+  vehicules: Vehicules, lecons: CoursConduite, cours: Cours,
   examens: Examens, paiements: Paiements, 'mes-paiements': MesPaiements,
   'seances-moniteur': SeancesMoniteur,
   'seances-eleve': SeancesEleve,

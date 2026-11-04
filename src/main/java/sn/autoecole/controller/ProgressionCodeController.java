@@ -18,8 +18,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Progression de l'élève dans les cours de code (chapitres et quiz du frontend). Sous /api/eleve :
- * réservé aux élèves ; les perfectionnements (conduite seule) n'y ont pas accès.
+ * Progression de l'élève dans les cours de code et le parcours de conduite (chapitres et quiz du
+ * frontend). Sous /api/eleve : réservé aux élèves ; les perfectionnements (conduite seule) n'ont
+ * accès qu'aux chapitres « conduite-… ».
  * L'admin et le secrétariat lisent celle d'un élève via /api/eleves/{id}/progression-code.
  */
 @RestController
@@ -35,7 +36,13 @@ public class ProgressionCodeController {
             "stationnement-revision", "eclairage-feux", "eclairage-conditions", "eclairage-revision",
             "securite-vigilance", "securite-secours", "securite-revision", "vehicule-documents",
             "vehicule-entretien", "vehicule-revision", "usagers-voie", "usagers-vulnerables",
-            "usagers-revision", "environnement-eco", "environnement-respect", "environnement-revision");
+            "usagers-revision", "environnement-eco", "environnement-respect", "environnement-revision",
+            // Parcours « Apprendre à conduire » (contenu/conduite.js), ouvert aussi aux perfectionnements
+            "conduite-prise-en-main", "conduite-boite-manuelle", "conduite-manoeuvres-parking", "conduite-manoeuvres-revision",
+            "conduite-circulation-urbaine", "conduite-carrefours-ville", "conduite-ville-revision", "conduite-route-nationale",
+            "conduite-route-depasser", "conduite-route-revision", "conduite-urgence-controle", "conduite-urgence-panne",
+            "conduite-urgence-revision", "conduite-autoroute-circuler", "conduite-autoroute-sortir", "conduite-autoroute-revision",
+            "conduite-nuit", "conduite-pluie", "conduite-conditions-revision");
     private static final double SEUIL = 0.7;
 
     private final EleveRepository eleveRepository;
@@ -43,7 +50,9 @@ public class ProgressionCodeController {
 
     @GetMapping("/api/eleve/code/progression")
     public List<ProgressionCode> maProgression(Authentication auth) {
-        return progressionRepository.findByEleveId(eleve(auth).getId());
+        Eleve e = eleve(auth);
+        return progressionRepository.findByEleveId(e.getId()).stream()
+                .filter(p -> !e.estPerfectionnement() || estConduite(p.getChapitre())).toList();
     }
 
     /** Corps : { chapitre, score, total } ; garde la meilleure note et le nombre de tentatives. */
@@ -55,6 +64,8 @@ public class ProgressionCodeController {
         int total = ((Number) body.getOrDefault("total", 0)).intValue();
         if (!CHAPITRES.contains(chapitre) || total <= 0 || total > 60 || score < 0 || score > total)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Résultat invalide");
+        if (e.estPerfectionnement() && !estConduite(chapitre))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cours de code non disponibles en perfectionnement");
         ProgressionCode p = progressionRepository.findByEleveIdAndChapitre(e.getId(), chapitre)
                 .orElseGet(() -> ProgressionCode.builder().eleveId(e.getId()).chapitre(chapitre).build());
         if (p.getTentatives() == 0 || score * (double) p.getTotal() >= p.getMeilleurScore() * (double) total) {
@@ -78,10 +89,12 @@ public class ProgressionCodeController {
     }
 
     private Eleve eleve(Authentication auth) {
-        Eleve e = eleveRepository.findFirstByTelephone(auth.getName())
+        return eleveRepository.findFirstByTelephone(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profil élève introuvable"));
-        if (e.estPerfectionnement())
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cours de code non disponibles en perfectionnement");
-        return e;
+    }
+
+    /** Chapitre du parcours de conduite : seul accessible aux élèves en perfectionnement. */
+    private static boolean estConduite(String chapitre) {
+        return chapitre != null && chapitre.startsWith("conduite-");
     }
 }
