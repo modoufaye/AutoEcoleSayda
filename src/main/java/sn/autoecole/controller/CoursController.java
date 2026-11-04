@@ -11,6 +11,7 @@ import sn.autoecole.enums.CategoriePanneau;
 import sn.autoecole.enums.Langue;
 import sn.autoecole.enums.TypeContenu;
 import sn.autoecole.repository.CoursRepository;
+import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.MoniteurRepository;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class CoursController {
 
     private final CoursRepository coursRepository;
     private final MoniteurRepository moniteurRepository;
+    private final EleveRepository eleveRepository;
 
     /* Cours de code : visibles par l'admin et par les moniteurs à qui l'admin a ouvert l'accès.
        Fermés aux élèves et aux autres moniteurs (contrôlé ici, pas seulement en masquant le menu). */
@@ -43,10 +45,14 @@ public class CoursController {
         if (!aAcces(auth)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cours de code non disponibles pour ce compte");
     }
 
-    /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. */
+    /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. Les élèves en permis
+        y ont accès pour la Signalisation (contenu du frontend, progression via /api/eleve/code) ;
+        les cours enregistrés ci-dessous leur restent fermés. */
     @GetMapping("/acces")
     public Map<String, Boolean> acces(Authentication auth) {
-        return Map.of("acces", aAcces(auth));
+        boolean eleve = auth != null && aRole(auth, "ROLE_ELEVE") && eleveRepository.findFirstByTelephone(auth.getName())
+                .map(e -> !e.estPerfectionnement()).orElse(false);
+        return Map.of("acces", eleve || aAcces(auth));
     }
 
     @GetMapping
