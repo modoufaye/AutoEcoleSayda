@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtMontant } from '../utils'
+import { fmtDate, fmtMontant, correspond } from '../utils'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import Pagination from './Pagination'
+import { Recherche } from './ListeModerne'
 import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
 import { useAuth } from '../context/AuthContext'
@@ -45,6 +46,8 @@ export default function Paiements({ onEleveClick }) {
   const [eleves, setEleves]           = useState([])
   const [page, setPage]               = useState(1)
   const [periode, setPeriode]         = useState('')   // '' | 'jour' | 'semaine' | 'mois'
+  const [vue, setVue]                 = useState('versements')   // 'versements' | 'soldes'
+  const [rechSolde, setRechSolde]     = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -138,6 +141,23 @@ export default function Paiements({ onEleveClick }) {
     if (p.typePaiement === 'TRANCHE_1') s.acompte += Number(p.montant)
   }
 
+  /* Formations soldées : élèves dont les versements payés atteignent le prix de la formation.
+     « Soldé le » = date du versement qui a fait atteindre ce prix. */
+  const soldes = []
+  {
+    const payesPar = {}
+    for (const p of list) if (p.eleve && p.statut === 'PAYE') (payesPar[p.eleve.id] ??= []).push(p)
+    for (const ps of Object.values(payesPar)) {
+      const e = ps[0].eleve, prix = Number(e.montantTotal)
+      if (!(prix > 0)) continue
+      ps.sort((x, y) => (x.date || '').localeCompare(y.date || '') || x.id - y.id)
+      let cumul = 0, le = null
+      for (const p of ps) { cumul += Number(p.montant); if (!le && cumul >= prix) le = p.date }
+      if (le) soldes.push({ eleve: e, prix, paye: cumul, le, versements: ps.length })
+    }
+    soldes.sort((x, y) => (y.le || '').localeCompare(x.le || ''))
+  }
+
   const del = async (p) => {
     const ok = await confirmer({ titre: 'Supprimer ce paiement ?', ton: 'danger', libelle: 'Supprimer', details: resume(p),
       message: "Il disparaîtra de la caisse et de la fiche de l'élève. Cette action est définitive." })
@@ -200,6 +220,85 @@ export default function Paiements({ onEleveClick }) {
         )
       })()}
 
+      {/* ── Vue : historique des versements ou formations soldées ── */}
+      <div className="flex gap-1 p-1 w-full sm:w-auto sm:inline-flex" style={{ background: '#eef2f7', borderRadius: 999 }}>
+        {[['versements', 'receipt', 'Versements', list.length], ['soldes', 'patch-check-fill', 'Formations soldées', soldes.length]].map(([v, icone, label, n]) => (
+          <button key={v} type="button" onClick={() => setVue(v)}
+            className="flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-extrabold border-0 cursor-pointer whitespace-nowrap"
+            style={{ borderRadius: 999, ...(vue === v ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }) }}>
+            <i className={`bi bi-${icone}`} style={{ color: vue === v && v === 'soldes' ? '#15803d' : undefined }} />
+            {v === 'soldes' ? <><span className="hidden sm:inline">{label}</span><span className="sm:hidden">Soldées</span></> : label}
+            <span className="text-xs px-2 py-0.5" style={{ borderRadius: 999, background: vue === v ? '#f0bb2a' : '#dbe2ec', color: '#1e3a5f' }}>{n}</span>
+          </button>
+        ))}
+      </div>
+
+      {vue === 'soldes' && (() => {
+        const q = rechSolde.trim()
+        const visibles = q ? soldes.filter(x => correspond([x.eleve.prenom, x.eleve.nom, x.eleve.telephone], q)) : soldes
+        const encaisseSoldes = soldes.reduce((s, x) => s + x.paye, 0)
+        return (
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+              style={{ background: 'linear-gradient(135deg,#0f2240 0%,#1e3a5f 60%,#2a4f7c 100%)', borderBottom: '3px solid #d4a017' }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#22c55e,#15803d)', color: '#fff' }}>
+                  <i className="bi bi-patch-check-fill" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-white leading-tight">Élèves ayant versé le montant total</div>
+                  <div className="text-xs" style={{ color: '#bfdbfe' }}>{fmtMontant(encaisseSoldes)} encaissés · du plus récent au plus ancien</div>
+                </div>
+              </div>
+              <span className="text-xs font-extrabold px-3 py-1 rounded-full flex-shrink-0" style={{ background: '#f0bb2a', color: '#1e3a5f' }}>{visibles.length}</span>
+            </div>
+            {soldes.length > 0 && <div className="px-5 py-3" style={{ borderBottom: '1.5px solid #eef2f7' }}><Recherche value={rechSolde} onChange={setRechSolde} placeholder="Prénom, nom ou téléphone…" /></div>}
+            {loading ? (
+              <div className="py-16 flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-slate-100 border-t-[#d4a017] rounded-full animate-spin" />
+                <span className="text-sm text-slate-400 font-medium">Chargement…</span>
+              </div>
+            ) : visibles.length === 0 ? (
+              <div className="py-16 text-center text-sm font-medium text-slate-400">
+                {q ? 'Aucun élève soldé ne correspond à la recherche' : 'Aucun élève n\'a encore versé le montant total de sa formation'}
+              </div>
+            ) : visibles.map(x => {
+              const e = x.eleve, nom = `${e.prenom} ${e.nom}`
+              const ini = ((e.prenom || '')[0] || '') + ((e.nom || '')[0] || '')
+              return (
+                <div key={e.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] gap-2 md:gap-5 items-center px-5 py-3.5 hover:bg-slate-50"
+                  style={{ borderBottom: '1.5px solid #dbe2ec' }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {e.photoUrl ? (
+                      <img src={e.photoUrl} alt="" className="w-11 h-11 rounded-full flex-shrink-0" style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '2px solid #22c55e' }} />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-extrabold"
+                        style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>{ini.toUpperCase()}</div>
+                    )}
+                    <div className="min-w-0">
+                      {onEleveClick
+                        ? <button onClick={() => onEleveClick(e.id)} className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">{nom}</button>
+                        : <div className="font-bold text-slate-700 truncate">{nom}</div>}
+                      <div className="text-xs text-slate-400">{e.telephone || '—'}{e.archive ? ' · archivé' : ''}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    <b className="text-slate-700 text-sm">{fmtMontant(x.paye)}</b> versés en {x.versements} fois
+                    {x.paye > x.prix && <div className="font-semibold" style={{ color: '#2563eb' }}>Trop-perçu : {fmtMontant(x.paye - x.prix)}</div>}
+                    {x.paye <= x.prix && <div>Prix de la formation : {fmtMontant(x.prix)}</div>}
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap justify-self-start md:justify-self-end"
+                    style={{ background: '#dcfce7', color: '#15803d' }}>
+                    <i className="bi bi-check-circle-fill" />Soldé le {fmtDate(x.le)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
+
+      {vue === 'versements' && <>
       {/* ── Filtres de période ───────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {PERIODES.map(o => {
@@ -386,6 +485,7 @@ export default function Paiements({ onEleveClick }) {
           </div>
         )
       })()}
+      </>}
 
       {/* ── Fenêtre ajout / modification ─────────────────────── */}
       {showModal && (() => {
