@@ -22,6 +22,7 @@ import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
 import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
 import TravauxDirigesAdmin from '../components/TravauxDirigesAdmin'
 import Parametres from '../components/Parametres'
+import Journal from '../components/Journal'
 import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
@@ -41,6 +42,7 @@ const ALL_SECTIONS = [
   { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'journal',          label: 'Journal',          icon: 'journal-text',          color: '#fda4af', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN', 'ADMIN'] },
 ]
 
@@ -56,6 +58,7 @@ const COMPONENTS = {
   'td-eleve': TravauxDirigesEleve,
   'mon-profil': MonProfil,
   'parametres': Parametres,
+  journal: Journal,
 }
 
 const MOBILE_QUERY = '(max-width: 768px)'

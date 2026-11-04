@@ -96,6 +96,8 @@ public class SecurityConfig {
                 // Débloquer un compte (5 mots de passe faux) : admin, et secrétariat pour élèves et moniteurs.
                 .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Statistiques globales (dont le total encaissé) : pas pour les élèves.
+                // Journal des actions : super admin (tout) et administrateurs (leurs actions et celles du secrétariat)
+                .requestMatchers("/api/journal", "/api/journal/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
                 // Toutes les autres routes nécessitent une authentification

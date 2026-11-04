@@ -17,6 +17,9 @@ import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.UserRepository;
 import sn.autoecole.security.JwtUtil;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class AuthService {
     private final PasswordEncoder   passwordEncoder;
     private final JwtUtil           jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final JournalService    journalService;
 
     public AuthResponse register(RegisterRequest request) {
         // Email canonique en base : la casse et les espaces parasites de saisie
@@ -62,6 +66,7 @@ public class AuthService {
             userRepository.save(user);
         }
         String token = jwtUtil.generateToken(user);
+        journalService.enregistrer(user, "Connexion", null, requete());   // gestionnaires seulement
 
         // Pour les élèves, utiliser le nom réel de l'entité Eleve
         String nomAffiche = user.getNom();
@@ -75,6 +80,10 @@ public class AuthService {
         boolean aChanger = (user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.ADMIN || user.getRole() == RoleUser.SECRETAIRE)
                 && request.getMotDePasse().length() < MDP_MIN_GESTION;
         return new AuthResponse(token, nomAffiche, user.getEmail(), user.getRole(), aChanger);
+    }
+
+    private static HttpServletRequest requete() {
+        return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes a ? a.getRequest() : null;
     }
 
     /** Longueur minimale du mot de passe d'un admin ou d'une secrétaire. */
@@ -92,6 +101,8 @@ public class AuthService {
         user.setEchecsConnexion(echecs);
         if (echecs >= User.MAX_ECHECS) user.setBloque(true);
         userRepository.save(user);
+        journalService.enregistrer(user, user.isBloque() ? "Compte bloqué après " + User.MAX_ECHECS + " mots de passe faux"
+                : "Mot de passe faux à la connexion (" + echecs + "/" + User.MAX_ECHECS + ")", null, requete());
         if (user.isBloque()) return new LockedException("Compte bloqué");
         int reste = User.MAX_ECHECS - echecs;
         return new BadCredentialsException(reste <= 2
