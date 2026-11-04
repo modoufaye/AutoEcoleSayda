@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Progression de l'élève dans la Signalisation (chapitres et quiz du frontend). Sous /api/eleve :
+ * Progression de l'élève dans les cours de code (chapitres et quiz du frontend). Sous /api/eleve :
  * réservé aux élèves ; les perfectionnements (conduite seule) n'y ont pas accès.
  * L'admin et le secrétariat lisent celle d'un élève via /api/eleves/{id}/progression-code.
  */
@@ -24,8 +24,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProgressionCodeController {
 
-    /** Chapitres connus (contenu/signalisation.js, IDS_CHAPITRES) : rien d'autre n'est enregistré. */
-    private static final Set<String> CHAPITRES = Set.of("danger", "obligation-interdiction", "indication", "lignes", "rive", "zones", "revision");
+    /** Chapitres connus (contenu/signalisation.js et contenu/priorite.js) : rien d'autre n'est enregistré. */
+    private static final Set<String> CHAPITRES = Set.of(
+            "danger", "obligation-interdiction", "indication", "lignes", "rive", "zones", "revision",
+            "priorite-regles", "priorite-feux", "priorite-situations", "priorite-revision");
     private static final double SEUIL = 0.7;
 
     private final EleveRepository eleveRepository;

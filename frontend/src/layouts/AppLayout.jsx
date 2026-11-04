@@ -349,7 +349,9 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={!gestion ? handleBack : undefined} />
             : section === 'cours'
             ? <ActiveComponent key={section} onBack={!gestion ? handleBack : undefined}
-                themeKey={detail} onOuvrirTheme={ouvrirDetail} onFermerTheme={fermerDetail} />
+                themeKey={detail} onOuvrirTheme={ouvrirDetail}
+                /* Deux niveaux (thème puis chapitre) : « Thèmes » va à la liste, pas à la page précédente */
+                onFermerTheme={() => navigate(`${base}/${section}`)} />
             : section === 'vehicules'
             ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' && canGoBack ? handleBack : undefined} />
             : section === 'mon-profil'

@@ -186,20 +186,20 @@ function melanger(liste, graine) {
 }
 const graineDe = txt => [...txt].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 100000, 7)
 
-/* Questions d'un chapitre : « Que signifie ce panneau ? » pour chaque panneau (deux autres
-   panneaux du chapitre comme mauvaises réponses), plus les questions de règles. */
+/* Questions d'un chapitre : « Que signifie ce panneau ? » (ch.question sinon) pour chaque
+   panneau du quiz (deux autres panneaux du chapitre comme mauvaises réponses), plus les questions
+   de règles, qui peuvent porter un visuel et une explication. */
 export function questionsChapitre(ch) {
-  const panneaux = ch.panneaux.map(pa => {
-    const autres = melanger(ch.panneaux.filter(x => x.id !== pa.id), graineDe(pa.id)).slice(0, 2).map(x => x.nom)
-    return { id: `${ch.id}:${pa.id}`, visuel: pa, q: 'Que signifie ce panneau ?', reponses: melanger([pa.nom, ...autres], graineDe(pa.id + 'r')), bonne: pa.nom, explication: pa.action }
+  const auQuiz = ch.panneaux.filter(pa => pa.quiz !== false)
+  const panneaux = auQuiz.map(pa => {
+    const autres = melanger(auQuiz.filter(x => x.id !== pa.id), graineDe(pa.id)).slice(0, 2).map(x => x.nom)
+    return { id: `${ch.id}:${pa.id}`, visuel: pa, q: ch.question || 'Que signifie ce panneau ?', reponses: melanger([pa.nom, ...autres], graineDe(pa.id + 'r')), bonne: pa.nom, explication: pa.action }
   })
-  const regles = ch.questions.map((x, i) => ({ id: `${ch.id}:q${i}`, q: x.q, reponses: melanger([x.ok, ...x.non], graineDe(x.q)), bonne: x.ok }))
+  const regles = ch.questions.map((x, i) => ({ id: `${ch.id}:q${i}`, visuel: x.visuel, q: x.q, reponses: melanger([x.ok, ...x.non], graineDe(x.q + i)), bonne: x.ok, explication: x.explication }))
   return [...panneaux, ...regles]
 }
 
-export function questionsRevision() {
-  const toutes = CHAPITRES.flatMap(questionsChapitre)
-  return melanger(toutes, Date.now() % 100000).slice(0, REVISION.nombre)
+/* Révision d'un thème : questions tirées de tous ses chapitres, nouveau tirage à chaque appel. */
+export function questionsRevision(chapitres = CHAPITRES, nombre = REVISION.nombre) {
+  return melanger(chapitres.flatMap(questionsChapitre), Date.now() % 100000).slice(0, nombre)
 }
-
-export const IDS_CHAPITRES = [...CHAPITRES.map(c => c.id), REVISION.id]

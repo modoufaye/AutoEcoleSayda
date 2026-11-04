@@ -268,5 +268,23 @@
   "licence": "Public domain",
   "licenceUrl": "",
   "source": "https://commons.wikimedia.org/wiki/File:France_road_sign_CE15a.svg"
+ },
+ "AB25": {
+  "auteur": "Roulex 45",
+  "licence": "CC BY-SA 3.0",
+  "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:France_road_sign_AB25.svg"
+ },
+ "AB5": {
+  "auteur": "Roulex 45",
+  "licence": "CC BY-SA 3.0",
+  "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:France_road_sign_AB5.svg"
+ },
+ "B15": {
+  "auteur": "Roulex 45",
+  "licence": "CC BY-SA 4.0",
+  "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:France_road_sign_B15.svg"
  }
 }

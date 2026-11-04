@@ -1,13 +1,13 @@
 import { useAuth } from '../context/AuthContext'
-import SignalisationCours from './SignalisationCours'
+import CoursCode from './CoursCode'
 
-/* Page « Cours Code » : seul le thème Signalisation reste, présenté en chapitres avec quiz
-   (SignalisationCours). Les anciens cours enregistrés en base ne sont plus affichés, mais restent
-   dans la base. Le chapitre ouvert est dans l'URL (…/cours/<chapitre>) quand la mise en page le gère. */
+/* Page « Cours Code » : thèmes Signalisation et Priorité, en chapitres avec quiz (CoursCode).
+   Les anciens cours enregistrés en base ne sont plus affichés, mais restent dans la base.
+   Le thème ou le chapitre ouvert est dans l'URL (…/cours/<clé>) quand la mise en page le gère. */
 export default function Cours({ onBack, themeKey, onOuvrirTheme, onFermerTheme }) {
   const { user } = useAuth()
   return (
-    <SignalisationCours eleve={user?.role === 'ELEVE'} onRetour={onBack}
+    <CoursCode eleve={user?.role === 'ELEVE'} onRetour={onBack}
       chapitre={themeKey} onOuvrirChapitre={onOuvrirTheme} onFermerChapitre={onFermerTheme} />
   )
 }

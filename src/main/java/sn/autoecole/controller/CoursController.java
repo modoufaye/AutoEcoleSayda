@@ -46,7 +46,7 @@ public class CoursController {
     }
 
     /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. Les élèves en permis
-        y ont accès pour la Signalisation (contenu du frontend, progression via /api/eleve/code) ;
+        y ont accès pour les thèmes de code (contenu du frontend, progression via /api/eleve/code) ;
         les cours enregistrés ci-dessous leur restent fermés. */
     @GetMapping("/acces")
     public Map<String, Boolean> acces(Authentication auth) {

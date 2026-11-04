@@ -2,20 +2,33 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import MarquageSol from './MarquageSol'
-import { CHAPITRES, REVISION, SEUIL_REUSSITE, questionsChapitre, questionsRevision } from '../contenu/signalisation'
+import SchemaPriorite from './SchemaPriorite'
+import { SEUIL_REUSSITE, questionsChapitre, questionsRevision } from '../contenu/signalisation'
+import { THEMES_CODE } from '../contenu/themes'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
-/* Visuel d'un panneau (dessin officiel) ou d'un marquage au sol (dessiné). */
+/* Visuel d'un panneau (dessin officiel), d'un marquage au sol ou d'un schéma de priorité (dessinés). */
 function Visuel({ item, taille = 72 }) {
   if (item.marquage) return <MarquageSol type={item.marquage} taille={taille} />
+  if (item.dessin) return <SchemaPriorite type={item.dessin} taille={taille} />
   return <img src={item.image} alt={item.nom} width={taille} height={taille} style={{ objectFit: 'contain', flexShrink: 0 }} loading="lazy" />
 }
 function IconeChapitre({ ch, taille = 46 }) {
-  return ch.icone.startsWith('marquage:')
-    ? <MarquageSol type={ch.icone.slice(9)} taille={taille} />
-    : <img src={ch.icone} alt="" width={taille} height={taille} style={{ objectFit: 'contain' }} />
+  if (ch.icone.startsWith('marquage:')) return <MarquageSol type={ch.icone.slice(9)} taille={taille} />
+  if (ch.icone.startsWith('dessin:')) return <SchemaPriorite type={ch.icone.slice(7)} taille={taille} />
+  return <img src={ch.icone} alt="" width={taille} height={taille} style={{ objectFit: 'contain' }} />
 }
+
+/* Ce que liste un chapitre : panneaux, marquages, signaux (feux, agent) ou situations. */
+function genre(ch) {
+  if (ch.situations) return 'situations'
+  if (ch.panneaux[0]?.marquage) return 'marquages'
+  if (ch.panneaux[0]?.dessin) return 'signaux'
+  return 'panneaux'
+}
+const estScene = item => !!item?.dessin?.startsWith('scene-')   // carrefour vu du dessus : affiché en grand
+const majuscule = t => t[0].toUpperCase() + t.slice(1)
 
 /* Lecture à voix haute (synthèse du navigateur, voix française si disponible). */
 function lire(texte) {
@@ -73,7 +86,7 @@ function Quiz({ questions, onFini, onSuivant, suivantLibelle }) {
         <div className="h-full rounded-full" style={{ width: `${100 * i / questions.length}%`, background: 'linear-gradient(90deg,#d4a017,#f0bb2a)', transition: 'width .3s' }} />
       </div>
       <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-        {q.visuel && <div className="bg-white rounded-2xl p-3 flex-shrink-0"><Visuel item={q.visuel} taille={110} /></div>}
+        {q.visuel && <div className="bg-white rounded-2xl p-3 flex-shrink-0"><Visuel item={q.visuel} taille={estScene(q.visuel) ? 230 : 110} /></div>}
         <div className="text-lg font-extrabold text-center sm:text-left">{q.q}</div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
@@ -104,25 +117,25 @@ function Quiz({ questions, onFini, onSuivant, suivantLibelle }) {
 }
 
 /* ── Un chapitre : Leçon · Panneaux · Quiz ── */
-function Chapitre({ ch, total, onRetour, onResultat, onSuivant, suivantLibelle }) {
+function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat, onSuivant, suivantLibelle }) {
   const [onglet, setOnglet] = useState('lecon')
   const [sel, setSel] = useState(ch.panneaux[0])
   const questions = useMemo(() => questionsChapitre(ch), [ch])
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl px-4 sm:px-5 py-4 flex flex-wrap items-center gap-3" style={carte}>
-        <button type="button" onClick={onRetour} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Chapitres</button>
+        <button type="button" onClick={onRetour} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>{retourLibelle}</button>
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <IconeChapitre ch={ch} taille={40} />
           <div className="min-w-0">
             <div className="font-extrabold text-lg leading-tight" style={{ color: '#1e3a5f' }}>{ch.titre}</div>
-            <div className="text-xs text-slate-500">Chapitre {ch.numero} sur {total} · {ch.panneaux.length} {ch.panneaux[0]?.marquage ? 'marquages' : 'panneaux'}</div>
+            <div className="text-xs text-slate-500">Chapitre {ch.numero} sur {total} · {ch.panneaux.length} {genre(ch)}</div>
           </div>
         </div>
         <div className="flex gap-1 p-1 rounded-full w-full sm:w-auto" style={{ background: '#f1f5f9' }}>
-          {[['lecon', 'Leçon'], ['panneaux', ch.panneaux[0]?.marquage ? 'Marquages' : 'Panneaux'], ['quiz', 'Quiz']].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setOnglet(k)} className="flex-1 sm:flex-none px-4 py-1.5 rounded-full text-sm font-extrabold border-0 cursor-pointer" style={{ borderRadius: 999 }}
-              style={onglet === k ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }}>{l}</button>
+          {[['lecon', 'Leçon'], ['panneaux', majuscule(genre(ch))], ['quiz', 'Quiz']].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setOnglet(k)} className="flex-1 sm:flex-none px-4 py-1.5 rounded-full text-sm font-extrabold border-0 cursor-pointer"
+              style={{ borderRadius: 999, ...(onglet === k ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }) }}>{l}</button>
           ))}
         </div>
       </div>
@@ -152,7 +165,7 @@ function Chapitre({ ch, total, onRetour, onResultat, onSuivant, suivantLibelle }
           )}
           <div className="flex flex-wrap gap-2 justify-end">
             <button type="button" onClick={() => setOnglet('panneaux')} className="px-5 py-2.5 rounded-full font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', color: '#fff' }}>
-              Voir les {ch.panneaux[0]?.marquage ? 'marquages' : 'panneaux'} <i className="bi bi-arrow-right ms-1" />
+              Voir les {genre(ch)} <i className="bi bi-arrow-right ms-1" />
             </button>
           </div>
         </div>
@@ -172,7 +185,7 @@ function Chapitre({ ch, total, onRetour, onResultat, onSuivant, suivantLibelle }
           </div>
           {sel && (
             <div className="bg-white rounded-2xl p-5 lg:sticky lg:top-4" style={carte}>
-              <div className="flex justify-center rounded-2xl py-4" style={{ background: '#f8fafc' }}><Visuel item={sel} taille={140} /></div>
+              <div className="flex justify-center rounded-2xl py-4" style={{ background: '#f8fafc' }}><Visuel item={sel} taille={estScene(sel) ? 230 : 140} /></div>
               <div className="font-extrabold text-lg mt-4" style={{ color: '#1e3a5f' }}>{sel.nom}</div>
               <div className="text-sm text-slate-600 mt-1">{sel.sens}</div>
               <div className="mt-3 rounded-xl p-3 text-sm" style={{ background: '#f0fdf4', color: '#166534' }}>
@@ -197,84 +210,56 @@ function Chapitre({ ch, total, onRetour, onResultat, onSuivant, suivantLibelle }
   )
 }
 
-/* ── Parcours : les 7 chapitres de la Signalisation ──
-   Élève : progression enregistrée (meilleure note), chapitres débloqués dans l'ordre (70 % pour
-   valider). Admin et moniteurs : tout est ouvert, rien n'est enregistré. */
-export default function SignalisationCours({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre }) {
-  const [progression, setProgression] = useState({})
-  const [ouvertLocal, setOuvertLocal] = useState(null)   // id de chapitre, quand l'URL ne le porte pas
-  const tous = [...CHAPITRES, REVISION]
-  const demande = onOuvrirChapitre ? chapitre : ouvertLocal
-  const ouvert = tous.some(c => c.id === demande) ? demande : null
-  const setOuvert = id => {
-    window.scrollTo?.({ top: 0 })
-    if (!onOuvrirChapitre) return setOuvertLocal(id)
-    if (id) onOuvrirChapitre(id); else onFermerChapitre?.()
-  }
-  useEffect(() => {
-    if (!eleve) return
-    api('GET', '/eleve/code/progression').then(l => setProgression(Object.fromEntries((l || []).map(x => [x.chapitre, x])))).catch(() => {})
-  }, [eleve])
-  const reussi = id => !!progression[id]?.reussi
-  const debloque = idx => !eleve || idx === 0 || (idx < CHAPITRES.length ? reussi(CHAPITRES[idx - 1].id) : CHAPITRES.every(c => reussi(c.id)))
-  const valides = tous.filter(c => reussi(c.id)).length
-  const questionsRev = useMemo(() => questionsRevision(), [ouvert])   // eslint-disable-line react-hooks/exhaustive-deps -- nouveau tirage à chaque ouverture
 
-  const resultat = async (chapitre, score, total) => {
-    if (!eleve) return
-    try { const p = await api('POST', '/eleve/code/progression', { chapitre, score, total }); setProgression(pr => ({ ...pr, [chapitre]: p })) }
-    catch { toast('Résultat non enregistré : vérifiez votre connexion', 'warning') }
-  }
+const btnRetour = (onClick, libelle) => (
+  <button type="button" onClick={onClick} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>{libelle}</button>
+)
 
-  const idx = tous.findIndex(c => c.id === ouvert)
-  const suivant = idx >= 0 && idx + 1 < tous.length ? tous[idx + 1] : null
-  if (ouvert === REVISION.id) return (
-    <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div className="bg-white rounded-2xl px-5 py-4 flex items-center gap-3" style={carte}>
-        <button type="button" onClick={() => setOuvert(null)} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Chapitres</button>
-        <div><div className="font-extrabold text-lg" style={{ color: '#1e3a5f' }}>{REVISION.titre}</div><div className="text-xs text-slate-500">{REVISION.nombre} questions mélangées sur tous les chapitres</div></div>
+/* Bandeau bleu nuit souligné d'or, panneaux en décor à droite. */
+function Bandeau({ surtitre, titre, texte, decor, children }) {
+  return (
+    <div className="rounded-2xl overflow-hidden relative text-white px-6 py-6" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 55%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
+      <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
+      <div className="absolute hidden sm:flex gap-3 right-6 top-5" style={{ transform: 'rotate(-8deg)' }} aria-hidden="true">
+        {decor.map(c => <img key={c} src={`/panneaux/${c}.svg`} alt="" width="58" height="58" />)}
       </div>
-      <Quiz key={questionsRev[0]?.id} questions={questionsRev} onFini={(s, t) => resultat(REVISION.id, s, t)} />
+      <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>{surtitre}</div>
+      <h2 className="text-3xl font-black m-0 mt-1">{titre}</h2>
+      <p className="text-sm m-0 mt-1 max-w-lg" style={{ color: '#bfdbfe' }}>{texte}</p>
+      {children}
     </div>
   )
-  if (ouvert) {
-    const ch = CHAPITRES.find(c => c.id === ouvert)
-    return (
-      <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-        <Chapitre key={ch.id} ch={ch} total={tous.length} onRetour={() => setOuvert(null)} onResultat={resultat}
-          onSuivant={suivant ? () => setOuvert(suivant.id) : null} suivantLibelle={suivant ? `Chapitre ${suivant.numero} : ${suivant.titre}` : ''} />
-      </div>
-    )
-  }
-
+}
+function Progres({ valides, total }) {
   return (
-    <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {onRetour && <div><button type="button" onClick={onRetour} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour</button></div>}
-      <div className="rounded-2xl overflow-hidden relative text-white px-6 py-6" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 55%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
-        <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
-        <div className="absolute hidden sm:flex gap-3 right-6 top-5" style={{ transform: 'rotate(-8deg)' }} aria-hidden="true">
-          {['A14', 'B14', 'B21-1'].map(c => <img key={c} src={`/panneaux/${c}.svg`} alt="" width="58" height="58" />)}
-        </div>
-        <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>COURS DE CODE · SIGNALISATION</div>
-        <h2 className="text-3xl font-black m-0 mt-1">Signalisation</h2>
-        <p className="text-sm m-0 mt-1 max-w-lg" style={{ color: '#bfdbfe' }}>Lire et comprendre chaque panneau et chaque marquage au sol, chapitre par chapitre, avec un quiz pour valider.</p>
-        {eleve && (
-          <div className="flex items-center gap-3 mt-4 max-w-xl">
-            <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
-              <div className="h-full rounded-full" style={{ width: `${100 * valides / tous.length}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)', transition: 'width .5s' }} />
-            </div>
-            <b className="text-sm whitespace-nowrap">{valides} / {tous.length} chapitres</b>
-          </div>
-        )}
+    <div className="flex items-center gap-3 mt-4 max-w-xl">
+      <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
+        <div className="h-full rounded-full" style={{ width: `${100 * valides / total}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)', transition: 'width .5s' }} />
       </div>
+      <b className="text-sm whitespace-nowrap">{valides} / {total} chapitres</b>
+    </div>
+  )
+}
 
+/* ── Parcours d'un thème : ses chapitres puis la révision finale ──
+   Élève : chapitres débloqués dans l'ordre (70 % pour valider). Admin et moniteurs : tout ouvert. */
+function Parcours({ theme, eleve, progression, onOuvrir, onRetour }) {
+  const tous = [...theme.chapitres, theme.revision]
+  const reussi = id => !!progression[id]?.reussi
+  const debloque = i => !eleve || i === 0 || (i < theme.chapitres.length ? reussi(theme.chapitres[i - 1].id) : theme.chapitres.every(c => reussi(c.id)))
+  return (
+    <div className="space-y-4">
+      <div>{btnRetour(onRetour, 'Thèmes')}</div>
+      <Bandeau surtitre={`COURS DE CODE · THÈME ${theme.numero}`} titre={theme.titre} texte={theme.description} decor={theme.decor}>
+        {eleve && <Progres valides={tous.filter(c => reussi(c.id)).length} total={tous.length} />}
+      </Bandeau>
       <div className="flex flex-col gap-3">
         {tous.map((ch, i) => {
           const ouvertOk = debloque(i), fait = reussi(ch.id), p = progression[ch.id]
-          const enCours = eleve && ouvertOk && !fait && (i === 0 || debloque(i))
-          const sous = ch.id === REVISION.id ? ch.resume : `${ch.panneaux.length} ${ch.panneaux[0]?.marquage ? 'marquages' : 'panneaux'} · ${ch.resume}`
+          const enCours = eleve && ouvertOk && !fait
+          const sous = ch === theme.revision ? ch.resume : `${ch.panneaux.length} ${genre(ch)} · ${ch.resume}`
           return (
-            <button key={ch.id} type="button" disabled={!ouvertOk} onClick={() => setOuvert(ch.id)}
+            <button key={ch.id} type="button" disabled={!ouvertOk} onClick={() => onOuvrir(ch.id)}
               className="bg-white rounded-2xl px-4 py-3 flex items-center gap-4 text-left w-full border-0 cursor-pointer transition-all"
               style={{ borderRadius: 16, ...carte, border: enCours ? '2px solid #d4a017' : fait ? '1px solid #bbf7d0' : '1px solid #eef2f7', boxShadow: enCours ? '0 8px 24px rgba(212,160,23,.22)' : carte.boxShadow, opacity: ouvertOk ? 1 : .6, cursor: ouvertOk ? 'pointer' : 'not-allowed' }}>
               <div className="w-14 h-14 flex-shrink-0 rounded-2xl flex items-center justify-center" style={{ background: '#f8fafc' }}><IconeChapitre ch={ch} taille={44} /></div>
@@ -285,6 +270,91 @@ export default function SignalisationCours({ eleve = false, onRetour, chapitre, 
               {fait ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: '#dcfce7', color: '#15803d' }}>✓ Validé</span>
                 : !ouvertOk ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full" style={{ background: '#f1f5f9', color: '#94a3b8' }}><i className="bi bi-lock-fill" /></span>
                 : <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{p ? 'Reprendre' : 'Commencer'} →</span>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ── Cours de code : choix du thème, puis son parcours, puis un chapitre ──
+   `chapitre` (adresse …/cours/<clé>) est la clé d'un thème ou l'identifiant d'un chapitre,
+   unique entre thèmes. Sans onOuvrirChapitre, la navigation reste interne au composant. */
+export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre }) {
+  const [progression, setProgression] = useState({})
+  const [ouvertLocal, setOuvertLocal] = useState(null)
+  const cle = onOuvrirChapitre ? chapitre : ouvertLocal
+  const aller = id => {
+    window.scrollTo?.({ top: 0 })
+    if (!onOuvrirChapitre) return setOuvertLocal(id)
+    if (id) onOuvrirChapitre(id); else onFermerChapitre?.()
+  }
+  useEffect(() => {
+    if (!eleve) return
+    api('GET', '/eleve/code/progression').then(l => setProgression(Object.fromEntries((l || []).map(x => [x.chapitre, x])))).catch(() => {})
+  }, [eleve])
+  const resultat = async (id, score, total) => {
+    if (!eleve) return
+    try { const p = await api('POST', '/eleve/code/progression', { chapitre: id, score, total }); setProgression(pr => ({ ...pr, [id]: p })) }
+    catch { toast('Résultat non enregistré : vérifiez votre connexion', 'warning') }
+  }
+
+  const theme = THEMES_CODE.find(t => t.key === cle || t.revision.id === cle || t.chapitres.some(c => c.id === cle))
+  const tous = theme ? [...theme.chapitres, theme.revision] : []
+  const idx = tous.findIndex(c => c.id === cle)
+  const questionsRev = useMemo(() => theme && cle === theme.revision.id ? questionsRevision(theme.chapitres, theme.revision.nombre) : [], [cle])   // eslint-disable-line react-hooks/exhaustive-deps -- nouveau tirage à chaque ouverture
+  const police = { fontFamily: 'Inter, system-ui, sans-serif' }
+
+  if (theme && cle === theme.revision.id) return (
+    <div className="space-y-4" style={police}>
+      <div className="bg-white rounded-2xl px-5 py-4 flex items-center gap-3" style={carte}>
+        {btnRetour(() => aller(theme.key), theme.titre)}
+        <div><div className="font-extrabold text-lg" style={{ color: '#1e3a5f' }}>{theme.revision.titre} · {theme.titre}</div><div className="text-xs text-slate-500">{theme.revision.nombre} questions mélangées sur tous les chapitres</div></div>
+      </div>
+      <Quiz key={questionsRev[0]?.id} questions={questionsRev} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
+    </div>
+  )
+  if (theme && idx >= 0) {
+    const ch = tous[idx], suivant = tous[idx + 1]
+    return (
+      <div style={police}>
+        <Chapitre key={ch.id} ch={ch} total={tous.length} retourLibelle={theme.titre} onRetour={() => aller(theme.key)} onResultat={resultat}
+          onSuivant={suivant ? () => aller(suivant.id) : null} suivantLibelle={suivant ? `Chapitre ${suivant.numero} : ${suivant.titre}` : ''} />
+      </div>
+    )
+  }
+  if (theme) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} onOuvrir={aller} onRetour={() => aller(null)} /></div>
+
+  return (
+    <div className="space-y-4" style={police}>
+      {onRetour && <div>{btnRetour(onRetour, 'Retour')}</div>}
+      <Bandeau surtitre="AUTO-ÉCOLE KHADIJA" titre="Cours de code" decor={['A14', 'AB4', 'B14']}
+        texte="Choisissez un thème : chaque chapitre a une leçon, des exemples et un quiz pour valider." />
+      <div className="grid sm:grid-cols-2 gap-4">
+        {THEMES_CODE.map(t => {
+          const liste = [...t.chapitres, t.revision], valides = liste.filter(c => progression[c.id]?.reussi).length
+          return (
+            <button key={t.key} type="button" onClick={() => aller(t.key)}
+              className="bg-white text-left w-full cursor-pointer overflow-hidden transition-all p-0"
+              style={{ borderRadius: 20, ...carte }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(15,34,64,.14)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = carte.boxShadow }}>
+              <div className="flex items-center justify-center gap-3 py-5" style={{ background: 'linear-gradient(135deg,#f8fafc,#eef2f7)' }}>
+                {t.decor.map((c, i) => <img key={c} src={`/panneaux/${c}.svg`} alt="" width={i === 1 ? 74 : 56} height={i === 1 ? 74 : 56} />)}
+              </div>
+              <div className="px-5 py-4">
+                <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#a16207' }}>THÈME {t.numero}</div>
+                <div className="text-xl font-black" style={{ color: '#1e3a5f' }}>{t.titre}</div>
+                <div className="text-sm text-slate-500 mt-1">{t.description}</div>
+                <div className="flex items-center gap-3 mt-4">
+                  {eleve
+                    ? <><div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#e2e8f0' }}><div className="h-full rounded-full" style={{ width: `${100 * valides / liste.length}%`, background: 'linear-gradient(90deg,#86efac,#22c55e)' }} /></div>
+                        <span className="text-xs font-bold text-slate-500 whitespace-nowrap">{valides} / {liste.length}</span></>
+                    : <span className="flex-1 text-xs font-bold text-slate-500">{liste.length} chapitres</span>}
+                  <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>Ouvrir →</span>
+                </div>
+              </div>
             </button>
           )
         })}
