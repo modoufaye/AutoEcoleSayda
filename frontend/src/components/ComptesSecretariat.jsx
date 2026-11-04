@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
+import { waLink } from '../utils'
+import { msgBienvenueSecretaire } from '../messages'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 
@@ -13,9 +15,15 @@ export default function ComptesSecretariat() {
   const [form, setForm] = useState({ nom: '', telephone: '' })
   const [identifiants, setIdentifiants] = useState(null)   // { nom, identifiant, motDePasse }
   const [busy, setBusy] = useState(false)
+  const [ecole, setEcole] = useState('')
 
   const load = () => api('GET', '/admin/secretaires').then(setComptes).catch(() => {})
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    api('GET', '/config').then(c => setEcole(c?.nom || '')).catch(() => {})
+  }, [])
+  // Message de bienvenue WhatsApp, comme pour les élèves et les moniteurs
+  const lienWhatsApp = identifiants && waLink(identifiants.identifiant, msgBienvenueSecretaire(identifiants, ecole))
 
   const creer = async () => {
     if (!form.nom.trim() || !form.telephone.trim()) { toast('Nom et téléphone sont obligatoires', 'warning'); return }
@@ -81,10 +89,17 @@ export default function ComptesSecretariat() {
                 Mot de passe : <strong style={{ fontFamily: 'ui-monospace, monospace', letterSpacing: '.04em' }}>{identifiants.motDePasse}</strong>
               </div>
               <div className="text-slate-500 mt-1" style={{ fontSize: '.78rem' }}>
-                Transmettez-les-lui maintenant : le mot de passe ne sera plus affiché. Elle pourra le changer
+                Envoyez-les-lui maintenant, sur WhatsApp ou en les copiant : le mot de passe ne sera plus affiché. Elle pourra le changer
                 avec « Changer le mot de passe ».
               </div>
-              <div className="d-flex gap-2 mt-2">
+              <div className="d-flex flex-wrap gap-2 mt-2">
+                {lienWhatsApp && (
+                  <a href={lienWhatsApp} target="_blank" rel="noopener noreferrer"
+                    className="btn btn-sm fw-bold text-white d-inline-flex align-items-center gap-1"
+                    style={{ background: '#25d366', borderRadius: '.6rem', border: 'none' }}>
+                    <i className="bi bi-whatsapp" />Envoyer sur WhatsApp
+                  </a>
+                )}
                 <button className="btn btn-sm fw-semibold" style={{ background: '#1e3a5f', color: '#fff', borderRadius: '.6rem' }} onClick={copier}>
                   <i className="bi bi-clipboard me-1" />Copier
                 </button>

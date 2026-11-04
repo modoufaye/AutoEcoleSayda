@@ -41,6 +41,21 @@ export function msgBienvenueMoniteur(moniteur, ecole, identifiants) {
   ].join('\n')
 }
 
+/* identifiants : { nom, identifiant, motDePasse } renvoyés par POST /admin/secretaires */
+export function msgBienvenueSecretaire(identifiants, ecole) {
+  const nom = ecole || ECOLE_DEFAUT
+  return [
+    `Bonjour ${identifiants.nom.split(' ')[0]} 👋`,
+    '',
+    `Votre compte secrétariat ${nom} est prêt.`,
+    `Inscrivez les élèves, encaissez les paiements, suivez leçons et examens : ${window.location.origin}`,
+    `Identifiant : ${identifiants.identifiant}`,
+    `Mot de passe : ${identifiants.motDePasse}`,
+    '',
+    'Pensez à changer votre mot de passe après la première connexion (bouton « Changer le mot de passe » en bas du menu).',
+  ].join('\n')
+}
+
 /* identifiants : { identifiant, motDePasse } renvoyés par POST /eleves/{id}/identifiants */
 export function msgBienvenue(eleve, ecole, identifiants) {
   const nom = ecole || ECOLE_DEFAUT
@@ -48,7 +63,9 @@ export function msgBienvenue(eleve, ecole, identifiants) {
   const lignes = [
     `Bonjour ${eleve.prenom} 👋`,
     '',
-    `Bienvenue à ${nom} ! Votre inscription${CATEGORIE[eleve.categoriePermis] ? ` au permis ${CATEGORIE[eleve.categoriePermis]}` : ''} est bien enregistrée.`,
+    eleve.typeFormation === 'PERFECTIONNEMENT'
+      ? `Bienvenue à ${nom} ! Votre inscription au cours de perfectionnement (boîte ${eleve.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}) est bien enregistrée.`
+      : `Bienvenue à ${nom} ! Votre inscription${CATEGORIE[eleve.categoriePermis] ? ` au permis ${CATEGORIE[eleve.categoriePermis]}` : ''} est bien enregistrée.`,
   ]
   if (m) lignes.push(`Votre moniteur est ${m.prenom} ${m.nom}${m.telephone ? ` (${m.telephone})` : ''}.`)
   lignes.push(
