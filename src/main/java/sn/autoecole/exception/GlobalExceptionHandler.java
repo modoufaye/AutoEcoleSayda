@@ -2,6 +2,7 @@ package sn.autoecole.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -60,7 +61,13 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Email ou mot de passe incorrect");
+        // Compte bloqué après 5 essais faux (AuthService) : refusé même avec le bon mot de passe
+        if (ex instanceof LockedException)
+            return buildResponse(HttpStatus.UNAUTHORIZED,
+                    "Compte bloqué après 5 mots de passe incorrects. Demandez à l'auto-école de le débloquer.");
+        // Avertissement des derniers essais, posé par AuthService ; sinon le message générique
+        String msg = ex.getMessage() != null && ex.getMessage().contains("Attention") ? ex.getMessage() : "Email ou mot de passe incorrect";
+        return buildResponse(HttpStatus.UNAUTHORIZED, msg);
     }
 
     /** Adresse inexistante : 404, et non 500 via le handler générique ci-dessous. */

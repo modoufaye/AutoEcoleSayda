@@ -8,6 +8,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import sn.autoecole.entity.User;
+import sn.autoecole.enums.RoleUser;
+import sn.autoecole.service.AuthService;
 import sn.autoecole.repository.UserRepository;
 
 import java.util.Map;
@@ -42,11 +44,12 @@ public class CompteController {
         String ancien  = body.get("ancienMotDePasse");
         String nouveau = body.get("nouveauMotDePasse");
 
-        if (ancien == null || nouveau == null || nouveau.length() < 6)
-            return ResponseEntity.badRequest().body(Map.of("erreur", "Données invalides (minimum 6 caractères)"));
-
         var user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        // Admin et secrétariat : 10 caractères au moins ; moniteurs : 6
+        int min = user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.SECRETAIRE ? AuthService.MDP_MIN_GESTION : 6;
+        if (ancien == null || nouveau == null || nouveau.length() < min)
+            return ResponseEntity.badRequest().body(Map.of("erreur", "Le nouveau mot de passe doit faire au moins " + min + " caractères"));
 
         if (!passwordEncoder.matches(ancien, user.getMotDePasse()))
             return ResponseEntity.badRequest().body(Map.of("erreur", "Ancien mot de passe incorrect"));

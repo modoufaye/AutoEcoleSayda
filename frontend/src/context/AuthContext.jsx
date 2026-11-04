@@ -22,6 +22,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('role',  data.role)
     localStorage.setItem('nom',   data.nom)
     localStorage.setItem('email', data.email)
+    // Admin ou secrétaire au mot de passe trop court : AppLayout impose de le changer
+    if (data.changerMotDePasse) localStorage.setItem('changerMdp', '1'); else localStorage.removeItem('changerMdp')
     setUser(data)
     navigate(ROLE_BASE[data.role] || '/dashboard/admin')
   }, [navigate])
@@ -31,6 +33,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('role')
     localStorage.removeItem('nom')
     localStorage.removeItem('email')
+    localStorage.removeItem('changerMdp')
     setUser(null)
     navigate('/login')
   }, [navigate])

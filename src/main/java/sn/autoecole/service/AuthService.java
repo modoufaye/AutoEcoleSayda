@@ -2,6 +2,9 @@ package sn.autoecole.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,16 +43,24 @@ public class AuthService {
                 .build();
         userRepository.save(user);
         String token = jwtUtil.generateToken(user);
-        return new AuthResponse(token, user.getNom(), user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getNom(), user.getEmail(), user.getRole(), false);
     }
 
     public AuthResponse login(AuthRequest request) {
         String email = request.getEmail();   // déjà normalisé par AuthRequest (email ou téléphone)
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, request.getMotDePasse())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getMotDePasse())
+            );
+        } catch (BadCredentialsException e) {
+            throw enregistrerEchec(email);
+        }
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new BusinessException("Utilisateur introuvable"));
+        if (user.getEchecsConnexion() != null && user.getEchecsConnexion() > 0) {
+            user.setEchecsConnexion(0);
+            userRepository.save(user);
+        }
         String token = jwtUtil.generateToken(user);
 
         // Pour les élèves, utiliser le nom réel de l'entité Eleve
@@ -60,7 +71,32 @@ public class AuthService {
                     .orElse(user.getNom());
         }
 
-        return new AuthResponse(token, nomAffiche, user.getEmail(), user.getRole());
+        // Admin et secrétariat : 10 caractères au moins ; un mot de passe plus court doit être changé tout de suite
+        boolean aChanger = (user.getRole() == RoleUser.SUPER_ADMIN || user.getRole() == RoleUser.SECRETAIRE)
+                && request.getMotDePasse().length() < MDP_MIN_GESTION;
+        return new AuthResponse(token, nomAffiche, user.getEmail(), user.getRole(), aChanger);
+    }
+
+    /** Longueur minimale du mot de passe d'un admin ou d'une secrétaire. */
+    public static final int MDP_MIN_GESTION = 10;
+
+    /**
+     * Mot de passe faux : compte un essai de plus et bloque le compte au MAX_ECHECS-ième.
+     * Hors transaction : le compteur est enregistré même si la connexion échoue.
+     * Identifiant inconnu : même message qu'un mauvais mot de passe (pas d'énumération).
+     */
+    private AuthenticationException enregistrerEchec(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
+        if (user == null) return new BadCredentialsException("Email ou mot de passe incorrect");
+        int echecs = (user.getEchecsConnexion() == null ? 0 : user.getEchecsConnexion()) + 1;
+        user.setEchecsConnexion(echecs);
+        if (echecs >= User.MAX_ECHECS) user.setBloque(true);
+        userRepository.save(user);
+        if (user.isBloque()) return new LockedException("Compte bloqué");
+        int reste = User.MAX_ECHECS - echecs;
+        return new BadCredentialsException(reste <= 2
+                ? "Email ou mot de passe incorrect. Attention : encore " + reste + " essai" + (reste > 1 ? "s" : "") + " avant le blocage du compte."
+                : "Email ou mot de passe incorrect");
     }
 
     /**

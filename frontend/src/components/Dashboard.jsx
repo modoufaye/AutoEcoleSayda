@@ -3,6 +3,7 @@ import { api } from '../api'
 import { fmtMontant } from '../utils'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
+import ComptesBloques from './ComptesBloques'
 import '../landing.css'
 
 /* ══════════════════════════════════════════════════════════
@@ -297,6 +298,9 @@ function DashboardAdmin({ stats, user }) {
 
   return (
     <div className="space-y-6" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {/* Comptes bloqués après 5 essais faux : en tête, pour les débloquer sur demande */}
+      <ComptesBloques />
 
       {/* ══ BANNIÈRE ══════════════════════════════════════════ */}
       <div className="rounded-2xl overflow-hidden relative"

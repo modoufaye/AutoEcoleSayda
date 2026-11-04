@@ -23,4 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmailIgnoreCase(String email);
 
     List<User> findAllByRole(RoleUser role);
+
+    /** Comptes bloqués après trop de mots de passe faux. */
+    List<User> findAllByBloqueTrue();
 }

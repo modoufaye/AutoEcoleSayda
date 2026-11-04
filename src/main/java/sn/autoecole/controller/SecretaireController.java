@@ -62,6 +62,7 @@ public class SecretaireController {
         User user = secretaire(id);
         String motDePasse = motDePasseAleatoire();
         user.setMotDePasse(passwordEncoder.encode(motDePasse));
+        user.debloquer();
         userRepository.save(user);
         return Map.of("id", id, "nom", user.getNom(), "identifiant", user.getEmail(), "motDePasse", motDePasse);
     }

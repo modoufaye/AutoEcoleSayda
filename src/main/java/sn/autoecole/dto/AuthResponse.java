@@ -10,4 +10,6 @@ public class AuthResponse {
     private String nom;
     private String email;
     private RoleUser role;
+    /** Admin ou secrétaire dont le mot de passe fait moins de 10 caractères : à changer tout de suite. */
+    private boolean changerMotDePasse;
 }

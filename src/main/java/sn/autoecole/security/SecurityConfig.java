@@ -87,6 +87,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/moniteurs/**").hasRole("SUPER_ADMIN")
+                // Débloquer un compte (5 mots de passe faux) : admin, et secrétariat pour élèves et moniteurs.
+                .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "SECRETAIRE")
                 // Statistiques globales (dont le total encaissé) : pas pour les élèves.
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "MONITEUR", "SECRETAIRE")
 

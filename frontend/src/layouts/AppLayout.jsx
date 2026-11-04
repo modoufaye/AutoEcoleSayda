@@ -156,7 +156,11 @@ export default function AppLayout() {
     return () => { document.body.style.overflow = '' }
   }, [showDrawer])
 
-  const [showMdp, setShowMdp]     = useState(false)
+  /* Admin et secrétariat : 10 caractères au moins. Connecté avec un mot de passe plus court,
+     la fenêtre s'ouvre d'office et ne se ferme qu'une fois le mot de passe changé. */
+  const mdpMin = gestion ? 10 : 6
+  const [mdpObligatoire, setMdpObligatoire] = useState(() => { try { return localStorage.getItem('changerMdp') === '1' } catch { return false } })
+  const [showMdp, setShowMdp]     = useState(mdpObligatoire)
   const [mdpForm, setMdpForm]     = useState({ ancien: '', nouveau: '', confirm: '' })
   // Champs affichés en clair (bouton œil), un par champ ; tout est masqué à chaque ouverture
   const [mdpVisible, setMdpVisible] = useState({})
@@ -165,11 +169,13 @@ export default function AppLayout() {
   const saveMdp = async () => {
     if (!mdpForm.ancien || !mdpForm.nouveau) { toast('Remplissez tous les champs', 'warning'); return }
     if (mdpForm.nouveau !== mdpForm.confirm)  { toast('Les mots de passe ne correspondent pas', 'warning'); return }
-    if (mdpForm.nouveau.length < 6)           { toast('Minimum 6 caractères', 'warning'); return }
+    if (mdpForm.nouveau.length < mdpMin)      { toast(`Minimum ${mdpMin} caractères`, 'warning'); return }
     setMdpSaving(true)
     try {
       await api('PUT', '/compte/changer-mot-de-passe', { ancienMotDePasse: mdpForm.ancien, nouveauMotDePasse: mdpForm.nouveau })
       toast('Mot de passe modifié avec succès')
+      try { localStorage.removeItem('changerMdp') } catch { /* rien à retirer */ }
+      setMdpObligatoire(false)
       setShowMdp(false)
       setMdpForm({ ancien: '', nouveau: '', confirm: '' })
     } catch (e) { toast(e.message || 'Erreur', 'danger') }
@@ -377,12 +383,18 @@ export default function AppLayout() {
                   </div>
                   <h5 className="modal-title mb-0 fw-bold" style={{ color: '#1e293b' }}>Changer le mot de passe</h5>
                 </div>
-                <button className="btn-close" onClick={() => setShowMdp(false)}></button>
+                {!mdpObligatoire && <button className="btn-close" onClick={() => setShowMdp(false)}></button>}
               </div>
               <div className="modal-body px-4 py-3 d-flex flex-column gap-3">
+                {mdpObligatoire && (
+                  <div className="rounded-3 px-3 py-2" style={{ background: '#fffbeb', border: '1.5px solid #fde68a', color: '#92400e', fontSize: '.85rem' }}>
+                    <i className="bi bi-shield-lock-fill me-1" />
+                    Pour la sécurité de l'auto-école, choisissez un mot de passe d'au moins <strong>{mdpMin} caractères</strong> avant de continuer.
+                  </div>
+                )}
                 {[
                   { key: 'ancien',  label: 'Ancien mot de passe',           ph: '••••••••' },
-                  { key: 'nouveau', label: 'Nouveau mot de passe',          ph: 'Minimum 6 caractères' },
+                  { key: 'nouveau', label: 'Nouveau mot de passe',          ph: `Minimum ${mdpMin} caractères` },
                   { key: 'confirm', label: 'Confirmer le nouveau mot de passe', ph: '••••••••' },
                 ].map(f => (
                   <div key={f.key}>
@@ -410,9 +422,9 @@ export default function AppLayout() {
                 ))}
               </div>
               <div className="modal-footer border-0 px-4 pb-4 pt-2 gap-2">
-                <button className="btn btn-light fw-semibold" style={{ borderRadius: '.6rem' }} onClick={() => setShowMdp(false)}>
+                {!mdpObligatoire && <button className="btn btn-light fw-semibold" style={{ borderRadius: '.6rem' }} onClick={() => setShowMdp(false)}>
                   Annuler
-                </button>
+                </button>}
                 <button
                   className="btn fw-bold text-white"
                   style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.6rem', border: 'none' }}

@@ -39,6 +39,25 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean actif = true;
 
+    /** Mots de passe faux d'affilée ; remis à zéro à la connexion réussie ou au déblocage. */
+    @Column(name = "echecs_connexion", columnDefinition = "integer default 0")
+    @Builder.Default
+    private Integer echecsConnexion = 0;
+
+    /** Bloqué après MAX_ECHECS essais faux : refusé même avec le bon mot de passe, jusqu'au
+        déblocage par l'admin ou le secrétariat (ou de nouveaux identifiants). */
+    @Column(columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean bloque = false;
+
+    public static final int MAX_ECHECS = 5;
+
+    /** Débloque le compte et remet le compteur d'essais à zéro. */
+    public void debloquer() {
+        bloque = false;
+        echecsConnexion = 0;
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -47,7 +66,7 @@ public class User implements UserDetails {
     @Override public String getPassword()  { return motDePasse; }
     @Override public String getUsername()  { return email; }
     @Override public boolean isAccountNonExpired()    { return true; }
-    @Override public boolean isAccountNonLocked()     { return true; }
+    @Override public boolean isAccountNonLocked()     { return !bloque; }
     @Override public boolean isCredentialsNonExpired(){ return true; }
     @Override public boolean isEnabled()              { return actif; }
 }

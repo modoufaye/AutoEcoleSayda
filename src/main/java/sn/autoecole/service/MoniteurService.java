@@ -128,6 +128,7 @@ public class MoniteurService {
         String motDePasse = motDePasseAleatoire();
         user.setMotDePasse(passwordEncoder.encode(motDePasse));
         user.setActif(true);
+        user.debloquer();   // nouveaux identifiants : le compte bloqué repart à zéro
         userRepository.save(user);
         return Map.of("identifiant", tel, "motDePasse", motDePasse, "compteCree", existant.isEmpty());
     }

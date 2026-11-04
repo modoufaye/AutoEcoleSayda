@@ -168,6 +168,7 @@ public class EleveService {
             throw new BusinessException("Cet identifiant appartient à un compte " + user.getRole() + ", pas à un élève");
         }
         user.setMotDePasse(passwordEncoder.encode(motDePasse));
+        user.debloquer();   // nouveaux identifiants : le compte bloqué repart à zéro
         userRepository.save(user);
         return Map.of("identifiant", user.getEmail(), "motDePasse", motDePasse, "compteCree", existant.isEmpty());
     }
