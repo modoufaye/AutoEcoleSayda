@@ -1,5 +1,5 @@
-/* Thèmes 3 à 9 des cours de code : vitesse, dépassement, stationnement, éclairage, sécurité,
-   véhicule et usagers. Textes rédigés pour l'Auto-École Khadija. Même format que
+/* Thèmes 3 à 10 des cours de code : vitesse, dépassement, stationnement, éclairage, sécurité,
+   véhicule, usagers et environnement. Textes rédigés pour l'Auto-École Khadija. Même format que
    contenu/signalisation.js ; les illustrations sans panneau sont des pictogrammes (Pictos.jsx) :
    ils servent à la leçon, pas au quiz « que signifie… » (quiz: false). */
 
@@ -492,6 +492,80 @@ export const THEMES_REGLES = [
       },
     ],
     revision: { id: 'usagers-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur les usagers', icone: '/panneaux/A13b.svg', nombre: 12 },
+  },
+
+  /* ── 10 · Environnement ── */
+  {
+    key: 'environnement', titre: 'Environnement', numero: 10,
+    description: 'Éco-conduite : consommer moins, polluer moins et faire moins de bruit, en roulant plus sûr.',
+    decor: [{ icone: 'fuel-pump-fill', couleur: VERT }, { icone: 'tree-fill', couleur: VERT }, 'B16'],
+    chapitres: [
+      {
+        id: 'environnement-eco', numero: 1, titre: 'Les gestes de l\'éco-conduite', icone: { icone: 'fuel-pump-fill', couleur: VERT },
+        resume: 'Anticiper, rouler souple, passer les rapports tôt',
+        aRetenir: [
+          'L\'éco-conduite fait baisser la consommation de carburant, la pollution et l\'usure du véhicule, souvent de 15 à 25 %.',
+          'Anticipez : levez le pied tôt et laissez le frein moteur ralentir la voiture, au lieu de freiner au dernier moment.',
+          'Roulez à allure régulière, sans coups d\'accélérateur.',
+          'Passez les rapports tôt et roulez sur un rapport élevé quand la vitesse le permet.',
+          'À l\'arrêt plus d\'une minute environ (attente, embouteillage bloqué), coupez le moteur.',
+          'Pneus bien gonflés, coffre vidé des charges inutiles, galerie de toit retirée quand elle ne sert pas.',
+          'Moteur froid : il consomme davantage ; groupez les petits trajets ou faites-les à pied.',
+        ],
+        piege: 'Conduire souple n\'est pas conduire lentement : c\'est anticiper pour éviter freinages et accélérations inutiles.',
+        panneaux: [
+          i('anticiper', 'eye-fill', VERT, null, 'Anticiper', 'Regarder loin devant pour prévoir les ralentissements.', 'Levez le pied tôt : le frein moteur ralentit sans consommer.'),
+          i('regulier', 'speedometer', VERT, null, 'Vitesse régulière', 'Les coups d\'accélérateur coûtent cher en carburant.', 'Gardez une allure stable et souple.'),
+          i('rapports', 'gear-fill', BLEU, null, 'Monter les rapports tôt', 'Un moteur qui tourne trop vite consomme plus.', 'Passez la vitesse supérieure sans attendre que le moteur hurle.'),
+          i('couper', 'power', OR, '1 min', 'Couper le moteur', 'Un moteur au ralenti consomme pour rien.', 'Coupez-le lors d\'un arrêt de plus d\'une minute environ.'),
+          i('pneus', 'circle-fill', GRIS, null, 'Pneus bien gonflés', 'Un pneu dégonflé fait consommer davantage et use plus vite.', 'Vérifiez la pression régulièrement, à froid.'),
+          i('charge', 'box-seam-fill', GRIS, null, 'Pas de charge inutile', 'Le poids et la galerie de toit augmentent la consommation.', 'Videz le coffre et retirez la galerie quand elle ne sert pas.'),
+          i('clim', 'snow', BLEU, null, 'Climatisation', 'Elle fait monter la consommation.', 'Utilisez-la avec mesure.'),
+          i('court', 'signpost-fill', OR, null, 'Petits trajets', 'Moteur froid : consommation et usure plus fortes.', 'Groupez vos courses, ou marchez pour les trajets très courts.'),
+        ],
+        questions: [
+          { q: 'De combien l\'éco-conduite peut-elle réduire la consommation ?', ok: 'De 15 à 25 % environ', non: ['De 1 % au plus', 'De 80 %'] },
+          { q: 'Un feu rouge est loin devant. Que faites-vous ?', ok: 'Je lève le pied tôt et je laisse ralentir', non: ['J\'accélère puis je freine fort', 'Je garde ma vitesse jusqu\'au feu'] },
+          { q: 'Quand passer la vitesse supérieure ?', ok: 'Tôt, sans faire monter le moteur trop haut', non: ['Le plus tard possible', 'Jamais au-dessus de la 3e en ville'] },
+          { q: 'Vous attendez plusieurs minutes, arrêté. Que faites-vous du moteur ?', ok: 'Je le coupe', non: ['Je le laisse tourner', 'J\'accélère pour le garder chaud'] },
+          { q: 'Des pneus sous-gonflés…', ok: 'Font consommer davantage', non: ['Font économiser du carburant', 'N\'ont aucun effet'] },
+          { q: 'Une galerie de toit vide…', ok: 'Augmente la consommation', non: ['Ne change rien', 'Diminue la consommation'] },
+          { q: 'Quels trajets consomment le plus par kilomètre ?', ok: 'Les petits trajets moteur froid', non: ['Les longs trajets réguliers', 'Les trajets de nuit'] },
+        ],
+      },
+      {
+        id: 'environnement-respect', numero: 2, titre: 'Respecter son environnement', icone: { icone: 'tree-fill', couleur: VERT },
+        resume: 'Entretien, bruit, déchets, itinéraire',
+        aRetenir: [
+          'Une conduite douce est à la fois plus sûre, plus économique et moins polluante.',
+          'Respecter les vitesses limite les accidents et la consommation.',
+          'Un véhicule entretenu (moteur, filtres, pneus) pollue moins et freine mieux ; une fumée noire signale un problème.',
+          'Le bruit est une pollution : pas de klaxon inutile ni de moteur qui vrombit, surtout près des hôpitaux, des écoles et des habitations.',
+          'Ne jetez rien par la fenêtre ; faites vidanger le véhicule dans un garage, jamais dans un caniveau.',
+          'Préparez votre itinéraire : moins d\'erreurs, moins de manœuvres, moins de carburant.',
+        ],
+        piege: 'Le klaxon sert à avertir d\'un danger, pas à saluer ni à faire avancer les autres.',
+        panneaux: [
+          p('B16', 'Signaux sonores interdits', 'L\'usage du klaxon est interdit dans cette zone.', 'N\'utilisez le klaxon qu\'en cas de danger immédiat.'),
+          i('douceur', 'heart-fill', VERT, null, 'Conduite douce', 'Plus sûre, plus économique, moins polluante.', 'Anticipez et gardez vos distances.'),
+          i('entretien', 'tools', GRIS, null, 'Entretien régulier', 'Un moteur mal réglé pollue et consomme plus.', 'Faites réviser le véhicule et changer les filtres à temps.'),
+          i('fumee', 'cloud-haze2-fill', GRIS, null, 'Fumée noire à l\'échappement', 'Signe d\'un moteur mal réglé ou usé.', 'Faites contrôler le véhicule au garage.'),
+          i('bruit', 'volume-up-fill', ROUGE, null, 'Bruit', 'Klaxon et moteur bruyant gênent et fatiguent les riverains.', 'Klaxonnez seulement pour un danger, surtout près d\'un hôpital ou d\'une école.'),
+          i('dechets', 'trash3-fill', VERT, null, 'Déchets', 'Ce qui est jeté sur la route pollue et peut être dangereux.', 'Gardez vos déchets dans le véhicule jusqu\'à une poubelle.'),
+          i('vidange', 'droplet-half', OR, null, 'Huile de vidange', 'L\'huile usée pollue le sol et l\'eau.', 'Faites la vidange au garage, jamais dans un caniveau.'),
+          i('itineraire', 'map-fill', BLEU, null, 'Préparer son trajet', 'Se perdre fait rouler et manœuvrer pour rien.', 'Choisissez votre itinéraire avant de partir.'),
+        ],
+        questions: [
+          { q: 'À quoi sert le klaxon ?', ok: 'À avertir d\'un danger', non: ['À saluer un ami', 'À faire avancer la voiture de devant'] },
+          { q: 'Près d\'un hôpital, que faut-il éviter ?', ok: 'Le klaxon et le bruit du moteur', non: ['Les feux de croisement', 'La ceinture'] },
+          { q: 'Une fumée noire sort de l\'échappement. Que faites-vous ?', ok: 'Je fais contrôler le véhicule', non: ['Rien, c\'est normal', 'J\'accélère pour nettoyer le moteur'] },
+          { q: 'Où faire la vidange d\'huile ?', ok: 'Au garage', non: ['Dans le caniveau', 'Sur le bord de la route'] },
+          { q: 'Respecter les limitations de vitesse permet…', ok: 'Moins d\'accidents et moins de carburant', non: ['Seulement d\'éviter les amendes', 'Rien de plus'] },
+          { q: 'Pourquoi préparer son itinéraire ?', ok: 'Pour éviter erreurs, manœuvres et carburant inutiles', non: ['Ce n\'est pas utile en ville', 'Pour rouler plus vite'] },
+        ],
+      },
+    ],
+    revision: { id: 'environnement-revision', numero: 3, titre: 'Révision finale', resume: '12 questions sur l\'environnement', icone: { icone: 'tree-fill', couleur: VERT }, nombre: 12 },
   },
 ]
 

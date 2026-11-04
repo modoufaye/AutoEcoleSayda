@@ -33,7 +33,7 @@ public class ProgressionCodeController {
             "stationnement-revision", "eclairage-feux", "eclairage-conditions", "eclairage-revision",
             "securite-vigilance", "securite-secours", "securite-revision", "vehicule-documents",
             "vehicule-entretien", "vehicule-revision", "usagers-voie", "usagers-vulnerables",
-            "usagers-revision");
+            "usagers-revision", "environnement-eco", "environnement-respect", "environnement-revision");
     private static final double SEUIL = 0.7;
 
     private final EleveRepository eleveRepository;
