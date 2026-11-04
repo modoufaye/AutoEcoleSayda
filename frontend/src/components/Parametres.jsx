@@ -327,7 +327,8 @@ export default function Parametres() {
         </div>
       </div>
 
-      {/* Comptes du secrétariat : enregistrés tout de suite, indépendants du bouton Sauvegarder */}
+      {/* Comptes administrateurs et du secrétariat : enregistrés tout de suite, indépendants du bouton Sauvegarder */}
+      <ComptesSecretariat type="admin" />
       <ComptesSecretariat />
 
       {/* Bouton Sauvegarder */}

@@ -3,34 +3,51 @@ import { api } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { waLink } from '../utils'
-import { msgBienvenueSecretaire } from '../messages'
+import { msgBienvenueSecretaire, msgBienvenueAdmin } from '../messages'
 import ChampTelephone from './ChampTelephone'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 
 /* Comptes du secrétariat (Paramètres, admin) : la secrétaire inscrit les élèves, encaisse,
    gère leçons et examens, sans accès aux moniteurs, aux paramètres ni aux suppressions.
+   Même écran pour les comptes super admin (type="admin"), avec les garde-fous du serveur :
+   on ne se retire pas soi-même et il reste toujours un admin actif.
    Le mot de passe n'est affiché qu'une fois, à la création ou au renouvellement. */
-export default function ComptesSecretariat() {
+const TYPES = {
+  secretariat: {
+    route: '/admin/secretaires', icone: 'bi-person-workspace', titre: 'Comptes du secrétariat', message: msgBienvenueSecretaire,
+    sousTitre: 'Inscrire les élèves, encaisser, gérer leçons et examens · sans moniteurs, paramètres ni suppressions',
+    suppression: "Elle ne pourra plus se connecter. Les élèves et paiements qu'elle a saisis sont conservés.", pronom: 'Elle',
+  },
+  admin: {
+    route: '/admin/administrateurs', icone: 'bi-shield-lock-fill', titre: 'Comptes administrateurs', message: msgBienvenueAdmin,
+    sousTitre: 'Tous les droits, comme vous : paiements, suppressions, paramètres et comptes · à réserver aux personnes de confiance',
+    suppression: 'Cette personne ne pourra plus se connecter. Les données de l\'auto-école sont conservées.', pronom: 'Cette personne',
+  },
+}
+
+export default function ComptesSecretariat({ type = 'secretariat' }) {
+  const T = TYPES[type]
   const [comptes, setComptes] = useState([])
   const [form, setForm] = useState({ nom: '', telephone: '' })
   const [identifiants, setIdentifiants] = useState(null)   // { nom, identifiant, motDePasse }
   const [busy, setBusy] = useState(false)
   const [ecole, setEcole] = useState('')
 
-  const load = () => api('GET', '/admin/secretaires').then(setComptes).catch(() => {})
+  const route = T.route
+  const load = () => api('GET', route).then(setComptes).catch(() => {})
   useEffect(() => {
-    load()
+    api('GET', route).then(setComptes).catch(() => {})
     api('GET', '/config').then(c => setEcole(c?.nom || '')).catch(() => {})
-  }, [])
+  }, [route])
   // Message de bienvenue WhatsApp, comme pour les élèves et les moniteurs
-  const lienWhatsApp = identifiants && waLink(identifiants.identifiant, msgBienvenueSecretaire(identifiants, ecole))
+  const lienWhatsApp = identifiants && waLink(identifiants.identifiant, T.message(identifiants, ecole))
 
   const creer = async () => {
     if (!form.nom.trim() || !form.telephone.trim()) { toast('Nom et téléphone sont obligatoires', 'warning'); return }
     setBusy(true)
     try {
-      setIdentifiants(await api('POST', '/admin/secretaires', form))
+      setIdentifiants(await api('POST', T.route, form))
       setForm({ nom: '', telephone: '' }); toast('Compte créé'); load()
     } catch (e) { toast(e.message, 'danger') }
     finally { setBusy(false) }
@@ -39,19 +56,19 @@ export default function ComptesSecretariat() {
   const regenerer = async (c) => {
     if (!(await confirmer({ titre: `Nouveau mot de passe pour ${c.nom} ?`, libelle: 'Générer',
       message: "L'ancien mot de passe ne fonctionnera plus." }))) return
-    try { setIdentifiants(await api('POST', `/admin/secretaires/${c.id}/identifiants`)) }
+    try { setIdentifiants(await api('POST', `${T.route}/${c.id}/identifiants`)) }
     catch (e) { toast(e.message, 'danger') }
   }
 
   const basculer = async (c) => {
-    try { await api('PATCH', `/admin/secretaires/${c.id}/actif`); toast(c.actif ? 'Compte désactivé' : 'Compte réactivé'); load() }
+    try { await api('PATCH', `${T.route}/${c.id}/actif`); toast(c.actif ? 'Compte désactivé' : 'Compte réactivé'); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
   const supprimer = async (c) => {
     if (!(await confirmer({ titre: `Supprimer le compte de ${c.nom} ?`, ton: 'danger', libelle: 'Supprimer',
-      message: 'Elle ne pourra plus se connecter. Les élèves et paiements qu\'elle a saisis sont conservés.' }))) return
-    try { await api('DELETE', `/admin/secretaires/${c.id}`); toast('Compte supprimé'); setIdentifiants(null); load() }
+      message: T.suppression }))) return
+    try { await api('DELETE', `${T.route}/${c.id}`); toast('Compte supprimé'); setIdentifiants(null); load() }
     catch (e) { toast(e.message, 'danger') }
   }
 
@@ -68,12 +85,12 @@ export default function ComptesSecretariat() {
         <div className="d-flex align-items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
           <div className="d-flex align-items-center justify-content-center flex-shrink-0"
             style={{ background: 'rgba(212,160,23,.14)', color: '#a16207', width: 38, height: 38, borderRadius: '.75rem' }}>
-            <i className="bi bi-person-workspace" />
+            <i className={`bi ${T.icone}`} />
           </div>
           <div>
-            <div className="fw-bold" style={{ color: '#1e293b' }}>Comptes du secrétariat</div>
+            <div className="fw-bold" style={{ color: '#1e293b' }}>{T.titre}</div>
             <div className="text-slate-400" style={{ fontSize: '.82rem' }}>
-              Inscrire les élèves, encaisser, gérer leçons et examens · sans moniteurs, paramètres ni suppressions
+              {T.sousTitre}
             </div>
           </div>
         </div>
@@ -90,7 +107,7 @@ export default function ComptesSecretariat() {
                 Mot de passe : <strong style={{ fontFamily: 'ui-monospace, monospace', letterSpacing: '.04em' }}>{identifiants.motDePasse}</strong>
               </div>
               <div className="text-slate-500 mt-1" style={{ fontSize: '.78rem' }}>
-                Envoyez-les-lui maintenant, sur WhatsApp ou en les copiant : le mot de passe ne sera plus affiché. Elle pourra le changer
+                Envoyez-les-lui maintenant, sur WhatsApp ou en les copiant : le mot de passe ne sera plus affiché. {T.pronom} pourra le changer
                 avec « Changer le mot de passe ».
               </div>
               <div className="d-flex flex-wrap gap-2 mt-2">
@@ -117,11 +134,12 @@ export default function ComptesSecretariat() {
                 <div key={c.id} className="d-flex flex-wrap align-items-center gap-2 px-3 py-2 rounded-xl"
                   style={{ background: '#f8fafc', border: '1px solid #e2e8f0', opacity: c.actif ? 1 : .6 }}>
                   <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                    <div className="fw-semibold text-truncate" style={{ color: '#1e293b' }}>{c.nom}</div>
+                    <div className="fw-semibold text-truncate" style={{ color: '#1e293b' }}>{c.nom}{c.moi && <span className="badge ms-2" style={{ background: '#e0e7ff', color: '#3730a3' }}>vous</span>}</div>
                     <div className="text-slate-500" style={{ fontSize: '.8rem' }}>
-                      <i className="bi bi-telephone me-1" />{c.identifiant}{!c.actif && ' · désactivé'}
+                      <i className={`bi ${c.identifiant?.includes('@') ? 'bi-envelope' : 'bi-telephone'} me-1`} />{c.identifiant}{!c.actif && ' · désactivé'}
                     </div>
                   </div>
+                  {!c.moi && <>
                   <button className="btn btn-sm btn-light fw-semibold" style={{ borderRadius: '.6rem' }} onClick={() => regenerer(c)}>
                     <i className="bi bi-key me-1" />Nouveau mot de passe
                   </button>
@@ -132,6 +150,7 @@ export default function ComptesSecretariat() {
                     title="Supprimer le compte" onClick={() => supprimer(c)}>
                     <i className="bi bi-trash-fill" />
                   </button>
+                  </>}
                 </div>
               ))}
             </div>

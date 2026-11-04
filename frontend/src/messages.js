@@ -56,6 +56,19 @@ export function msgBienvenueSecretaire(identifiants, ecole) {
   ].join('\n')
 }
 
+export function msgBienvenueAdmin(identifiants, ecole) {
+  const nom = ecole || ECOLE_DEFAUT
+  return [
+    `Bonjour ${identifiants.nom.split(' ')[0]} 👋`,
+    '',
+    `Votre compte administrateur ${nom} est prêt : ${window.location.origin}`,
+    `Identifiant : ${identifiants.identifiant}`,
+    `Mot de passe : ${identifiants.motDePasse}`,
+    '',
+    'Changez ce mot de passe dès la première connexion (bouton « Changer le mot de passe » en bas du menu) et ne le partagez avec personne.',
+  ].join('\n')
+}
+
 /* identifiants : { identifiant, motDePasse } renvoyés par POST /eleves/{id}/identifiants */
 export function msgBienvenue(eleve, ecole, identifiants) {
   const nom = ecole || ECOLE_DEFAUT
