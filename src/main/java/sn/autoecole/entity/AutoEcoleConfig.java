@@ -48,6 +48,11 @@ public class AutoEcoleConfig {
     @Convert(converter = FormulesPermisConverter.class)
     private List<FormulePermis> formules;
 
+    /** Formules de perfectionnement (boîte automatique ou manuelle, nombre de cours). */
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = FormulesPerfectionnementConverter.class)
+    private List<FormulePerfectionnement> formulesPerfectionnement;
+
     /** Moniteur assigné d'office aux nouveaux inscrits (celui des cours de code) ; null : aucun. */
     @Column(name = "moniteur_par_defaut_id")
     private Long moniteurParDefautId;

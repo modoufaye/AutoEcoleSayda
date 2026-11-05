@@ -41,10 +41,52 @@ const ACCEPT_PIECE = 'image/*,application/pdf'
 
 const today = () => new Date().toISOString().split('T')[0]
 
+/* Formules proposées à l'inscription (Paramètres → Tarification), au format des tuiles de choix. */
+const sepMille = n => Math.round(Number(n) || 0).toLocaleString('fr-FR').replace(/\u202f/g, ' ')
+function optionsPermis(formules) {
+  return (formules || []).filter(f => Number(f.montant) > 0).map(f => ({
+    libelle: f.nom, titre: f.nom, montant: Number(f.montant), acompte: Number(f.acompte),
+    detail: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0).map(sepMille).join(' + '),
+  }))
+}
+function optionsPerfectionnement(formules, boite) {
+  return (formules || []).filter(f => f.boite === boite && Number(f.montant) > 0).map(f => ({
+    libelle: `${f.cours} cours · ${boite === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}`, titre: `${f.cours} cours`,
+    montant: Number(f.montant), acompte: Number(f.acompte),
+    detail: Number(f.tranche2) > 0 ? `${sepMille(f.acompte)} + ${sepMille(f.tranche2)}` : 'En une fois',
+  }))
+}
+
+/* Tuiles de formule : un clic remplit le total et l'acompte (toujours modifiables) ; « Montant libre »
+   garde la saisie manuelle. */
+function ChoixFormule({ options, valeur, onChoisir }) {
+  const tuile = actif => ({
+    borderRadius: '.85rem', border: `2px solid ${actif ? '#d4a017' : '#e2e8f0'}`,
+    background: actif ? '#fffbeb' : '#fff', color: '#1e3a5f', transition: 'all .15s',
+  })
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {options.map(o => (
+        <button key={o.libelle} type="button" onClick={() => onChoisir(o)} aria-pressed={valeur === o.libelle}
+          className="flex flex-col items-start text-left px-3 py-2.5 cursor-pointer" style={tuile(valeur === o.libelle)}>
+          <span className="text-sm font-extrabold leading-tight">{o.titre}</span>
+          <span className="text-base font-extrabold leading-tight mt-0.5" style={{ color: '#b45309' }}>{sepMille(o.montant)} F</span>
+          <span className="text-[10px] font-semibold text-slate-400 mt-0.5">{o.detail}</span>
+        </button>
+      ))}
+      <button type="button" onClick={() => onChoisir(null)} aria-pressed={!valeur}
+        className="flex flex-col items-start justify-center text-left px-3 py-2.5 cursor-pointer" style={tuile(!valeur)}>
+        <span className="text-sm font-extrabold leading-tight"><i className="bi bi-pencil me-1" />Montant libre</span>
+        <span className="text-[10px] font-semibold text-slate-400 mt-0.5">Saisie manuelle</span>
+      </button>
+    </div>
+  )
+}
+
 const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
   adresse: '', site: '', lieuInscription: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
-  montantAvance: '', montantTotal: '', moyenAcompte: 'ESPECES',
+  montantAvance: '', montantTotal: '', moyenAcompte: 'ESPECES', formule: '',
   // PERMIS (code + conduite) ou PERFECTIONNEMENT (conduite seule, boîte manuelle ou automatique)
   typeFormation: 'PERMIS', boiteVitesse: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
@@ -771,10 +813,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [activeTab, setActiveTab] = useState('lecons')
   const [ecole, setEcole]         = useState('')
   const [moniteurDefaut, setMoniteurDefaut] = useState('')
+  const [tarifs, setTarifs] = useState({ formules: [], formulesPerfectionnement: [] })
   const [piecesAttente, setPiecesAttente] = useState([])
 
   useEffect(() => {
-    if (!isMoniteur) api('GET', '/config').then(c => { setEcole(c.nom || ''); setMoniteurDefaut(c.moniteurParDefautId ?? '') }).catch(() => {})
+    if (!isMoniteur) api('GET', '/config').then(c => {
+      setEcole(c.nom || ''); setMoniteurDefaut(c.moniteurParDefautId ?? '')
+      setTarifs({ formules: c.formules || [], formulesPerfectionnement: c.formulesPerfectionnement || [] })
+    }).catch(() => {})
   }, [])
 
   const load = async () => {
@@ -863,6 +909,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     catch (e) { toast(e.message, 'danger') }
   }
 
+  // Formule choisie : total et acompte pré-remplis (l'acompte seulement à l'inscription)
+  const choisirFormule = (o) => setForm(fm => o
+    ? { ...fm, formule: o.libelle, montantTotal: String(o.montant), ...(editId ? {} : { montantAvance: String(o.acompte) }) }
+    : { ...fm, formule: '' })
+
   const openModal = (eleve = null, typeFormation = 'PERMIS') => {
     if (eleve) {
       setEditId(eleve.id)
@@ -872,7 +923,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
         lieuInscription: eleve.lieuInscription || eleve.site || '',
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
-        montantTotal: eleve.montantTotal ?? '',
+        montantTotal: eleve.montantTotal ?? '', formule: eleve.formule || '',
         typeFormation: eleve.typeFormation || 'PERMIS', boiteVitesse: eleve.boiteVitesse || '',
         docCertResidence: eleve.docCertResidence || false,
         docCniLegalisee: eleve.docCniLegalisee || false,
@@ -924,6 +975,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
       numeroCni: form.numeroCni || null, photoUrl: form.photoUrl || null, moniteurId: form.moniteurId ? Number(form.moniteurId) : null,
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null,
       montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null,
+      formule: form.formule || null,
       // Perfectionnement : catégorie B fixée par le serveur ; permis : pas de boîte
       categoriePermis: perf ? null : form.categoriePermis, boiteVitesse: perf ? form.boiteVitesse : null }
     try {
@@ -1136,6 +1188,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               </>)}
 
               {section(3, "wallet2", "Paiement", <>
+                {optionsPermis(tarifs.formules).length > 0 && <div className="mb-3">
+                  <label className={labelCls}>Formule</label>
+                  <ChoixFormule options={optionsPermis(tarifs.formules)} valeur={form.formule} onChoisir={choisirFormule} />
+                </div>}
                 <div className="row g-3">
                   <div className={editId ? 'col-12' : 'col-md-6'}>
                     <label className={labelCls}>Prix de la formation {!editId && <span className="text-red-500">*</span>}</label>
@@ -1330,7 +1386,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <label className={labelCls}>Boîte de vitesses <span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   {BOITES.map(b => (
-                    <button key={b.v} type="button" onClick={() => set('boiteVitesse', b.v)}
+                    <button key={b.v} type="button"
+                      onClick={() => setForm(fm => fm.boiteVitesse === b.v ? fm : { ...fm, boiteVitesse: b.v,
+                        // Les formules dépendent de la boîte : on repart d'une saisie vide
+                        ...(fm.formule ? { formule: '', montantTotal: '', montantAvance: '' } : {}) })}
                       className="flex flex-col items-center py-3 cursor-pointer" style={pill(form.boiteVitesse === b.v, { color: '#1e3a5f', bg: '#fef9c3' })}>
                       <i className={`bi bi-${b.icon}`} style={{ fontSize: '1.4rem', color: form.boiteVitesse === b.v ? '#d4a017' : undefined }} />
                       <span className="text-sm font-extrabold leading-none mt-1.5">{b.txt}</span>
@@ -1362,6 +1421,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               </>)}
 
               {section(3, 'wallet2', 'Paiement', <>
+                <div className="mb-3">
+                  <label className={labelCls}>Formule</label>
+                  {form.boiteVitesse
+                    ? <ChoixFormule options={optionsPerfectionnement(tarifs.formulesPerfectionnement, form.boiteVitesse)} valeur={form.formule} onChoisir={choisirFormule} />
+                    : <div className="text-xs text-slate-400"><i className="bi bi-info-circle me-1" />Choisissez d'abord la boîte de vitesses pour voir les formules.</div>}
+                </div>
                 <div className="row g-3">
                   <div className={editId ? 'col-12' : 'col-md-6'}>
                     <label className={labelCls}>Total {!editId && <span className="text-red-500">*</span>}</label>
@@ -1534,6 +1599,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   s.typeFormation === 'PERFECTIONNEMENT'
                     ? { label: 'Formation', value: `Perfectionnement · boîte ${s.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}` }
                     : { label: 'Catégorie', value: s.categoriePermis },
+                  { label: 'Formule', value: s.formule },
                   { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.nom} ${s.moniteur.prenom}` : 'Aucun' },
                   { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
                 ].map(({ label, value }) => value ? (

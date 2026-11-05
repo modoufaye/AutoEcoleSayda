@@ -78,6 +78,10 @@ public class EleveService {
 
     /** Guédiawaye est fermé : refusé pour une inscription ou un changement, toléré s'il est déjà en place. */
     /** « En ligne » est un lieu d'inscription, pas un bureau : ces élèves sont suivis par Massalikoul Djinane. */
+    private static String formule(String f) {
+        return f == null || f.isBlank() ? null : f.trim();
+    }
+
     private static Site bureau(Site site) {
         return site == Site.EN_LIGNE ? Site.MAZALIK_JINAN : site;
     }
@@ -114,6 +118,7 @@ public class EleveService {
                 .numeroCni(request.getNumeroCni())
                 .photoUrl(request.getPhotoUrl())
                 .montantTotal(request.getMontantTotal())
+                .formule(formule(request.getFormule()))
                 .categoriePermis(request.getCategoriePermis())
                 .dateInscription(request.getDateInscription() != null ? request.getDateInscription() : LocalDate.now())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutEleve.EN_COURS)
@@ -218,6 +223,7 @@ public class EleveService {
         eleve.setNumeroCni(request.getNumeroCni());
         eleve.setPhotoUrl(request.getPhotoUrl());
         eleve.setMontantTotal(request.getMontantTotal());
+        eleve.setFormule(formule(request.getFormule()));
         eleve.setCategoriePermis(request.getCategoriePermis());
         if (request.getStatut() != null) {
             eleve.setStatut(request.getStatut());

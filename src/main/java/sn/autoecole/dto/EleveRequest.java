@@ -66,6 +66,10 @@ public class EleveRequest {
     @PositiveOrZero(message = "Le montant total doit être positif")
     private BigDecimal montantTotal;
 
+    /** Formule choisie (libellé) ; absente : montant saisi librement. */
+    @Size(max = 80, message = "Formule trop longue")
+    private String formule;
+
     // Documents dossier
     private boolean docCertResidence;
     private boolean docCniLegalisee;

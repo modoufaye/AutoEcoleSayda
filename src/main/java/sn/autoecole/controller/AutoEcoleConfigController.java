@@ -3,7 +3,9 @@ package sn.autoecole.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import sn.autoecole.entity.AutoEcoleConfig;
+import sn.autoecole.entity.FormulePerfectionnement;
 import sn.autoecole.entity.FormulePermis;
+import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
 import sn.autoecole.repository.EleveRepository;
@@ -26,8 +28,9 @@ public class AutoEcoleConfigController {
 
     private AutoEcoleConfig getOrCreate() {
         AutoEcoleConfig cfg = repo.findAll().stream().findFirst().orElseGet(AutoEcoleConfig::new);
-        if (cfg.getId() == null || cfg.getFormules() == null) {
+        if (cfg.getId() == null || cfg.getFormules() == null || cfg.getFormulesPerfectionnement() == null) {
             if (cfg.getFormules() == null) cfg.setFormules(FormulePermis.parDefaut());
+            if (cfg.getFormulesPerfectionnement() == null) cfg.setFormulesPerfectionnement(FormulePerfectionnement.parDefaut());
             cfg = repo.save(cfg);
         }
         return cfg;
@@ -64,6 +67,8 @@ public class AutoEcoleConfigController {
             cfg.setTarifHeureConduite(toBD(body.get("tarifHeureConduite")));
         if (body.containsKey("formules"))
             cfg.setFormules(formules(body.get("formules")));
+        if (body.containsKey("formulesPerfectionnement"))
+            cfg.setFormulesPerfectionnement(formulesPerfectionnement(body.get("formulesPerfectionnement")));
         if (body.containsKey("moniteurParDefautId")) {
             Object v = body.get("moniteurParDefautId");
             cfg.setMoniteurParDefautId(v == null || v.toString().isBlank() ? null : Long.valueOf(v.toString()));
@@ -107,6 +112,29 @@ public class AutoEcoleConfigController {
                 throw new BusinessException("Formule " + nom + " : l'acompte et les tranches (" + total.toBigInteger()
                         + " F) ne font pas le montant de la formule (" + montant.toBigInteger() + " F)");
             res.add(new FormulePermis(nom, montant, acompte, t2, t3));
+        }
+        return res;
+    }
+
+    /**
+     * Les formules de perfectionnement : toujours la liste par défaut (boîte et nombre de cours),
+     * seuls les montants changent. L'acompte et la 2e tranche doivent faire le montant.
+     */
+    private List<FormulePerfectionnement> formulesPerfectionnement(Object v) {
+        if (!(v instanceof List<?> liste)) throw new BusinessException("Formules de perfectionnement invalides");
+        List<FormulePerfectionnement> res = new ArrayList<>();
+        for (FormulePerfectionnement d : FormulePerfectionnement.parDefaut()) {
+            Map<?, ?> f = liste.stream().filter(x -> x instanceof Map<?, ?> m
+                            && d.boite().name().equals(String.valueOf(m.get("boite"))) && String.valueOf(d.cours()).equals(String.valueOf(m.get("cours"))))
+                    .map(x -> (Map<?, ?>) x).findFirst().orElse(Map.of());
+            BigDecimal montant = toBD(f.get("montant")), acompte = toBD(f.get("acompte")), t2 = toBD(f.get("tranche2"));
+            String nom = d.cours() + " cours, boîte " + (d.boite() == BoiteVitesse.AUTOMATIQUE ? "automatique" : "manuelle");
+            if (montant.signum() < 0 || acompte.signum() < 0 || t2.signum() < 0)
+                throw new BusinessException(nom + " : montant négatif");
+            if (acompte.add(t2).compareTo(montant) != 0)
+                throw new BusinessException(nom + " : l'acompte et la 2e tranche (" + acompte.add(t2).toBigInteger()
+                        + " F) ne font pas le montant (" + montant.toBigInteger() + " F)");
+            res.add(new FormulePerfectionnement(d.boite(), d.cours(), montant, acompte, t2));
         }
         return res;
     }

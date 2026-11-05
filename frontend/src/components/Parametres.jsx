@@ -25,6 +25,52 @@ function formulesDepuis(liste) {
   })
 }
 
+/* Formules de perfectionnement : boîte et nombre de cours fixés, montants modifiables. */
+const BOITES_PERF = [
+  { v: 'AUTOMATIQUE', label: 'Boîte automatique', icone: 'lightning-charge-fill', couleur: '#0369a1', fond: '#e0f2fe' },
+  { v: 'MANUELLE',    label: 'Boîte manuelle',    icone: 'gear-wide-connected',   couleur: '#a16207', fond: '#fef9c3' },
+]
+
+function CartePerfectionnement({ boite, lignes, onChange }) {
+  const n = v => parseFloat(v) || 0
+  return (
+    <div className="p-3 h-100" style={{ border: '1.5px solid #e2e8f0', borderRadius: '1rem', background: '#fff' }}>
+      <div className="d-flex align-items-center gap-2 mb-3">
+        <div className="d-flex align-items-center justify-content-center flex-shrink-0"
+          style={{ width: 32, height: 32, borderRadius: '.6rem', background: boite.fond, color: boite.couleur }}>
+          <i className={`bi bi-${boite.icone}`} />
+        </div>
+        <div className="fw-bold" style={{ color: '#1e293b' }}>{boite.label}</div>
+      </div>
+      {lignes.map(({ f, i }) => {
+        const ok = n(f.acompte) + n(f.tranche2) === n(f.montant)
+        const nom = `${f.cours} cours`
+        return (
+          <div key={i} className="pb-2 mb-2" style={{ borderBottom: '1px dashed #e2e8f0' }}>
+            <div className="d-flex align-items-center mb-1">
+              <span className="fw-bold" style={{ color: boite.couleur, fontSize: '.85rem' }}>{nom}</span>
+              <span className="ms-auto" style={{ fontSize: '.72rem', fontWeight: 600, color: ok ? '#15803d' : '#c2410c' }}>
+                {ok ? <><i className="bi bi-check-circle-fill me-1" />{n(f.tranche2) ? 'En 2 fois' : 'En une fois'}</>
+                  : <><i className="bi bi-exclamation-triangle-fill me-1" />Tranches : {fcfa(n(f.acompte) + n(f.tranche2))}</>}
+              </span>
+            </div>
+            <div className="row g-2">
+              {[['montant', 'Montant'], ['acompte', 'Acompte'], ['tranche2', '2e tranche']].map(([k, libelle]) => (
+                <div key={k} className={k === 'montant' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
+                  <label className={labelCls} style={{ fontSize: '.62rem' }}>{libelle}</label>
+                  <input type="number" className={inputCls} value={f[k]} min="0" step="1000" placeholder="0"
+                    aria-label={`${nom} ${boite.label.toLowerCase()} : ${libelle}`} style={{ paddingLeft: '.5rem', paddingRight: '.25rem' }}
+                    onChange={e => onChange(i, { ...f, [k]: e.target.value })} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function CarteFormule({ def, valeur, onChange }) {
   const n = k => parseFloat(valeur[k]) || 0
   const champs = CHAMPS_FORMULE.slice(0, def.tranches + 1)
@@ -127,6 +173,7 @@ export default function Parametres() {
     lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
   })
   const [formules, setFormules] = useState(formulesDepuis([]))
+  const [formulesPerf, setFormulesPerf] = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [applying, setApplying]   = useState(false)
   const [loading, setLoading] = useState(true)
@@ -134,7 +181,7 @@ export default function Parametres() {
 
   useEffect(() => {
     api('GET', '/admin/config')
-      .then(data => { setFormules(formulesDepuis(data.formules)); setForm({
+      .then(data => { setFormules(formulesDepuis(data.formules)); setFormulesPerf(data.formulesPerfectionnement || []); setForm({
         nom:               data.nom               || '',
         adresse:           data.adresse           || '',
         telephone:         data.telephone         || '',
@@ -183,6 +230,10 @@ export default function Parametres() {
         formules: formules.map(f => ({
           nom: f.nom,
           ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])),
+        })),
+        formulesPerfectionnement: formulesPerf.map(f => ({
+          boite: f.boite, cours: f.cours,
+          ...Object.fromEntries(['montant', 'acompte', 'tranche2'].map(k => [k, parseFloat(f[k]) || 0])),
         })),
       })
       toast('Paramètres enregistrés avec succès')
@@ -290,6 +341,24 @@ export default function Parametres() {
               ))}
             </div>
           </div>
+
+          {formulesPerf.length > 0 && <div className="px-5 pt-4">
+            <div className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '.92rem' }}>
+              <i className="bi bi-speedometer2 me-2" style={{ color: '#d4a017' }} />Formules perfectionnement
+            </div>
+            <div className="text-slate-400 mb-3" style={{ fontSize: '.8rem' }}>
+              Conduite seule. 2e tranche à 0 : tout se paie à l'inscription.
+            </div>
+            <div className="row g-3">
+              {BOITES_PERF.map(b => (
+                <div key={b.v} className="col-md-6">
+                  <CartePerfectionnement boite={b}
+                    lignes={formulesPerf.map((f, i) => ({ f, i })).filter(x => x.f.boite === b.v)}
+                    onChange={(i, v) => setFormulesPerf(fs => fs.map((x, j) => j === i ? v : x))} />
+                </div>
+              ))}
+            </div>
+          </div>}
 
           <div className="px-5 py-4">
             <div className="fw-bold mb-3" style={{ color: '#1e293b', fontSize: '.92rem' }}>

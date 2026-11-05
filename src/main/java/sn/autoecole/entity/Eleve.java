@@ -80,6 +80,10 @@ public class Eleve {
     @Column(name = "montant_total", precision = 12, scale = 2)
     private java.math.BigDecimal montantTotal;
 
+    // Formule choisie à l'inscription (ex. « Premium », « 15 cours · automatique ») ; null : montant libre.
+    @Column(length = 80)
+    private String formule;
+
     @Column(name = "date_inscription", nullable = false)
     private LocalDate dateInscription;
 
