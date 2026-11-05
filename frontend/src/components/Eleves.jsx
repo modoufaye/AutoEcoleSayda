@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
 import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond, estAdmin } from '../utils'
@@ -763,9 +763,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
-  // Fenêtre d'inscription : 'moderne' (par défaut) ou 'classique' ; préférence locale au navigateur.
-  const [vueModale, setVueModale] = useState(() => { try { return localStorage.getItem('vueModaleEleve') || 'moderne' } catch { return 'moderne' } })
-  const choisirVue = (v) => { setVueModale(v); try { localStorage.setItem('vueModaleEleve', v) } catch { /* stockage indisponible */ } }
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(1)
@@ -977,10 +974,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     } catch (e) { toast(e.message, 'danger') }
   }
 
-  /* ── Modal ─────────────────────────────────────────────── */
-  /* ── Fenêtre élève « moderne » (inscription et modification) ──
-     La fenêtre classique (Modal) reste disponible : lien « Ancienne vue » dans l'en-tête,
-     choix retenu dans le navigateur. */
+  /* ── Fenêtre élève (inscription et modification) ── */
   function ModalModerne() {
     const inputCls = "w-full px-3.5 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#d4a017] transition-all"
     const labelCls = "block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5"
@@ -1050,11 +1044,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   </div>
                 </div>
               </div>
-              <button type="button" onClick={() => choisirVue('classique')}
-                className="absolute bottom-3 end-5 text-[11px] font-semibold border-0 bg-transparent p-0 cursor-pointer"
-                style={{ color: 'rgba(191,219,254,.75)' }}>
-                <i className="bi bi-arrow-counterclockwise me-1" />Ancienne vue
-              </button>
             </div>
 
             <div className="modal-body px-4 sm:px-6 py-5 space-y-4" style={{ background: '#f4f6fa' }}>
@@ -1237,9 +1226,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     )
   }
 
-  // Perfectionnement : sa propre fenêtre, réduite à l'essentiel ; permis : vue moderne ou classique
-  const fenetreEleve = () => form.typeFormation === 'PERFECTIONNEMENT' ? ModalPerfectionnement()
-    : vueModale === 'moderne' ? ModalModerne() : Modal()
+  // Perfectionnement : sa propre fenêtre, réduite à l'essentiel
+  const fenetreEleve = () => form.typeFormation === 'PERFECTIONNEMENT' ? ModalPerfectionnement() : ModalModerne()
 
   /* ── Fenêtre « Perfectionnement » : conduite seule (boîte manuelle ou automatique).
      Prénom, nom, téléphone, date et lieu d'inscription, total, acompte et reliquat : pas de
@@ -1428,227 +1416,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   <i className="bi bi-check2-circle me-1" />{editId ? 'Enregistrer' : 'Inscrire'}
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  function Modal() {
-    const inputCls = "w-full px-3 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all"
-    const labelCls = "block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5"
-    return (
-      <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div className="modal-content border-0" style={{ borderRadius: '1.25rem', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,.25)' }}>
-            <div className="px-6 pt-6 pb-5 relative" style={{ background: 'linear-gradient(135deg,#142a47 0%,#1e3a5f 50%,#2a4f7c 100%)' }}>
-              <button className="btn-close btn-close-white position-absolute top-4 end-4" onClick={() => setShowModal(false)} />
-              <div className="flex items-center gap-4">
-                {form.photoUrl ? (
-                  <img src={form.photoUrl} alt="" className="w-14 h-14 rounded-full flex-shrink-0"
-                    style={{ objectFit: 'cover', objectPosition: 'center 25%', border: '2px solid rgba(255,255,255,.85)' }} />
-                ) : (
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(255,255,255,.2)' }}>
-                    <i className="bi bi-person-plus-fill" style={{ fontSize: '1.6rem', color: '#fff' }} />
-                  </div>
-                )}
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>
-                    {editId ? "Modifier l'élève" : 'Nouvel élève'}
-                  </div>
-                  {editId ? (
-                    <>
-                      <div className="text-2xl font-extrabold text-white leading-tight">
-                        {form.nom} {form.prenom}
-                      </div>
-                      {form.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{form.telephone}</div>}
-                      <button type="button" onClick={() => choisirVue('moderne')}
-                        className="text-[11px] font-semibold border-0 bg-transparent p-0 mt-1 cursor-pointer" style={{ color: '#f0bb2a' }}>
-                        <i className="bi bi-stars me-1" />Essayer la nouvelle vue
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-xl font-extrabold text-white leading-tight">Ajouter un élève</div>
-                      <button type="button" onClick={() => choisirVue('moderne')}
-                        className="text-[11px] font-semibold border-0 bg-transparent p-0 mt-1 cursor-pointer" style={{ color: '#f0bb2a' }}>
-                        <i className="bi bi-stars me-1" />Essayer la nouvelle vue
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="modal-body px-6 py-4" style={{ background: '#f8fafc' }}>
-              <div className="row g-3">
-                <div className="col-12">
-                  <label className={labelCls}>Photo de profil</label>
-                  <PhotoPicker value={form.photoUrl} onChange={url => setForm(f => ({ ...f, photoUrl: url }))} />
-                </div>
-                {[
-                  { key: 'nom',           label: 'Nom',             req: true,  type: 'text' },
-                  { key: 'prenom',        label: 'Prénom',          req: true,  type: 'text' },
-                  'moniteur',
-                  { key: 'dateNaissance', label: 'Date de naissance', req: false, type: 'date' },
-                  { key: 'dateInscription', label: "Date d'inscription", req: true, type: 'date', max: today() },
-                  { key: 'telephone',     label: 'Téléphone (identifiant de connexion)', req: !editId, type: 'tel', ph: '7XXXXXXXX' },
-                ].map(f => f === 'moniteur' ? (
-                  // Juste après le nom et le prénom : statut (modification seulement) à gauche du moniteur.
-                  <Fragment key="moniteur">
-                  {editId && (
-                    <div className="col-md-6">
-                      <label className={labelCls}>Statut</label>
-                      <select className={inputCls} value={form.statut}
-                        onChange={e => setForm(fm => ({ ...fm, statut: e.target.value }))}>
-                        {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div className={editId ? 'col-md-6' : 'col-12'}>
-                    <label className={labelCls}>Moniteur assigné</label>
-                    <select className={inputCls} value={form.moniteurId}
-                      onChange={e => setForm(fm => ({ ...fm, moniteurId: e.target.value }))}>
-                      <option value="">— Aucun moniteur —</option>
-                      {moniteurs.filter(m => m.actif).map(m => (
-                        <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
-                      ))}
-                    </select>
-                  </div>
-                  </Fragment>
-                ) : (
-                  <div key={f.key} className="col-md-6">
-                    <label className={labelCls}>{f.label}{f.req && <span className="text-red-500 ml-0.5"> *</span>}</label>
-                    {f.type === 'tel'
-                      ? <ChampTelephone className={inputCls} value={form[f.key]} onChange={v => setForm(fm => ({ ...fm, [f.key]: v }))} />
-                      : <input type={f.type} className={inputCls} placeholder={f.ph || ''} max={f.max}
-                          value={form[f.key]} onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))} />}
-                  </div>
-                ))}
-                <div className="col-md-6">
-                  <label className={labelCls}>Catégorie de permis <span className="text-red-500">*</span></label>
-                  <select className={inputCls} value={form.categoriePermis}
-                    onChange={e => setForm(fm => ({ ...fm, categoriePermis: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    {['A', 'B', 'C', 'D'].map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="col-md-6">
-                  <label className={labelCls}>Bureau <span className="text-red-500">*</span></label>
-                  <select className={inputCls} value={form.site}
-                    onChange={e => setForm(fm => ({ ...fm, site: e.target.value }))}>
-                    <option value="">Choisir…</option>
-                    {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    {form.site && !BUREAUX.some(b => b.value === form.site) && (
-                      <option value={form.site} disabled>{LABELS[form.site] || form.site}</option>
-                    )}
-                  </select>
-                </div>
-                <div className="col-md-6">
-                  <label className={labelCls}>Lieu d'inscription</label>
-                  <select className={inputCls} value={form.lieuInscription}
-                    onChange={e => setForm(fm => ({ ...fm, lieuInscription: e.target.value,
-                      // Inscrit en ligne : suivi par Massalikoul Djinane, sauf bureau déjà choisi.
-                      site: e.target.value === 'EN_LIGNE' && !fm.site ? 'MAZALIK_JINAN' : fm.site }))}>
-                    <option value="">Comme le bureau</option>
-                    {LIEUX_INSCRIPTION.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
-                </div>
-                <div className={editId ? 'col-md-6' : 'col-12'}>
-                  <label className={labelCls}>Adresse</label>
-                  <input className={inputCls} value={form.adresse}
-                    onChange={e => setForm(fm => ({ ...fm, adresse: e.target.value }))} />
-                </div>
-                {/* Prix convenu : total fixé par élève, acompte à l'inscription, reliquat = le reste */}
-                <div className={editId ? 'col-md-6' : 'col-md-4'}>
-                  <label className={labelCls}>
-                    Montant total de la formation (FCFA) {!editId && <span className="text-red-500">*</span>}
-                  </label>
-                  <input type="number" min="0" className={inputCls}
-                    placeholder="Ex: 150000"
-                    value={form.montantTotal}
-                    onChange={e => setForm(fm => ({ ...fm, montantTotal: e.target.value }))} />
-                </div>
-                {!editId && (
-                  <div className="col-md-4">
-                    <label className={labelCls}>
-                      Acompte versé à l'inscription (FCFA) <span className="text-red-500">*</span>
-                    </label>
-                    <input type="number" min="0" className={inputCls}
-                      placeholder="Ex: 50000"
-                      value={form.montantAvance}
-                      onChange={e => setForm(fm => ({ ...fm, montantAvance: e.target.value }))} />
-                  </div>
-                )}
-                {!editId && (
-                  <div className="col-md-4">
-                    <label className={labelCls}>Mode de règlement</label>
-                    <select className={inputCls} value={form.moyenAcompte}
-                      onChange={e => setForm(fm => ({ ...fm, moyenAcompte: e.target.value }))}>
-                      <option value="ESPECES">Espèces</option>
-                      <option value="WAVE">Wave</option>
-                      <option value="ORANGE_MONEY">Orange Money</option>
-                    </select>
-                  </div>
-                )}
-                {!editId && (
-                  <div className="col-12" style={{ marginTop: '-.25rem' }}>
-                    <p className="text-xs text-slate-500 mb-0">
-                      L'acompte est enregistré comme <strong>1re tranche</strong>.
-                      {parseFloat(form.montantTotal) > 0 && (
-                        <> Reliquat : <strong>{fmtMontant(Math.max(0, parseFloat(form.montantTotal) - (parseFloat(form.montantAvance) || 0)))}</strong></>
-                      )}
-                    </p>
-                  </div>
-                )}
-
-                {/* Documents du dossier */}
-                <div className="col-12">
-                  <label className={labelCls}>Documents remis</label>
-                  <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
-                    <div className="row g-2">
-                      {DOCS.map(doc => (
-                        <div key={doc.key} className="col-6">
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '.5rem', cursor: 'pointer', fontSize: '.82rem', fontWeight: 600, color: form[doc.key] ? '#15803d' : '#64748b' }}>
-                            <input
-                              type="checkbox"
-                              checked={form[doc.key]}
-                              onChange={e => setForm(fm => ({ ...fm, [doc.key]: e.target.checked }))}
-                              style={{ width: 16, height: 16, accentColor: '#15803d', cursor: 'pointer', flexShrink: 0 }}
-                            />
-                            <span>
-                              {form[doc.key] && <i className="bi bi-check-circle-fill me-1" style={{ color: '#15803d', fontSize: '.78rem' }} />}
-                              {doc.label}
-                            </span>
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="mb-0 mt-2" style={{ fontSize: '.75rem', color: '#94a3b8' }}>
-                      {DOCS.filter(d => form[d.key]).length}/{DOCS.length} document{DOCS.filter(d => form[d.key]).length !== 1 ? 's' : ''} remis
-                    </p>
-                  </div>
-                </div>
-
-                {/* Dossier de l'élève (Service des Mines) : image ou PDF */}
-                <div className="col-12">
-                  <label className={labelCls}>Dossier de l'élève (Service des Mines)</label>
-                  <div className="rounded-xl p-3" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
-                    <PiecesJointes eleveId={editId} attente={piecesAttente} setAttente={setPiecesAttente}
-                      peutSupprimer={!isMoniteur} seulDossier />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2" style={{ background: '#f8fafc' }}>
-              <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                onClick={() => setShowModal(false)}>Annuler</button>
-              <button className="btn fw-bold text-white px-5" style={{
-                background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
-                onClick={save}>
-                <i className="bi bi-check-lg me-1" />Enregistrer
-              </button>
             </div>
           </div>
         </div>

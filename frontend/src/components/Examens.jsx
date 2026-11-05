@@ -14,7 +14,7 @@ import '../landing.css'
 const PAGE_SIZE = 10
 
 const today = () => new Date().toISOString().split('T')[0]
-const EMPTY     = { date: today(), eleveIds: [], type: '', resultat: 'EN_ATTENTE', score: '', observations: '' }
+const EMPTY     = { date: today(), eleveIds: [], type: '', observations: '' }
 const RES_EMPTY = { resultat: 'EN_ATTENTE', score: '', observations: '' }
 
 const RES_STYLE = {
@@ -85,7 +85,8 @@ export default function Examens({ onEleveClick, onBack }) {
     setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setForm(EMPTY); setRechercheEleve(''); setShowModal(true)
   }
 
-  /* Un examen par élève coché, avec la même date et la même épreuve. Les élèves refusés par le
+  /* Un examen par élève coché, avec la même date et la même épreuve ; l'élève le voit sur son
+     tableau de bord dès sa connexion. Les élèves refusés par le
      serveur restent cochés pour pouvoir corriger et réessayer. */
   const save = async () => {
     const { date, eleveIds, type } = form
@@ -95,12 +96,8 @@ export default function Examens({ onEleveClick, onBack }) {
     const refus = []
     for (const eleveId of eleveIds) {
       try {
-        await api('POST', '/examens', {
-          date, eleveId, type,
-          resultat: form.resultat,
-          score: form.score ? parseInt(form.score) : null,
-          observations: form.observations || null,
-        })
+        // Examen programmé : le résultat et le score se saisissent après l'épreuve
+        await api('POST', '/examens', { date, eleveId, type, resultat: 'EN_ATTENTE', observations: form.observations || null })
       } catch (e) {
         const el = eleves.find(x => x.id === eleveId)
         refus.push({ eleveId, texte: `${el ? `${el.prenom} ${el.nom}` : 'Élève'} : ${e.message}` })
@@ -432,21 +429,11 @@ export default function Examens({ onEleveClick, onBack }) {
                   { v: 'CONDUITE', label: 'Conduite', icon: 'car-front-fill',  sous: 'Épreuve pratique', color: TYPE_STYLE.CONDUITE.color, bg: TYPE_STYLE.CONDUITE.bg },
                 ]} />
               </div>
-              <Etiquette>Résultat</Etiquette>
-              <div className="mb-4">
-                <Choix cols={3} value={form.resultat} onChange={v => set('resultat', v)}
-                  options={['EN_ATTENTE', 'ADMIS', 'REFUSE'].map(v => ({ v, label: RES_STYLE[v].label, color: RES_STYLE[v].color, bg: RES_STYLE[v].bg,
-                    icon: { EN_ATTENTE: 'hourglass-split', ADMIS: 'check-circle-fill', REFUSE: 'x-circle-fill' }[v] }))} />
-              </div>
-              <div className="row g-3">
-                <div className="col-md-4">
-                  <Etiquette>Score</Etiquette>
-                  <ChampMontant suffixe="/ 100" placeholder="—" value={form.score} onChange={v => set('score', v)} />
-                </div>
-                <div className="col-md-8">
-                  <Etiquette>Observations</Etiquette>
-                  <input className={champCls} value={form.observations} placeholder="Facultatif" onChange={e => set('observations', e.target.value)} />
-                </div>
+              <Etiquette>Message pour les élèves</Etiquette>
+              <input className={champCls} value={form.observations} placeholder="Facultatif : lieu, heure de convocation, pièces à apporter…"
+                onChange={e => set('observations', e.target.value)} />
+              <div className="text-xs text-slate-400 mt-2">
+                <i className="bi bi-info-circle me-1" />L'examen est programmé « En attente » : les élèves le voient à leur connexion. Le résultat et le score se saisissent après l'épreuve.
               </div>
             </Etape>
           </FenetreModerne>

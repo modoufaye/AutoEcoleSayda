@@ -281,8 +281,9 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
             <i className="bi bi-alarm-fill" style={{ fontSize: '.9rem' }} />
           </div>
           <div>
-            <span className="font-bold">Examen {TYPE_STYLE[prochainExamen.type]?.label} dans {joursAvant} jour{joursAvant > 1 ? 's' : ''}</span>
+            <span className="font-bold">Examen {TYPE_STYLE[prochainExamen.type]?.label} {joursAvant <= 0 ? "aujourd'hui" : joursAvant === 1 ? 'demain' : `dans ${joursAvant} jours`}</span>
             <span className="font-normal opacity-80"> — le {fmtDate(prochainExamen.date)}</span>
+            {prochainExamen.observations && <div className="font-normal opacity-90 mt-0.5">{prochainExamen.observations}</div>}
           </div>
         </div>
       )}
