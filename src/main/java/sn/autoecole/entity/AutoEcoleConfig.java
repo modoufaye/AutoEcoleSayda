@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "auto_ecole_config")
@@ -41,6 +42,11 @@ public class AutoEcoleConfig {
     @Builder.Default
     @Column(precision = 12, scale = 2)
     private BigDecimal tarifHeureConduite = BigDecimal.ZERO;
+
+    /** Formules du permis (Standard, Premium, Prestige, Excellence) et leurs tranches. */
+    @Column(columnDefinition = "TEXT")
+    @Convert(converter = FormulesPermisConverter.class)
+    private List<FormulePermis> formules;
 
     /** Moniteur assigné d'office aux nouveaux inscrits (celui des cours de code) ; null : aucun. */
     @Column(name = "moniteur_par_defaut_id")

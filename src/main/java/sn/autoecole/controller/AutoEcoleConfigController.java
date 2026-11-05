@@ -3,6 +3,7 @@ package sn.autoecole.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import sn.autoecole.entity.AutoEcoleConfig;
+import sn.autoecole.entity.FormulePermis;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
 import sn.autoecole.repository.EleveRepository;
@@ -10,6 +11,8 @@ import sn.autoecole.repository.MoniteurRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,8 +25,12 @@ public class AutoEcoleConfigController {
     private final MoniteurRepository moniteurRepository;
 
     private AutoEcoleConfig getOrCreate() {
-        return repo.findAll().stream().findFirst()
-                .orElseGet(() -> repo.save(new AutoEcoleConfig()));
+        AutoEcoleConfig cfg = repo.findAll().stream().findFirst().orElseGet(AutoEcoleConfig::new);
+        if (cfg.getId() == null || cfg.getFormules() == null) {
+            if (cfg.getFormules() == null) cfg.setFormules(FormulePermis.parDefaut());
+            cfg = repo.save(cfg);
+        }
+        return cfg;
     }
 
     @GetMapping("/api/admin/config")
@@ -55,6 +62,8 @@ public class AutoEcoleConfigController {
             cfg.setTarifHeureCode(toBD(body.get("tarifHeureCode")));
         if (body.containsKey("tarifHeureConduite"))
             cfg.setTarifHeureConduite(toBD(body.get("tarifHeureConduite")));
+        if (body.containsKey("formules"))
+            cfg.setFormules(formules(body.get("formules")));
         if (body.containsKey("moniteurParDefautId")) {
             Object v = body.get("moniteurParDefautId");
             cfg.setMoniteurParDefautId(v == null || v.toString().isBlank() ? null : Long.valueOf(v.toString()));
@@ -77,6 +86,29 @@ public class AutoEcoleConfigController {
         eleves.forEach(e -> e.setMoniteur(moniteur));
         eleveRepository.saveAll(eleves);
         return Map.of("eleves", eleves.size(), "moniteur", moniteur.getPrenom() + " " + moniteur.getNom());
+    }
+
+    /**
+     * Les quatre formules, dans l'ordre. Standard n'a pas de 3e tranche. Les tranches doivent
+     * couvrir le montant (une formule encore à 0 est acceptée : pas encore renseignée).
+     */
+    private List<FormulePermis> formules(Object v) {
+        if (!(v instanceof List<?> liste)) throw new BusinessException("Formules invalides");
+        List<FormulePermis> res = new ArrayList<>();
+        for (String nom : FormulePermis.NOMS) {
+            Map<?, ?> f = liste.stream().filter(x -> x instanceof Map<?, ?> m && nom.equals(m.get("nom")))
+                    .map(x -> (Map<?, ?>) x).findFirst().orElse(Map.of());
+            BigDecimal montant = toBD(f.get("montant")), acompte = toBD(f.get("acompte")), t2 = toBD(f.get("tranche2"));
+            BigDecimal t3 = "Standard".equals(nom) ? null : toBD(f.get("tranche3"));
+            for (BigDecimal x : new BigDecimal[]{montant, acompte, t2, t3 == null ? BigDecimal.ZERO : t3})
+                if (x.signum() < 0) throw new BusinessException("Formule " + nom + " : montant négatif");
+            BigDecimal total = acompte.add(t2).add(t3 == null ? BigDecimal.ZERO : t3);
+            if (total.compareTo(montant) != 0)
+                throw new BusinessException("Formule " + nom + " : l'acompte et les tranches (" + total.toBigInteger()
+                        + " F) ne font pas le montant de la formule (" + montant.toBigInteger() + " F)");
+            res.add(new FormulePermis(nom, montant, acompte, t2, t3));
+        }
+        return res;
     }
 
     /** Le lien est rendu tel quel dans un href côté élève : on n'accepte que du https. */

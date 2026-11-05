@@ -8,6 +8,58 @@ import { useAuth } from '../context/AuthContext'
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 const inputCls = 'form-control'
 
+/* Formules d'obtention du permis : montant total et échéancier (Standard en deux versements). */
+const FORMULES = [
+  { nom: 'Standard',   icone: 'car-front',     couleur: '#475569', fond: '#f1f5f9', tranches: 2 },
+  { nom: 'Premium',    icone: 'star-fill',     couleur: '#1d4ed8', fond: '#dbeafe', tranches: 3 },
+  { nom: 'Prestige',   icone: 'gem',           couleur: '#7c3aed', fond: '#ede9fe', tranches: 3 },
+  { nom: 'Excellence', icone: 'trophy-fill',   couleur: '#b45309', fond: '#fef3c7', tranches: 3 },
+]
+const CHAMPS_FORMULE = [['montant', 'Montant de la formule'], ['acompte', 'Acompte'], ['tranche2', '2e tranche'], ['tranche3', '3e tranche']]
+const fcfa = n => `${Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g, ' ')} F`
+
+function formulesDepuis(liste) {
+  return FORMULES.map(({ nom }) => {
+    const f = (liste || []).find(x => x.nom === nom) || {}
+    return { nom, montant: f.montant ?? '', acompte: f.acompte ?? '', tranche2: f.tranche2 ?? '', tranche3: f.tranche3 ?? '' }
+  })
+}
+
+function CarteFormule({ def, valeur, onChange }) {
+  const n = k => parseFloat(valeur[k]) || 0
+  const champs = CHAMPS_FORMULE.slice(0, def.tranches + 1)
+  const total = n('acompte') + n('tranche2') + (def.tranches === 3 ? n('tranche3') : 0)
+  const vide = n('montant') === 0 && total === 0
+  const ok = total === n('montant')
+  return (
+    <div className="p-3 h-100" style={{ border: `1.5px solid ${ok || vide ? '#e2e8f0' : '#fdba74'}`, borderRadius: '1rem', background: '#fff' }}>
+      <div className="d-flex align-items-center gap-2 mb-3">
+        <div className="d-flex align-items-center justify-content-center flex-shrink-0"
+          style={{ width: 32, height: 32, borderRadius: '.6rem', background: def.fond, color: def.couleur }}>
+          <i className={`bi bi-${def.icone}`} />
+        </div>
+        <div className="fw-bold" style={{ color: '#1e293b' }}>{def.nom}</div>
+        <div className="ms-auto fw-bold" style={{ color: def.couleur, fontSize: '.95rem' }}>{vide ? '—' : fcfa(n('montant'))}</div>
+      </div>
+      <div className="row g-2">
+        {champs.map(([k, libelle]) => (
+          <div key={k} className={k === 'montant' ? 'col-12' : def.tranches === 2 ? 'col-6' : k === 'acompte' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
+            <label className={labelCls} style={{ fontSize: '.65rem' }}>{libelle}</label>
+            <input type="number" className={inputCls} value={valeur[k]} min="0" step="1000" placeholder="0"
+              aria-label={`${def.nom} : ${libelle}`}
+              onChange={e => onChange({ ...valeur, [k]: e.target.value })} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-2" style={{ fontSize: '.78rem', fontWeight: 600, color: vide ? '#94a3b8' : ok ? '#15803d' : '#c2410c' }}>
+        {vide ? 'À renseigner'
+          : ok ? <><i className="bi bi-check-circle-fill me-1" />Tranches : {fcfa(total)}</>
+          : <><i className="bi bi-exclamation-triangle-fill me-1" />Les tranches font {fcfa(total)} au lieu de {fcfa(n('montant'))}</>}
+      </div>
+    </div>
+  )
+}
+
 function UploadZone({ label, value, onUploaded, accept = 'image/*' }) {
   const [uploading, setUploading] = useState(false)
   const ref = useRef()
@@ -74,6 +126,7 @@ export default function Parametres() {
     tarifInscription: '', tarifHeureCode: '', tarifHeureConduite: '',
     lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
   })
+  const [formules, setFormules] = useState(formulesDepuis([]))
   const [moniteurs, setMoniteurs] = useState([])
   const [applying, setApplying]   = useState(false)
   const [loading, setLoading] = useState(true)
@@ -81,7 +134,7 @@ export default function Parametres() {
 
   useEffect(() => {
     api('GET', '/admin/config')
-      .then(data => setForm({
+      .then(data => { setFormules(formulesDepuis(data.formules)); setForm({
         nom:               data.nom               || '',
         adresse:           data.adresse           || '',
         telephone:         data.telephone         || '',
@@ -94,7 +147,7 @@ export default function Parametres() {
         lienWave:          data.lienWave          || '',
         lienOrangeMoney:   data.lienOrangeMoney   || '',
         moniteurParDefautId: data.moniteurParDefautId ?? '',
-      }))
+      }) })
       .catch(e => toast(e.message, 'danger'))
       .finally(() => setLoading(false))
     api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => {})
@@ -127,6 +180,10 @@ export default function Parametres() {
         tarifInscription:   parseFloat(form.tarifInscription)   || 0,
         tarifHeureCode:     parseFloat(form.tarifHeureCode)     || 0,
         tarifHeureConduite: parseFloat(form.tarifHeureConduite) || 0,
+        formules: formules.map(f => ({
+          nom: f.nom,
+          ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])),
+        })),
       })
       toast('Paramètres enregistrés avec succès')
     } catch (e) {
@@ -217,7 +274,27 @@ export default function Parametres() {
             </div>
           </div>
 
+          <div className="px-5 pt-4">
+            <div className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '.92rem' }}>
+              <i className="bi bi-award me-2" style={{ color: '#d4a017' }} />Formules du permis
+            </div>
+            <div className="text-slate-400 mb-3" style={{ fontSize: '.8rem' }}>
+              Montant de chaque formule et son échéancier : acompte à l'inscription, puis les tranches.
+            </div>
+            <div className="row g-3">
+              {FORMULES.map((def, i) => (
+                <div key={def.nom} className="col-md-6">
+                  <CarteFormule def={def} valeur={formules[i]}
+                    onChange={v => setFormules(fs => fs.map((x, j) => j === i ? v : x))} />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="px-5 py-4">
+            <div className="fw-bold mb-3" style={{ color: '#1e293b', fontSize: '.92rem' }}>
+              <i className="bi bi-tags me-2" style={{ color: '#16a34a' }} />Autres tarifs
+            </div>
             <div className="row g-3">
               <div className="col-md-4">
                 <label className={labelCls}>Tarif inscription</label>
