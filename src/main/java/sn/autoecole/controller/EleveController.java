@@ -94,6 +94,12 @@ public class EleveController {
         return ResponseEntity.ok(eleveService.changerStatut(id, statut));
     }
 
+    /** Documents remis cochés depuis la fiche (clé → true/false) ; les clés absentes ne changent pas. */
+    @PatchMapping("/{id}/documents-remis")
+    public ResponseEntity<Eleve> documentsRemis(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
+        return ResponseEntity.ok(eleveService.documentsRemis(id, body));
+    }
+
     /** Archiver / réactiver : réservé à l'admin (SecurityConfig). */
     @PatchMapping("/{id}/archiver")
     public ResponseEntity<Eleve> archiver(@PathVariable Long id) {

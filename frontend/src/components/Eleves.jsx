@@ -696,6 +696,55 @@ function DossierEleve({ eleveId }) {
   )
 }
 
+/* Fiche élève (admin, secrétariat) : les documents remis, cochés ou décochés d'un clic. */
+function DocumentsRemis({ eleve, onMaj }) {
+  const [envoi, setEnvoi] = useState(null)
+  const nb = DOCS.filter(d => eleve[d.key]).length
+  const basculer = async (d) => {
+    setEnvoi(d.key)
+    try { onMaj(await api('PATCH', `/eleves/${eleve.id}/documents-remis`, { [d.key]: !eleve[d.key] })) }
+    catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(null) }
+  }
+  const complet = nb === DOCS.length
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden lg:col-span-2" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+            <i className="bi bi-card-checklist" style={{ color: '#15803d', fontSize: '.8rem' }} />
+          </div>
+          <div>
+            <div className="font-bold text-slate-700 text-sm leading-tight">Documents remis</div>
+            <div className="text-xs text-slate-400">Cliquez sur un document pour le cocher ou le décocher</div>
+          </div>
+        </div>
+        <span style={{
+          background: complet ? '#f0fdf4' : '#fef9c3', color: complet ? '#15803d' : '#a16207',
+          border: `1px solid ${complet ? '#86efac' : '#fde68a'}`,
+          borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
+        }}>{nb}/{DOCS.length}</span>
+      </div>
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        {DOCS.map(d => {
+          const ok = !!eleve[d.key]
+          return (
+            <button key={d.key} type="button" onClick={() => basculer(d)} disabled={envoi !== null} aria-pressed={ok}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-left cursor-pointer"
+              style={{ borderRadius: '.75rem', border: `1.5px solid ${ok ? '#86efac' : '#e2e8f0'}`,
+                background: ok ? '#f0fdf4' : '#fff', color: ok ? '#15803d' : '#64748b', opacity: envoi && envoi !== d.key ? .6 : 1 }}>
+              {envoi === d.key
+                ? <span className="spinner-border spinner-border-sm" style={{ width: '1rem', height: '1rem' }} />
+                : <i className={`bi bi-${ok ? 'check-circle-fill' : 'circle'}`} />}
+              <span className="leading-tight">{d.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function CompteEleveCard({ eleve }) {
   const [statut, setStatut]   = useState(null)
   const [loading, setLoading] = useState(true)
@@ -1704,6 +1753,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
 
         {/* Ligne du bas (admin) : dossier Service des Mines et compte de l'élève */}
         {!isMoniteur && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+          {/* Documents remis (permis seulement) */}
+          {s.typeFormation !== 'PERFECTIONNEMENT' && <DocumentsRemis eleve={s} onMaj={maj => {
+            setSelected(maj); setList(l => l.map(x => x.id === maj.id ? maj : x)); setFiltered(l => l.map(x => x.id === maj.id ? maj : x))
+          }} />}
 
           {/* Dossier de l'élève : le fichier déposé au Service des Mines (permis seulement) */}
           {s.typeFormation !== 'PERFECTIONNEMENT' && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}

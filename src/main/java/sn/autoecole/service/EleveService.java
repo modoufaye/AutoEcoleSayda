@@ -346,6 +346,25 @@ public class EleveService {
         }
     }
 
+    public Eleve documentsRemis(Long id, Map<String, Boolean> docs) {
+        Eleve eleve = trouverParId(id);
+        docs.forEach((cle, remis) -> {
+            boolean v = Boolean.TRUE.equals(remis);
+            switch (cle) {
+                case "docCertResidence"  -> eleve.setDocCertResidence(v);
+                case "docCniLegalisee"   -> eleve.setDocCniLegalisee(v);
+                case "docGroupeSanguin"  -> eleve.setDocGroupeSanguin(v);
+                case "docVisiteMedicale" -> eleve.setDocVisiteMedicale(v);
+                case "docPhotos"         -> eleve.setDocPhotos(v);
+                case "docTimbre"         -> eleve.setDocTimbre(v);
+                case "docEnrolement"     -> eleve.setDocEnrolement(v);
+                case "docDelivrance"     -> eleve.setDocDelivrance(v);
+                default -> throw new BusinessException("Document inconnu : " + cle);
+            }
+        });
+        return eleveRepository.save(eleve);
+    }
+
     public Eleve changerStatut(Long id, StatutEleve statut) {
         Eleve eleve = trouverParId(id);
         eleve.setStatut(statut);
