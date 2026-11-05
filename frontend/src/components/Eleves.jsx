@@ -813,7 +813,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
-    setFiltered(r)
+    // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
+    setFiltered([...r].sort((a, b) => b.id - a.id))
     setPage(1)
   }, [search, statut, site, moisInscription, formation, list])
 
@@ -1962,7 +1963,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   <div className="min-w-0">
                     <button onClick={() => ouvrirFiche(e)}
                       className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
-                      {e.nom} {e.prenom}
+                      {e.prenom} {e.nom}
                     </button>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
