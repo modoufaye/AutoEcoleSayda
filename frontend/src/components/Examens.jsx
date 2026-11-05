@@ -14,7 +14,7 @@ import '../landing.css'
 const PAGE_SIZE = 10
 
 const today = () => new Date().toISOString().split('T')[0]
-const EMPTY     = { date: today(), eleveId: '', type: '', resultat: 'EN_ATTENTE', score: '', observations: '' }
+const EMPTY     = { date: today(), eleveIds: [], type: '', resultat: 'EN_ATTENTE', score: '', observations: '' }
 const RES_EMPTY = { resultat: 'EN_ATTENTE', score: '', observations: '' }
 
 const RES_STYLE = {
@@ -48,6 +48,8 @@ export default function Examens({ onEleveClick, onBack }) {
   const [showResModal, setShowResModal]     = useState(false)
   const [loading, setLoading]               = useState(true)
   const [eleves, setEleves]                 = useState([])
+  const [rechercheEleve, setRechercheEleve] = useState('')
+  const [enregistrement, setEnregistrement] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -80,22 +82,38 @@ export default function Examens({ onEleveClick, onBack }) {
   const openModal = async () => {
     const ev = await api('GET', '/eleves')
     // Perfectionnement : conduite seule, pas d'examen du permis (refusé aussi par le serveur)
-    setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setForm(EMPTY); setShowModal(true)
+    setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setForm(EMPTY); setRechercheEleve(''); setShowModal(true)
   }
 
+  /* Un examen par élève coché, avec la même date et la même épreuve. Les élèves refusés par le
+     serveur restent cochés pour pouvoir corriger et réessayer. */
   const save = async () => {
-    const { date, eleveId, type } = form
-    if (!date || !eleveId || !type) { toast('Veuillez remplir tous les champs obligatoires', 'warning'); return }
-    const data = {
-      date, eleveId: parseInt(eleveId), type,
-      resultat: form.resultat,
-      score: form.score ? parseInt(form.score) : null,
-      observations: form.observations || null,
+    const { date, eleveIds, type } = form
+    if (!date || !eleveIds.length || !type) { toast('Choisissez au moins un élève, la date et le type', 'warning'); return }
+    if (enregistrement) return
+    setEnregistrement(true)
+    const refus = []
+    for (const eleveId of eleveIds) {
+      try {
+        await api('POST', '/examens', {
+          date, eleveId, type,
+          resultat: form.resultat,
+          score: form.score ? parseInt(form.score) : null,
+          observations: form.observations || null,
+        })
+      } catch (e) {
+        const el = eleves.find(x => x.id === eleveId)
+        refus.push({ eleveId, texte: `${el ? `${el.prenom} ${el.nom}` : 'Élève'} : ${e.message}` })
+      }
     }
-    try {
-      await api('POST', '/examens', data); toast('Examen enregistré')
-      setShowModal(false); load()
-    } catch (e) { toast(e.message, 'danger') }
+    setEnregistrement(false)
+    const ok = eleveIds.length - refus.length
+    if (ok) toast(ok > 1 ? `${ok} examens enregistrés` : 'Examen enregistré')
+    if (refus.length) {
+      toast(refus.map(r => r.texte).join(' · '), 'danger')
+      setForm(f => ({ ...f, eleveIds: refus.map(r => r.eleveId) }))
+    } else setShowModal(false)
+    if (ok) load()
   }
 
   const openResultat = (e) => {
@@ -340,29 +358,68 @@ export default function Examens({ onEleveClick, onBack }) {
       {/* ── Fenêtre nouvel examen ────────────────────────────── */}
       {showModal && (() => {
         const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-        const eleve = eleves.find(e => String(e.id) === String(form.eleveId))
+        const coches = eleves.filter(e => form.eleveIds.includes(e.id))
+        const eleve = coches.length === 1 ? coches[0] : null
+        const visibles = eleves.filter(e => correspond([e.prenom, e.nom, e.telephone], rechercheEleve))
+        const basculer = id => set('eleveIds', form.eleveIds.includes(id) ? form.eleveIds.filter(x => x !== id) : [...form.eleveIds, id])
+        const toutCocher = coche => {
+          const ids = new Set(form.eleveIds)
+          visibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
+          set('eleveIds', [...ids])
+        }
         return (
           <FenetreModerne
-            titre={eleve ? `${eleve.prenom} ${eleve.nom}` : 'Nouvel examen'}
+            titre={eleve ? `${eleve.prenom} ${eleve.nom}` : coches.length ? `${coches.length} candidats` : 'Nouvel examen'}
             icone="clipboard2-check-fill"
             details={[
               form.type && ['journal-text', TYPE_STYLE[form.type].label],
               form.date && ['calendar-event', fmtDate(form.date)],
               eleve?.categoriePermis && ['award', `Permis ${eleve.categoriePermis}`],
             ]}
-            onClose={() => setShowModal(false)} onSave={save} libelleSave="Enregistrer l'examen">
-            <Etape n={1} icon="person" titre="Candidat">
-              <div className="row g-3">
-                <div className="col-md-7">
-                  <Etiquette requis>Élève</Etiquette>
-                  <select className={champCls} value={form.eleveId} onChange={e => set('eleveId', e.target.value)}>
-                    <option value="">Choisir un élève…</option>
-                    {eleves.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-                  </select>
+            onClose={() => setShowModal(false)} onSave={save}
+            libelleSave={enregistrement ? 'Enregistrement…' : coches.length > 1 ? `Enregistrer les ${coches.length} examens` : "Enregistrer l'examen"}>
+            <Etape n={1} icon="people" titre="Candidats">
+              <div className="mb-3" style={{ maxWidth: 260 }}>
+                <Etiquette requis>Date de l'examen</Etiquette>
+                <input type="date" className={champCls} value={form.date} onChange={e => set('date', e.target.value)} />
+              </div>
+              <Etiquette requis>Élèves · {form.eleveIds.length} coché{form.eleveIds.length > 1 ? 's' : ''} sur {eleves.length}</Etiquette>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
+                <div className="p-2 flex flex-wrap gap-2 items-center" style={{ borderBottom: '1px solid #eef2f7', background: '#f8fafc' }}>
+                  <div className="flex flex-1" style={{ minWidth: 180 }}>
+                    <Recherche value={rechercheEleve} onChange={setRechercheEleve} placeholder="Prénom, nom ou téléphone…" />
+                  </div>
+                  <button type="button" onClick={() => toutCocher(true)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
+                    <i className="bi bi-check2-all" />Tous
+                  </button>
+                  <button type="button" onClick={() => toutCocher(false)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
+                    <i className="bi bi-x-lg" />Aucun
+                  </button>
                 </div>
-                <div className="col-md-5">
-                  <Etiquette requis>Date de l'examen</Etiquette>
-                  <input type="date" className={champCls} value={form.date} onChange={e => set('date', e.target.value)} />
+                <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                  {eleves.length === 0 ? <ListeVide texte="Aucun élève enregistré" icone="people" />
+                    : visibles.length === 0 ? <ListeVide texte="Aucun élève trouvé" icone="search" />
+                    : visibles.map(e => {
+                      const coche = form.eleveIds.includes(e.id)
+                      return (
+                        <div key={e.id} role="checkbox" aria-checked={coche} aria-label={`${e.prenom} ${e.nom}`} tabIndex={0}
+                          className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50"
+                          style={{ background: coche ? '#fffbeb' : '#fff', borderBottom: '1px solid #f1f5f9' }}
+                          onClick={() => basculer(e.id)}
+                          onKeyDown={ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); basculer(e.id) } }}>
+                          <AvatarRond photoUrl={e.photoUrl} prenom={e.prenom} nom={e.nom} taille={32} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.prenom} {e.nom}</div>
+                            {(e.telephone || e.categoriePermis) && <div className="text-xs text-slate-400 truncate">
+                              {[e.telephone, e.categoriePermis && `Permis ${e.categoriePermis}`].filter(Boolean).join(' · ')}</div>}
+                          </div>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ border: `2px solid ${coche ? '#d4a017' : '#cbd5e1'}`, background: coche ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
+                            {coche && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
+                          </div>
+                        </div>
+                      )
+                    })}
                 </div>
               </div>
             </Etape>
