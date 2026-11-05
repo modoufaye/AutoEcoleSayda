@@ -210,10 +210,11 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
 
   useEffect(() => { load() }, [])
 
+  // Derniers moniteurs ajoutés en haut (ordre de création)
   useEffect(() => {
-    if (!search.trim()) { setFiltered(list); return }
-    setFiltered(list.filter(m => correspond([m.prenom, m.nom, m.telephone], search)))
-    setPage(1)
+    const r = search.trim() ? list.filter(m => correspond([m.prenom, m.nom, m.telephone], search)) : list
+    setFiltered([...r].sort((a, b) => b.id - a.id))
+    if (search.trim()) setPage(1)
   }, [search, list])
 
   /* ── Ouvrir le profil ──────────────────────────────────── */
@@ -629,7 +630,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                 <div className="min-w-0">
                   <button onClick={() => ouvrirFiche(m)}
                     className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
-                    {m.nom} {m.prenom}
+                    {m.prenom} {m.nom}
                   </button>
                   <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                     <span><i className="bi bi-telephone me-1" />{afficherTelephone(m.telephone)}</span>
