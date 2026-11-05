@@ -58,12 +58,33 @@ function optionsPerfectionnement(formules, boite) {
 }
 
 /* Tuiles de formule : un clic remplit le total et l'acompte (toujours modifiables) ; « Montant libre »
-   garde la saisie manuelle. */
-function ChoixFormule({ options, valeur, onChoisir }) {
+   garde la saisie manuelle. Élève déjà inscrit (verrouille) : seule sa formule s'affiche, les autres
+   tuiles n'apparaissent qu'après « Changer de formule », pour éviter un changement par erreur. */
+function ChoixFormule({ options, valeur, onChoisir, verrouille = false, total }) {
+  const [ouvert, setOuvert] = useState(false)
   const tuile = actif => ({
     borderRadius: '.85rem', border: `2px solid ${actif ? '#d4a017' : '#e2e8f0'}`,
     background: actif ? '#fffbeb' : '#fff', color: '#1e3a5f', transition: 'all .15s',
   })
+  if (verrouille && !ouvert) {
+    const o = options.find(x => x.libelle === valeur)
+    return (
+      <div className="flex flex-wrap items-center gap-3 px-3 py-2.5" style={{ ...tuile(true), cursor: 'default' }}>
+        <i className="bi bi-lock-fill text-slate-400" />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-extrabold leading-tight">{o?.titre || valeur || 'Montant libre'}</div>
+          <div className="text-[11px] font-semibold text-slate-400 mt-0.5">
+            {o ? `${sepMille(o.montant)} F · ${o.detail}` : total ? `${sepMille(total)} F` : 'Aucune formule choisie'}
+          </div>
+        </div>
+        <button type="button" onClick={() => setOuvert(true)}
+          className="px-3 py-1.5 text-xs font-bold cursor-pointer"
+          style={{ borderRadius: '.6rem', border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569' }}>
+          <i className="bi bi-pencil me-1" />Changer de formule
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {options.map(o => (
@@ -1239,7 +1260,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               {section(3, "wallet2", "Paiement", <>
                 {optionsPermis(tarifs.formules).length > 0 && <div className="mb-3">
                   <label className={labelCls}>Formule</label>
-                  <ChoixFormule options={optionsPermis(tarifs.formules)} valeur={form.formule} onChoisir={choisirFormule} />
+                  <ChoixFormule options={optionsPermis(tarifs.formules)} valeur={form.formule} onChoisir={choisirFormule}
+                    verrouille={!!editId} total={parseFloat(form.montantTotal) || 0} />
                 </div>}
                 <div className="row g-3">
                   <div className={editId ? 'col-12' : 'col-md-6'}>
@@ -1437,8 +1459,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   {BOITES.map(b => (
                     <button key={b.v} type="button"
                       onClick={() => setForm(fm => fm.boiteVitesse === b.v ? fm : { ...fm, boiteVitesse: b.v,
-                        // Les formules dépendent de la boîte : on repart d'une saisie vide
-                        ...(fm.formule ? { formule: '', montantTotal: '', montantAvance: '' } : {}) })}
+                        // Les formules dépendent de la boîte : à l'inscription on repart d'une saisie vide ;
+                        // en modification, les montants convenus restent
+                        ...(fm.formule ? (editId ? { formule: '' } : { formule: '', montantTotal: '', montantAvance: '' }) : {}) })}
                       className="flex flex-col items-center py-3 cursor-pointer" style={pill(form.boiteVitesse === b.v, { color: '#1e3a5f', bg: '#fef9c3' })}>
                       <i className={`bi bi-${b.icon}`} style={{ fontSize: '1.4rem', color: form.boiteVitesse === b.v ? '#d4a017' : undefined }} />
                       <span className="text-sm font-extrabold leading-none mt-1.5">{b.txt}</span>
@@ -1473,7 +1496,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <div className="mb-3">
                   <label className={labelCls}>Formule</label>
                   {form.boiteVitesse
-                    ? <ChoixFormule options={optionsPerfectionnement(tarifs.formulesPerfectionnement, form.boiteVitesse)} valeur={form.formule} onChoisir={choisirFormule} />
+                    ? <ChoixFormule options={optionsPerfectionnement(tarifs.formulesPerfectionnement, form.boiteVitesse)} valeur={form.formule} onChoisir={choisirFormule}
+                    verrouille={!!editId} total={parseFloat(form.montantTotal) || 0} />
                     : <div className="text-xs text-slate-400"><i className="bi bi-info-circle me-1" />Choisissez d'abord la boîte de vitesses pour voir les formules.</div>}
                 </div>
                 <div className="row g-3">
