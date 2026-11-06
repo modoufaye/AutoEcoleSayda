@@ -3,8 +3,6 @@ import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { EnteteListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
-import { Etiquette } from './FenetreModerne'
-import { champCls } from './fenetreStyles'
 import '../landing.css'
 import { correspond } from '../utils'
 import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
@@ -194,9 +192,10 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   const enEditeur = view === 'editor' && (!onOuvrir || !!seanceId)
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  // Programme de code : le titre vide prend le nom de la première partie
-  const setProgramme = programme => setForm(f => ({ ...f, programme,
-    titre: f.titre.trim() || !programme.length ? f.titre : libellePartie(programme[0]) }))
+  // Programme de code : le titre de la séance est le nom de sa première partie (+ le nombre des autres)
+  const setProgramme = programme => { setErr(''); setForm(f => ({ ...f, programme,
+    titre: !programme.length ? f.titre
+      : libellePartie(programme[0]) + (programme.length > 1 ? ` (+${programme.length - 1} partie${programme.length > 2 ? 's' : ''})` : '') })) }
 
   const toggleEleve = (id) => {
     setForm(f => ({
@@ -247,10 +246,11 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   }
 
   const handleSave = async (statut) => {
-    if (!form.titre.trim()) { setErr('Le titre est obligatoire'); return }
+    if (!form.programme.length && !form.blocs.length) { setErr('Ajoutez au moins une partie du cours de code ou un contenu'); return }
+    const titre = form.titre.trim() || 'Séance de cours'
     setSaving(true); setErr('')
     try {
-      const payload = { ...form, statut, blocs: form.blocs.map((b, i) => ({ ...b, ordre: i })) }
+      const payload = { ...form, titre, statut, blocs: form.blocs.map((b, i) => ({ ...b, ordre: i })) }
       if (editId) await api('PUT',  `/moniteur/seances/${editId}`, payload)
       else        await api('POST', '/moniteur/seances', payload)
       load()
@@ -349,31 +349,6 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
 
       <div className="grid lg:grid-cols-3 gap-5">
         <div className="space-y-5">
-          {/* Informations */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-            <EnteteListe icone="info-circle-fill" titre="Informations" sousTitre="Titre, date et thème" />
-            <div className="p-5 space-y-4">
-              <div>
-                <Etiquette requis>Titre</Etiquette>
-                <input className={champCls} value={form.titre}
-                  onChange={e => setField('titre', e.target.value)}
-                  placeholder="Ex : Comprendre les panneaux d'interdiction" />
-              </div>
-              <div>
-                <Etiquette>Date et heure</Etiquette>
-                <input type="datetime-local" className={champCls}
-                  value={form.dateHeure} onChange={e => setField('dateHeure', e.target.value)} />
-              </div>
-              <div>
-                <Etiquette>Thème</Etiquette>
-                <select className={champCls} value={form.theme} onChange={e => setField('theme', e.target.value)}>
-                  <option value="">— Choisir un thème —</option>
-                  {THEMES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
           {/* Élèves assignés */}
           <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
             <EnteteListe icone="people-fill" titre="Élèves" sousTitre="Qui verra la séance" nombre={`${form.eleveIds.length}/${eleves.length}`} />
@@ -424,7 +399,8 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
 
         {/* Cours de code publiés, résultats du quiz, puis contenu libre */}
         <div className="lg:col-span-2 space-y-5">
-          <ChoixProgramme programme={form.programme} onChange={setProgramme} />
+          <ChoixProgramme programme={form.programme} onChange={setProgramme}
+            dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
           {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz seanceId={editId} />}
           <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
             <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />

@@ -36,7 +36,7 @@ function Apercu({ partie, max = 10 }) {
 }
 
 /* ── Moniteur : choisir les parties du cours de code à publier dans la séance ── */
-export function ChoixProgramme({ programme, onChange }) {
+export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) {
   const [themeKey, setThemeKey] = useState(THEMES_CODE[0].key)
   const theme = THEMES_CODE.find(t => t.key === themeKey)
   const [chapitre, setChapitre] = useState(theme.chapitres[0].id)
@@ -64,8 +64,14 @@ export function ChoixProgramme({ programme, onChange }) {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-      <EnteteListe icone="signpost-split-fill" titre="Cours de code à publier" sousTitre="Thème, chapitre et numéros de panneaux · quiz à la fin" nombre={programme.length} />
+      <EnteteListe icone="signpost-split-fill" titre="Cours de code à publier" sousTitre="Date, thème, chapitre et numéros de panneaux · quiz à la fin" nombre={programme.length} />
       <div className="p-5 space-y-4">
+        {onDateHeure && (
+          <div>
+            <label style={libelle}>Date et heure</label>
+            <input type="datetime-local" style={champ} value={dateHeure || ''} onChange={e => onDateHeure(e.target.value)} />
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label style={libelle}>Thème</label>
