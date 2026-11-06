@@ -113,10 +113,11 @@ function PartieQuiz({ questions: tirees, onFini, onSuivant, suivantLibelle, text
   }
   return (
     <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '5px solid #d4a017' }}>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>QUESTION {i + 1} SUR {questions.length}{enCours && <span className="ms-2" style={{ color: '#93c5fd' }}>· REPRISE</span>}</span>
-        <span className="flex items-center gap-3">
-          <span className="text-xs font-bold" style={{ color: '#86efac' }}>{score} bonne{score > 1 ? 's' : ''} réponse{score > 1 ? 's' : ''}</span>
+      {/* Sur téléphone, le score et « Redémarrer » passent sous le numéro de question */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <span className="text-[11px] font-extrabold tracking-widest whitespace-nowrap" style={{ color: '#f0bb2a' }}>QUESTION {i + 1} SUR {questions.length}{enCours && <span className="ms-2" style={{ color: '#93c5fd' }}>· REPRISE</span>}</span>
+        <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 ms-auto">
+          <span className="text-xs font-bold whitespace-nowrap" style={{ color: '#86efac' }}>{score} bonne{score > 1 ? 's' : ''} réponse{score > 1 ? 's' : ''}</span>
           {(i > 0 || choix) && (
             <button type="button" onClick={redemarrer} title="Redémarrer le quiz depuis la première question"
               className="flex items-center gap-1 px-3 py-1 text-xs font-bold border-0 cursor-pointer whitespace-nowrap" style={{ borderRadius: 999, background: 'rgba(255,255,255,.14)', color: '#fff' }}>
@@ -130,7 +131,7 @@ function PartieQuiz({ questions: tirees, onFini, onSuivant, suivantLibelle, text
       </div>
       <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
         {q.visuel && <div className="bg-white rounded-2xl p-3 flex-shrink-0"><Visuel item={q.visuel} taille={estScene(q.visuel) ? 230 : 110} /></div>}
-        <div className="text-lg font-extrabold text-center sm:text-left">{q.q}</div>
+        <div className="text-lg font-extrabold text-center sm:text-left">{q.q.replace(/ ([?!:;])/g, '\u00a0$1')}</div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
         {q.reponses.map(r => {
