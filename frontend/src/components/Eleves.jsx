@@ -717,9 +717,11 @@ function DossierEleve({ eleveId }) {
   )
 }
 
-/* Fiche élève (admin, secrétariat) : les documents remis, cochés ou décochés d'un clic. */
+/* Fiche élève (admin, secrétariat) : les documents remis. Lecture seule ; « Modifier » permet de
+   les cocher ou décocher (chaque clic est enregistré), « Terminé » reverrouille. */
 function DocumentsRemis({ eleve, onMaj }) {
   const [envoi, setEnvoi] = useState(null)
+  const [edition, setEdition] = useState(false)
   const nb = DOCS.filter(d => eleve[d.key]).length
   const basculer = async (d) => {
     setEnvoi(d.key)
@@ -737,22 +739,31 @@ function DocumentsRemis({ eleve, onMaj }) {
           </div>
           <div>
             <div className="font-bold text-slate-700 text-sm leading-tight">Documents remis</div>
-            <div className="text-xs text-slate-400">Cliquez sur un document pour le cocher ou le décocher</div>
+            <div className="text-xs text-slate-400">{edition ? 'Cliquez sur un document pour le cocher ou le décocher' : 'Pièces du dossier fournies par l\'élève'}</div>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+        <button type="button" onClick={() => setEdition(e => !e)} disabled={envoi !== null}
+          className="px-2.5 py-1 text-xs font-bold cursor-pointer"
+          style={edition
+            ? { borderRadius: '.5rem', border: 'none', background: '#1e3a5f', color: '#fff' }
+            : { borderRadius: '.5rem', border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569' }}>
+          <i className={`bi bi-${edition ? 'check2' : 'pencil'} me-1`} />{edition ? 'Terminé' : 'Modifier'}
+        </button>
         <span style={{
           background: complet ? '#f0fdf4' : '#fef9c3', color: complet ? '#15803d' : '#a16207',
           border: `1px solid ${complet ? '#86efac' : '#fde68a'}`,
           borderRadius: '.5rem', padding: '.15rem .5rem', fontSize: '.72rem', fontWeight: 700,
         }}>{nb}/{DOCS.length}</span>
+        </div>
       </div>
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {DOCS.map(d => {
           const ok = !!eleve[d.key]
           return (
-            <button key={d.key} type="button" onClick={() => basculer(d)} disabled={envoi !== null} aria-pressed={ok}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-left cursor-pointer"
-              style={{ borderRadius: '.75rem', border: `1.5px solid ${ok ? '#86efac' : '#e2e8f0'}`,
+            <button key={d.key} type="button" onClick={() => basculer(d)} disabled={!edition || envoi !== null} aria-pressed={ok}
+              className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold text-left ${edition ? 'cursor-pointer' : ''}`}
+              style={{ borderRadius: '.75rem', border: `1.5px solid ${ok ? '#86efac' : '#e2e8f0'}`, cursor: edition ? 'pointer' : 'default',
                 background: ok ? '#f0fdf4' : '#fff', color: ok ? '#15803d' : '#64748b', opacity: envoi && envoi !== d.key ? .6 : 1 }}>
               {envoi === d.key
                 ? <span className="spinner-border spinner-border-sm" style={{ width: '1rem', height: '1rem' }} />
