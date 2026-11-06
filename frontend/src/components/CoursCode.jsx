@@ -7,7 +7,8 @@ import { Picto, Voyant } from './Pictos'
 import { SEUIL_REUSSITE, questionsChapitre, questionsRevision } from '../contenu/signalisation'
 import { THEMES_CODE } from '../contenu/themes'
 import { ouverturesCode } from '../contenu/programme'
-import { genre, estScene, lire } from './coursOutils'
+import { genre, estScene } from './coursOutils'
+import BoutonEcouter from './BoutonEcouter'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -158,9 +159,7 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
                   </li>
                 ))}
               </ul>
-              <button type="button" onClick={() => lire(ch.aRetenir.join(' '))} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#e0f2fe', color: '#0369a1' }}>
-                <i className="bi bi-volume-up-fill me-1" />Écouter
-              </button>
+              <BoutonEcouter texte={ch.aRetenir.join(' ')} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
             </div>
           </div>
           {ch.piege && (
@@ -197,9 +196,7 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
                 <b><i className="bi bi-hand-index-thumb-fill me-1" />Ce qu'il faut faire :</b> {sel.action}
               </div>
               {sel.piege && <div className="mt-2 rounded-xl p-3 text-sm" style={{ background: '#fef9c3', color: '#854d0e' }}><b>⚠ Piège :</b> {sel.piege}</div>}
-              <button type="button" onClick={() => lire(`${sel.nom}. ${sel.sens} ${sel.action}`)} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#e0f2fe', color: '#0369a1' }}>
-                <i className="bi bi-volume-up-fill me-1" />Écouter
-              </button>
+              <BoutonEcouter texte={`${sel.nom}. ${sel.sens} ${sel.action}`} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
             </div>
           )}
           <div className="lg:col-span-2 flex justify-end">

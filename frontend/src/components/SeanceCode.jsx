@@ -3,7 +3,8 @@ import { api } from '../api'
 import { toast } from './Toast'
 import { EnteteListe, AvatarRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { Visuel, IconeChapitre, Quiz } from './CoursCode'
-import { lire, genre, estScene } from './coursOutils'
+import { genre, estScene } from './coursOutils'
+import BoutonEcouter from './BoutonEcouter'
 import { SEUIL_REUSSITE } from '../contenu/signalisation'
 import { COURS, trouverChapitre, numeroChapitre, complete, panneauxPartie, libellePartie, questionsPartie, questionsSeance, QUESTIONS_MAX } from '../contenu/programme'
 
@@ -255,9 +256,7 @@ function PartieEleve({ partie, rang }) {
           <div className="rounded-2xl p-4" style={{ background: 'linear-gradient(135deg,#fff7ed,#fffbeb)', border: '1.5px solid #fde68a' }}>
             <div className="flex items-center justify-between gap-2">
               <div className="font-extrabold whitespace-nowrap" style={{ color: '#92400e' }}>À retenir</div>
-              <button type="button" onClick={() => lire(t.ch.aRetenir.join(' '))} className="px-3 py-1 rounded-full text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#e0f2fe', color: '#0369a1' }}>
-                <i className="bi bi-volume-up-fill me-1" />Écouter
-              </button>
+              <BoutonEcouter texte={t.ch.aRetenir.join(' ')} className="px-3 py-1 rounded-full text-xs font-bold border-0 cursor-pointer" />
             </div>
             <ul className="mt-2 mb-0 ps-0 space-y-2" style={{ listStyle: 'none' }}>
               {t.ch.aRetenir.map(x => (
@@ -284,9 +283,7 @@ function PartieEleve({ partie, rang }) {
                 {sel.sens && <div className="text-sm text-slate-600 mt-1">{sel.sens}</div>}
                 {sel.action && <div className="mt-2 rounded-xl p-3 text-sm" style={{ background: '#f0fdf4', color: '#166534' }}><b><i className="bi bi-hand-index-thumb-fill me-1" />Ce qu'il faut faire :</b> {sel.action}</div>}
                 {sel.piege && <div className="mt-2 rounded-xl p-3 text-sm" style={{ background: '#fef9c3', color: '#854d0e' }}><b>⚠ Piège :</b> {sel.piege}</div>}
-                <button type="button" onClick={() => lire(`${sel.nom}. ${sel.sens || ''} ${sel.action || ''}`)} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#e0f2fe', color: '#0369a1' }}>
-                  <i className="bi bi-volume-up-fill me-1" />Écouter
-                </button>
+                <BoutonEcouter texte={`${sel.nom}. ${sel.sens || ''} ${sel.action || ''}`} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
               </div>
             </div>
           )}
