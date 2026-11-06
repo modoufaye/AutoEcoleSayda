@@ -63,9 +63,11 @@ public class SeanceService {
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)
         Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
-        if (eleve == null || eleve.estPerfectionnement()) return List.of();
+        if (eleve == null) return List.of();
+        // Perfectionnement (conduite seule) : uniquement les séances qui publient de la conduite
         return seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve).stream()
-                .map(this::toResponse)
+                .filter(s -> !eleve.estPerfectionnement() || s.getProgramme().stream().anyMatch(SeanceService::conduite))
+                .map(s -> pourEleve(s, eleve))
                 .toList();
     }
 
@@ -74,10 +76,11 @@ public class SeanceService {
         Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
-        if (s.getStatut() != StatutSeance.PUBLIE || eleve == null || !s.getEleves().contains(eleve)) {
+        if (s.getStatut() != StatutSeance.PUBLIE || eleve == null || !s.getEleves().contains(eleve)
+                || (eleve.estPerfectionnement() && s.getProgramme().stream().noneMatch(SeanceService::conduite))) {
             throw new BusinessException("Séance non accessible");
         }
-        return toResponse(s);
+        return pourEleve(s, eleve);
     }
 
     /** Retourne les élèves assignés à ce moniteur (via le profil Moniteur matchant l'email du compte User) */
@@ -133,7 +136,8 @@ public class SeanceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
         if (s.getStatut() != StatutSeance.PUBLIE || !s.getEleves().contains(eleve))
             throw new BusinessException("Séance non accessible");
-        if (s.getProgramme().isEmpty()) throw new BusinessException("Cette séance n'a pas de quiz");
+        if (s.getProgramme().isEmpty() || (eleve.estPerfectionnement() && s.getProgramme().stream().noneMatch(SeanceService::conduite)))
+            throw new BusinessException("Cette séance n'a pas de quiz");
         if (total <= 0 || total > 80 || score < 0 || score > total) throw new BusinessException("Résultat invalide");
         ResultatQuizSeance r = resultatRepo.findBySeanceIdAndEleveId(s.getId(), eleve.getId())
                 .orElseGet(() -> ResultatQuizSeance.builder().seanceId(s.getId()).eleveId(eleve.getId()).build());
@@ -214,7 +218,20 @@ public class SeanceService {
         }
     }
 
-    /** Programme de code vérifié : chapitres connus du code (ni conduite ni séries d'examen),
+    private static boolean conduite(PartieCode p) {
+        return p.chapitre() != null && p.chapitre().startsWith("conduite-");
+    }
+
+    /** Séance vue par un élève en perfectionnement : seulement les parties de conduite, sans le
+        contenu libre (théorie du code). Les autres élèves la voient en entier. */
+    private SeanceResponse pourEleve(Seance s, Eleve eleve) {
+        SeanceResponse r = toResponse(s);
+        if (!eleve.estPerfectionnement()) return r;
+        return new SeanceResponse(r.id(), r.titre(), r.dateHeure(), r.theme(), r.statut(), r.moniteurId(), r.moniteurNom(),
+                List.of(), List.of(), r.programme().stream().filter(SeanceService::conduite).toList(), r.createdAt());
+    }
+
+    /** Programme vérifié : chapitres connus du code ou du parcours de conduite (pas les séries d'examen),
         bornes de panneaux cohérentes, sans doublon. */
     private static List<PartieCode> programme(List<PartieCode> parties) {
         List<PartieCode> propre = new ArrayList<>();
@@ -222,7 +239,7 @@ public class SeanceService {
         if (parties.size() > 30) throw new BusinessException("30 parties de cours au plus par séance");
         for (PartieCode p : parties) {
             String ch = p.chapitre();
-            if (ch == null || !ProgressionCodeController.CHAPITRES.contains(ch) || ch.startsWith("conduite-") || ch.startsWith("serie-"))
+            if (ch == null || !ProgressionCodeController.CHAPITRES.contains(ch) || ch.startsWith("serie-"))
                 throw new BusinessException("Chapitre de code inconnu : " + ch);
             Integer de = p.de(), a = p.a();
             if ((de == null) != (a == null) || (de != null && (de < 1 || a < de || a > 100)))

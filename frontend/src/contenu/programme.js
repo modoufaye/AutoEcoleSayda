@@ -1,17 +1,27 @@
-/* Programme de code d'une séance : le moniteur y publie des parties du cours de code, repérées
-   par leurs numéros (thème 1, chapitre 1.2, panneaux n° 1 à 9). Une partie est
+/* Programme d'une séance : le moniteur y publie des parties du cours de code ou du parcours
+   « Apprendre à conduire », repérées par leurs numéros (thème 1, chapitre 1.2, panneaux n° 1 à 9). Une partie est
    { chapitre, de, a } : identifiant du chapitre (ou de la révision d'un thème) et, si besoin,
    seulement ses panneaux n° de à a (bornes comprises). Sans bornes : tout le chapitre.
-   L'élève ne voit dans « Cours Code » que ce qui lui a été publié, puis passe le quiz de la séance. */
+   L'élève ne voit dans « Cours Code » et « Cours Conduite » que ce qui lui a été publié, puis
+   passe le quiz de la séance. */
 import { THEMES_CODE } from './themes'
+import { THEMES_CONDUITE } from './conduite'
 import { questionsChapitre, questionsRevision } from './signalisation'
 
-/* { theme, ch, revision } d'après l'identifiant d'un chapitre ou d'une révision. */
+/* Les deux cours publiables : code (théorie) et conduite (« Apprendre à conduire »). */
+export const COURS = [
+  { key: 'code', titre: 'Cours de code', themes: THEMES_CODE },
+  { key: 'conduite', titre: 'Cours de conduite', themes: THEMES_CONDUITE },
+]
+export const coursDe = id => id?.startsWith('conduite-') ? COURS[1] : COURS[0]
+
+/* { theme, ch, revision, conduite } d'après l'identifiant d'un chapitre ou d'une révision. */
 export function trouverChapitre(id) {
-  for (const theme of THEMES_CODE) {
-    if (theme.revision.id === id) return { theme, ch: theme.revision, revision: true }
+  for (const theme of [...THEMES_CODE, ...THEMES_CONDUITE]) {
+    const conduite = theme.key.startsWith('conduite-')
+    if (theme.revision.id === id) return { theme, ch: theme.revision, revision: true, conduite }
     const ch = theme.chapitres.find(c => c.id === id)
-    if (ch) return { theme, ch, revision: false }
+    if (ch) return { theme, ch, revision: false, conduite }
   }
   return null
 }
@@ -25,12 +35,13 @@ export function panneauxPartie(ch, p) {
   return complete(p) ? tous : tous.slice(p.de - 1, p.a)
 }
 
-/* « 1.1 Panneaux de danger · n° 1 à 9 » */
+/* « 1.1 Panneaux de danger · n° 1 à 9 » ; « Conduite 2.1 Circulation urbaine » */
 export function libellePartie(p) {
   const t = trouverChapitre(p.chapitre)
   if (!t) return p.chapitre
-  if (t.revision) return `Thème ${t.theme.numero} · ${t.ch.titre} (${t.theme.titre})`
-  const base = `${numeroChapitre(t.theme, t.ch)} ${t.ch.titre}`
+  const cours = t.conduite ? 'Conduite ' : ''
+  if (t.revision) return `${cours}Thème ${t.theme.numero} · ${t.ch.titre} (${t.theme.titre})`
+  const base = `${cours}${numeroChapitre(t.theme, t.ch)} ${t.ch.titre}`
   if (complete(p)) return base
   return p.de === p.a ? `${base} · n° ${p.de}` : `${base} · n° ${p.de} à ${p.a}`
 }

@@ -246,7 +246,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   }
 
   const handleSave = async (statut) => {
-    if (!form.programme.length && !form.blocs.length) { setErr('Ajoutez au moins une partie du cours de code ou un contenu'); return }
+    if (!form.programme.length && !form.blocs.length) { setErr('Ajoutez au moins une partie de cours ou un contenu'); return }
     const titre = form.titre.trim() || 'Séance de cours'
     setSaving(true); setErr('')
     try {
@@ -313,7 +313,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
               {form.titre.trim() || 'Séance sans titre'}
             </div>
             <div className="text-xs mt-0.5" style={{ color: '#bfdbfe' }}>
-              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de code · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
+              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de cours · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
             </div>
           </div>
           <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
@@ -383,7 +383,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                       <AvatarRond prenom={prenoms.join(' ')} nom={nom} taille={34} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</div>
-                        {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}</div>}
+                        {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}</div>}
                       </div>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                         style={{ border: `2px solid ${checked ? '#d4a017' : '#cbd5e1'}`, background: checked ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
@@ -498,7 +498,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                       {(s.programme || []).length > 0 && (
                         <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
                           <i className="bi bi-signpost-split" />
-                          {s.programme.length} partie{s.programme.length > 1 ? 's' : ''} de code · quiz
+                          {s.programme.length} partie{s.programme.length > 1 ? 's' : ''} de cours · quiz
                         </span>
                       )}
                       <span className="flex items-center gap-1">

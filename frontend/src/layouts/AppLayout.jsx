@@ -99,14 +99,14 @@ export default function AppLayout() {
     api('GET', '/cours/acces').then(r => setAccesCours(!!r?.acces)).catch(() => setAccesCours(false))
   }, [user])
 
-  /* Élève en perfectionnement (conduite seule) : ni séances de cours, ni examens, ni travaux
-     dirigés, qui concernent le code. Le serveur ne lui renvoie rien non plus. */
+  /* Élève en perfectionnement (conduite seule) : ni examens ni travaux dirigés, qui concernent le
+     code. Ses séances ne lui montrent que les parties de conduite (le serveur filtre). */
   const [perfectionnement, setPerfectionnement] = useState(false)
   useEffect(() => {
     if (user?.role !== 'ELEVE') return
     api('GET', '/eleve/profil').then(p => setPerfectionnement(p?.typeFormation === 'PERFECTIONNEMENT')).catch(() => {})
   }, [user])
-  const CODE_SEUL = ['seances-eleve', 'examens', 'td-eleve']
+  const CODE_SEUL = ['examens', 'td-eleve']
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false)
     && !(perfectionnement && CODE_SEUL.includes(s.key)))

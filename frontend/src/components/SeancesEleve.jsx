@@ -135,7 +135,7 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
           {(ouverte.programme || []).length > 0 && (
             <span className="flex items-center gap-1.5">
               <i className="bi bi-signpost-split-fill text-[#1e3a5f]" />
-              {ouverte.programme.length} partie(s) du cours de code · quiz
+              {ouverte.programme.length} partie(s) de cours · quiz
             </span>
           )}
         </div>
@@ -220,7 +220,7 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
                         {(s.programme || []).length > 0 && (
                           <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
                             <i className="bi bi-signpost-split" />
-                            Cours de code · quiz
+                            Cours · quiz
                           </span>
                         )}
                         {s.blocs.length > 0 && <span className="flex items-center gap-1">

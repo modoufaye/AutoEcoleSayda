@@ -4,11 +4,10 @@ import { toast } from './Toast'
 import { EnteteListe, AvatarRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { Visuel, IconeChapitre, Quiz } from './CoursCode'
 import { lire, genre, estScene } from './coursOutils'
-import { THEMES_CODE } from '../contenu/themes'
 import { SEUIL_REUSSITE } from '../contenu/signalisation'
-import { trouverChapitre, numeroChapitre, complete, panneauxPartie, libellePartie, questionsPartie, questionsSeance, QUESTIONS_MAX } from '../contenu/programme'
+import { COURS, trouverChapitre, numeroChapitre, complete, panneauxPartie, libellePartie, questionsPartie, questionsSeance, QUESTIONS_MAX } from '../contenu/programme'
 
-/* Cours de code publiés dans une séance : le moniteur choisit thème, chapitre et numéros de
+/* Cours (code ou conduite) publiés dans une séance : le moniteur choisit thème, chapitre et numéros de
    panneaux (ChoixProgramme) ; l'élève les étudie et passe le quiz de la séance (ProgrammeEleve) ;
    le moniteur suit les résultats (ResultatsQuiz). */
 
@@ -35,10 +34,12 @@ function Apercu({ partie, max = 10 }) {
   )
 }
 
-/* ── Moniteur : choisir les parties du cours de code à publier dans la séance ── */
+/* ── Moniteur : choisir les parties de cours (code ou conduite) à publier dans la séance ── */
 export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) {
-  const [themeKey, setThemeKey] = useState(THEMES_CODE[0].key)
-  const theme = THEMES_CODE.find(t => t.key === themeKey)
+  const [coursKey, setCoursKey] = useState('code')
+  const themes = COURS.find(c => c.key === coursKey).themes
+  const [themeKey, setThemeKey] = useState(themes[0].key)
+  const theme = themes.find(t => t.key === themeKey) || themes[0]
   const [chapitre, setChapitre] = useState(theme.chapitres[0].id)
   const t = trouverChapitre(chapitre)
   const nb = t && !t.revision ? t.ch.panneaux.length : 0
@@ -46,8 +47,12 @@ export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) 
   const [de, setDe] = useState(1)
   const [a, setA] = useState(nb)
 
+  const choisirCours = k => {
+    const th = COURS.find(c => c.key === k).themes[0]
+    setCoursKey(k); setThemeKey(th.key); choisirChapitre(th.chapitres[0].id)
+  }
   const choisirTheme = k => {
-    const th = THEMES_CODE.find(x => x.key === k)
+    const th = themes.find(x => x.key === k)
     setThemeKey(k); choisirChapitre(th.chapitres[0].id)
   }
   const choisirChapitre = id => {
@@ -64,7 +69,7 @@ export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) 
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-      <EnteteListe icone="signpost-split-fill" titre="Cours de code à publier" sousTitre="Date, thème, chapitre et numéros de panneaux · quiz à la fin" nombre={programme.length} />
+      <EnteteListe icone="signpost-split-fill" titre="Cours à publier" sousTitre="Date, cours, thème, chapitre et numéros · quiz à la fin" nombre={programme.length} />
       <div className="p-5 space-y-4">
         {onDateHeure && (
           <div>
@@ -72,11 +77,22 @@ export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) 
             <input type="datetime-local" style={champ} value={dateHeure || ''} onChange={e => onDateHeure(e.target.value)} />
           </div>
         )}
+        <div>
+          <label style={libelle}>Cours</label>
+          <div className="grid grid-cols-2 gap-2">
+            {COURS.map(c => (
+              <button key={c.key} type="button" onClick={() => choisirCours(c.key)} className="flex items-center justify-center gap-2 text-sm font-extrabold cursor-pointer"
+                style={{ minHeight: 42, borderRadius: 12, border: `1.5px solid ${coursKey === c.key ? '#d4a017' : '#e2e8f0'}`, background: coursKey === c.key ? '#fffbeb' : '#fff', color: '#1e3a5f' }}>
+                <i className={`bi bi-${c.key === 'code' ? 'sign-turn-right-fill' : 'car-front-fill'}`} style={{ color: '#d4a017' }} />{c.titre}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid sm:grid-cols-2 gap-3">
           <div>
             <label style={libelle}>Thème</label>
             <select style={champ} value={themeKey} onChange={e => choisirTheme(e.target.value)}>
-              {THEMES_CODE.map(x => <option key={x.key} value={x.key}>Thème {x.numero} · {x.titre}</option>)}
+              {themes.map(x => <option key={x.key} value={x.key}>Thème {x.numero} · {x.titre}</option>)}
             </select>
           </div>
           <div>
@@ -129,7 +145,7 @@ export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) 
 
         <div style={{ borderTop: '1px solid #eef2f7' }} className="pt-3">
           {programme.length === 0 ? (
-            <div className="text-sm text-slate-400 text-center py-3">Aucun cours de code dans cette séance · ajoutez une partie ci-dessus</div>
+            <div className="text-sm text-slate-400 text-center py-3">Aucun cours dans cette séance · ajoutez une partie ci-dessus</div>
           ) : (
             <div className="space-y-2">
               {programme.map((p, i) => (
@@ -227,7 +243,7 @@ function PartieEleve({ partie, rang }) {
         <span className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0" style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{rang}</span>
         <span className="hidden sm:inline-flex"><IconeChapitre ch={t.ch} taille={40} /></span>
         <div className="min-w-0">
-          <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#a16207' }}>THÈME {t.theme.numero} · {t.theme.titre.toUpperCase()}</div>
+          <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#a16207' }}>{t.conduite ? 'CONDUITE · ' : ''}THÈME {t.theme.numero} · {t.theme.titre.toUpperCase()}</div>
           <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{libellePartie(partie)}</div>
           {!t.revision && !complete(partie) && <div className="text-xs text-slate-500">{liste.length} {genre(t.ch)} sur {t.ch.panneaux.length} dans ce chapitre</div>}
         </div>
@@ -302,7 +318,7 @@ export function ProgrammeEleve({ seance }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-sm font-extrabold" style={{ color: '#1e3a5f' }}>
-        <i className="bi bi-signpost-split-fill" style={{ color: '#d4a017' }} />Cours de code de la séance
+        <i className="bi bi-signpost-split-fill" style={{ color: '#d4a017' }} />Cours de la séance
       </div>
       {seance.programme.map((p, i) => <PartieEleve key={`${p.chapitre}-${p.de}-${p.a}`} partie={p} rang={i + 1} />)}
 

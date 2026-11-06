@@ -289,7 +289,8 @@ function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour })
         {eleve && ouvertures && <div className="text-xs mt-3" style={{ color: '#bfdbfe' }}><i className="bi bi-unlock-fill me-1" />Votre moniteur ouvre les chapitres au fil des séances.</div>}
       </Bandeau>
       <div className="flex flex-col gap-3">
-        {tous.map((ch, i) => {
+        {/* Élève guidé par ses séances : seuls les chapitres publiés (ou déjà validés) apparaissent */}
+        {tous.map((ch, i) => ouvertures && !debloque(i) ? null : (() => {
           const ouvertOk = debloque(i), fait = reussi(ch.id), p = progression[ch.id]
           const enCours = eleve && ouvertOk && !fait
           const sous = ch === theme.revision ? ch.resume
@@ -309,7 +310,7 @@ function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour })
                 : <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{p ? 'Reprendre' : 'Commencer'} →</span>}
             </button>
           )
-        })}
+        })())}
       </div>
     </div>
   )
@@ -324,9 +325,9 @@ const ENTETE_CODE = { titre: 'Cours de code', decor: ['A14', 'AB4', 'B14'],
 /* themes / entete : par défaut les cours de code ; l'onglet Cours Conduite passe ses propres thèmes. */
 export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre, themes = THEMES_CODE, entete = ENTETE_CODE }) {
   const [progression, setProgression] = useState({})
-  const [ouvertures, setOuvertures] = useState(null)   // élève, cours de code : ce que ses séances ouvrent
+  const [ouvertures, setOuvertures] = useState(null)   // élève : ce que ses séances ouvrent (code ou conduite)
   const [ouvertLocal, setOuvertLocal] = useState(null)
-  const parSeances = eleve && themes === THEMES_CODE
+  const parSeances = eleve   // code comme conduite : l'élève ne voit que ce que ses séances publient
   const cle = onOuvrirChapitre ? chapitre : ouvertLocal
   const aller = id => {
     window.scrollTo?.({ top: 0 })
@@ -356,6 +357,9 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
   if (parSeances && !ouvertures) return null   // séances en chargement
   // Chapitre fermé (adresse tapée ou ancien lien) : retour au thème
   const ferme = c => parSeances && !ouvertures[c.id] && !progression[c.id]?.reussi
+  // Thème sans chapitre publié (adresse tapée) : retour à la liste des thèmes
+  const visible = t => !parSeances || [...t.chapitres, t.revision].some(c => !ferme(c))
+  const themesVisibles = themes.filter(visible)
 
   if (theme && cle === theme.revision.id && !ferme(theme.revision)) return (
     <div className="space-y-4" style={police}>
@@ -366,8 +370,8 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
       <Quiz key={questionsRev[0]?.id} questions={questionsRev} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
     </div>
   )
-  if (theme && idx >= 0 && ferme(tous[idx])) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>
-  if (theme && idx >= 0) {
+  if (theme && idx >= 0 && ferme(tous[idx]) && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>
+  if (theme && idx >= 0 && !ferme(tous[idx])) {
     const brut = tous[idx], o = parSeances && ouvertures[brut.id]
     // Une partie seulement du chapitre est ouverte : ses panneaux, sans le quiz du chapitre
     const ch = o && !o.complet && !progression[brut.id]?.reussi && brut !== theme.revision
@@ -380,14 +384,21 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
       </div>
     )
   }
-  if (theme) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={parSeances ? ouvertures : null} onOuvrir={aller} onRetour={() => aller(null)} /></div>
+  if (theme && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={parSeances ? ouvertures : null} onOuvrir={aller} onRetour={() => aller(null)} /></div>
 
   return (
     <div className="space-y-4" style={police}>
       {onRetour && <div>{btnRetour(onRetour, 'Retour')}</div>}
       <Bandeau surtitre="AUTO-ÉCOLE KHADIJA" titre={entete.titre} decor={entete.decor} texte={entete.texte} />
+      {parSeances && themesVisibles.length === 0 && (
+        <div className="bg-white rounded-2xl px-6 py-10 text-center" style={carte}>
+          <div style={{ fontSize: 44 }}>📚</div>
+          <div className="font-extrabold text-lg mt-2" style={{ color: '#1e3a5f' }}>Aucun cours publié pour le moment</div>
+          <div className="text-sm text-slate-500 mt-1">Votre moniteur ouvre les cours au fil des séances : ils apparaîtront ici, et dans « Mes séances » avec leur quiz.</div>
+        </div>
+      )}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {themes.map(t => {
+        {themesVisibles.map(t => {
           const liste = [...t.chapitres, t.revision], valides = liste.filter(c => progression[c.id]?.reussi).length
           return (
             <button key={t.key} type="button" onClick={() => aller(t.key)}
