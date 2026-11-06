@@ -438,7 +438,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
             <Avatar m={selected} size={48} radius="50%" style={{ border: '2px solid rgba(255,255,255,.85)' }} />
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>Fiche moniteur</div>
-              <div className="text-xl font-extrabold text-white leading-tight">{selected.nom} {selected.prenom}</div>
+              <div className="text-xl font-extrabold text-white leading-tight">{selected.prenom} {selected.nom}</div>
               {selected.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{selected.telephone}</div>}
             </div>
           </div>
@@ -493,7 +493,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
           />
           {/* Photo de profil : la moitié haute de la carte (initiales sans photo) */}
           {selected.photoUrl ? (
-            <GrandePhoto src={selected.photoUrl} alt={`${selected.nom} ${selected.prenom}`} />
+            <GrandePhoto src={selected.photoUrl} alt={`${selected.prenom} ${selected.nom}`} />
           ) : (
             <div className="w-full flex flex-col items-center justify-center gap-2"
               style={{ height: 260, background: 'linear-gradient(135deg,#142a47,#2a4f7c)' }}>
@@ -590,7 +590,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                         <span className="text-xs font-bold text-slate-300">{(pageEleves-1)*PAGE_SIZE + i + 1}</span>
                       </td>
                       <td className="py-3.5 px-4 cell-title">
-                        <div className="text-sm font-semibold text-slate-700">{e.nom} {e.prenom}</div>
+                        <div className="text-sm font-semibold text-slate-700">{e.prenom} {e.nom}</div>
                       </td>
                       <td className="py-3.5 px-4" data-label="Téléphone">
                         <span className="text-sm text-slate-600">{e.telephone}</span>

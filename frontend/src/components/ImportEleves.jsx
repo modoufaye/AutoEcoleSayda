@@ -123,7 +123,7 @@ export default function ImportEleves({ onClose, onDone }) {
                                 style={{ background: st.bg, color: st.color }}>{resultat && l.statut === 'OK' ? 'Importé' : st.label}</span>
                               {l.message && <div className="text-xs text-slate-500 mt-0.5" style={{ minWidth: 180 }}>{l.message}</div>}
                             </td>
-                            <td className="px-3 py-2 font-semibold text-slate-700 whitespace-nowrap">{l.nom} {l.prenom}</td>
+                            <td className="px-3 py-2 font-semibold text-slate-700 whitespace-nowrap">{l.prenom} {l.nom}</td>
                             <td className="px-3 py-2 whitespace-nowrap">{l.telephone || <span className="text-amber-600">—</span>}</td>
                             <td className="px-3 py-2">{l.permis}</td>
                             <td className="px-3 py-2 whitespace-nowrap">{l.dateInscription ? fmtDate(l.dateInscription) : '—'}</td>

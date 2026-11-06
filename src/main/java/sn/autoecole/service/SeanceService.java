@@ -157,6 +157,30 @@ public class SeanceService {
         return resultatRepo.save(r);
     }
 
+    /** Fiche de l'élève (administration, moniteur) : séances publiées pour lui, les plus récentes
+        d'abord, avec leurs parties de cours et son résultat au quiz. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> publieesPourEleve(Eleve eleve) {
+        Map<Long, ResultatQuizSeance> resultats = new LinkedHashMap<>();
+        resultatRepo.findByEleveId(eleve.getId()).forEach(r -> resultats.put(r.getSeanceId(), r));
+        List<Map<String, Object>> liste = new ArrayList<>();
+        for (Seance s : seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve)) {
+            List<PartieCode> programme = eleve.estPerfectionnement()
+                    ? s.getProgramme().stream().filter(SeanceService::conduite).toList() : s.getProgramme();
+            if (eleve.estPerfectionnement() && programme.isEmpty()) continue;   // il ne la voit pas
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", s.getId());
+            m.put("titre", s.getTitre());
+            m.put("date", s.getDateHeure() != null ? s.getDateHeure() : s.getCreatedAt());
+            m.put("moniteurNom", s.getMoniteur() != null ? s.getMoniteur().getNom() : null);
+            m.put("programme", programme);
+            m.put("resultat", resultats.get(s.getId()));
+            liste.add(m);
+        }
+        liste.sort((a, b) -> ((LocalDateTime) b.get("date")).compareTo((LocalDateTime) a.get("date")));
+        return liste;
+    }
+
     @Transactional(readOnly = true)
     public List<ResultatQuizSeance> mesResultats(String telephone) {
         return eleveRepo.findFirstByTelephone(telephone)
@@ -176,7 +200,7 @@ public class SeanceService {
         for (Eleve e : s.getEleves()) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("eleveId", e.getId());
-            m.put("nom", e.getNom() + " " + e.getPrenom());
+            m.put("nom", e.getPrenom() + " " + e.getNom());
             m.put("telephone", e.getTelephone());
             m.put("resultat", parEleve.get(e.getId()));
             liste.add(m);
@@ -252,7 +276,7 @@ public class SeanceService {
 
     private SeanceResponse toResponse(Seance s) {
         List<SeanceResponse.EleveInfo> elevesInfo = s.getEleves().stream()
-                .map(e -> new SeanceResponse.EleveInfo(e.getId(), e.getNom() + " " + e.getPrenom(), e.getEmail()))
+                .map(e -> new SeanceResponse.EleveInfo(e.getId(), e.getPrenom() + " " + e.getNom(), e.getEmail()))
                 .toList();
         List<SeanceResponse.BlocInfo> blocsInfo = s.getBlocs().stream()
                 .map(b -> new SeanceResponse.BlocInfo(b.getId(), b.getTypeBloc().name(),

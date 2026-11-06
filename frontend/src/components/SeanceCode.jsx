@@ -188,7 +188,7 @@ export function ResultatsQuiz({ seanceId }) {
       {!liste ? <ListeChargement /> : liste.length === 0 ? <ListeVide texte="Aucun élève dans cette séance" icone="people" /> : (
         <div style={{ maxHeight: 520, overflowY: 'auto' }}>
           {[...faits.sort((u, v) => v.resultat.derniereTentative.localeCompare(u.resultat.derniereTentative)), ...liste.filter(x => !x.resultat)].map(x => {
-            const r = x.resultat, [nom, ...prenoms] = (x.nom || '').split(' ')
+            const r = x.resultat, mots = (x.nom || '').split(' '), nom = mots.pop(), prenom = mots.join(' ')   // « Prénom Nom »
             const pct = r ? Math.round(100 * r.score / r.total) : 0
             const erreurs = r?.erreurs ? r.erreurs.split('\n') : []
             const deplie = ouvert === x.eleveId
@@ -196,7 +196,7 @@ export function ResultatsQuiz({ seanceId }) {
               <div key={x.eleveId} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <button type="button" onClick={() => r && setOuvert(deplie ? null : x.eleveId)} disabled={!r}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left border-0 bg-white" style={{ cursor: r ? 'pointer' : 'default' }}>
-                  <AvatarRond prenom={prenoms.join(' ')} nom={nom} taille={36} />
+                  <AvatarRond prenom={prenom} nom={nom} taille={36} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{x.nom}</div>
                     <div className="text-xs text-slate-400">
@@ -348,6 +348,47 @@ export function ProgrammeEleve({ seance }) {
           <button type="button" onClick={() => setQuiz(0)} className="bg-transparent border-0 text-sm font-bold text-slate-500 cursor-pointer"><i className="bi bi-x-circle me-1" />Fermer le quiz</button>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Fiche de l'élève (administration, moniteur) : cours déjà publiés pour lui, avec son quiz ── */
+export function CoursPublies({ seances }) {
+  if (!seances.length) return (
+    <div className="px-4 py-4 text-sm text-slate-400 flex items-center gap-2"><i className="bi bi-signpost-split" />Aucun cours publié pour cet élève dans les séances</div>
+  )
+  return (
+    <div>
+      {seances.map(s => {
+        const r = s.resultat
+        return (
+          <div key={s.id} className="px-4 py-3 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-400">
+                <span><i className="bi bi-calendar3 me-1" />{new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                {s.moniteurNom && <span>· {s.moniteurNom}</span>}
+              </div>
+              <div className="font-bold text-sm" style={{ color: '#1e3a5f' }}>{s.titre}</div>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {s.programme.filter(p => s.programme.length > 1 || libellePartie(p) !== s.titre).map(p => (
+                  <span key={`${p.chapitre}-${p.de}-${p.a}`} className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    style={p.chapitre.startsWith('conduite-') ? { background: '#ecfdf5', color: '#047857' } : { background: '#eff6ff', color: '#1d4ed8' }}>
+                    {libellePartie(p)}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex-shrink-0 sm:text-right">
+              {!s.programme.length ? null
+                : !r ? <Pastille couleur="#64748b" fond="#f1f5f9">Quiz à faire</Pastille>
+                : <>
+                    {r.reussi ? <Pastille couleur="#15803d" fond="#dcfce7">Assimilé</Pastille> : <Pastille couleur="#b45309" fond="#fef3c7">À revoir</Pastille>}
+                    <div className="text-xs text-slate-400 mt-1">{r.meilleurScore}/{r.meilleurTotal} · {r.tentatives} essai{r.tentatives > 1 ? 's' : ''}</div>
+                  </>}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -290,9 +290,9 @@ export default function Examens({ onEleveClick, onBack }) {
                     ) : e.eleve && onEleveClick ? (
                       <button onClick={() => onEleveClick(e.eleve.id)}
                         className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
-                        {e.eleve.nom} {e.eleve.prenom}
+                        {e.eleve.prenom} {e.eleve.nom}
                       </button>
-                    ) : <div className="font-bold text-slate-700 truncate">{e.eleve ? `${e.eleve.nom} ${e.eleve.prenom}` : '—'}</div>}
+                    ) : <div className="font-bold text-slate-700 truncate">{e.eleve ? `${e.eleve.prenom} ${e.eleve.nom}` : '—'}</div>}
                     <div className="text-xs text-slate-500">
                       {e.eleve?.categoriePermis && <span className="me-2"><i className="bi bi-award me-1" />Permis {e.eleve.categoriePermis}</span>}
                       <span><i className="bi bi-arrow-repeat me-1" />{e.tentative > 1 ? `${e.tentative}e tentative` : '1re tentative'}</span>

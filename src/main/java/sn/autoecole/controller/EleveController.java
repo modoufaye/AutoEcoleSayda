@@ -28,6 +28,7 @@ import sn.autoecole.service.EleveService;
 import sn.autoecole.service.ExamenService;
 import sn.autoecole.service.LeconService;
 import sn.autoecole.service.PaiementService;
+import sn.autoecole.service.SeanceService;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,7 @@ public class EleveController {
     private final DocumentEleveService documentService;
     private final UserRepository  userRepository;
     private final EleveImportService importService;
+    private final SeanceService   seanceService;
 
     @GetMapping
     public ResponseEntity<List<Eleve>> listerTous(@RequestParam(defaultValue = "false") boolean archives) {
@@ -115,6 +117,12 @@ public class EleveController {
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
         eleveService.supprimer(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Cours publiés pour l'élève dans les séances (code ou conduite), avec son résultat au quiz. */
+    @GetMapping("/{id}/seances")
+    public ResponseEntity<List<Map<String, Object>>> seances(@PathVariable Long id) {
+        return ResponseEntity.ok(seanceService.publieesPourEleve(eleveService.trouverParId(id)));
     }
 
     @GetMapping("/{id}/lecons")

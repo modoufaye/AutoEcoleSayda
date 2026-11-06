@@ -66,7 +66,7 @@ public class SeanceMoniteurController {
                 .map(e -> Map.<String, Object>of(
                         "perfectionnement", e.estPerfectionnement(),
                         "id",    e.getId(),
-                        "nom",   e.getNom() + " " + e.getPrenom(),
+                        "nom",   e.getPrenom() + " " + e.getNom(),
                         "email", e.getEmail() != null ? e.getEmail() : "",
                         // Le téléphone sert d'identifiant depuis que l'e-mail a quitté les fiches
                         "telephone", e.getTelephone() != null ? e.getTelephone() : ""

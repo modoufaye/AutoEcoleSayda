@@ -14,6 +14,8 @@ import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
+import { CoursPublies } from './SeanceCode'
+import { compterSeances } from '../contenu/programme'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
 
 const PAGE_SIZE = 10
@@ -149,8 +151,22 @@ function Avatar({ p, className, style }) {
   return <div className={`${className} flex items-center justify-center flex-shrink-0`} style={style}>{initials(p.nom, p.prenom)}</div>
 }
 
-/* ─── Onglet Leçons ─────────────────────────────────────── */
-function TabLecons({ lecons }) {
+/* ─── Onglet Leçons : cours publiés dans les séances, puis leçons planifiées ─── */
+function TabLecons({ lecons, seances }) {
+  return (
+    <div>
+      <div className="px-4 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#a16207' }}>
+        <i className="bi bi-signpost-split-fill me-1" />Cours publiés ({seances.length})
+      </div>
+      <CoursPublies seances={seances} />
+      <div className="px-4 pt-4 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#475569', borderTop: '1px solid #eef2f7' }}>
+        <i className="bi bi-calendar2-check-fill me-1" />Leçons planifiées ({lecons.length})
+      </div>
+      <TableLecons lecons={lecons} />
+    </div>
+  )
+}
+function TableLecons({ lecons }) {
   if (!lecons.length) return (
     <div className="flex flex-col items-center justify-center py-12 text-slate-400">
       <i className="bi bi-calendar-x" style={{ fontSize: '2rem' }} />
@@ -173,7 +189,7 @@ function TabLecons({ lecons }) {
               <td className="px-4 py-3 text-slate-500 cell-title">{fmtDate(l.date)}</td>
               <td className="px-4 py-3 text-slate-600" data-label="Horaire">{fmtTime(l.heureDebut)} – {fmtTime(l.heureFin)}</td>
               <td className="px-4 py-3" data-label="Type"><Badge value={l.type} map={BADGES.type_lecon} /></td>
-              <td className="px-4 py-3 text-slate-500 text-xs" data-label="Moniteur">{l.moniteur ? `${l.moniteur.nom} ${l.moniteur.prenom}` : '—'}</td>
+              <td className="px-4 py-3 text-slate-500 text-xs" data-label="Moniteur">{l.moniteur ? `${l.moniteur.prenom} ${l.moniteur.nom}` : '—'}</td>
               <td className="px-4 py-3" data-label="Statut"><Badge value={l.statut} map={BADGES.statut_lecon} /></td>
               <td className="px-4 py-3 text-slate-400 text-xs" data-label="Observations">{l.observations || '—'}</td>
             </tr>
@@ -889,7 +905,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(1)
-  const [profileData, setProfileData] = useState({ lecons: [], examens: [], paiements: [], totalPaye: 0 })
+  const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
   const [ecole, setEcole]         = useState('')
@@ -952,13 +968,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
     try {
-      const [lecons, examens, paiements, tp] = await Promise.all([
+      const [lecons, seances, examens, paiements, tp] = await Promise.all([
         api('GET', `/eleves/${eleve.id}/lecons`),
+        api('GET', `/eleves/${eleve.id}/seances`).catch(() => []),
         api('GET', `/eleves/${eleve.id}/examens`),
         api('GET', `/eleves/${eleve.id}/paiements`),
         api('GET', `/eleves/${eleve.id}/total-paye`),
       ])
-      setProfileData({ lecons, examens, paiements, totalPaye: tp?.totalPaye ?? 0 })
+      setProfileData({ lecons, seances, examens, paiements, totalPaye: tp?.totalPaye ?? 0 })
     } catch { toast('Erreur chargement profil', 'danger') }
     finally { setLoadingProfile(false) }
   }
@@ -1576,6 +1593,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   if (selected) {
     const s = selected
     const st = STATUT_STYLE[s.statut] || { bg: '#f1f5f9', color: '#64748b', label: s.statut }
+    const suivi = compterSeances(profileData.seances)
 
     return (
       <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -1590,7 +1608,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               <Avatar p={s} className="w-12 h-12 rounded-full text-base font-extrabold"
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '2px solid rgba(255,255,255,.85)' }} />
               <div>
-                <div className="font-extrabold text-xl leading-tight">{s.nom} {s.prenom}</div>
+                <div className="font-extrabold text-xl leading-tight">{s.prenom} {s.nom}</div>
                 {s.telephone && <div className="text-blue-200 text-xs">{afficherTelephone(s.telephone)}</div>}
               </div>
             </div>
@@ -1662,7 +1680,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               </div>
               {/* Photo de profil : la moitié haute de la carte (initiales sans photo) */}
               {s.photoUrl ? (
-                <GrandePhoto src={s.photoUrl} alt={`${s.nom} ${s.prenom}`} />
+                <GrandePhoto src={s.photoUrl} alt={`${s.prenom} ${s.nom}`} />
               ) : (
                 <div className="w-full flex flex-col items-center justify-center gap-2"
                   style={{ height: 260, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>
@@ -1684,7 +1702,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     ? { label: 'Formation', value: `Perfectionnement · boîte ${s.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}` }
                     : { label: 'Catégorie', value: s.categoriePermis },
                   { label: 'Formule', value: s.formule },
-                  { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.nom} ${s.moniteur.prenom}` : 'Aucun' },
+                  { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.prenom} ${s.moniteur.nom}` : 'Aucun' },
                   { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
                 ].map(({ label, value }) => value ? (
                   <div key={label} className="flex items-center justify-between px-5 py-2.5">
@@ -1707,7 +1725,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               {/* Onglets */}
               <div className="flex border-b border-slate-100 px-2 pt-2">
                 {[
-                  { key: 'lecons',    icon: 'journal-text',          label: 'Leçons',    count: profileData.lecons.length },
+                  { key: 'lecons',    icon: 'journal-text',          label: 'Leçons',    count: profileData.lecons.length + profileData.seances.length },
                   // Perfectionnement : pas d'examen du permis
                   ...(s.typeFormation !== 'PERFECTIONNEMENT' ? [{ key: 'examens', icon: 'clipboard2-check-fill', label: 'Examens', count: profileData.examens.length }] : []),
                   ...(!isMoniteur ? [{ key: 'paiements', icon: 'cash-stack', label: 'Paiements', count: profileData.paiements.length }] : []),
@@ -1739,7 +1757,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 </div>
               ) : (
                 <>
-                  {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} />}
+                  {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} seances={profileData.seances} />}
                   {activeTab === 'examens'   && <TabExamens   examens={profileData.examens} />}
                   {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} montantTotal={s.montantTotal} eleveId={s.id} isAdmin={isAdmin} onRefresh={() => openProfile(s, 'paiements')} />}
                 </>
@@ -1755,12 +1773,13 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
               </div>
               <div className={`grid ${s.typeFormation === 'PERFECTIONNEMENT' ? 'grid-cols-1' : 'grid-cols-3'} divide-x divide-slate-100 text-center py-4`}>
+                {/* Leçons faites + séances de cours publiées : le compteur suit les publications */}
                 {(s.typeFormation === 'PERFECTIONNEMENT' ? [
-                  { val: s.nombreLeconsConduite,   label: 'Leçons de conduite', color: '#10b981' },
+                  { val: s.nombreLeconsConduite + suivi.conduite,   label: 'Leçons de conduite', color: '#10b981' },
                 ] : [
-                  { val: s.nombreLeconsCode,      label: 'Code',     color: '#1e3a5f' },
-                  { val: s.nombreLeconsConduite,   label: 'Conduite', color: '#10b981' },
-                  { val: s.nombreLeconsCode + s.nombreLeconsConduite, label: 'Total', color: '#6366f1' },
+                  { val: s.nombreLeconsCode + suivi.code,      label: 'Code',     color: '#1e3a5f' },
+                  { val: s.nombreLeconsConduite + suivi.conduite,   label: 'Conduite', color: '#10b981' },
+                  { val: s.nombreLeconsCode + s.nombreLeconsConduite + suivi.code + suivi.conduite, label: 'Total', color: '#6366f1' },
                 ]).map(({ val, label, color }) => (
                   <div key={label}>
                     <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
@@ -1768,6 +1787,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   </div>
                 ))}
               </div>
+              {!loadingProfile && suivi.avecQuiz > 0 && (
+                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Quiz des séances</span>
+                  <span className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{suivi.quizValides} assimilé{suivi.quizValides > 1 ? 's' : ''} · {suivi.quizPasses}/{suivi.avecQuiz} passé{suivi.quizPasses > 1 ? 's' : ''}</span>
+                </div>
+              )}
               {!loadingProfile && !isMoniteur && (
                 <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
                   <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>

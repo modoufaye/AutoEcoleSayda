@@ -373,14 +373,14 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
               ) : (
                 elevesVisibles.map(e => {
                   const checked = form.eleveIds.includes(e.id)
-                  const [nom, ...prenoms] = (e.nom || '').split(' ')
+                  const mots = (e.nom || '').split(' '), nom = mots.pop(), prenom = mots.join(' ')   // « Prénom Nom »
                   return (
                     <div key={e.id}
                       className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-slate-50"
                       style={{ background: checked ? '#fffbeb' : '#fff', borderBottom: '1px solid #f1f5f9' }}
                       onClick={() => toggleEleve(e.id)}
                     >
-                      <AvatarRond prenom={prenoms.join(' ')} nom={nom} taille={34} />
+                      <AvatarRond prenom={prenom} nom={nom} taille={34} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</div>
                         {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}</div>}

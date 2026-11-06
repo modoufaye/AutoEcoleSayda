@@ -81,3 +81,10 @@ export function ouverturesCode(seances) {
   }
   return ouv
 }
+
+/* Nombre de séances publiées avec du code et avec de la conduite (suivi de formation). Une séance
+   sans partie de cours (contenu libre seul) est de la théorie du code. */
+export function compterSeances(seances) {
+  const a = genre => seances.filter(s => s.programme.some(p => p.chapitre.startsWith('conduite-') === genre)).length
+  return { code: a(false) + seances.filter(s => !s.programme.length).length, conduite: a(true), quizValides: seances.filter(s => s.resultat?.reussi).length, quizPasses: seances.filter(s => s.resultat).length, avecQuiz: seances.filter(s => s.programme.length).length }
+}

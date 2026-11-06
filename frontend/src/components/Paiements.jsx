@@ -525,7 +525,7 @@ export default function Paiements({ onEleveClick }) {
               <Etiquette requis>Élève</Etiquette>
               <select className={champCls} value={form.eleveId} onChange={e => set('eleveId', e.target.value)}>
                 <option value="">Choisir un élève…</option>
-                {eleves.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+                {eleves.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}</option>)}
               </select>
               {eleve && (
                 <div className="mt-3 rounded-xl p-3" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>

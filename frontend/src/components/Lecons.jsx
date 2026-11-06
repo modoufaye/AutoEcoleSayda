@@ -208,7 +208,7 @@ export default function Lecons({ onBack }) {
                     </td>
                     {!isEleve && (
                       <td className="py-3.5 px-4 text-sm text-slate-600 font-medium cell-title">
-                        {l.eleve ? `${l.eleve.nom} ${l.eleve.prenom}` : '—'}
+                        {l.eleve ? `${l.eleve.prenom} ${l.eleve.nom}` : '—'}
                       </td>
                     )}
                     {!isEleve && (
@@ -217,7 +217,7 @@ export default function Lecons({ onBack }) {
                       </td>
                     )}
                     <td className="py-3.5 px-4 text-sm text-slate-600" data-label="Moniteur">
-                      {l.moniteur ? `${l.moniteur.nom} ${l.moniteur.prenom}` : '—'}
+                      {l.moniteur ? `${l.moniteur.prenom} ${l.moniteur.nom}` : '—'}
                     </td>
                     <td className="py-3.5 px-4" data-label="Véhicule">
                       {l.vehicule
@@ -304,7 +304,7 @@ export default function Lecons({ onBack }) {
                       onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
                       <option value="">Choisir un élève…</option>
                       {eleves.map(e => (
-                        <option key={e.id} value={e.id}>{e.nom} {e.prenom} ({e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : e.categoriePermis})</option>
+                        <option key={e.id} value={e.id}>{e.prenom} {e.nom} ({e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : e.categoriePermis})</option>
                       ))}
                     </select>
                   </div>
@@ -314,7 +314,7 @@ export default function Lecons({ onBack }) {
                       onChange={e => setForm(f => ({ ...f, moniteurId: e.target.value }))}>
                       <option value="">Choisir un moniteur…</option>
                       {moniteurs.map(m => (
-                        <option key={m.id} value={m.id}>{m.nom} {m.prenom}</option>
+                        <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>
                       ))}
                     </select>
                   </div>
