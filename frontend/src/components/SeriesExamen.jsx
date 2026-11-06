@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { Visuel } from './CoursCode'
-import { lireQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
+import { chargerQuizs, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
+import { confirmer } from './confirmer'
 import { SERIES } from '../contenu/seriesExamen'
 
 /* Séries d'examen (onglet Travaux Dirigés) : 25 questions au format de l'examen du code.
@@ -62,11 +63,12 @@ function Question({ q, choix, setChoix, corrige }) {
   )
 }
 
-/* Déroulé d'une série. La partie en cours est gardée sur l'appareil (sauvegardeQuiz) : quitter
-   puis revenir la reprend à la même question (en examen blanc, le chrono de cette question repart). */
+/* Déroulé d'une série. La partie en cours est gardée (serveur et appareil, sauvegardeQuiz) :
+   quitter puis revenir, même sur un autre appareil, la reprend à la même question (en examen
+   blanc, le chrono de cette question repart). « Redémarrer » l'efface et repart de la question 1. */
 const cleSerie = (serie, mode) => `serie:${serie.id}:${mode}`
-function Partie({ serie, mode, onFin, onQuitter }) {
-  const [enCours] = useState(() => lireQuiz(cleSerie(serie, mode)))
+function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer }) {
+  const [enCours] = useState(reprise)
   const [i, setI] = useState(enCours?.i || 0)
   const [choix, setChoix] = useState(enCours?.choix || [])
   const [reponses, setReponses] = useState(enCours?.reponses || [])      // lettres cochées pour chaque question
@@ -101,12 +103,21 @@ function Partie({ serie, mode, onFin, onQuitter }) {
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3" style={carte}>
-        <button type="button" onClick={onQuitter} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Séries</button>
-        <div className="flex-1 min-w-0">
+      <div className="bg-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3" style={carte}>
+        <button type="button" onClick={onQuitter} className="btn-retour me-auto sm:me-0"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Séries</button>
+        {/* Sur téléphone, le titre passe sous les boutons */}
+        <div className="w-full sm:w-auto sm:flex-1 min-w-0 order-last sm:order-none">
           <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{serie.titre}</div>
           <div className="text-xs text-slate-500">{mode === 'examen' ? 'Examen blanc · correction à la fin' : 'Entraînement · correction à chaque question'}{enCours ? ' · reprise' : ''}</div>
         </div>
+        {(i > 0 || reponses.length > 0 || choix.length > 0) && (
+          <button type="button" title="Redémarrer la série depuis la première question" onClick={async () => {
+            if (await confirmer({ titre: 'Redémarrer la série ?', ton: 'alerte', icone: 'arrow-counterclockwise', libelle: 'Redémarrer',
+              message: 'Les réponses déjà données seront effacées et la série reprendra à la première question.' })) onRedemarrer()
+          }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border-0 cursor-pointer whitespace-nowrap" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>
+            <i className="bi bi-arrow-counterclockwise" /><span className="hidden sm:inline">Redémarrer</span>
+          </button>
+        )}
         {mode === 'examen' && (
           <span className="text-sm font-black px-3 py-1.5 whitespace-nowrap" style={{ borderRadius: 999, background: reste <= 10 ? '#fee2e2' : '#eef2f7', color: reste <= 10 ? '#b91c1c' : '#1e3a5f' }}>
             <i className="bi bi-stopwatch me-1" />{Math.max(reste, 0)} s
@@ -176,6 +187,9 @@ export default function SeriesExamen({ eleve = false }) {
   const [partie, setPartie] = useState(null)        // { serie, mode, tour }
   const [fin, setFin] = useState(null)              // réponses de la partie terminée
   const [notes, setNotes] = useState({})
+  const [enCours, setEnCours] = useState({})        // parties commencées, par série et par mode
+  const recharger = () => chargerQuizs(SERIES.flatMap(s => ['entrainement', 'examen'].map(m => cleSerie(s, m)))).then(setEnCours)
+  useEffect(() => { recharger() }, [])
   useEffect(() => {
     if (!eleve) return
     api('GET', '/eleve/code/progression').then(l => setNotes(Object.fromEntries((l || []).map(x => [x.chapitre, x])))).catch(() => {})
@@ -189,12 +203,12 @@ export default function SeriesExamen({ eleve = false }) {
     try { const p = await api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length }); setNotes(n => ({ ...n, [serie.id]: p })) }
     catch { toast('Note non enregistrée : vérifiez votre connexion', 'warning') }
   }
-  const quitter = () => { setPartie(null); setFin(null); window.scrollTo?.({ top: 0 }) }
-  // Nouvelle partie : l'ancienne partie en cours est oubliée ; reprise : on la garde
-  const lancer = (serie, mode, reprise = false) => { if (!reprise) effacerQuiz(cleSerie(serie, mode)); setFin(null); setPartie(x => ({ serie, mode, tour: (x?.tour || 0) + 1 })); window.scrollTo?.({ top: 0 }) }
+  const quitter = () => { setPartie(null); setFin(null); recharger(); window.scrollTo?.({ top: 0 }) }
+  // Reprise : la partie commencée continue ; nouvelle partie (ou redémarrage) : elle est oubliée
+  const lancer = (serie, mode, reprise = null) => { if (!reprise) effacerQuiz(cleSerie(serie, mode)); setFin(null); setPartie(x => ({ serie, mode, reprise, tour: (x?.tour || 0) + 1 })); window.scrollTo?.({ top: 0 }) }
 
   if (partie && fin) return <Resultat serie={partie.serie} reponses={fin} onRejouer={() => lancer(partie.serie, partie.mode)} onQuitter={quitter} />
-  if (partie) return <Partie key={partie.tour} serie={partie.serie} mode={partie.mode} onFin={terminer} onQuitter={quitter} />
+  if (partie) return <Partie key={partie.tour} serie={partie.serie} mode={partie.mode} reprise={partie.reprise} onFin={terminer} onQuitter={quitter} onRedemarrer={() => lancer(partie.serie, partie.mode)} />
 
   return (
     <div className="space-y-4">
@@ -220,9 +234,9 @@ export default function SeriesExamen({ eleve = false }) {
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4">
                 {[['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].map(([mode, icone, libelle, style]) => {
-                  const c = lireQuiz(cleSerie(s, mode))
+                  const c = enCours[cleSerie(s, mode)]
                   return (
-                    <button key={mode} type="button" onClick={() => lancer(s, mode, !!c)} className="py-2.5 font-extrabold border-0 cursor-pointer leading-tight" style={style}>
+                    <button key={mode} type="button" onClick={() => lancer(s, mode, c)} className="py-2.5 font-extrabold border-0 cursor-pointer leading-tight" style={style}>
                       <i className={`bi bi-${icone} me-1`} />{libelle}
                       {c && <span className="block text-[11px] font-bold opacity-80">Reprendre · question {c.i + 1}/{s.questions.length}</span>}
                     </button>

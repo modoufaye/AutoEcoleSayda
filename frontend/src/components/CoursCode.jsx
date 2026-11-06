@@ -9,7 +9,8 @@ import { THEMES_CODE } from '../contenu/themes'
 import { ouverturesCode } from '../contenu/programme'
 import { genre, estScene } from './coursOutils'
 import BoutonEcouter from './BoutonEcouter'
-import { lireQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
+import { chargerQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
+import { confirmer } from './confirmer'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -41,10 +42,24 @@ const majuscule = t => t[0].toUpperCase() + t.slice(1)
 
 /* ── Quiz d'un chapitre, de la révision ou d'une séance ──
    onFini(score, total, erreurs) : erreurs = « question → bonne réponse (répondu : …) ».
-   sauvegarde : identifiant du quiz ; la partie en cours est alors gardée sur l'appareil et
-   reprise (mêmes questions, même question, même score) si l'élève quitte puis revient. */
-export function Quiz({ questions: tirees, onFini, onSuivant, suivantLibelle, texteValide = 'Chapitre validé, bravo !', sauvegarde }) {
-  const [enCours] = useState(() => lireQuiz(sauvegarde))
+   sauvegarde : identifiant du quiz ; la partie en cours est alors gardée (serveur et appareil)
+   et reprise (mêmes questions, même question, même score) si l'élève quitte puis revient,
+   par n'importe quel chemin ou appareil. nouveauTirage : questions d'une nouvelle partie au
+   redémarrage (quiz tirés au hasard). */
+export function Quiz(props) {
+  const { sauvegarde } = props
+  const [enCours, setEnCours] = useState(sauvegarde ? undefined : null)   // undefined : en chargement
+  useEffect(() => { if (sauvegarde) chargerQuiz(sauvegarde).then(x => setEnCours(x || null)) }, [sauvegarde])
+  if (enCours === undefined) return (
+    <div className="rounded-2xl p-8 flex justify-center" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)' }}>
+      <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: 'rgba(255,255,255,.2)', borderTopColor: '#f0bb2a' }} />
+    </div>
+  )
+  return <PartieQuiz {...props} enCours={enCours} />
+}
+
+function PartieQuiz({ questions: tirees, onFini, onSuivant, suivantLibelle, texteValide = 'Chapitre validé, bravo !', sauvegarde, nouveauTirage, enCours: repris }) {
+  const [enCours, setEnCours] = useState(repris)
   const [questions, setQuestions] = useState(enCours?.questions || tirees)
   const [i, setI] = useState(enCours?.i || 0)
   const [choix, setChoix] = useState(enCours?.choix || null)
@@ -67,7 +82,12 @@ export function Quiz({ questions: tirees, onFini, onSuivant, suivantLibelle, tex
     if (i + 1 < questions.length) { setI(i + 1); setChoix(null) }
     else { setFini(true); effacerQuiz(sauvegarde); onFini?.(score, questions.length, erreurs) }
   }
-  const recommencer = () => { effacerQuiz(sauvegarde); setQuestions(tirees); setI(0); setChoix(null); setScore(0); setErreurs([]); setFini(false) }
+  const recommencer = () => { effacerQuiz(sauvegarde); setEnCours(null); setQuestions(nouveauTirage ? nouveauTirage() : tirees); setI(0); setChoix(null); setScore(0); setErreurs([]); setFini(false) }
+  const redemarrer = async () => {
+    if (!(await confirmer({ titre: 'Redémarrer le quiz ?', ton: 'alerte', icone: 'arrow-counterclockwise', libelle: 'Redémarrer',
+      message: 'La partie en cours (questions déjà répondues et score) sera effacée et le quiz reprendra à la première question.' }))) return
+    recommencer()
+  }
 
   if (fini) {
     const reussi = score >= Math.ceil(SEUIL_REUSSITE * questions.length)
@@ -95,7 +115,15 @@ export function Quiz({ questions: tirees, onFini, onSuivant, suivantLibelle, tex
     <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '5px solid #d4a017' }}>
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>QUESTION {i + 1} SUR {questions.length}{enCours && <span className="ms-2" style={{ color: '#93c5fd' }}>· REPRISE</span>}</span>
-        <span className="text-xs font-bold" style={{ color: '#86efac' }}>{score} bonne{score > 1 ? 's' : ''} réponse{score > 1 ? 's' : ''}</span>
+        <span className="flex items-center gap-3">
+          <span className="text-xs font-bold" style={{ color: '#86efac' }}>{score} bonne{score > 1 ? 's' : ''} réponse{score > 1 ? 's' : ''}</span>
+          {(i > 0 || choix) && (
+            <button type="button" onClick={redemarrer} title="Redémarrer le quiz depuis la première question"
+              className="flex items-center gap-1 px-3 py-1 text-xs font-bold border-0 cursor-pointer whitespace-nowrap" style={{ borderRadius: 999, background: 'rgba(255,255,255,.14)', color: '#fff' }}>
+              <i className="bi bi-arrow-counterclockwise" />Redémarrer
+            </button>
+          )}
+        </span>
       </div>
       <div className="h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
         <div className="h-full rounded-full" style={{ width: `${100 * i / questions.length}%`, background: 'linear-gradient(90deg,#d4a017,#f0bb2a)', transition: 'width .3s' }} />
@@ -133,7 +161,9 @@ export function Quiz({ questions: tirees, onFini, onSuivant, suivantLibelle, tex
 
 /* ── Un chapitre : Leçon · Panneaux · Quiz ── */
 function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat, onSuivant, suivantLibelle }) {
-  const [onglet, setOnglet] = useState(() => !ch.partiel && lireQuiz(`chapitre:${ch.id}`) ? 'quiz' : 'lecon')
+  const [onglet, setOnglet] = useState('lecon')
+  // Quiz commencé (sur cet appareil ou un autre) : on rouvre directement l'onglet Quiz
+  useEffect(() => { if (!ch.partiel) chargerQuiz(`chapitre:${ch.id}`).then(x => { if (x) setOnglet('quiz') }) }, [ch.id, ch.partiel])
   const [sel, setSel] = useState(ch.panneaux[0])
   const questions = useMemo(() => questionsChapitre(ch), [ch])
   return (
@@ -373,7 +403,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
         {btnRetour(() => aller(theme.key), theme.titre)}
         <div><div className="font-extrabold text-lg" style={{ color: '#1e3a5f' }}>{theme.revision.titre} · {theme.titre}</div><div className="text-xs text-slate-500">{theme.revision.nombre} questions mélangées sur tous les chapitres</div></div>
       </div>
-      <Quiz key={questionsRev[0]?.id} sauvegarde={`revision:${theme.revision.id}`} questions={questionsRev} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
+      <Quiz key={questionsRev[0]?.id} sauvegarde={`revision:${theme.revision.id}`} questions={questionsRev} nouveauTirage={() => questionsRevision(theme.chapitres, theme.revision.nombre)} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
     </div>
   )
   if (theme && idx >= 0 && ferme(tous[idx]) && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>

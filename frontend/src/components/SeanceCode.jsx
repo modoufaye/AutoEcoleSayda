@@ -5,7 +5,7 @@ import { EnteteListe, AvatarRond, Pastille, ListeVide, ListeChargement } from '.
 import { Visuel, IconeChapitre, Quiz } from './CoursCode'
 import { genre, estScene } from './coursOutils'
 import BoutonEcouter from './BoutonEcouter'
-import { lireQuiz } from './sauvegardeQuiz'
+import { chargerQuiz } from './sauvegardeQuiz'
 import { SEUIL_REUSSITE } from '../contenu/signalisation'
 import { COURS, trouverChapitre, numeroChapitre, complete, panneauxPartie, libellePartie, questionsPartie, questionsSeance, QUESTIONS_MAX } from '../contenu/programme'
 
@@ -303,8 +303,9 @@ function PartieEleve({ partie, rang }) {
 export function ProgrammeEleve({ seance }) {
   const [resultat, setResultat] = useState(null)
   const sauvegarde = `seance:${seance.id}`
-  // Quiz commencé puis quitté : il se rouvre à la même question
-  const [quiz, setQuiz] = useState(() => lireQuiz(sauvegarde) ? 1 : 0)   // 0 : fermé ; sinon numéro du tirage
+  const [quiz, setQuiz] = useState(0)   // 0 : fermé ; sinon numéro du tirage
+  // Quiz commencé puis quitté (ici ou sur un autre appareil) : il se rouvre à la même question
+  useEffect(() => { chargerQuiz(sauvegarde).then(x => { if (x) setQuiz(q => q || 1) }) }, [sauvegarde])
   const questions = useMemo(() => quiz ? questionsSeance(seance.programme) : [], [quiz, seance])
   useEffect(() => {
     api('GET', '/eleve/seances/resultats').then(l => setResultat((l || []).find(r => r.seanceId === seance.id) || null)).catch(() => {})
@@ -323,7 +324,7 @@ export function ProgrammeEleve({ seance }) {
       {seance.programme.map((p, i) => <PartieEleve key={`${p.chapitre}-${p.de}-${p.a}`} partie={p} rang={i + 1} />)}
 
       {quiz ? (
-        <Quiz key={quiz} sauvegarde={sauvegarde} questions={questions} onFini={fini} texteValide="Séance validée, bravo ! Votre moniteur voit votre résultat." />
+        <Quiz key={quiz} sauvegarde={sauvegarde} questions={questions} nouveauTirage={() => questionsSeance(seance.programme)} onFini={fini} texteValide="Séance validée, bravo ! Votre moniteur voit votre résultat." />
       ) : (
         <div className="rounded-2xl p-5 text-white flex flex-col sm:flex-row sm:items-center gap-4" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '5px solid #d4a017' }}>
           <div style={{ fontSize: 40 }}>{resultat?.reussi ? '🏆' : '📝'}</div>

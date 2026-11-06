@@ -143,6 +143,8 @@ public class JournalService {
 
     /** Libellé de l'action, ou Optional.empty() si elle n'est pas tracée. */
     public Optional<String> libelle(String methode, String chemin, Object reponse) {
+        // Sauvegarde automatique du quiz en cours, à chaque réponse : pas une action à tracer
+        if (chemin.startsWith("/api/eleve/quiz-en-cours")) return Optional.empty();
         String cle = methode + " " + modele(chemin);
         if (LIBELLES.containsKey(cle)) {
             String l = LIBELLES.get(cle);
