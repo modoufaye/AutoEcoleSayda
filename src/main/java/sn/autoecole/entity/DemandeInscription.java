@@ -46,6 +46,14 @@ public class DemandeInscription {
     @Column(name = "boite_vitesse")
     private BoiteVitesse boiteVitesse;
 
+    /** Formule choisie (même libellé que sur la fiche élève), null si aucune. */
+    @Column(length = 80)
+    private String formule;
+
+    /** Montant de la formule au jour de la demande (Paramètres) ; proposé comme total à l'approbation. */
+    @Column(name = "montant_formule", precision = 12, scale = 2)
+    private BigDecimal montantFormule;
+
     @Column(name = "montant_acompte", nullable = false, precision = 12, scale = 2)
     private BigDecimal montantAcompte;
 

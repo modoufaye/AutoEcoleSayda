@@ -43,6 +43,11 @@ public class InscriptionEnLigneController {
         m.put("lienWave", c.map(x -> x.getLienWave()).orElse(null));
         m.put("lienOrangeMoney", c.map(x -> x.getLienOrangeMoney()).orElse(null));
         m.put("telephone", c.map(x -> x.getTelephone()).orElse(null));
+        // Formules proposées au candidat (celles qui ont un montant)
+        m.put("formules", c.map(x -> x.getFormules()).orElse(List.of()).stream()
+                .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
+        m.put("formulesPerfectionnement", c.map(x -> x.getFormulesPerfectionnement()).orElse(List.of()).stream()
+                .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
         return m;
     }
 

@@ -60,6 +60,7 @@ export default function DemandesInscription({ onTraitee }) {
                   <div className="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
                     <span><i className="bi bi-telephone me-1" />{afficherTelephone(d.telephone)}</span>
                     <span><i className="bi bi-mortarboard me-1" />{FORMATION(d)}</span>
+                    {d.formule && <span><i className="bi bi-award me-1" />Formule {d.formule}{d.montantFormule ? ` · ${fmtMontant(d.montantFormule)}` : ''}</span>}
                     <span><i className="bi bi-calendar3 me-1" />{fmtDate(d.dateDemande)}</span>
                   </div>
                 </div>
@@ -68,7 +69,7 @@ export default function DemandesInscription({ onTraitee }) {
                   <div className="text-xs text-slate-500">{MOYEN[d.moyenPaiement]} · réf. <b className="text-slate-700">{d.transactionId}</b></div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setApprobation({ demande: d, total: '', site: 'MAZALIK_JINAN' })}
+                  <button type="button" onClick={() => setApprobation({ demande: d, total: d.montantFormule ? String(d.montantFormule) : '', site: 'MAZALIK_JINAN' })}
                     className="flex items-center gap-1.5 text-sm font-bold px-4 border-0 cursor-pointer"
                     style={{ minHeight: 36, borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
                     <i className="bi bi-check2-circle" />Approuver
@@ -93,7 +94,7 @@ export default function DemandesInscription({ onTraitee }) {
               <div className="px-5 py-4 text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 55%,#2a4f7c)', borderBottom: '4px solid #d4a017' }}>
                 <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>Approuver l'inscription</div>
                 <div className="text-lg font-extrabold">{approbation.demande.prenom} {approbation.demande.nom}</div>
-                <div className="text-xs" style={{ color: '#bfdbfe' }}>{FORMATION(approbation.demande)} · acompte {fmtMontant(approbation.demande.montantAcompte)} ({MOYEN[approbation.demande.moyenPaiement]})</div>
+                <div className="text-xs" style={{ color: '#bfdbfe' }}>{FORMATION(approbation.demande)}{approbation.demande.formule ? ` · formule ${approbation.demande.formule}` : ''} · acompte {fmtMontant(approbation.demande.montantAcompte)} ({MOYEN[approbation.demande.moyenPaiement]})</div>
               </div>
               <div className="px-5 py-4 space-y-3">
                 <div>

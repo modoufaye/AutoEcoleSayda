@@ -19,6 +19,24 @@ const FORMATIONS = [
   { v: 'CP_M', icon: 'gear-wide-connected',   titre: 'Perfectionnement', sous: 'Boîte manuelle' },
   { v: 'CP_A', icon: 'lightning-charge-fill', titre: 'Perfectionnement', sous: 'Boîte automatique' },
 ]
+const fcfa = n => `${Math.round(Number(n) || 0).toLocaleString('fr-FR').replace(/\u202f/g, ' ')} F`
+
+/* Formules de la formation choisie (Paramètres) : { cle envoyée au serveur, titre, montant, acompte, tranches }. */
+function formulesDe(infos, formation) {
+  if (!formation) return []
+  if (formation.startsWith('CP_')) {
+    const boite = formation === 'CP_A' ? 'AUTOMATIQUE' : 'MANUELLE'
+    return (infos.formulesPerfectionnement || []).filter(f => f.boite === boite).map(f => ({
+      cle: String(f.cours), titre: `${f.cours} cours`, montant: f.montant, acompte: f.acompte,
+      tranches: [f.acompte, f.tranche2].filter(x => Number(x) > 0),
+    }))
+  }
+  return (infos.formules || []).map(f => ({
+    cle: f.nom, titre: f.nom, montant: f.montant, acompte: f.acompte,
+    tranches: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0),
+  }))
+}
+
 const champ = 'w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:bg-white focus:border-[#1e3a5f] transition-all'
 const etiquette = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 
@@ -26,7 +44,7 @@ const etiquette = 'block text-xs font-bold text-slate-500 uppercase tracking-wid
    vérifie l'acompte (Wave / Orange Money) et l'approuve, puis envoie les identifiants sur WhatsApp. */
 export default function InscriptionEnLigne() {
   const [infos, setInfos] = useState({})
-  const [form, setForm] = useState({ prenom: '', nom: '', telephone: '', formation: '', montantAcompte: '', moyenPaiement: 'WAVE', transactionId: '', siteWeb: '' })
+  const [form, setForm] = useState({ prenom: '', nom: '', telephone: '', formation: '', formule: '', montantAcompte: '', moyenPaiement: 'WAVE', transactionId: '', siteWeb: '' })
   const [envoi, setEnvoi] = useState(false)
   const [erreur, setErreur] = useState('')
   const [fait, setFait] = useState(null)
@@ -34,9 +52,16 @@ export default function InscriptionEnLigne() {
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErreur('') }
   useEffect(() => { appelPublic('GET', '/public/inscriptions/infos').then(setInfos).catch(() => {}) }, [])
 
+  const formules = formulesDe(infos, form.formation)
+  const formule = formules.find(f => f.cle === form.formule)
+  // Changer de formation efface la formule ; choisir une formule propose son acompte
+  const choisirFormation = v => { setForm(f => ({ ...f, formation: v, formule: f.formation === v ? f.formule : '' })); setErreur('') }
+  const choisirFormule = f => { setForm(x => ({ ...x, formule: f.cle, montantAcompte: String(f.acompte) })); setErreur('') }
+
   const envoyer = async (e) => {
     e.preventDefault(); setErreur('')
     const manque = [!form.prenom.trim() && 'prénom', !form.nom.trim() && 'nom', !form.telephone && 'téléphone', !form.formation && 'formation',
+      formules.length > 0 && !formule && 'formule',
       !(parseFloat(form.montantAcompte) > 0) && 'acompte', !form.transactionId.trim() && 'référence de la transaction'].filter(Boolean)
     if (manque.length) { setErreur(`À remplir : ${manque.join(', ')}`); return }
     setEnvoi(true)
@@ -94,7 +119,7 @@ export default function InscriptionEnLigne() {
                   {FORMATIONS.map(f => {
                     const actif = form.formation === f.v
                     return (
-                      <button key={f.v} type="button" onClick={() => set('formation', f.v)}
+                      <button key={f.v} type="button" onClick={() => choisirFormation(f.v)}
                         className="flex flex-col items-center gap-0.5 py-3 px-2 cursor-pointer text-center"
                         style={{ borderRadius: '.9rem', border: `2px solid ${actif ? '#1e3a5f' : '#e2e8f0'}`, background: actif ? '#fef9c3' : '#fff', color: actif ? '#1e3a5f' : '#64748b' }}>
                         <i className={`bi bi-${f.icon}`} style={{ fontSize: '1.3rem', color: actif ? '#d4a017' : undefined }} />
@@ -106,8 +131,35 @@ export default function InscriptionEnLigne() {
                 </div>
               </div>
 
+              {formules.length > 0 && (
+                <div>
+                  <label className={etiquette}>Formule</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {formules.map(f => {
+                      const actif = form.formule === f.cle
+                      return (
+                        <button key={f.cle} type="button" onClick={() => choisirFormule(f)} aria-pressed={actif}
+                          className="flex flex-col items-start text-left py-3 px-3 cursor-pointer"
+                          style={{ borderRadius: '.9rem', border: `2px solid ${actif ? '#1e3a5f' : '#e2e8f0'}`, background: actif ? '#fef9c3' : '#fff', color: '#1e3a5f' }}>
+                          <span className="text-sm font-extrabold leading-tight">{f.titre}</span>
+                          <span className="text-lg font-extrabold leading-tight mt-0.5" style={{ color: '#b45309' }}>{fcfa(f.montant)}</span>
+                          <span className="text-[11px] font-semibold text-slate-500 mt-1">
+                            {f.tranches.length > 1 ? `Acompte ${fcfa(f.acompte)}, puis ${f.tranches.slice(1).map(fcfa).join(' + ')}` : 'Payé en une fois'}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-2xl p-4" style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
                 <div className="font-extrabold text-sm mb-1" style={{ color: '#1e3a5f' }}><i className="bi bi-wallet2 me-1" />Acompte</div>
+                {formule && (
+                  <div className="text-xs font-semibold rounded-xl px-3 py-2 mb-2" style={{ background: '#fef9c3', color: '#854d0e' }}>
+                    Formule {formule.titre} : acompte de <b>{fcfa(formule.acompte)}</b> sur {fcfa(formule.montant)}
+                  </div>
+                )}
                 <ol className="text-xs text-slate-600 ps-4 mb-3">
                   <li>Choisissez Wave ou Orange Money et payez l'acompte avec le bouton.</li>
                   <li>Revenez ici et saisissez le montant et la référence reçue par SMS.</li>

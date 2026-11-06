@@ -18,6 +18,9 @@ public class DemandeInscriptionRequest {
     /** A, B, C, D, CP_M (perfectionnement boîte manuelle) ou CP_A (automatique). */
     @NotBlank(message = "Choisissez votre formation")
     private String formation;
+    /** Formule choisie : Standard, Premium… (permis) ou nombre de cours (perfectionnement, ex. « 15 »). */
+    @Size(max = 40)
+    private String formule;
     @NotNull(message = "Le montant de l'acompte est obligatoire")
     @DecimalMin(value = "0.0", inclusive = false, message = "L'acompte doit être positif")
     private BigDecimal montantAcompte;

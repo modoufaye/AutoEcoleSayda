@@ -7,6 +7,8 @@ import sn.autoecole.dto.DemandeInscriptionRequest;
 import sn.autoecole.dto.EleveRequest;
 import sn.autoecole.entity.DemandeInscription;
 import sn.autoecole.entity.Eleve;
+import sn.autoecole.entity.FormulePerfectionnement;
+import sn.autoecole.entity.FormulePermis;
 import sn.autoecole.enums.*;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
@@ -65,7 +67,34 @@ public class DemandeInscriptionService {
             case "CP_A" -> { d.setTypeFormation(TypeFormation.PERFECTIONNEMENT); d.setBoiteVitesse(BoiteVitesse.AUTOMATIQUE); }
             default -> throw new BusinessException("Formation inconnue");
         }
+        formule(d, r.getFormule());
         return demandeRepository.save(d);
+    }
+
+    /**
+     * Formule choisie, retrouvée dans Paramètres (le montant ne vient jamais du navigateur).
+     * Obligatoire dès que la formation a des formules ; libellé identique à celui de la fiche élève.
+     */
+    private void formule(DemandeInscription d, String choix) {
+        var cfg = configRepository.findAll().stream().findFirst().orElse(null);
+        String c = choix == null ? "" : choix.trim();
+        if (d.getTypeFormation() == TypeFormation.PERMIS) {
+            var options = (cfg == null || cfg.getFormules() == null ? List.<FormulePermis>of() : cfg.getFormules())
+                    .stream().filter(f -> f.montant() != null && f.montant().signum() > 0).toList();
+            if (options.isEmpty()) return;
+            FormulePermis f = options.stream().filter(x -> x.nom().equalsIgnoreCase(c)).findFirst()
+                    .orElseThrow(() -> new BusinessException("Choisissez votre formule"));
+            d.setFormule(f.nom());
+            d.setMontantFormule(f.montant());
+        } else {
+            var options = (cfg == null || cfg.getFormulesPerfectionnement() == null ? List.<FormulePerfectionnement>of() : cfg.getFormulesPerfectionnement())
+                    .stream().filter(f -> f.boite() == d.getBoiteVitesse() && f.montant() != null && f.montant().signum() > 0).toList();
+            if (options.isEmpty()) return;
+            FormulePerfectionnement f = options.stream().filter(x -> String.valueOf(x.cours()).equals(c)).findFirst()
+                    .orElseThrow(() -> new BusinessException("Choisissez votre formule"));
+            d.setFormule(f.cours() + " cours · " + (f.boite() == BoiteVitesse.AUTOMATIQUE ? "automatique" : "manuelle"));
+            d.setMontantFormule(f.montant());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +127,7 @@ public class DemandeInscriptionService {
         req.setCategoriePermis(d.getCategoriePermis());
         req.setBoiteVitesse(d.getBoiteVitesse());
         req.setMontantTotal(montantTotal);
+        req.setFormule(d.getFormule());
         req.setMontantAvance(d.getMontantAcompte());
         req.setMoyenAcompte(d.getMoyenPaiement());
         req.setStatut(StatutEleve.EN_COURS);
