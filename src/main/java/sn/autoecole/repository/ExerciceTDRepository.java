@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ExerciceTDRepository extends JpaRepository<ExerciceTD, Long> {
     List<ExerciceTD> findAllByOrderByCreatedAtDesc();
+
+    List<ExerciceTD> findByMoniteurId(Long moniteurId);
 }

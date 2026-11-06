@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, LABELS, waLink, correspond } from '../utils'
+import { fmtDate, LABELS, waLink, correspond, estAdmin } from '../utils'
 import { msgBienvenueMoniteur } from '../messages'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
@@ -13,6 +13,7 @@ import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, L
 import { champCls, stylePastille } from './fenetreStyles'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
+import { useAuth } from '../context/AuthContext'
 
 const PAGE_SIZE = 10
 
@@ -170,6 +171,8 @@ const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rou
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
 
 export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFermer }) {
+  const { user } = useAuth()
+  const admin = estAdmin(user?.role)   // la suppression est réservée aux administrateurs
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [search, setSearch]           = useState('')
@@ -288,6 +291,24 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
     } catch (e) { toast(e.message, 'danger') }
   }
 
+  /* Suppression (administrateurs) : refusée par le serveur si le moniteur a des leçons ou des
+     séances ; on propose alors de le désactiver, ce qui garde l'historique des élèves. */
+  const supprimer = async (m) => {
+    const nb = elevesCount[m.id] ?? 0
+    if (!(await confirmer({ titre: `Supprimer ${m.prenom} ${m.nom} ?`, ton: 'danger', icone: 'trash3-fill', libelle: 'Supprimer',
+      message: `Sa fiche et son compte de connexion seront supprimés définitivement.${nb === 1 ? ' Son élève restera inscrit, sans moniteur.' : nb > 1 ? ` Ses ${nb} élèves resteront inscrits, sans moniteur.` : ''}` }))) return
+    try {
+      await api('DELETE', `/moniteurs/${m.id}`); toast('Moniteur supprimé')
+      if (selected?.id === m.id) fermerFiche()
+      await load()
+    } catch (e) {
+      if (m.actif && /désactivez-le/.test(e.message)) {
+        if (await confirmer({ titre: 'Suppression impossible', ton: 'alerte', icone: 'pause-circle-fill', libelle: 'Désactiver', message: e.message }))
+          await toggleActif(m.id)
+      } else toast(e.message, 'danger')
+    }
+  }
+
   const toggleActif = async (id) => {
     try {
       await api('PATCH', `/moniteurs/${id}/toggle-actif`); toast('Statut mis à jour'); await load()
@@ -296,13 +317,6 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
         setSelected(updated)
       }
     } catch (e) { toast(e.message, 'danger') }
-  }
-
-  const del = async (id) => {
-    if (!(await confirmer({ titre: 'Supprimer ce moniteur ?', ton: 'danger', libelle: 'Supprimer',
-      message: 'Son compte de connexion sera aussi supprimé. Cette action est définitive.' }))) return
-    try { await api('DELETE', `/moniteurs/${id}`); toast('Moniteur supprimé'); fermerFiche(); load() }
-    catch (e) { toast(e.message, 'danger') }
   }
 
   /* ══ FENÊTRE AJOUT / MODIFICATION ════════════════════════════ */
@@ -671,6 +685,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                   <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openModal(m)} />
                   <BoutonRond title={m.actif ? 'Désactiver' : 'Activer'} icon={m.actif ? 'pause-circle-fill' : 'play-circle-fill'}
                     couleur={m.actif ? '#a16207' : '#15803d'} fond={m.actif ? '#fef9c3' : '#dcfce7'} onClick={() => toggleActif(m.id)} />
+                  {admin && <BoutonRond title="Supprimer" icon="trash3-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimer(m)} />}
                 </div>
               </div>
             </LigneListe>

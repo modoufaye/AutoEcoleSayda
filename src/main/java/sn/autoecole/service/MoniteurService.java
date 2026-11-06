@@ -10,7 +10,12 @@ import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
+import sn.autoecole.repository.AutoEcoleConfigRepository;
+import sn.autoecole.repository.EleveRepository;
+import sn.autoecole.repository.ExerciceTDRepository;
+import sn.autoecole.repository.LeconRepository;
 import sn.autoecole.repository.MoniteurRepository;
+import sn.autoecole.repository.SeanceRepository;
 import sn.autoecole.repository.UserRepository;
 import sn.autoecole.util.Telephones;
 
@@ -27,6 +32,11 @@ public class MoniteurService {
 
     private final MoniteurRepository moniteurRepository;
     private final UserRepository userRepository;
+    private final LeconRepository leconRepository;
+    private final SeanceRepository seanceRepository;
+    private final EleveRepository eleveRepository;
+    private final ExerciceTDRepository exerciceTDRepository;
+    private final AutoEcoleConfigRepository configRepository;
     private final PasswordEncoder passwordEncoder;
 
     public List<Moniteur> listerTous() {
@@ -89,10 +99,34 @@ public class MoniteurService {
         return moniteurRepository.save(moniteur);
     }
 
+    /**
+     * Supprime un moniteur sans historique. Ses leçons de conduite et ses séances de cours publiées
+     * sont l'historique des élèves : s'il en a, on refuse (le désactiver le retire sans rien perdre).
+     * Ses élèves restent, sans moniteur ; ses exercices de TD restent, sans auteur.
+     */
     public void supprimer(Long id) {
         Moniteur moniteur = trouverParId(id);
+        Optional<User> compte = compte(moniteur.getTelephone());
+        long lecons = leconRepository.countByMoniteurId(id);
+        long seances = compte.map(seanceRepository::countByMoniteur).orElse(0L);
+        if (lecons + seances > 0) {
+            String quoi = lecons > 0 && seances > 0 ? lecons + " leçon(s) et " + seances + " séance(s) de cours"
+                    : lecons > 0 ? lecons + " leçon(s) de conduite" : seances + " séance(s) de cours";
+            throw new BusinessException(moniteur.getPrenom() + " " + moniteur.getNom() + " a " + quoi
+                    + " dans l'historique des élèves : désactivez-le plutôt que de le supprimer");
+        }
+        var eleves = eleveRepository.findByMoniteurId(id);
+        eleves.forEach(e -> e.setMoniteur(null));
+        eleveRepository.saveAll(eleves);
+        var exercices = exerciceTDRepository.findByMoniteurId(id);
+        exercices.forEach(x -> x.setMoniteur(null));
+        exerciceTDRepository.saveAll(exercices);
+        configRepository.findAll().stream().filter(c -> id.equals(c.getMoniteurParDefautId())).forEach(c -> {
+            c.setMoniteurParDefautId(null);
+            configRepository.save(c);
+        });
         // Son compte part avec lui : sinon il pourrait encore se connecter.
-        compte(moniteur.getTelephone()).ifPresent(userRepository::delete);
+        compte.ifPresent(userRepository::delete);
         moniteurRepository.delete(moniteur);
     }
 

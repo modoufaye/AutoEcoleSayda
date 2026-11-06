@@ -50,6 +50,9 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
 
     List<Eleve> findByMoniteurIdAndArchiveFalse(Long moniteurId);
 
+    /** Archivés compris. */
+    List<Eleve> findByMoniteurId(Long moniteurId);
+
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut AND e.archive = false")
     long countByStatut(@Param("statut") StatutEleve statut);
 

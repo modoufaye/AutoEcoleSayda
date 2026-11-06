@@ -18,6 +18,8 @@ public interface LeconRepository extends JpaRepository<Lecon, Long> {
 
     List<Lecon> findByMoniteurId(Long moniteurId);
 
+    long countByMoniteurId(Long moniteurId);
+
     List<Lecon> findByVehiculeId(Long vehiculeId);
 
     List<Lecon> findByDate(LocalDate date);
