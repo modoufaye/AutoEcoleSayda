@@ -79,10 +79,12 @@ public class DemandeInscriptionService {
         var cfg = configRepository.findAll().stream().findFirst().orElse(null);
         String c = choix == null ? "" : choix.trim();
         if (d.getTypeFormation() == TypeFormation.PERMIS) {
-            // Permis C et D : leur propre formule Standard ; A et B : les quatre formules
-            boolean lourd = d.getCategoriePermis() == CategoriePermis.C || d.getCategoriePermis() == CategoriePermis.D;
-            var liste = cfg == null ? null : lourd ? cfg.getFormulesPoidsLourd() : cfg.getFormules();
-            if (liste == null && lourd) liste = FormulePermis.parDefautPoidsLourd();
+            // Permis A, et permis C et D : chacun sa formule Standard ; B : les quatre formules
+            var liste = switch (d.getCategoriePermis()) {
+                case A -> cfg == null || cfg.getFormulesMoto() == null ? FormulePermis.parDefautMoto() : cfg.getFormulesMoto();
+                case C, D -> cfg == null || cfg.getFormulesPoidsLourd() == null ? FormulePermis.parDefautPoidsLourd() : cfg.getFormulesPoidsLourd();
+                default -> cfg == null ? null : cfg.getFormules();
+            };
             var options = (liste == null ? List.<FormulePermis>of() : liste)
                     .stream().filter(f -> f.montant() != null && f.montant().signum() > 0).toList();
             if (options.isEmpty()) return;

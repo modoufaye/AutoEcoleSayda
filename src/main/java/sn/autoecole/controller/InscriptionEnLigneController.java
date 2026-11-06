@@ -50,6 +50,8 @@ public class InscriptionEnLigneController {
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
         m.put("formulesPoidsLourd", c.map(x -> x.getFormulesPoidsLourd()).orElse(FormulePermis.parDefautPoidsLourd()).stream()
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
+        m.put("formulesMoto", c.map(x -> x.getFormulesMoto()).orElse(FormulePermis.parDefautMoto()).stream()
+                .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
         m.put("formulesPerfectionnement", FormulePerfectionnement.completer(c.map(x -> x.getFormulesPerfectionnement()).orElse(null)).stream()
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
         return m;

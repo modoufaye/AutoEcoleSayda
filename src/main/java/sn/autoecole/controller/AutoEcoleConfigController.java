@@ -29,10 +29,11 @@ public class AutoEcoleConfigController {
     private AutoEcoleConfig getOrCreate() {
         AutoEcoleConfig cfg = repo.findAll().stream().findFirst().orElseGet(AutoEcoleConfig::new);
         var perf = FormulePerfectionnement.completer(cfg.getFormulesPerfectionnement());
-        if (cfg.getId() == null || cfg.getFormules() == null || cfg.getFormulesPoidsLourd() == null
+        if (cfg.getId() == null || cfg.getFormules() == null || cfg.getFormulesPoidsLourd() == null || cfg.getFormulesMoto() == null
                 || !perf.equals(cfg.getFormulesPerfectionnement())) {
             if (cfg.getFormules() == null) cfg.setFormules(FormulePermis.parDefaut());
             if (cfg.getFormulesPoidsLourd() == null) cfg.setFormulesPoidsLourd(FormulePermis.parDefautPoidsLourd());
+            if (cfg.getFormulesMoto() == null) cfg.setFormulesMoto(FormulePermis.parDefautMoto());
             cfg.setFormulesPerfectionnement(perf);
             cfg = repo.save(cfg);
         }
@@ -72,6 +73,8 @@ public class AutoEcoleConfigController {
             cfg.setFormules(formules(body.get("formules"), FormulePermis.NOMS, ""));
         if (body.containsKey("formulesPoidsLourd"))
             cfg.setFormulesPoidsLourd(formules(body.get("formulesPoidsLourd"), List.of("Standard"), " (permis C et D)"));
+        if (body.containsKey("formulesMoto"))
+            cfg.setFormulesMoto(formules(body.get("formulesMoto"), List.of("Standard"), " (permis A)"));
         if (body.containsKey("formulesPerfectionnement"))
             cfg.setFormulesPerfectionnement(formulesPerfectionnement(body.get("formulesPerfectionnement")));
         if (body.containsKey("moniteurParDefautId")) {
@@ -99,7 +102,7 @@ public class AutoEcoleConfigController {
     }
 
     /**
-     * Les formules nommées, dans l'ordre (les quatre du permis A/B, ou la Standard des permis C/D).
+     * Les formules nommées, dans l'ordre (les quatre du permis B, ou la Standard du permis A ou des permis C/D).
      * Standard n'a pas de 3e tranche. Les tranches doivent couvrir le montant (une formule encore
      * à 0 est acceptée : pas encore renseignée).
      */

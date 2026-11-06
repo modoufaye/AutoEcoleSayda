@@ -43,7 +43,7 @@ public class AutoEcoleConfig {
     @Column(precision = 12, scale = 2)
     private BigDecimal tarifHeureConduite = BigDecimal.ZERO;
 
-    /** Formules du permis (Standard, Premium, Prestige, Excellence) et leurs tranches. */
+    /** Formules du permis B (Standard, Premium, Prestige, Excellence) et leurs tranches. */
     @Column(columnDefinition = "TEXT")
     @Convert(converter = FormulesPermisConverter.class)
     private List<FormulePermis> formules;
@@ -52,6 +52,11 @@ public class AutoEcoleConfig {
     @Column(name = "formules_poids_lourd", columnDefinition = "TEXT")
     @Convert(converter = FormulesPermisConverter.class)
     private List<FormulePermis> formulesPoidsLourd;
+
+    /** Formule du permis A (moto) : une seule, Standard. */
+    @Column(name = "formules_moto", columnDefinition = "TEXT")
+    @Convert(converter = FormulesPermisConverter.class)
+    private List<FormulePermis> formulesMoto;
 
     /** Formules de perfectionnement (boîte automatique ou manuelle, nombre de cours). */
     @Column(columnDefinition = "TEXT")

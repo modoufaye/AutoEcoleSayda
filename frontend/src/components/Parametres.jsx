@@ -15,7 +15,8 @@ const FORMULES = [
   { nom: 'Prestige',   icone: 'gem',           couleur: '#7c3aed', fond: '#ede9fe', tranches: 3 },
   { nom: 'Excellence', icone: 'trophy-fill',   couleur: '#b45309', fond: '#fef3c7', tranches: 3 },
 ]
-/* Permis C et D : une seule formule Standard, à son propre prix. */
+/* Permis A, et permis C et D : chacun une seule formule Standard, à son propre prix. */
+const FORMULE_MOTO = { nom: 'Standard', titre: 'Standard · permis A', icone: 'scooter', couleur: '#be123c', fond: '#ffe4e6', tranches: 2 }
 const FORMULE_POIDS_LOURD = { nom: 'Standard', titre: 'Standard · permis C et D', icone: 'truck-front-fill', couleur: '#0f766e', fond: '#ccfbf1', tranches: 2 }
 const CHAMPS_FORMULE = [['montant', 'Montant de la formule'], ['acompte', 'Acompte'], ['tranche2', '2e tranche'], ['tranche3', '3e tranche']]
 const fcfa = n => `${Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g, ' ')} F`
@@ -246,6 +247,7 @@ export default function Parametres() {
   const [formules, setFormules] = useState(formulesDepuis([]))
   const [formulesPerf, setFormulesPerf] = useState([])
   const [formulesPL, setFormulesPL] = useState(formulesDepuis([], [FORMULE_POIDS_LOURD]))
+  const [formulesMoto, setFormulesMoto] = useState(formulesDepuis([], [FORMULE_MOTO]))
   const [moniteurs, setMoniteurs] = useState([])
   const [applying, setApplying]   = useState(false)
   const [loading, setLoading] = useState(true)
@@ -253,7 +255,7 @@ export default function Parametres() {
 
   useEffect(() => {
     api('GET', '/admin/config')
-      .then(data => { setFormules(formulesDepuis(data.formules)); setFormulesPL(formulesDepuis(data.formulesPoidsLourd, [FORMULE_POIDS_LOURD])); setFormulesPerf(data.formulesPerfectionnement || []); setForm({
+      .then(data => { setFormules(formulesDepuis(data.formules)); setFormulesPL(formulesDepuis(data.formulesPoidsLourd, [FORMULE_POIDS_LOURD])); setFormulesMoto(formulesDepuis(data.formulesMoto, [FORMULE_MOTO])); setFormulesPerf(data.formulesPerfectionnement || []); setForm({
         nom:               data.nom               || '',
         adresse:           data.adresse           || '',
         telephone:         data.telephone         || '',
@@ -291,18 +293,19 @@ export default function Parametres() {
     finally { setApplying(false) }
   }
 
-  // Les trois listes au format du serveur
+  // Les listes au format du serveur
   const versPermis = fs => fs.map(f => ({ nom: f.nom, ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])) }))
-  const versServeur = (fs, fps, fpl = formulesPL) => ({
+  const versServeur = (fs, fps, fpl = formulesPL, fm = formulesMoto) => ({
     formules: versPermis(fs),
     formulesPoidsLourd: versPermis(fpl),
+    formulesMoto: versPermis(fm),
     formulesPerfectionnement: fps.map(f => ({ boite: f.boite, cours: f.cours, ...Object.fromEntries(['montant', 'acompte', 'tranche2'].map(k => [k, parseFloat(f[k]) || 0])) })),
   })
   // Enregistre une seule formule tout de suite ; le serveur vérifie que les tranches font le montant
-  async function enregistrerFormules(fs, fps, libelle, fpl) {
-    const cfg = await api('PUT', '/admin/config', versServeur(fs, fps, fpl))
+  async function enregistrerFormules(fs, fps, libelle, fpl, fm) {
+    const cfg = await api('PUT', '/admin/config', versServeur(fs, fps, fpl, fm))
     setFormules(formulesDepuis(cfg.formules)); setFormulesPerf(cfg.formulesPerfectionnement || [])
-    setFormulesPL(formulesDepuis(cfg.formulesPoidsLourd, [FORMULE_POIDS_LOURD]))
+    setFormulesPL(formulesDepuis(cfg.formulesPoidsLourd, [FORMULE_POIDS_LOURD])); setFormulesMoto(formulesDepuis(cfg.formulesMoto, [FORMULE_MOTO]))
     toast(`${libelle} enregistrée`)
   }
 
@@ -407,7 +410,7 @@ export default function Parametres() {
 
           <div className="px-5 pt-4">
             <div className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '.92rem' }}>
-              <i className="bi bi-award me-2" style={{ color: '#d4a017' }} />Formules du permis
+              <i className="bi bi-award me-2" style={{ color: '#d4a017' }} />Formules du permis B
             </div>
             <div className="text-slate-400 mb-3" style={{ fontSize: '.8rem' }}>
               Montant de chaque formule et son échéancier. « Modifier » pour changer une formule, « Enregistrer » la sauvegarde aussitôt.
@@ -424,12 +427,16 @@ export default function Parametres() {
 
           <div className="px-5 pt-4">
             <div className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '.92rem' }}>
-              <i className="bi bi-truck-front me-2" style={{ color: '#d4a017' }} />Permis C et D
+              <i className="bi bi-truck-front me-2" style={{ color: '#d4a017' }} />Permis A, C et D
             </div>
             <div className="text-slate-400 mb-3" style={{ fontSize: '.8rem' }}>
-              Une seule formule pour le poids lourd et le transport en commun.
+              Une seule formule pour la moto, et une seule pour le poids lourd et le transport en commun.
             </div>
             <div className="row g-3">
+              <div className="col-md-6">
+                <CarteFormule def={FORMULE_MOTO} valeur={formulesMoto[0]}
+                  onEnregistrer={v => enregistrerFormules(formules, formulesPerf, 'Formule du permis A', undefined, [v])} />
+              </div>
               <div className="col-md-6">
                 <CarteFormule def={FORMULE_POIDS_LOURD} valeur={formulesPL[0]}
                   onEnregistrer={v => enregistrerFormules(formules, formulesPerf, 'Formule des permis C et D', [v])} />

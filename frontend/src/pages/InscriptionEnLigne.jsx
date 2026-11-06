@@ -36,8 +36,8 @@ function formulesDe(infos, formation) {
       tranches: [f.acompte, f.tranche2].filter(x => Number(x) > 0),
     }))
   }
-  // Permis C et D : une seule formule Standard, à part de celles des permis A et B
-  const liste = formation === 'C' || formation === 'D' ? infos.formulesPoidsLourd : infos.formules
+  // Permis A, et permis C et D : chacun une seule formule Standard ; B : les quatre formules
+  const liste = formation === 'A' ? infos.formulesMoto : formation === 'C' || formation === 'D' ? infos.formulesPoidsLourd : infos.formules
   return (liste || []).map(f => ({
     cle: f.nom, titre: f.nom, montant: f.montant, acompte: f.acompte,
     tranches: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0),
