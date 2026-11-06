@@ -85,8 +85,12 @@ export function msgBienvenue(eleve, ecole, identifiants) {
     '',
     `Suivez vos cours, examens et paiements dans votre espace élève : ${window.location.origin}`,
   )
+  // Permis : les séries d'examen et les quiz des cours (le perfectionnement n'a que la conduite)
+  if (eleve.typeFormation !== 'PERFECTIONNEMENT')
+    lignes.push("📝 Vous y trouverez aussi des entraînements et des examens blancs corrigés pour bien préparer l'examen du code.")
   if (identifiants) {
     lignes.push(
+      '',
       `Identifiant : ${identifiants.identifiant}`,
       `Mot de passe : ${identifiants.motDePasse}`,
       '',
