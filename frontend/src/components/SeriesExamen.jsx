@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { Visuel } from './CoursCode'
+import { lireQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
 import { SERIES } from '../contenu/seriesExamen'
 
 /* Séries d'examen (onglet Travaux Dirigés) : 25 questions au format de l'examen du code.
@@ -61,20 +62,27 @@ function Question({ q, choix, setChoix, corrige }) {
   )
 }
 
-/* Déroulé d'une série. */
+/* Déroulé d'une série. La partie en cours est gardée sur l'appareil (sauvegardeQuiz) : quitter
+   puis revenir la reprend à la même question (en examen blanc, le chrono de cette question repart). */
+const cleSerie = (serie, mode) => `serie:${serie.id}:${mode}`
 function Partie({ serie, mode, onFin, onQuitter }) {
-  const [i, setI] = useState(0)
-  const [choix, setChoix] = useState([])
-  const [reponses, setReponses] = useState([])      // lettres cochées pour chaque question
-  const [corrige, setCorrige] = useState(false)     // entraînement : correction affichée
+  const [enCours] = useState(() => lireQuiz(cleSerie(serie, mode)))
+  const [i, setI] = useState(enCours?.i || 0)
+  const [choix, setChoix] = useState(enCours?.choix || [])
+  const [reponses, setReponses] = useState(enCours?.reponses || [])      // lettres cochées pour chaque question
+  const [corrige, setCorrige] = useState(enCours?.corrige || false)     // entraînement : correction affichée
   const [reste, setReste] = useState(serie.duree)
+  useEffect(() => {
+    if (i === 0 && !reponses.length && !choix.length) return
+    ecrireQuiz(cleSerie(serie, mode), { i, choix, reponses, corrige })
+  }, [serie, mode, i, choix, reponses, corrige])
   const q = serie.questions[i]
   const valider = () => {
     const r = [...reponses, choix]
     if (mode === 'entrainement' && !corrige) { setReponses(r); setCorrige(true); return }
     const toutes = mode === 'entrainement' ? reponses : r
     if (i + 1 < serie.questions.length) { if (mode !== 'entrainement') setReponses(r); setI(i + 1); setChoix([]); setCorrige(false); setReste(serie.duree) }
-    else onFin(toutes)
+    else { effacerQuiz(cleSerie(serie, mode)); onFin(toutes) }
   }
   // Chronomètre (examen blanc) : temps restant calculé sur l'heure de fin de la question ;
   // à zéro, la question est validée avec les cases cochées.
@@ -97,7 +105,7 @@ function Partie({ serie, mode, onFin, onQuitter }) {
         <button type="button" onClick={onQuitter} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Séries</button>
         <div className="flex-1 min-w-0">
           <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{serie.titre}</div>
-          <div className="text-xs text-slate-500">{mode === 'examen' ? 'Examen blanc · correction à la fin' : 'Entraînement · correction à chaque question'}</div>
+          <div className="text-xs text-slate-500">{mode === 'examen' ? 'Examen blanc · correction à la fin' : 'Entraînement · correction à chaque question'}{enCours ? ' · reprise' : ''}</div>
         </div>
         {mode === 'examen' && (
           <span className="text-sm font-black px-3 py-1.5 whitespace-nowrap" style={{ borderRadius: 999, background: reste <= 10 ? '#fee2e2' : '#eef2f7', color: reste <= 10 ? '#b91c1c' : '#1e3a5f' }}>
@@ -182,7 +190,8 @@ export default function SeriesExamen({ eleve = false }) {
     catch { toast('Note non enregistrée : vérifiez votre connexion', 'warning') }
   }
   const quitter = () => { setPartie(null); setFin(null); window.scrollTo?.({ top: 0 }) }
-  const lancer = (serie, mode) => { setFin(null); setPartie(x => ({ serie, mode, tour: (x?.tour || 0) + 1 })); window.scrollTo?.({ top: 0 }) }
+  // Nouvelle partie : l'ancienne partie en cours est oubliée ; reprise : on la garde
+  const lancer = (serie, mode, reprise = false) => { if (!reprise) effacerQuiz(cleSerie(serie, mode)); setFin(null); setPartie(x => ({ serie, mode, tour: (x?.tour || 0) + 1 })); window.scrollTo?.({ top: 0 }) }
 
   if (partie && fin) return <Resultat serie={partie.serie} reponses={fin} onRejouer={() => lancer(partie.serie, partie.mode)} onQuitter={quitter} />
   if (partie) return <Partie key={partie.tour} serie={partie.serie} mode={partie.mode} onFin={terminer} onQuitter={quitter} />
@@ -210,12 +219,15 @@ export default function SeriesExamen({ eleve = false }) {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4">
-                <button type="button" onClick={() => lancer(s, 'entrainement')} className="py-2.5 font-extrabold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>
-                  <i className="bi bi-mortarboard-fill me-1" />Entraînement
-                </button>
-                <button type="button" onClick={() => lancer(s, 'examen')} className="py-2.5 font-extrabold border-0 cursor-pointer" style={btnOr}>
-                  <i className="bi bi-stopwatch me-1" />Examen blanc
-                </button>
+                {[['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].map(([mode, icone, libelle, style]) => {
+                  const c = lireQuiz(cleSerie(s, mode))
+                  return (
+                    <button key={mode} type="button" onClick={() => lancer(s, mode, !!c)} className="py-2.5 font-extrabold border-0 cursor-pointer leading-tight" style={style}>
+                      <i className={`bi bi-${icone} me-1`} />{libelle}
+                      {c && <span className="block text-[11px] font-bold opacity-80">Reprendre · question {c.i + 1}/{s.questions.length}</span>}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )

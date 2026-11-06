@@ -9,6 +9,7 @@ import { THEMES_CODE } from '../contenu/themes'
 import { ouverturesCode } from '../contenu/programme'
 import { genre, estScene } from './coursOutils'
 import BoutonEcouter from './BoutonEcouter'
+import { lireQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -39,13 +40,21 @@ const majuscule = t => t[0].toUpperCase() + t.slice(1)
 
 
 /* ── Quiz d'un chapitre, de la révision ou d'une séance ──
-   onFini(score, total, erreurs) : erreurs = « question → bonne réponse (répondu : …) ». */
-export function Quiz({ questions, onFini, onSuivant, suivantLibelle, texteValide = 'Chapitre validé, bravo !' }) {
-  const [i, setI] = useState(0)
-  const [choix, setChoix] = useState(null)
-  const [score, setScore] = useState(0)
-  const [erreurs, setErreurs] = useState([])
+   onFini(score, total, erreurs) : erreurs = « question → bonne réponse (répondu : …) ».
+   sauvegarde : identifiant du quiz ; la partie en cours est alors gardée sur l'appareil et
+   reprise (mêmes questions, même question, même score) si l'élève quitte puis revient. */
+export function Quiz({ questions: tirees, onFini, onSuivant, suivantLibelle, texteValide = 'Chapitre validé, bravo !', sauvegarde }) {
+  const [enCours] = useState(() => lireQuiz(sauvegarde))
+  const [questions, setQuestions] = useState(enCours?.questions || tirees)
+  const [i, setI] = useState(enCours?.i || 0)
+  const [choix, setChoix] = useState(enCours?.choix || null)
+  const [score, setScore] = useState(enCours?.score || 0)
+  const [erreurs, setErreurs] = useState(enCours?.erreurs || [])
   const [fini, setFini] = useState(false)
+  useEffect(() => {
+    if (!sauvegarde || fini || (i === 0 && !choix)) return
+    ecrireQuiz(sauvegarde, { questions, i, choix, score, erreurs })
+  }, [sauvegarde, questions, i, choix, score, erreurs, fini])
   const q = questions[i]
   const repondre = (r) => {
     if (choix) return
@@ -56,9 +65,9 @@ export function Quiz({ questions, onFini, onSuivant, suivantLibelle, texteValide
   }
   const suivante = () => {
     if (i + 1 < questions.length) { setI(i + 1); setChoix(null) }
-    else { setFini(true); onFini?.(score, questions.length, erreurs) }
+    else { setFini(true); effacerQuiz(sauvegarde); onFini?.(score, questions.length, erreurs) }
   }
-  const recommencer = () => { setI(0); setChoix(null); setScore(0); setErreurs([]); setFini(false) }
+  const recommencer = () => { effacerQuiz(sauvegarde); setQuestions(tirees); setI(0); setChoix(null); setScore(0); setErreurs([]); setFini(false) }
 
   if (fini) {
     const reussi = score >= Math.ceil(SEUIL_REUSSITE * questions.length)
@@ -85,7 +94,7 @@ export function Quiz({ questions, onFini, onSuivant, suivantLibelle, texteValide
   return (
     <div className="rounded-2xl p-5 text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '5px solid #d4a017' }}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>QUESTION {i + 1} SUR {questions.length}</span>
+        <span className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>QUESTION {i + 1} SUR {questions.length}{enCours && <span className="ms-2" style={{ color: '#93c5fd' }}>· REPRISE</span>}</span>
         <span className="text-xs font-bold" style={{ color: '#86efac' }}>{score} bonne{score > 1 ? 's' : ''} réponse{score > 1 ? 's' : ''}</span>
       </div>
       <div className="h-1.5 rounded-full mt-2 overflow-hidden" style={{ background: 'rgba(255,255,255,.15)' }}>
@@ -124,7 +133,7 @@ export function Quiz({ questions, onFini, onSuivant, suivantLibelle, texteValide
 
 /* ── Un chapitre : Leçon · Panneaux · Quiz ── */
 function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat, onSuivant, suivantLibelle }) {
-  const [onglet, setOnglet] = useState('lecon')
+  const [onglet, setOnglet] = useState(() => !ch.partiel && lireQuiz(`chapitre:${ch.id}`) ? 'quiz' : 'lecon')
   const [sel, setSel] = useState(ch.panneaux[0])
   const questions = useMemo(() => questionsChapitre(ch), [ch])
   return (
@@ -213,7 +222,7 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
           <span>Votre moniteur n'a ouvert qu'une partie de ce chapitre : le quiz du chapitre s'ouvrira avec la suite. En attendant, passez le quiz de votre séance dans « Mes séances ».</span>
         </div>
       )}
-      {onglet === 'quiz' && !ch.partiel && <Quiz key={ch.id} questions={questions} onFini={(s, t) => onResultat(ch.id, s, t)} onSuivant={onSuivant} suivantLibelle={suivantLibelle} />}
+      {onglet === 'quiz' && !ch.partiel && <Quiz key={ch.id} sauvegarde={`chapitre:${ch.id}`} questions={questions} onFini={(s, t) => onResultat(ch.id, s, t)} onSuivant={onSuivant} suivantLibelle={suivantLibelle} />}
     </div>
   )
 }
@@ -364,7 +373,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
         {btnRetour(() => aller(theme.key), theme.titre)}
         <div><div className="font-extrabold text-lg" style={{ color: '#1e3a5f' }}>{theme.revision.titre} · {theme.titre}</div><div className="text-xs text-slate-500">{theme.revision.nombre} questions mélangées sur tous les chapitres</div></div>
       </div>
-      <Quiz key={questionsRev[0]?.id} questions={questionsRev} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
+      <Quiz key={questionsRev[0]?.id} sauvegarde={`revision:${theme.revision.id}`} questions={questionsRev} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
     </div>
   )
   if (theme && idx >= 0 && ferme(tous[idx]) && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>
