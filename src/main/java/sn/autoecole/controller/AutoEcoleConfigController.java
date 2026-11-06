@@ -28,9 +28,10 @@ public class AutoEcoleConfigController {
 
     private AutoEcoleConfig getOrCreate() {
         AutoEcoleConfig cfg = repo.findAll().stream().findFirst().orElseGet(AutoEcoleConfig::new);
-        if (cfg.getId() == null || cfg.getFormules() == null || cfg.getFormulesPerfectionnement() == null) {
+        var perf = FormulePerfectionnement.completer(cfg.getFormulesPerfectionnement());
+        if (cfg.getId() == null || cfg.getFormules() == null || !perf.equals(cfg.getFormulesPerfectionnement())) {
             if (cfg.getFormules() == null) cfg.setFormules(FormulePermis.parDefaut());
-            if (cfg.getFormulesPerfectionnement() == null) cfg.setFormulesPerfectionnement(FormulePerfectionnement.parDefaut());
+            cfg.setFormulesPerfectionnement(perf);
             cfg = repo.save(cfg);
         }
         return cfg;

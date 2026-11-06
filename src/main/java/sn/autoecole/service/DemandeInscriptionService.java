@@ -87,7 +87,7 @@ public class DemandeInscriptionService {
             d.setFormule(f.nom());
             d.setMontantFormule(f.montant());
         } else {
-            var options = (cfg == null || cfg.getFormulesPerfectionnement() == null ? List.<FormulePerfectionnement>of() : cfg.getFormulesPerfectionnement())
+            var options = FormulePerfectionnement.completer(cfg == null ? null : cfg.getFormulesPerfectionnement())
                     .stream().filter(f -> f.boite() == d.getBoiteVitesse() && f.montant() != null && f.montant().signum() > 0).toList();
             if (options.isEmpty()) return;
             FormulePerfectionnement f = options.stream().filter(x -> String.valueOf(x.cours()).equals(c)).findFirst()
