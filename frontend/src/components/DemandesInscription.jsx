@@ -66,7 +66,7 @@ export default function DemandesInscription({ onTraitee }) {
                 </div>
                 <div className="text-sm md:text-right">
                   <div className="font-extrabold" style={{ color: '#15803d' }}>{fmtMontant(d.montantAcompte)}</div>
-                  <div className="text-xs text-slate-500">{MOYEN[d.moyenPaiement]} · réf. <b className="text-slate-700">{d.transactionId}</b></div>
+                  <div className="text-xs text-slate-500">{MOYEN[d.moyenPaiement]}{d.transactionId && <> · réf. <b className="text-slate-700">{d.transactionId}</b></>}</div>
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setApprobation({ demande: d, total: d.montantFormule ? String(d.montantFormule) : '', site: 'MAZALIK_JINAN' })}
@@ -115,7 +115,7 @@ export default function DemandesInscription({ onTraitee }) {
                   </select>
                 </div>
                 <div className="text-xs rounded-xl px-3 py-2" style={{ background: '#fffbeb', color: '#92400e' }}>
-                  <i className="bi bi-info-circle me-1" />Vérifiez d'abord que l'acompte est bien arrivé sur le compte {MOYEN[approbation.demande.moyenPaiement]} (réf. {approbation.demande.transactionId}).
+                  <i className="bi bi-info-circle me-1" />Vérifiez d'abord que l'acompte est bien arrivé sur le compte {MOYEN[approbation.demande.moyenPaiement]}{approbation.demande.transactionId ? ` (réf. ${approbation.demande.transactionId})` : ` : ${fmtMontant(approbation.demande.montantAcompte)} depuis le ${afficherTelephone(approbation.demande.telephone)}`}.
                 </div>
               </div>
               <div className="px-5 pb-4 flex justify-end gap-2">

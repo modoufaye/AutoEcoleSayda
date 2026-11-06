@@ -61,7 +61,8 @@ public class DemandeInscription {
     @Column(name = "moyen_paiement", nullable = false)
     private MoyenPaiement moyenPaiement;
 
-    @Column(name = "transaction_id", nullable = false)
+    /** Référence Wave / Orange Money : n'est plus demandée (null pour les nouvelles demandes). */
+    @Column(name = "transaction_id")
     private String transactionId;
 
     /** Date d'inscription : le jour de la demande. */

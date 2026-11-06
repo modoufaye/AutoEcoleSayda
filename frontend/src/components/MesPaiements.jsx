@@ -24,7 +24,7 @@ const MOYENS = {
 }
 
 const PAGE_SIZE = 10
-const EMPTY_DECL = { moyenPaiement: '', montant: '', transactionId: '' }
+const EMPTY_DECL = { moyenPaiement: '', montant: '' }
 
 const inputCls = "w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#15803d] focus:bg-white transition-all"
 const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5"
@@ -54,14 +54,14 @@ export default function MesPaiements({ onBack }) {
   const ouvrirDeclaration = (moyen = '') => setDecl({ ...EMPTY_DECL, moyenPaiement: moyen })
 
   const declarer = async () => {
-    const { moyenPaiement, montant, transactionId } = decl
-    if (!moyenPaiement || !montant || !transactionId.trim()) {
+    const { moyenPaiement, montant } = decl
+    if (!moyenPaiement || !montant) {
       toast('Veuillez remplir tous les champs', 'warning'); return
     }
     setSending(true)
     try {
       await api('POST', '/eleve/paiements/declarer', {
-        moyenPaiement, montant: parseFloat(montant), transactionId: transactionId.trim(),
+        moyenPaiement, montant: parseFloat(montant),
       })
       toast("Paiement déclaré — il sera validé par l'administration")
       setDecl(null); setPage(1); load()
@@ -125,7 +125,7 @@ export default function MesPaiements({ onBack }) {
           <div className="font-bold text-slate-800 text-sm">Payer en ligne</div>
           <p className="text-xs text-slate-400 mt-1 mb-4">
             1. Payez avec le bouton ci-dessous. 2. Revenez ici et cliquez sur « J'ai payé » en indiquant
-            l'identifiant de transaction reçu par SMS. L'administration validera votre paiement.
+            le montant payé. L'administration validera votre paiement.
           </p>
           <div className="flex flex-wrap gap-2">
             {moyensDispo.map(k => (
@@ -172,7 +172,7 @@ export default function MesPaiements({ onBack }) {
                     <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
                       <span>{new Date(p.date).toLocaleDateString('fr-FR')}</span>
                       {p.moyenPaiement && MOYENS[p.moyenPaiement]
-                        ? <><span>·</span><span className="truncate">{MOYENS[p.moyenPaiement].label} · {p.transactionId}</span></>
+                        ? <><span>·</span><span className="truncate">{MOYENS[p.moyenPaiement].label}</span></>
                         : p.description && <><span>·</span><span className="truncate">{p.description}</span></>}
                     </div>
                   </div>
@@ -218,12 +218,6 @@ export default function MesPaiements({ onBack }) {
                   <input type="number" min="1" inputMode="numeric" className={inputCls} value={decl.montant}
                     placeholder="Ex : 50000"
                     onChange={e => setDecl(d => ({ ...d, montant: e.target.value }))} />
-                </div>
-                <div>
-                  <label className={labelCls}>Identifiant de transaction</label>
-                  <input className={inputCls} value={decl.transactionId}
-                    placeholder="Reçu par SMS après le paiement"
-                    onChange={e => setDecl(d => ({ ...d, transactionId: e.target.value }))} />
                 </div>
               </div>
               <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">

@@ -143,6 +143,8 @@ public class MigrationDonnees {
     private void champsEleveFacultatifs() {
         silencieux("ALTER TABLE eleves ALTER COLUMN date_naissance DROP NOT NULL");
         silencieux("ALTER TABLE eleves ALTER COLUMN telephone DROP NOT NULL");
+        // Inscription en ligne : la référence de transaction n'est plus demandée au candidat
+        silencieux("ALTER TABLE demandes_inscription ALTER COLUMN transaction_id DROP NOT NULL");
     }
 
     /**

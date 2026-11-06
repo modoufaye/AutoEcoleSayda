@@ -77,7 +77,7 @@ function Section({ n, titre, sous, fait, children }) {
 /* Page publique « S'inscrire en ligne » : la demande part en attente ; la secrétaire ou l'admin
    vérifie l'acompte (Wave / Orange Money) et l'approuve, puis envoie les identifiants sur WhatsApp. */
 export default function InscriptionEnLigne() {  const [infos, setInfos] = useState({})
-  const [form, setForm] = useState({ prenom: '', nom: '', telephone: '', formation: '', formule: '', montantAcompte: '', moyenPaiement: 'WAVE', transactionId: '', siteWeb: '' })
+  const [form, setForm] = useState({ prenom: '', nom: '', telephone: '', formation: '', formule: '', montantAcompte: '', moyenPaiement: 'WAVE', siteWeb: '' })
   const [envoi, setEnvoi] = useState(false)
   const [erreur, setErreur] = useState('')
   const [fait, setFait] = useState(null)
@@ -95,7 +95,7 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
     e.preventDefault(); setErreur('')
     const manque = [!form.prenom.trim() && 'prénom', !form.nom.trim() && 'nom', !form.telephone && 'téléphone', !form.formation && 'formation',
       formules.length > 0 && !formule && 'formule',
-      !(parseFloat(form.montantAcompte) > 0) && 'acompte', !form.transactionId.trim() && 'référence de la transaction'].filter(Boolean)
+      !(parseFloat(form.montantAcompte) > 0) && 'acompte'].filter(Boolean)
     if (manque.length) { setErreur(`À remplir : ${manque.join(', ')}`); return }
     setEnvoi(true)
     try { setFait(await appelPublic('POST', '/public/inscriptions', { ...form, montantAcompte: parseFloat(form.montantAcompte) })) }
@@ -111,7 +111,7 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
     vous: !!(form.prenom.trim() && form.nom.trim() && form.telephone),
     formation: !!form.formation,
     formule: !!form.formation && (formules.length === 0 || !!formule),
-    acompte: acompte > 0 && !!form.transactionId.trim(),
+    acompte: acompte > 0,
   }
   const pct = Math.round(Object.values(faits).filter(Boolean).length / 4 * 100)
   const ecole = infos.nom || 'Auto-École Khadija'
@@ -320,7 +320,7 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
                       </Section>
                     )}
 
-                    <Section n={formules.length > 0 ? 4 : 3} titre="Votre acompte" sous="Payez, puis notez la référence reçue par SMS" fait={faits.acompte}>
+                    <Section n={formules.length > 0 ? 4 : 3} titre="Votre acompte" sous="Payez avec le bouton, puis indiquez le montant payé" fait={faits.acompte}>
                       <div className="grid grid-cols-2 gap-2.5 mb-3">
                         {[['WAVE', 'Wave', '#1dc8f2', '#0284c7', 'water'], ['ORANGE_MONEY', 'Orange Money', '#ff7900', '#c2410c', 'phone-fill']].map(([v, txt, vif, fonce, ic]) => {
                           const actif = form.moyenPaiement === v
@@ -341,14 +341,11 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
                           <i className="bi bi-box-arrow-up-right" />Payer {formule ? fcfa(acompte || formule.acompte) : "l'acompte"} avec {form.moyenPaiement === 'WAVE' ? 'Wave' : 'Orange Money'}
                         </a>
                       )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div><label className={etiquette} htmlFor="ins-montant">Montant payé</label>
-                          <div className="relative"><input id="ins-montant" type="number" min="0" inputMode="numeric" className={champ} style={{ paddingRight: '3.5rem' }} placeholder="45000"
-                            value={form.montantAcompte} onChange={e => set('montantAcompte', e.target.value)} />
-                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span></div></div>
-                        <div><label className={etiquette} htmlFor="ins-ref">Référence de la transaction</label>
-                          <input id="ins-ref" className={champ} placeholder="Ex. T_8H3K2…" value={form.transactionId} onChange={e => set('transactionId', e.target.value)} /></div>
-                      </div>
+                      <div><label className={etiquette} htmlFor="ins-montant">Montant payé</label>
+                        <div className="relative"><input id="ins-montant" type="number" min="0" inputMode="numeric" className={champ} style={{ paddingRight: '3.5rem' }} placeholder="45000"
+                          value={form.montantAcompte} onChange={e => set('montantAcompte', e.target.value)} />
+                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">FCFA</span></div>
+                        <div className="text-[11px] text-slate-400 mt-1">Payez depuis le numéro indiqué plus haut : l'auto-école retrouve ainsi votre paiement.</div></div>
                     </Section>
 
                     {/* Récapitulatif sur téléphone (sur ordinateur, il est dans la colonne de gauche) */}

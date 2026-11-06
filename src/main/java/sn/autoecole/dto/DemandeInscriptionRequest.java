@@ -26,7 +26,8 @@ public class DemandeInscriptionRequest {
     private BigDecimal montantAcompte;
     @NotNull(message = "Choisissez Wave ou Orange Money")
     private MoyenPaiement moyenPaiement;
-    @NotBlank(message = "La référence de la transaction est obligatoire") @Size(max = 100)
+    /** Facultative : n'est plus demandée sur la page d'inscription. */
+    @Size(max = 100)
     private String transactionId;
     /** Champ piège invisible : un robot le remplit, une personne non. */
     private String siteWeb;

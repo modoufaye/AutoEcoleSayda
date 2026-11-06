@@ -18,7 +18,7 @@ public class DeclarationPaiementRequest {
     @NotNull(message = "Le moyen de paiement est obligatoire")
     private MoyenPaiement moyenPaiement;
 
-    @NotBlank(message = "L'identifiant de transaction est obligatoire")
+    /** Facultatif : n'est plus demandé à l'élève ; l'auto-école vérifie par le montant et le numéro. */
     @Size(max = 100, message = "Identifiant de transaction trop long")
     private String transactionId;
 }

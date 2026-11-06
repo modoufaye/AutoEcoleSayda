@@ -46,9 +46,9 @@ public class DemandeInscriptionService {
         if (tel == null || tel.length() < 9) throw new BusinessException("Numéro de téléphone invalide");
         if (r.getMoyenPaiement() != MoyenPaiement.WAVE && r.getMoyenPaiement() != MoyenPaiement.ORANGE_MONEY)
             throw new BusinessException("L'acompte en ligne se paie par Wave ou Orange Money");
-        String transaction = r.getTransactionId().trim();
-        if (paiementRepository.existsByTransactionIdIgnoreCase(transaction)
-                || demandeRepository.existsByTransactionIdIgnoreCaseAndStatutNot(transaction, StatutDemande.REFUSEE))
+        String transaction = r.getTransactionId() == null || r.getTransactionId().isBlank() ? null : r.getTransactionId().trim();
+        if (transaction != null && (paiementRepository.existsByTransactionIdIgnoreCase(transaction)
+                || demandeRepository.existsByTransactionIdIgnoreCaseAndStatutNot(transaction, StatutDemande.REFUSEE)))
             throw new BusinessException("Cette référence de transaction a déjà été utilisée");
         if (eleveRepository.existsByTelephone(tel))
             throw new BusinessException("Ce numéro est déjà inscrit : contactez l'auto-école ou connectez-vous à votre espace élève");

@@ -85,8 +85,8 @@ public class PaiementService {
         if (request.getMoyenPaiement() == MoyenPaiement.ESPECES) {
             throw new BusinessException("Seuls les paiements Wave ou Orange Money peuvent être déclarés en ligne");
         }
-        String transactionId = request.getTransactionId().trim();
-        if (paiementRepository.existsByTransactionIdIgnoreCase(transactionId)) {
+        String transactionId = request.getTransactionId() == null || request.getTransactionId().isBlank() ? null : request.getTransactionId().trim();
+        if (transactionId != null && paiementRepository.existsByTransactionIdIgnoreCase(transactionId)) {
             throw new BusinessException("Cet identifiant de transaction a déjà été déclaré");
         }
 
