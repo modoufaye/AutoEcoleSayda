@@ -31,8 +31,91 @@ const BOITES_PERF = [
   { v: 'MANUELLE',    label: 'Boîte manuelle',    icone: 'gear-wide-connected',   couleur: '#a16207', fond: '#fef9c3' },
 ]
 
-function CartePerfectionnement({ boite, lignes, onChange }) {
-  const n = v => parseFloat(v) || 0
+/* Boutons d'une formule : « Modifier » en lecture, « Annuler / Enregistrer » en modification. */
+function BoutonsFormule({ edition, envoi, valide, onModifier, onAnnuler, onEnregistrer, nom }) {
+  const base = { borderRadius: '.6rem', fontSize: '.78rem', fontWeight: 700, padding: '.3rem .7rem', whiteSpace: 'nowrap' }
+  if (!edition) return (
+    <button type="button" onClick={onModifier} aria-label={`Modifier ${nom}`}
+      style={{ ...base, border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569' }}>
+      <i className="bi bi-pencil me-1" />Modifier
+    </button>
+  )
+  return (
+    <div className="d-flex gap-1">
+      <button type="button" onClick={onAnnuler} disabled={envoi}
+        style={{ ...base, border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b' }}>Annuler</button>
+      <button type="button" onClick={onEnregistrer} disabled={envoi || !valide} aria-label={`Enregistrer ${nom}`}
+        style={{ ...base, border: 'none', background: valide ? '#16a34a' : '#cbd5e1', color: '#fff' }}>
+        {envoi ? <span className="spinner-border spinner-border-sm" style={{ width: '.8rem', height: '.8rem' }} /> : <><i className="bi bi-check2 me-1" />Enregistrer</>}
+      </button>
+    </div>
+  )
+}
+
+/* Modification d'une formule : brouillon local, enregistré d'un coup (le reste de la page ne bouge pas). */
+function useEdition(valeur, onEnregistrer) {
+  const [brouillon, setBrouillon] = useState(null)   // null : lecture seule
+  const [envoi, setEnvoi] = useState(false)
+  const enregistrer = async () => {
+    setEnvoi(true)
+    try { await onEnregistrer(brouillon); setBrouillon(null) }
+    catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+  return { edition: brouillon !== null, v: brouillon ?? valeur, setV: setBrouillon, envoi,
+    modifier: () => setBrouillon({ ...valeur }), annuler: () => setBrouillon(null), enregistrer }
+}
+
+/* Pastilles de l'échéancier (lecture seule). */
+function Echeancier({ montants }) {
+  const reste = montants.slice(1).filter(x => x > 0)
+  return (
+    <div className="d-flex flex-wrap gap-1 mt-2">
+      <span style={{ background: '#fef3c7', color: '#92400e', borderRadius: 999, padding: '.15rem .55rem', fontSize: '.72rem', fontWeight: 700 }}>Acompte {fcfa(montants[0])}</span>
+      {reste.map((m, k) => (
+        <span key={k} style={{ background: '#f1f5f9', color: '#475569', borderRadius: 999, padding: '.15rem .55rem', fontSize: '.72rem', fontWeight: 700 }}>{k + 2}e tranche {fcfa(m)}</span>
+      ))}
+      {reste.length === 0 && <span style={{ color: '#94a3b8', fontSize: '.72rem', fontWeight: 600, alignSelf: 'center' }}>en une fois</span>}
+    </div>
+  )
+}
+
+function LignePerfectionnement({ boite, f, onEnregistrer }) {
+  const { edition, v, setV, envoi, modifier, annuler, enregistrer } = useEdition(f, onEnregistrer)
+  const n = x => parseFloat(x) || 0
+  const ok = n(v.acompte) + n(v.tranche2) === n(v.montant)
+  const nom = `${f.cours} cours`
+  return (
+    <div className="pb-2 mb-2" style={{ borderBottom: '1px dashed #e2e8f0' }}>
+      <div className="d-flex align-items-center gap-2">
+        <span className="fw-bold" style={{ color: boite.couleur, fontSize: '.88rem' }}>{nom}</span>
+        {!edition && <span className="fw-bold" style={{ color: '#0f2240', fontSize: '.92rem' }}>{fcfa(n(f.montant))}</span>}
+        <div className="ms-auto">
+          <BoutonsFormule edition={edition} envoi={envoi} valide={ok} nom={`${nom} ${boite.label.toLowerCase()}`}
+            onModifier={modifier} onAnnuler={annuler} onEnregistrer={enregistrer} />
+        </div>
+      </div>
+      {!edition ? <Echeancier montants={[n(f.acompte), n(f.tranche2)]} /> : <>
+        <div className="row g-2 mt-1">
+          {[['montant', 'Montant'], ['acompte', 'Acompte'], ['tranche2', '2e tranche']].map(([k, libelle]) => (
+            <div key={k} className={k === 'montant' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
+              <label className={labelCls} style={{ fontSize: '.62rem' }}>{libelle}</label>
+              <input type="number" className={inputCls} value={v[k]} min="0" step="1000" placeholder="0"
+                aria-label={`${nom} ${boite.label.toLowerCase()} : ${libelle}`} style={{ paddingLeft: '.5rem', paddingRight: '.25rem' }}
+                onChange={e => setV({ ...v, [k]: e.target.value })} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-1" style={{ fontSize: '.72rem', fontWeight: 600, color: ok ? '#15803d' : '#c2410c' }}>
+          {ok ? <><i className="bi bi-check-circle-fill me-1" />{n(v.tranche2) ? 'En 2 fois' : 'En une fois'}</>
+            : <><i className="bi bi-exclamation-triangle-fill me-1" />L'acompte et la 2e tranche font {fcfa(n(v.acompte) + n(v.tranche2))} au lieu de {fcfa(n(v.montant))}</>}
+        </div>
+      </>}
+    </div>
+  )
+}
+
+function CartePerfectionnement({ boite, lignes, onEnregistrer }) {
   return (
     <div className="p-3 h-100" style={{ border: '1.5px solid #e2e8f0', borderRadius: '1rem', background: '#fff' }}>
       <div className="d-flex align-items-center gap-2 mb-3">
@@ -42,66 +125,52 @@ function CartePerfectionnement({ boite, lignes, onChange }) {
         </div>
         <div className="fw-bold" style={{ color: '#1e293b' }}>{boite.label}</div>
       </div>
-      {lignes.map(({ f, i }) => {
-        const ok = n(f.acompte) + n(f.tranche2) === n(f.montant)
-        const nom = `${f.cours} cours`
-        return (
-          <div key={i} className="pb-2 mb-2" style={{ borderBottom: '1px dashed #e2e8f0' }}>
-            <div className="d-flex align-items-center mb-1">
-              <span className="fw-bold" style={{ color: boite.couleur, fontSize: '.85rem' }}>{nom}</span>
-              <span className="ms-auto" style={{ fontSize: '.72rem', fontWeight: 600, color: ok ? '#15803d' : '#c2410c' }}>
-                {ok ? <><i className="bi bi-check-circle-fill me-1" />{n(f.tranche2) ? 'En 2 fois' : 'En une fois'}</>
-                  : <><i className="bi bi-exclamation-triangle-fill me-1" />Tranches : {fcfa(n(f.acompte) + n(f.tranche2))}</>}
-              </span>
-            </div>
-            <div className="row g-2">
-              {[['montant', 'Montant'], ['acompte', 'Acompte'], ['tranche2', '2e tranche']].map(([k, libelle]) => (
-                <div key={k} className={k === 'montant' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
-                  <label className={labelCls} style={{ fontSize: '.62rem' }}>{libelle}</label>
-                  <input type="number" className={inputCls} value={f[k]} min="0" step="1000" placeholder="0"
-                    aria-label={`${nom} ${boite.label.toLowerCase()} : ${libelle}`} style={{ paddingLeft: '.5rem', paddingRight: '.25rem' }}
-                    onChange={e => onChange(i, { ...f, [k]: e.target.value })} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )
-      })}
+      {lignes.map(({ f, i }) => <LignePerfectionnement key={i} boite={boite} f={f} onEnregistrer={v => onEnregistrer(i, v)} />)}
     </div>
   )
 }
 
-function CarteFormule({ def, valeur, onChange }) {
-  const n = k => parseFloat(valeur[k]) || 0
+function CarteFormule({ def, valeur, onEnregistrer }) {
+  const { edition, v, setV, envoi, modifier, annuler, enregistrer } = useEdition(valeur, onEnregistrer)
+  const n = k => parseFloat(v[k]) || 0
   const champs = CHAMPS_FORMULE.slice(0, def.tranches + 1)
   const total = n('acompte') + n('tranche2') + (def.tranches === 3 ? n('tranche3') : 0)
   const vide = n('montant') === 0 && total === 0
   const ok = total === n('montant')
   return (
-    <div className="p-3 h-100" style={{ border: `1.5px solid ${ok || vide ? '#e2e8f0' : '#fdba74'}`, borderRadius: '1rem', background: '#fff' }}>
-      <div className="d-flex align-items-center gap-2 mb-3">
+    <div className="p-3 h-100" style={{ border: `1.5px solid ${edition ? (ok ? '#86efac' : '#fdba74') : '#e2e8f0'}`, borderRadius: '1rem', background: '#fff' }}>
+      <div className="d-flex flex-wrap align-items-center gap-2">
         <div className="d-flex align-items-center justify-content-center flex-shrink-0"
           style={{ width: 32, height: 32, borderRadius: '.6rem', background: def.fond, color: def.couleur }}>
           <i className={`bi bi-${def.icone}`} />
         </div>
         <div className="fw-bold" style={{ color: '#1e293b' }}>{def.nom}</div>
-        <div className="ms-auto fw-bold" style={{ color: def.couleur, fontSize: '.95rem' }}>{vide ? '—' : fcfa(n('montant'))}</div>
+        <div className="ms-auto">
+          <BoutonsFormule edition={edition} envoi={envoi} valide={ok} nom={def.nom}
+            onModifier={modifier} onAnnuler={annuler} onEnregistrer={enregistrer} />
+        </div>
       </div>
-      <div className="row g-2">
-        {champs.map(([k, libelle]) => (
-          <div key={k} className={k === 'montant' ? 'col-12' : def.tranches === 2 ? 'col-6' : k === 'acompte' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
-            <label className={labelCls} style={{ fontSize: '.65rem' }}>{libelle}</label>
-            <input type="number" className={inputCls} value={valeur[k]} min="0" step="1000" placeholder="0"
-              aria-label={`${def.nom} : ${libelle}`}
-              onChange={e => onChange({ ...valeur, [k]: e.target.value })} />
-          </div>
-        ))}
-      </div>
-      <div className="mt-2" style={{ fontSize: '.78rem', fontWeight: 600, color: vide ? '#94a3b8' : ok ? '#15803d' : '#c2410c' }}>
-        {vide ? 'À renseigner'
-          : ok ? <><i className="bi bi-check-circle-fill me-1" />Tranches : {fcfa(total)}</>
-          : <><i className="bi bi-exclamation-triangle-fill me-1" />Les tranches font {fcfa(total)} au lieu de {fcfa(n('montant'))}</>}
-      </div>
+      {!edition ? (
+        vide ? <div className="mt-3" style={{ color: '#94a3b8', fontSize: '.85rem', fontWeight: 600 }}>À renseigner : cliquez sur Modifier</div> : <>
+          <div className="mt-2 fw-bold" style={{ color: def.couleur, fontSize: '1.35rem' }}>{fcfa(n('montant'))}</div>
+          <Echeancier montants={[n('acompte'), n('tranche2'), def.tranches === 3 ? n('tranche3') : 0]} />
+        </>
+      ) : <>
+        <div className="row g-2 mt-2">
+          {champs.map(([k, libelle]) => (
+            <div key={k} className={k === 'montant' ? 'col-12' : def.tranches === 2 ? 'col-6' : k === 'acompte' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
+              <label className={labelCls} style={{ fontSize: '.65rem' }}>{libelle}</label>
+              <input type="number" className={inputCls} value={v[k]} min="0" step="1000" placeholder="0"
+                aria-label={`${def.nom} : ${libelle}`}
+                onChange={e => setV({ ...v, [k]: e.target.value })} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-2" style={{ fontSize: '.78rem', fontWeight: 600, color: ok ? '#15803d' : '#c2410c' }}>
+          {ok ? <><i className="bi bi-check-circle-fill me-1" />Tranches : {fcfa(total)}</>
+            : <><i className="bi bi-exclamation-triangle-fill me-1" />Les tranches font {fcfa(total)} au lieu de {fcfa(n('montant'))}</>}
+        </div>
+      </>}
     </div>
   )
 }
@@ -219,6 +288,18 @@ export default function Parametres() {
     finally { setApplying(false) }
   }
 
+  // Les deux listes au format du serveur
+  const versServeur = (fs, fps) => ({
+    formules: fs.map(f => ({ nom: f.nom, ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])) })),
+    formulesPerfectionnement: fps.map(f => ({ boite: f.boite, cours: f.cours, ...Object.fromEntries(['montant', 'acompte', 'tranche2'].map(k => [k, parseFloat(f[k]) || 0])) })),
+  })
+  // Enregistre une seule formule tout de suite ; le serveur vérifie que les tranches font le montant
+  async function enregistrerFormules(fs, fps, libelle) {
+    const cfg = await api('PUT', '/admin/config', versServeur(fs, fps))
+    setFormules(formulesDepuis(cfg.formules)); setFormulesPerf(cfg.formulesPerfectionnement || [])
+    toast(`${libelle} enregistrée`)
+  }
+
   async function handleSave() {
     setSaving(true)
     try {
@@ -227,14 +308,7 @@ export default function Parametres() {
         tarifInscription:   parseFloat(form.tarifInscription)   || 0,
         tarifHeureCode:     parseFloat(form.tarifHeureCode)     || 0,
         tarifHeureConduite: parseFloat(form.tarifHeureConduite) || 0,
-        formules: formules.map(f => ({
-          nom: f.nom,
-          ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])),
-        })),
-        formulesPerfectionnement: formulesPerf.map(f => ({
-          boite: f.boite, cours: f.cours,
-          ...Object.fromEntries(['montant', 'acompte', 'tranche2'].map(k => [k, parseFloat(f[k]) || 0])),
-        })),
+        ...versServeur(formules, formulesPerf),
       })
       toast('Paramètres enregistrés avec succès')
     } catch (e) {
@@ -330,13 +404,13 @@ export default function Parametres() {
               <i className="bi bi-award me-2" style={{ color: '#d4a017' }} />Formules du permis
             </div>
             <div className="text-slate-400 mb-3" style={{ fontSize: '.8rem' }}>
-              Montant de chaque formule et son échéancier : acompte à l'inscription, puis les tranches.
+              Montant de chaque formule et son échéancier. « Modifier » pour changer une formule, « Enregistrer » la sauvegarde aussitôt.
             </div>
             <div className="row g-3">
               {FORMULES.map((def, i) => (
                 <div key={def.nom} className="col-md-6">
                   <CarteFormule def={def} valeur={formules[i]}
-                    onChange={v => setFormules(fs => fs.map((x, j) => j === i ? v : x))} />
+                    onEnregistrer={v => enregistrerFormules(formules.map((x, j) => j === i ? v : x), formulesPerf, `Formule ${def.nom}`)} />
                 </div>
               ))}
             </div>
@@ -354,7 +428,7 @@ export default function Parametres() {
                 <div key={b.v} className="col-md-6">
                   <CartePerfectionnement boite={b}
                     lignes={formulesPerf.map((f, i) => ({ f, i })).filter(x => x.f.boite === b.v)}
-                    onChange={(i, v) => setFormulesPerf(fs => fs.map((x, j) => j === i ? v : x))} />
+                    onEnregistrer={(i, v) => enregistrerFormules(formules, formulesPerf.map((x, j) => j === i ? v : x), `Formule ${v.cours} cours`)} />
                 </div>
               ))}
             </div>
