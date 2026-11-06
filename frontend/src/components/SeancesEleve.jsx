@@ -4,6 +4,7 @@ import Pagination from './Pagination'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche } from './ListeModerne'
 import '../landing.css'
 import { correspond } from '../utils'
+import { ProgrammeEleve } from './SeanceCode'
 
 const PAGE_SIZE = 10
 
@@ -125,13 +126,23 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
             <span className="font-medium">Moniteur :</span>
             {ouverte.moniteurNom}
           </span>
-          <span className="flex items-center gap-1.5">
-            <i className="bi bi-layers-fill text-[#1e3a5f]" />
-            {ouverte.blocs.length} bloc(s) de contenu
-          </span>
+          {ouverte.blocs.length > 0 && (
+            <span className="flex items-center gap-1.5">
+              <i className="bi bi-layers-fill text-[#1e3a5f]" />
+              {ouverte.blocs.length} bloc(s) de contenu
+            </span>
+          )}
+          {(ouverte.programme || []).length > 0 && (
+            <span className="flex items-center gap-1.5">
+              <i className="bi bi-signpost-split-fill text-[#1e3a5f]" />
+              {ouverte.programme.length} partie(s) du cours de code · quiz
+            </span>
+          )}
         </div>
 
-        <div className="px-6 py-5">
+        {(ouverte.programme || []).length > 0 && <div className="px-4 sm:px-6 py-5" style={{ background: '#f8fafc' }}><ProgrammeEleve seance={ouverte} /></div>}
+
+        {(ouverte.blocs.length > 0 || !(ouverte.programme || []).length) && <div className="px-6 py-5">
           {ouverte.blocs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
@@ -142,7 +153,7 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
           ) : (
             ouverte.blocs.map((bloc, i) => <BlocViewer key={i} bloc={bloc} />)
           )}
-        </div>
+        </div>}
       </div>
     </div>
   )
@@ -206,10 +217,16 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
                           <i className="bi bi-person" />
                           {s.moniteurNom}
                         </span>
-                        <span className="flex items-center gap-1">
+                        {(s.programme || []).length > 0 && (
+                          <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
+                            <i className="bi bi-signpost-split" />
+                            Cours de code · quiz
+                          </span>
+                        )}
+                        {s.blocs.length > 0 && <span className="flex items-center gap-1">
                           <i className="bi bi-layers" />
                           {[nVid > 0 && `${nVid} vidéo`, nAud > 0 && `${nAud} audio`, nImg > 0 && `${nImg} image`, nTxt > 0 && `${nTxt} texte`].filter(Boolean).join(' · ') || `${s.blocs.length} bloc(s)`}
-                        </span>
+                        </span>}
                       </div>
                     </div>
                   </div>

@@ -52,6 +52,12 @@ public class Seance {
     @Builder.Default
     private List<BlocContenu> blocs = new ArrayList<>();
 
+    /** Cours de code publiés dans la séance (chapitres, ou panneaux n° de à a) ; l'élève les étudie puis passe le quiz. */
+    @Convert(converter = ProgrammeCodeConverter.class)
+    @Column(columnDefinition = "TEXT")
+    @Builder.Default
+    private List<PartieCode> programme = new ArrayList<>();
+
     @Column(name = "created_at")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

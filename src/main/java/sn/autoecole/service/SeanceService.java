@@ -6,9 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.autoecole.dto.BlocRequest;
 import sn.autoecole.dto.SeanceRequest;
 import sn.autoecole.dto.SeanceResponse;
+import sn.autoecole.controller.ProgressionCodeController;
 import sn.autoecole.entity.BlocContenu;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Moniteur;
+import sn.autoecole.entity.PartieCode;
+import sn.autoecole.entity.ResultatQuizSeance;
 import sn.autoecole.entity.Seance;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.StatutSeance;
@@ -18,11 +21,15 @@ import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.MoniteurRepository;
+import sn.autoecole.repository.ResultatQuizSeanceRepository;
 import sn.autoecole.repository.SeanceRepository;
 import sn.autoecole.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +40,9 @@ public class SeanceService {
     private final UserRepository userRepo;
     private final EleveRepository eleveRepo;
     private final MoniteurRepository moniteurRepo;
+    private final ResultatQuizSeanceRepository resultatRepo;
+
+    private static final double SEUIL = 0.7;
 
     @Transactional(readOnly = true)
     public List<SeanceResponse> findAll() {
@@ -109,7 +119,65 @@ public class SeanceService {
         if (!s.getMoniteur().getEmail().equals(moniteurEmail)) {
             throw new BusinessException("Non autorisé");
         }
+        resultatRepo.deleteBySeanceId(s.getId());
         seanceRepo.delete(s);
+    }
+
+    /* ── Quiz de la séance de code ── */
+
+    /** L'élève termine le quiz d'une séance publiée pour lui : dernier essai, meilleure note, erreurs. */
+    public ResultatQuizSeance enregistrerQuiz(Long id, String telephone, int score, int total, List<String> erreurs) {
+        Eleve eleve = eleveRepo.findFirstByTelephone(telephone)
+                .orElseThrow(() -> new ResourceNotFoundException("Profil élève introuvable"));
+        Seance s = seanceRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
+        if (s.getStatut() != StatutSeance.PUBLIE || !s.getEleves().contains(eleve))
+            throw new BusinessException("Séance non accessible");
+        if (s.getProgramme().isEmpty()) throw new BusinessException("Cette séance n'a pas de quiz");
+        if (total <= 0 || total > 80 || score < 0 || score > total) throw new BusinessException("Résultat invalide");
+        ResultatQuizSeance r = resultatRepo.findBySeanceIdAndEleveId(s.getId(), eleve.getId())
+                .orElseGet(() -> ResultatQuizSeance.builder().seanceId(s.getId()).eleveId(eleve.getId()).build());
+        if (r.getTentatives() == 0 || score * (double) r.getMeilleurTotal() >= r.getMeilleurScore() * (double) total) {
+            r.setMeilleurScore(score);
+            r.setMeilleurTotal(total);
+        }
+        r.setScore(score);
+        r.setTotal(total);
+        r.setReussi(r.isReussi() || score >= Math.ceil(SEUIL * total));
+        r.setTentatives(r.getTentatives() + 1);
+        List<String> lignes = erreurs == null ? List.of() : erreurs.stream()
+                .filter(x -> x != null && !x.isBlank()).limit(80)
+                .map(x -> x.replace('\n', ' ').trim()).map(x -> x.length() > 300 ? x.substring(0, 300) : x).toList();
+        r.setErreurs(lignes.isEmpty() ? null : String.join("\n", lignes));
+        r.setDerniereTentative(LocalDateTime.now());
+        return resultatRepo.save(r);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ResultatQuizSeance> mesResultats(String telephone) {
+        return eleveRepo.findFirstByTelephone(telephone)
+                .map(e -> resultatRepo.findByEleveId(e.getId())).orElse(List.of());
+    }
+
+    /** Résultats d'une séance pour son moniteur (ou l'administration) : chaque élève de la séance,
+        avec son résultat s'il a passé le quiz. */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> resultats(Long id, String moniteurEmail, boolean admin) {
+        Seance s = seanceRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
+        if (!admin && !s.getMoniteur().getEmail().equals(moniteurEmail)) throw new BusinessException("Non autorisé");
+        Map<Long, ResultatQuizSeance> parEleve = new LinkedHashMap<>();
+        resultatRepo.findBySeanceId(id).forEach(r -> parEleve.put(r.getEleveId(), r));
+        List<Map<String, Object>> liste = new ArrayList<>();
+        for (Eleve e : s.getEleves()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("eleveId", e.getId());
+            m.put("nom", e.getNom() + " " + e.getPrenom());
+            m.put("telephone", e.getTelephone());
+            m.put("resultat", parEleve.get(e.getId()));
+            liste.add(m);
+        }
+        return liste;
     }
 
     private void applyFields(Seance s, SeanceRequest req) {
@@ -128,6 +196,8 @@ public class SeanceService {
             s.getEleves().addAll(eleveRepo.findAllById(req.eleveIds()));
         }
 
+        s.setProgramme(programme(req.programme()));
+
         s.getBlocs().clear();
         if (req.blocs() != null) {
             int order = 0;
@@ -144,6 +214,25 @@ public class SeanceService {
         }
     }
 
+    /** Programme de code vérifié : chapitres connus du code (ni conduite ni séries d'examen),
+        bornes de panneaux cohérentes, sans doublon. */
+    private static List<PartieCode> programme(List<PartieCode> parties) {
+        List<PartieCode> propre = new ArrayList<>();
+        if (parties == null) return propre;
+        if (parties.size() > 30) throw new BusinessException("30 parties de cours au plus par séance");
+        for (PartieCode p : parties) {
+            String ch = p.chapitre();
+            if (ch == null || !ProgressionCodeController.CHAPITRES.contains(ch) || ch.startsWith("conduite-") || ch.startsWith("serie-"))
+                throw new BusinessException("Chapitre de code inconnu : " + ch);
+            Integer de = p.de(), a = p.a();
+            if ((de == null) != (a == null) || (de != null && (de < 1 || a < de || a > 100)))
+                throw new BusinessException("Numéros de panneaux invalides pour le chapitre « " + ch + " »");
+            PartieCode x = new PartieCode(ch, de, a);
+            if (!propre.contains(x)) propre.add(x);
+        }
+        return propre;
+    }
+
     private SeanceResponse toResponse(Seance s) {
         List<SeanceResponse.EleveInfo> elevesInfo = s.getEleves().stream()
                 .map(e -> new SeanceResponse.EleveInfo(e.getId(), e.getNom() + " " + e.getPrenom(), e.getEmail()))
@@ -157,7 +246,7 @@ public class SeanceService {
                 s.getTheme() != null ? s.getTheme().name() : null,
                 s.getStatut().name(),
                 s.getMoniteur().getId(), s.getMoniteur().getNom(),
-                elevesInfo, blocsInfo, s.getCreatedAt()
+                elevesInfo, blocsInfo, s.getProgramme(), s.getCreatedAt()
         );
     }
 }

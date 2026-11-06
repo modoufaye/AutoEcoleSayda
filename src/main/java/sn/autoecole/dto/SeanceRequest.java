@@ -1,5 +1,7 @@
 package sn.autoecole.dto;
 
+import sn.autoecole.entity.PartieCode;
+
 import java.util.List;
 
 public record SeanceRequest(
@@ -8,5 +10,6 @@ public record SeanceRequest(
     String theme,
     String statut,
     List<Long> eleveIds,
-    List<BlocRequest> blocs
+    List<BlocRequest> blocs,
+    List<PartieCode> programme
 ) {}

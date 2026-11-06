@@ -6,6 +6,8 @@ import SchemaPriorite from './SchemaPriorite'
 import { Picto, Voyant } from './Pictos'
 import { SEUIL_REUSSITE, questionsChapitre, questionsRevision } from '../contenu/signalisation'
 import { THEMES_CODE } from '../contenu/themes'
+import { ouverturesCode } from '../contenu/programme'
+import { genre, estScene, lire } from './coursOutils'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -25,49 +27,37 @@ function Decor({ v, taille }) {
   if (v.startsWith('voyant')) return <Voyant type={v.replace(/^voyant[:-]/, '')} taille={taille} />
   return <img src={v.startsWith('/') ? v : `/panneaux/${v}.svg`} alt="" width={taille} height={taille} style={{ objectFit: 'contain' }} />
 }
-function IconeChapitre({ ch, taille = 46 }) {
+export function IconeChapitre({ ch, taille = 46 }) {
   if (typeof ch.icone === 'object' || ch.icone.startsWith('voyant:')) return <Decor v={ch.icone} taille={taille} />
   if (ch.icone.startsWith('marquage:')) return <MarquageSol type={ch.icone.slice(9)} taille={taille} />
   if (ch.icone.startsWith('dessin:')) return <SchemaPriorite type={ch.icone.slice(7)} taille={taille} />
   return <img src={ch.icone} alt="" width={taille} height={taille} style={{ objectFit: 'contain' }} />
 }
 
-/* Ce que liste un chapitre : panneaux, marquages, signaux (feux, agent) ou situations. */
-function genre(ch) {
-  const tous = cle => ch.panneaux.every(x => x[cle])
-  if (ch.situations) return 'situations'
-  if (tous('image')) return 'panneaux'
-  if (tous('marquage')) return 'marquages'
-  if (tous('voyant')) return 'voyants'
-  if (tous('dessin')) return 'signaux'
-  return 'repères'   // chapitre mixte : panneaux, pictogrammes, marquages
-}
-const estScene = item => !!item?.dessin?.startsWith('scene-')   // carrefour vu du dessus : affiché en grand
 const majuscule = t => t[0].toUpperCase() + t.slice(1)
 
-/* Lecture à voix haute (synthèse du navigateur, voix française si disponible). */
-function lire(texte) {
-  try {
-    const s = window.speechSynthesis; if (!s) return toast('Lecture à voix haute indisponible sur cet appareil', 'warning')
-    s.cancel(); const u = new SpeechSynthesisUtterance(texte); u.lang = 'fr-FR'; u.rate = 0.95
-    const voix = s.getVoices().find(v => v.lang?.startsWith('fr')); if (voix) u.voice = voix
-    s.speak(u)
-  } catch { toast('Lecture à voix haute indisponible', 'warning') }
-}
 
-/* ── Quiz d'un chapitre (ou de la révision) ── */
-function Quiz({ questions, onFini, onSuivant, suivantLibelle }) {
+/* ── Quiz d'un chapitre, de la révision ou d'une séance ──
+   onFini(score, total, erreurs) : erreurs = « question → bonne réponse (répondu : …) ». */
+export function Quiz({ questions, onFini, onSuivant, suivantLibelle, texteValide = 'Chapitre validé, bravo !' }) {
   const [i, setI] = useState(0)
   const [choix, setChoix] = useState(null)
   const [score, setScore] = useState(0)
+  const [erreurs, setErreurs] = useState([])
   const [fini, setFini] = useState(false)
   const q = questions[i]
-  const repondre = (r) => { if (choix) return; setChoix(r); if (r === q.bonne) setScore(s => s + 1) }
+  const repondre = (r) => {
+    if (choix) return
+    setChoix(r)
+    if (r === q.bonne) setScore(s => s + 1)
+    // Pour le moniteur : panneau confondu, ou question de règle avec la bonne réponse
+    else setErreurs(e => [...e, /:q\d+$/.test(q.id) ? `${q.q} → ${q.bonne} (répondu : ${r})` : `« ${q.bonne} » confondu avec « ${r} »`])
+  }
   const suivante = () => {
     if (i + 1 < questions.length) { setI(i + 1); setChoix(null) }
-    else { setFini(true); onFini?.(score, questions.length) }
+    else { setFini(true); onFini?.(score, questions.length, erreurs) }
   }
-  const recommencer = () => { setI(0); setChoix(null); setScore(0); setFini(false) }
+  const recommencer = () => { setI(0); setChoix(null); setScore(0); setErreurs([]); setFini(false) }
 
   if (fini) {
     const reussi = score >= Math.ceil(SEUIL_REUSSITE * questions.length)
@@ -76,7 +66,7 @@ function Quiz({ questions, onFini, onSuivant, suivantLibelle }) {
         <div style={{ fontSize: 52 }}>{reussi ? '🏆' : '💪'}</div>
         <div className="text-3xl font-black mt-1">{score} / {questions.length}</div>
         <div className="mt-1 font-bold" style={{ color: reussi ? '#86efac' : '#fcd34d' }}>
-          {reussi ? 'Chapitre validé, bravo !' : `Il faut ${Math.ceil(SEUIL_REUSSITE * questions.length)} bonnes réponses pour valider : réessayez !`}
+          {reussi ? texteValide : `Il faut ${Math.ceil(SEUIL_REUSSITE * questions.length)} bonnes réponses pour valider : réessayez !`}
         </div>
         <div className="flex flex-wrap justify-center gap-2 mt-5">
           <button type="button" onClick={recommencer} className="px-5 py-2.5 rounded-full font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: 'rgba(255,255,255,.15)', color: '#fff' }}>
@@ -144,7 +134,7 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
           <IconeChapitre ch={ch} taille={40} />
           <div className="min-w-0">
             <div className="font-extrabold text-lg leading-tight" style={{ color: '#1e3a5f' }}>{ch.titre}</div>
-            <div className="text-xs text-slate-500">Chapitre {ch.numero} sur {total} · {ch.panneaux.length} {genre(ch)}</div>
+            <div className="text-xs text-slate-500">Chapitre {ch.numero} sur {total} · {ch.panneaux.length} {genre(ch)}{ch.partiel ? ' ouverts par votre moniteur' : ''}</div>
           </div>
         </div>
         <div className="flex gap-1 p-1 rounded-full w-full sm:w-auto" style={{ background: '#f1f5f9' }}>
@@ -214,13 +204,19 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
           )}
           <div className="lg:col-span-2 flex justify-end">
             <button type="button" onClick={() => setOnglet('quiz')} className="px-5 py-2.5 rounded-full font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
-              Passer le quiz ({questions.length} questions) <i className="bi bi-arrow-right ms-1" />
+              {ch.partiel ? 'Quiz' : `Passer le quiz (${questions.length} questions)`} <i className="bi bi-arrow-right ms-1" />
             </button>
           </div>
         </div>
       )}
 
-      {onglet === 'quiz' && <Quiz key={ch.id} questions={questions} onFini={(s, t) => onResultat(ch.id, s, t)} onSuivant={onSuivant} suivantLibelle={suivantLibelle} />}
+      {onglet === 'quiz' && ch.partiel && (
+        <div className="rounded-2xl px-5 py-4 flex items-center gap-3 text-sm" style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1e3a8a' }}>
+          <i className="bi bi-info-circle-fill" style={{ fontSize: '1.2rem' }} />
+          <span>Votre moniteur n'a ouvert qu'une partie de ce chapitre : le quiz du chapitre s'ouvrira avec la suite. En attendant, passez le quiz de votre séance dans « Mes séances ».</span>
+        </div>
+      )}
+      {onglet === 'quiz' && !ch.partiel && <Quiz key={ch.id} questions={questions} onFini={(s, t) => onResultat(ch.id, s, t)} onSuivant={onSuivant} suivantLibelle={suivantLibelle} />}
     </div>
   )
 }
@@ -275,33 +271,41 @@ function Progres({ valides, total }) {
 }
 
 /* ── Parcours d'un thème : ses chapitres puis la révision finale ──
-   Élève : chapitres débloqués dans l'ordre (70 % pour valider). Admin et moniteurs : tout ouvert. */
-function Parcours({ theme, eleve, progression, onOuvrir, onRetour }) {
+   Élève : chapitres débloqués dans l'ordre (70 % pour valider), ou, pour les cours de code,
+   ouverts par les séances de son moniteur (ouvertures) ; un chapitre déjà validé reste ouvert.
+   Admin et moniteurs : tout ouvert. */
+function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour }) {
   const tous = [...theme.chapitres, theme.revision]
   const reussi = id => !!progression[id]?.reussi
-  const debloque = i => !eleve || i === 0 || (i < theme.chapitres.length ? reussi(theme.chapitres[i - 1].id) : theme.chapitres.every(c => reussi(c.id)))
+  const debloque = i => !eleve || (ouvertures ? !!ouvertures[tous[i].id] || reussi(tous[i].id)
+    : i === 0 || (i < theme.chapitres.length ? reussi(theme.chapitres[i - 1].id) : theme.chapitres.every(c => reussi(c.id))))
+  const o = ch => ouvertures?.[ch.id]
+  const partiel = ch => !!o(ch) && !o(ch).complet && !reussi(ch.id)
   return (
     <div className="space-y-4">
       <div>{btnRetour(onRetour, 'Thèmes')}</div>
       <Bandeau surtitre={`COURS DE CODE · THÈME ${theme.numero}`} titre={theme.titre} texte={theme.description} decor={theme.decor}>
         {eleve && <Progres valides={tous.filter(c => reussi(c.id)).length} total={tous.length} />}
+        {eleve && ouvertures && <div className="text-xs mt-3" style={{ color: '#bfdbfe' }}><i className="bi bi-unlock-fill me-1" />Votre moniteur ouvre les chapitres au fil des séances.</div>}
       </Bandeau>
       <div className="flex flex-col gap-3">
         {tous.map((ch, i) => {
           const ouvertOk = debloque(i), fait = reussi(ch.id), p = progression[ch.id]
           const enCours = eleve && ouvertOk && !fait
-          const sous = ch === theme.revision ? ch.resume : `${ch.panneaux.length} ${genre(ch)} · ${ch.resume}`
+          const sous = ch === theme.revision ? ch.resume
+            : partiel(ch) ? `${o(ch).numeros.size} ${genre(ch)} sur ${ch.panneaux.length} ouverts · ${ch.resume}`
+            : `${ch.panneaux.length} ${genre(ch)} · ${ch.resume}`
           return (
             <button key={ch.id} type="button" disabled={!ouvertOk} onClick={() => onOuvrir(ch.id)}
               className="bg-white rounded-2xl px-4 py-3 flex items-center gap-4 text-left w-full border-0 cursor-pointer transition-all"
               style={{ borderRadius: 16, ...carte, border: enCours ? '2px solid #d4a017' : fait ? '1px solid #bbf7d0' : '1px solid #eef2f7', boxShadow: enCours ? '0 8px 24px rgba(212,160,23,.22)' : carte.boxShadow, opacity: ouvertOk ? 1 : .6, cursor: ouvertOk ? 'pointer' : 'not-allowed' }}>
               <div className="w-14 h-14 flex-shrink-0 rounded-2xl flex items-center justify-center" style={{ background: '#f8fafc' }}><IconeChapitre ch={ch} taille={44} /></div>
               <div className="flex-1 min-w-0">
-                <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{ch.numero} · {ch.titre}</div>
+                <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{ch === theme.revision ? ch.numero : `${theme.numero}.${ch.numero}`} · {ch.titre}</div>
                 <div className="text-xs text-slate-500 mt-0.5 truncate">{sous}{p ? ` · meilleure note ${p.meilleurScore}/${p.total}` : ''}</div>
               </div>
               {fait ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: '#dcfce7', color: '#15803d' }}>✓ Validé</span>
-                : !ouvertOk ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full" style={{ background: '#f1f5f9', color: '#94a3b8' }}><i className="bi bi-lock-fill" /></span>
+                : !ouvertOk ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: '#f1f5f9', color: '#94a3b8' }} title={ouvertures ? 'Pas encore publié par votre moniteur' : 'Validez le chapitre précédent'}><i className="bi bi-lock-fill" />{ouvertures && <span className="hidden sm:inline ms-1">Bientôt</span>}</span>
                 : <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>{p ? 'Reprendre' : 'Commencer'} →</span>}
             </button>
           )
@@ -320,7 +324,9 @@ const ENTETE_CODE = { titre: 'Cours de code', decor: ['A14', 'AB4', 'B14'],
 /* themes / entete : par défaut les cours de code ; l'onglet Cours Conduite passe ses propres thèmes. */
 export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre, themes = THEMES_CODE, entete = ENTETE_CODE }) {
   const [progression, setProgression] = useState({})
+  const [ouvertures, setOuvertures] = useState(null)   // élève, cours de code : ce que ses séances ouvrent
   const [ouvertLocal, setOuvertLocal] = useState(null)
+  const parSeances = eleve && themes === THEMES_CODE
   const cle = onOuvrirChapitre ? chapitre : ouvertLocal
   const aller = id => {
     window.scrollTo?.({ top: 0 })
@@ -331,6 +337,10 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
     if (!eleve) return
     api('GET', '/eleve/code/progression').then(l => setProgression(Object.fromEntries((l || []).map(x => [x.chapitre, x])))).catch(() => {})
   }, [eleve])
+  useEffect(() => {
+    if (!parSeances) return
+    api('GET', '/eleve/seances').then(l => setOuvertures(ouverturesCode(l))).catch(() => setOuvertures({}))
+  }, [parSeances])
   const resultat = async (id, score, total) => {
     if (!eleve) return
     try { const p = await api('POST', '/eleve/code/progression', { chapitre: id, score, total }); setProgression(pr => ({ ...pr, [id]: p })) }
@@ -343,7 +353,11 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
   const questionsRev = useMemo(() => theme && cle === theme.revision.id ? questionsRevision(theme.chapitres, theme.revision.nombre) : [], [cle])   // eslint-disable-line react-hooks/exhaustive-deps -- nouveau tirage à chaque ouverture
   const police = { fontFamily: 'Inter, system-ui, sans-serif' }
 
-  if (theme && cle === theme.revision.id) return (
+  if (parSeances && !ouvertures) return null   // séances en chargement
+  // Chapitre fermé (adresse tapée ou ancien lien) : retour au thème
+  const ferme = c => parSeances && !ouvertures[c.id] && !progression[c.id]?.reussi
+
+  if (theme && cle === theme.revision.id && !ferme(theme.revision)) return (
     <div className="space-y-4" style={police}>
       <div className="bg-white rounded-2xl px-5 py-4 flex items-center gap-3" style={carte}>
         {btnRetour(() => aller(theme.key), theme.titre)}
@@ -352,8 +366,13 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
       <Quiz key={questionsRev[0]?.id} questions={questionsRev} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
     </div>
   )
+  if (theme && idx >= 0 && ferme(tous[idx])) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>
   if (theme && idx >= 0) {
-    const ch = tous[idx], suivant = tous[idx + 1]
+    const brut = tous[idx], o = parSeances && ouvertures[brut.id]
+    // Une partie seulement du chapitre est ouverte : ses panneaux, sans le quiz du chapitre
+    const ch = o && !o.complet && !progression[brut.id]?.reussi && brut !== theme.revision
+      ? { ...brut, partiel: true, panneaux: brut.panneaux.filter((_, i) => o.numeros.has(i + 1)) } : brut
+    const suivant = tous[idx + 1] && !ferme(tous[idx + 1]) ? tous[idx + 1] : null
     return (
       <div style={police}>
         <Chapitre key={ch.id} ch={ch} total={tous.length} retourLibelle={theme.titre} onRetour={() => aller(theme.key)} onResultat={resultat}
@@ -361,7 +380,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
       </div>
     )
   }
-  if (theme) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} onOuvrir={aller} onRetour={() => aller(null)} /></div>
+  if (theme) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={parSeances ? ouvertures : null} onOuvrir={aller} onRetour={() => aller(null)} /></div>
 
   return (
     <div className="space-y-4" style={police}>

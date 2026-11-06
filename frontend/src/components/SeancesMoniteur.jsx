@@ -7,6 +7,8 @@ import { Etiquette } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
 import '../landing.css'
 import { correspond } from '../utils'
+import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
+import { libellePartie } from '../contenu/programme'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -21,7 +23,7 @@ const THEMES = [
 ]
 const THEME_MAP = Object.fromEntries(THEMES.map(t => [t.value, t.label]))
 
-const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUILLON', eleveIds: [], blocs: [] })
+const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUILLON', eleveIds: [], blocs: [], programme: [] })
 
 function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }) {
   const BLOC_STYLE = {
@@ -162,6 +164,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
       statut:    s.statut    || 'BROUILLON',
       eleveIds:  s.eleves.map(e => e.id),
       blocs:     s.blocs.map(b => ({ ...b, _uploading: false })),
+      programme: s.programme || [],
     })
     setErr('')
     setView('editor')
@@ -191,6 +194,9 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   const enEditeur = view === 'editor' && (!onOuvrir || !!seanceId)
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  // Programme de code : le titre vide prend le nom de la première partie
+  const setProgramme = programme => setForm(f => ({ ...f, programme,
+    titre: f.titre.trim() || !programme.length ? f.titre : libellePartie(programme[0]) }))
 
   const toggleEleve = (id) => {
     setForm(f => ({
@@ -307,7 +313,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
               {form.titre.trim() || 'Séance sans titre'}
             </div>
             <div className="text-xs mt-0.5" style={{ color: '#bfdbfe' }}>
-              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
+              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de code · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
             </div>
           </div>
           <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
@@ -416,8 +422,10 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
           </div>
         </div>
 
-        {/* Contenu pédagogique */}
-        <div className="lg:col-span-2">
+        {/* Cours de code publiés, résultats du quiz, puis contenu libre */}
+        <div className="lg:col-span-2 space-y-5">
+          <ChoixProgramme programme={form.programme} onChange={setProgramme} />
+          {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz seanceId={editId} />}
           <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
             <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />
 
@@ -511,6 +519,12 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                         <i className="bi bi-people" />
                         {s.eleves.length} élève{s.eleves.length > 1 ? 's' : ''}
                       </span>
+                      {(s.programme || []).length > 0 && (
+                        <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
+                          <i className="bi bi-signpost-split" />
+                          {s.programme.length} partie{s.programme.length > 1 ? 's' : ''} de code · quiz
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <i className="bi bi-layers" />
                         {s.blocs.length} bloc{s.blocs.length > 1 ? 's' : ''}

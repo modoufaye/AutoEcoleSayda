@@ -45,6 +45,14 @@ public class SeanceMoniteurController {
         seanceService.delete(id, user.getUsername());
     }
 
+    /** Résultats du quiz de la séance, élève par élève. */
+    @GetMapping("/{id}/resultats")
+    public List<Map<String, Object>> resultats(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {
+        boolean admin = user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SECRETAIRE"));
+        return seanceService.resultats(id, user.getUsername(), admin);
+    }
+
     /** Élèves : tous si admin, sinon ceux du moniteur connecté */
     @GetMapping("/eleves")
     public List<Map<String, Object>> getEleves(@AuthenticationPrincipal UserDetails user) {

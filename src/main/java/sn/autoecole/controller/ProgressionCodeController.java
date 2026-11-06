@@ -27,8 +27,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProgressionCodeController {
 
-    /** Chapitres connus (contenu/signalisation.js, priorite.js, reglesConduite.js) : rien d'autre n'est enregistré. */
-    private static final Set<String> CHAPITRES = Set.of(
+    /** Chapitres connus (contenu/signalisation.js, priorite.js, reglesConduite.js) : rien d'autre n'est enregistré.
+        Sert aussi à vérifier le programme de code d'une séance (SeanceService). */
+    public static final Set<String> CHAPITRES = Set.of(
             "danger", "obligation-interdiction", "indication", "lignes", "rive", "zones", "revision",
             "priorite-regles", "priorite-feux", "priorite-situations", "priorite-revision",
             "vitesse-limites", "vitesse-distances", "vitesse-revision", "depassement-methode",
