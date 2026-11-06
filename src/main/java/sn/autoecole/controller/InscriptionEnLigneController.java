@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 import sn.autoecole.dto.DemandeInscriptionRequest;
 import sn.autoecole.entity.DemandeInscription;
 import sn.autoecole.entity.FormulePerfectionnement;
+import sn.autoecole.entity.FormulePermis;
 import sn.autoecole.enums.Site;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
 import sn.autoecole.service.DemandeInscriptionService;
@@ -46,6 +47,8 @@ public class InscriptionEnLigneController {
         m.put("telephone", c.map(x -> x.getTelephone()).orElse(null));
         // Formules proposées au candidat (celles qui ont un montant)
         m.put("formules", c.map(x -> x.getFormules()).orElse(List.of()).stream()
+                .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
+        m.put("formulesPoidsLourd", c.map(x -> x.getFormulesPoidsLourd()).orElse(FormulePermis.parDefautPoidsLourd()).stream()
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
         m.put("formulesPerfectionnement", FormulePerfectionnement.completer(c.map(x -> x.getFormulesPerfectionnement()).orElse(null)).stream()
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());

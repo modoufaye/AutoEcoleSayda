@@ -20,5 +20,10 @@ public record FormulePermis(String nom, BigDecimal montant, BigDecimal acompte, 
                 new FormulePermis("Excellence", bd(210_000), bd(105_000), bd(55_000), bd(50_000)));
     }
 
+    /** Permis C et D : une seule formule Standard, en deux versements. */
+    public static List<FormulePermis> parDefautPoidsLourd() {
+        return List.of(new FormulePermis("Standard", bd(130_000), bd(65_000), bd(65_000), null));
+    }
+
     private static BigDecimal bd(long v) { return BigDecimal.valueOf(v); }
 }

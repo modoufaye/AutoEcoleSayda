@@ -15,11 +15,13 @@ const FORMULES = [
   { nom: 'Prestige',   icone: 'gem',           couleur: '#7c3aed', fond: '#ede9fe', tranches: 3 },
   { nom: 'Excellence', icone: 'trophy-fill',   couleur: '#b45309', fond: '#fef3c7', tranches: 3 },
 ]
+/* Permis C et D : une seule formule Standard, à son propre prix. */
+const FORMULE_POIDS_LOURD = { nom: 'Standard', titre: 'Standard · permis C et D', icone: 'truck-front-fill', couleur: '#0f766e', fond: '#ccfbf1', tranches: 2 }
 const CHAMPS_FORMULE = [['montant', 'Montant de la formule'], ['acompte', 'Acompte'], ['tranche2', '2e tranche'], ['tranche3', '3e tranche']]
 const fcfa = n => `${Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g, ' ')} F`
 
-function formulesDepuis(liste) {
-  return FORMULES.map(({ nom }) => {
+function formulesDepuis(liste, defs = FORMULES) {
+  return defs.map(({ nom }) => {
     const f = (liste || []).find(x => x.nom === nom) || {}
     return { nom, montant: f.montant ?? '', acompte: f.acompte ?? '', tranche2: f.tranche2 ?? '', tranche3: f.tranche3 ?? '' }
   })
@@ -144,9 +146,9 @@ function CarteFormule({ def, valeur, onEnregistrer }) {
           style={{ width: 32, height: 32, borderRadius: '.6rem', background: def.fond, color: def.couleur }}>
           <i className={`bi bi-${def.icone}`} />
         </div>
-        <div className="fw-bold" style={{ color: '#1e293b' }}>{def.nom}</div>
+        <div className="fw-bold" style={{ color: '#1e293b' }}>{def.titre || def.nom}</div>
         <div className="ms-auto">
-          <BoutonsFormule edition={edition} envoi={envoi} valide={ok} nom={def.nom}
+          <BoutonsFormule edition={edition} envoi={envoi} valide={ok} nom={def.titre || def.nom}
             onModifier={modifier} onAnnuler={annuler} onEnregistrer={enregistrer} />
         </div>
       </div>
@@ -161,7 +163,7 @@ function CarteFormule({ def, valeur, onEnregistrer }) {
             <div key={k} className={k === 'montant' ? 'col-12' : def.tranches === 2 ? 'col-6' : k === 'acompte' ? 'col-12 col-sm-4' : 'col-6 col-sm-4'}>
               <label className={labelCls} style={{ fontSize: '.65rem' }}>{libelle}</label>
               <input type="number" className={inputCls} value={v[k]} min="0" step="1000" placeholder="0"
-                aria-label={`${def.nom} : ${libelle}`}
+                aria-label={`${def.titre || def.nom} : ${libelle}`}
                 onChange={e => setV({ ...v, [k]: e.target.value })} />
             </div>
           ))}
@@ -243,6 +245,7 @@ export default function Parametres() {
   })
   const [formules, setFormules] = useState(formulesDepuis([]))
   const [formulesPerf, setFormulesPerf] = useState([])
+  const [formulesPL, setFormulesPL] = useState(formulesDepuis([], [FORMULE_POIDS_LOURD]))
   const [moniteurs, setMoniteurs] = useState([])
   const [applying, setApplying]   = useState(false)
   const [loading, setLoading] = useState(true)
@@ -250,7 +253,7 @@ export default function Parametres() {
 
   useEffect(() => {
     api('GET', '/admin/config')
-      .then(data => { setFormules(formulesDepuis(data.formules)); setFormulesPerf(data.formulesPerfectionnement || []); setForm({
+      .then(data => { setFormules(formulesDepuis(data.formules)); setFormulesPL(formulesDepuis(data.formulesPoidsLourd, [FORMULE_POIDS_LOURD])); setFormulesPerf(data.formulesPerfectionnement || []); setForm({
         nom:               data.nom               || '',
         adresse:           data.adresse           || '',
         telephone:         data.telephone         || '',
@@ -288,15 +291,18 @@ export default function Parametres() {
     finally { setApplying(false) }
   }
 
-  // Les deux listes au format du serveur
-  const versServeur = (fs, fps) => ({
-    formules: fs.map(f => ({ nom: f.nom, ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])) })),
+  // Les trois listes au format du serveur
+  const versPermis = fs => fs.map(f => ({ nom: f.nom, ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])) }))
+  const versServeur = (fs, fps, fpl = formulesPL) => ({
+    formules: versPermis(fs),
+    formulesPoidsLourd: versPermis(fpl),
     formulesPerfectionnement: fps.map(f => ({ boite: f.boite, cours: f.cours, ...Object.fromEntries(['montant', 'acompte', 'tranche2'].map(k => [k, parseFloat(f[k]) || 0])) })),
   })
   // Enregistre une seule formule tout de suite ; le serveur vérifie que les tranches font le montant
-  async function enregistrerFormules(fs, fps, libelle) {
-    const cfg = await api('PUT', '/admin/config', versServeur(fs, fps))
+  async function enregistrerFormules(fs, fps, libelle, fpl) {
+    const cfg = await api('PUT', '/admin/config', versServeur(fs, fps, fpl))
     setFormules(formulesDepuis(cfg.formules)); setFormulesPerf(cfg.formulesPerfectionnement || [])
+    setFormulesPL(formulesDepuis(cfg.formulesPoidsLourd, [FORMULE_POIDS_LOURD]))
     toast(`${libelle} enregistrée`)
   }
 
@@ -413,6 +419,21 @@ export default function Parametres() {
                     onEnregistrer={v => enregistrerFormules(formules.map((x, j) => j === i ? v : x), formulesPerf, `Formule ${def.nom}`)} />
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="px-5 pt-4">
+            <div className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '.92rem' }}>
+              <i className="bi bi-truck-front me-2" style={{ color: '#d4a017' }} />Permis C et D
+            </div>
+            <div className="text-slate-400 mb-3" style={{ fontSize: '.8rem' }}>
+              Une seule formule pour le poids lourd et le transport en commun.
+            </div>
+            <div className="row g-3">
+              <div className="col-md-6">
+                <CarteFormule def={FORMULE_POIDS_LOURD} valeur={formulesPL[0]}
+                  onEnregistrer={v => enregistrerFormules(formules, formulesPerf, 'Formule des permis C et D', [v])} />
+              </div>
             </div>
           </div>
 

@@ -48,6 +48,11 @@ public class AutoEcoleConfig {
     @Convert(converter = FormulesPermisConverter.class)
     private List<FormulePermis> formules;
 
+    /** Formule des permis C et D (poids lourd, transport en commun) : une seule, Standard. */
+    @Column(name = "formules_poids_lourd", columnDefinition = "TEXT")
+    @Convert(converter = FormulesPermisConverter.class)
+    private List<FormulePermis> formulesPoidsLourd;
+
     /** Formules de perfectionnement (boîte automatique ou manuelle, nombre de cours). */
     @Column(columnDefinition = "TEXT")
     @Convert(converter = FormulesPerfectionnementConverter.class)

@@ -79,7 +79,11 @@ public class DemandeInscriptionService {
         var cfg = configRepository.findAll().stream().findFirst().orElse(null);
         String c = choix == null ? "" : choix.trim();
         if (d.getTypeFormation() == TypeFormation.PERMIS) {
-            var options = (cfg == null || cfg.getFormules() == null ? List.<FormulePermis>of() : cfg.getFormules())
+            // Permis C et D : leur propre formule Standard ; A et B : les quatre formules
+            boolean lourd = d.getCategoriePermis() == CategoriePermis.C || d.getCategoriePermis() == CategoriePermis.D;
+            var liste = cfg == null ? null : lourd ? cfg.getFormulesPoidsLourd() : cfg.getFormules();
+            if (liste == null && lourd) liste = FormulePermis.parDefautPoidsLourd();
+            var options = (liste == null ? List.<FormulePermis>of() : liste)
                     .stream().filter(f -> f.montant() != null && f.montant().signum() > 0).toList();
             if (options.isEmpty()) return;
             FormulePermis f = options.stream().filter(x -> x.nom().equalsIgnoreCase(c)).findFirst()

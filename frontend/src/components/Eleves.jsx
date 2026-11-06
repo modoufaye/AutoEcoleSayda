@@ -45,7 +45,10 @@ const today = () => new Date().toISOString().split('T')[0]
 
 /* Formules proposées à l'inscription (Paramètres → Tarification), au format des tuiles de choix. */
 const sepMille = n => Math.round(Number(n) || 0).toLocaleString('fr-FR').replace(/\u202f/g, ' ')
-function optionsPermis(formules) {
+/* Permis C et D : leur propre formule Standard ; A et B (ou catégorie pas encore choisie) : les quatre. */
+const poidsLourd = cat => cat === 'C' || cat === 'D'
+function optionsPermis(tarifs, categorie) {
+  const formules = poidsLourd(categorie) ? tarifs.formulesPoidsLourd : tarifs.formules
   return (formules || []).filter(f => Number(f.montant) > 0).map(f => ({
     libelle: f.nom, titre: f.nom, montant: Number(f.montant), acompte: Number(f.acompte),
     detail: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0).map(sepMille).join(' + '),
@@ -910,13 +913,13 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [activeTab, setActiveTab] = useState('lecons')
   const [ecole, setEcole]         = useState('')
   const [moniteurDefaut, setMoniteurDefaut] = useState('')
-  const [tarifs, setTarifs] = useState({ formules: [], formulesPerfectionnement: [] })
+  const [tarifs, setTarifs] = useState({ formules: [], formulesPoidsLourd: [], formulesPerfectionnement: [] })
   const [piecesAttente, setPiecesAttente] = useState([])
 
   useEffect(() => {
     if (!isMoniteur) api('GET', '/config').then(c => {
       setEcole(c.nom || ''); setMoniteurDefaut(c.moniteurParDefautId ?? '')
-      setTarifs({ formules: c.formules || [], formulesPerfectionnement: c.formulesPerfectionnement || [] })
+      setTarifs({ formules: c.formules || [], formulesPoidsLourd: c.formulesPoidsLourd || [], formulesPerfectionnement: c.formulesPerfectionnement || [] })
     }).catch(() => {})
   }, [])
 
@@ -1228,7 +1231,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <label className={labelCls}>Permis <span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   {PERMIS.map(p => (
-                    <button key={p.v} type="button" onClick={() => set('categoriePermis', p.v)}
+                    <button key={p.v} type="button"
+                      onClick={() => setForm(fm => ({ ...fm, categoriePermis: p.v,
+                        // Passer de A/B à C/D (ou l'inverse) change de grille de formules : même règle que la boîte
+                        ...(fm.formule && poidsLourd(fm.categoriePermis) !== poidsLourd(p.v)
+                          ? (editId ? { formule: '' } : { formule: '', montantTotal: '', montantAvance: '' }) : {}) }))}
                       className="flex flex-col items-center py-3 cursor-pointer" style={pill(form.categoriePermis === p.v)}>
                       <i className={`bi bi-${p.icon}`} style={{ fontSize: '1.4rem' }} />
                       <span className="text-lg font-extrabold leading-none mt-1">{p.v}</span>
@@ -1286,9 +1293,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
               </>)}
 
               {section(3, "wallet2", "Paiement", <>
-                {optionsPermis(tarifs.formules).length > 0 && <div className="mb-3">
-                  <label className={labelCls}>Formule</label>
-                  <ChoixFormule options={optionsPermis(tarifs.formules)} valeur={form.formule} onChoisir={choisirFormule}
+                {optionsPermis(tarifs, form.categoriePermis).length > 0 && <div className="mb-3">
+                  <label className={labelCls}>Formule{poidsLourd(form.categoriePermis) && ` · permis ${form.categoriePermis}`}</label>
+                  <ChoixFormule options={optionsPermis(tarifs, form.categoriePermis)} valeur={form.formule} onChoisir={choisirFormule}
                     verrouille={!!editId} total={parseFloat(form.montantTotal) || 0} />
                 </div>}
                 <div className="row g-3">

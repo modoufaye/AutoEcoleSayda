@@ -29,8 +29,10 @@ public class AutoEcoleConfigController {
     private AutoEcoleConfig getOrCreate() {
         AutoEcoleConfig cfg = repo.findAll().stream().findFirst().orElseGet(AutoEcoleConfig::new);
         var perf = FormulePerfectionnement.completer(cfg.getFormulesPerfectionnement());
-        if (cfg.getId() == null || cfg.getFormules() == null || !perf.equals(cfg.getFormulesPerfectionnement())) {
+        if (cfg.getId() == null || cfg.getFormules() == null || cfg.getFormulesPoidsLourd() == null
+                || !perf.equals(cfg.getFormulesPerfectionnement())) {
             if (cfg.getFormules() == null) cfg.setFormules(FormulePermis.parDefaut());
+            if (cfg.getFormulesPoidsLourd() == null) cfg.setFormulesPoidsLourd(FormulePermis.parDefautPoidsLourd());
             cfg.setFormulesPerfectionnement(perf);
             cfg = repo.save(cfg);
         }
@@ -67,7 +69,9 @@ public class AutoEcoleConfigController {
         if (body.containsKey("tarifHeureConduite"))
             cfg.setTarifHeureConduite(toBD(body.get("tarifHeureConduite")));
         if (body.containsKey("formules"))
-            cfg.setFormules(formules(body.get("formules")));
+            cfg.setFormules(formules(body.get("formules"), FormulePermis.NOMS, ""));
+        if (body.containsKey("formulesPoidsLourd"))
+            cfg.setFormulesPoidsLourd(formules(body.get("formulesPoidsLourd"), List.of("Standard"), " (permis C et D)"));
         if (body.containsKey("formulesPerfectionnement"))
             cfg.setFormulesPerfectionnement(formulesPerfectionnement(body.get("formulesPerfectionnement")));
         if (body.containsKey("moniteurParDefautId")) {
@@ -95,22 +99,23 @@ public class AutoEcoleConfigController {
     }
 
     /**
-     * Les quatre formules, dans l'ordre. Standard n'a pas de 3e tranche. Les tranches doivent
-     * couvrir le montant (une formule encore à 0 est acceptée : pas encore renseignée).
+     * Les formules nommées, dans l'ordre (les quatre du permis A/B, ou la Standard des permis C/D).
+     * Standard n'a pas de 3e tranche. Les tranches doivent couvrir le montant (une formule encore
+     * à 0 est acceptée : pas encore renseignée).
      */
-    private List<FormulePermis> formules(Object v) {
+    private List<FormulePermis> formules(Object v, List<String> noms, String precision) {
         if (!(v instanceof List<?> liste)) throw new BusinessException("Formules invalides");
         List<FormulePermis> res = new ArrayList<>();
-        for (String nom : FormulePermis.NOMS) {
+        for (String nom : noms) {
             Map<?, ?> f = liste.stream().filter(x -> x instanceof Map<?, ?> m && nom.equals(m.get("nom")))
                     .map(x -> (Map<?, ?>) x).findFirst().orElse(Map.of());
             BigDecimal montant = toBD(f.get("montant")), acompte = toBD(f.get("acompte")), t2 = toBD(f.get("tranche2"));
             BigDecimal t3 = "Standard".equals(nom) ? null : toBD(f.get("tranche3"));
             for (BigDecimal x : new BigDecimal[]{montant, acompte, t2, t3 == null ? BigDecimal.ZERO : t3})
-                if (x.signum() < 0) throw new BusinessException("Formule " + nom + " : montant négatif");
+                if (x.signum() < 0) throw new BusinessException("Formule " + nom + precision + " : montant négatif");
             BigDecimal total = acompte.add(t2).add(t3 == null ? BigDecimal.ZERO : t3);
             if (total.compareTo(montant) != 0)
-                throw new BusinessException("Formule " + nom + " : l'acompte et les tranches (" + total.toBigInteger()
+                throw new BusinessException("Formule " + nom + precision + " : l'acompte et les tranches (" + total.toBigInteger()
                         + " F) ne font pas le montant de la formule (" + montant.toBigInteger() + " F)");
             res.add(new FormulePermis(nom, montant, acompte, t2, t3));
         }
