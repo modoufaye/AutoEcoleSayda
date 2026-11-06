@@ -16,7 +16,7 @@ export default function ChampTelephone({ value, onChange, className = '', placeh
     <div className="flex">
       {/* Champ compact (drapeau + indicatif) ; la liste native, invisible par-dessus, donne les noms des pays */}
       <label className="relative flex items-center gap-1 px-2.5 text-sm font-semibold text-slate-600 border-2 border-r-0 border-slate-200 bg-slate-50 flex-shrink-0 cursor-pointer mb-0"
-        style={{ borderRadius: '.75rem 0 0 .75rem' }} title="Indicatif du pays">
+        style={{ borderRadius: '.75rem 0 0 .75rem', display: 'flex' }} title="Indicatif du pays">
         <span>{INDICATIFS.find(i => i.code === ind)?.drapeau}</span><span>+{ind}</span>
         <i className="bi bi-chevron-down" style={{ fontSize: '.65rem' }} />
         <select value={ind} onChange={e => maj(e.target.value, nat)} title="Indicatif du pays" aria-label="Indicatif du pays"
