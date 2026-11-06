@@ -96,9 +96,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/demandes-inscription/**", "/api/demandes-inscription").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Débloquer un compte (5 mots de passe faux) : admin, et secrétariat pour élèves et moniteurs.
                 .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
-                // Statistiques globales (dont le total encaissé) : pas pour les élèves.
+                // Visites du site (adresses IP) : super admin seul
+                .requestMatchers("/api/journal/visites").hasRole("SUPER_ADMIN")
                 // Journal des actions : super admin (tout) et administrateurs (leurs actions et celles du secrétariat)
                 .requestMatchers("/api/journal", "/api/journal/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                // Statistiques globales (dont le total encaissé) : pas pour les élèves.
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
                 // Toutes les autres routes nécessitent une authentification

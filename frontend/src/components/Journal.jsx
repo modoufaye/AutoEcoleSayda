@@ -3,6 +3,7 @@ import { api } from '../api'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
+import JournalVisites from './JournalVisites'
 import { EnteteListe, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser, ListeVide, ListeChargement } from './ListeModerne'
 
 /* Journal des actions (super admin et administrateurs). Le serveur ne renvoie à un administrateur
@@ -41,7 +42,30 @@ function libelleJour(jour) {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', ...(d.getFullYear() !== auj.getFullYear() ? { year: 'numeric' } : {}) })
 }
 
+/* Super admin : onglets « Actions » et « Visites » (adresses qui ouvrent le site ou essaient de
+   s'inscrire). Administrateur : les actions seulement. */
 export default function Journal() {
+  const { user } = useAuth()
+  const [vue, setVue] = useState('actions')
+  if (user?.role !== 'SUPER_ADMIN') return <JournalActions />
+  const onglets = [['actions', 'journal-text', 'Actions'], ['visites', 'globe2', 'Visites']]
+  return (
+    <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="flex gap-1 p-1 w-full sm:w-auto sm:inline-flex" style={{ background: '#eef2f7', borderRadius: 999 }}>
+        {onglets.map(([v, icone, label]) => (
+          <button key={v} type="button" onClick={() => setVue(v)}
+            className="flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-extrabold border-0 cursor-pointer whitespace-nowrap"
+            style={{ borderRadius: 999, ...(vue === v ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }) }}>
+            <i className={`bi bi-${icone}`} />{label}
+          </button>
+        ))}
+      </div>
+      {vue === 'actions' ? <JournalActions /> : <JournalVisites />}
+    </div>
+  )
+}
+
+function JournalActions() {
   const { user } = useAuth()
   const superAdmin = user?.role === 'SUPER_ADMIN'
   const [donnees, setDonnees] = useState({ entrees: [], total: 0, taille: 30, cle: null })

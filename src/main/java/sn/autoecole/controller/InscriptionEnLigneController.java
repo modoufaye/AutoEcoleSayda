@@ -3,8 +3,10 @@ package sn.autoecole.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import sn.autoecole.dto.DemandeInscriptionRequest;
@@ -12,12 +14,15 @@ import sn.autoecole.entity.DemandeInscription;
 import sn.autoecole.entity.FormulePerfectionnement;
 import sn.autoecole.entity.FormulePermis;
 import sn.autoecole.enums.Site;
+import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
 import sn.autoecole.service.DemandeInscriptionService;
+import sn.autoecole.service.VisiteService;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Inscription en ligne. Public : /api/public/inscriptions (formulaire de la page d'accueil).
@@ -31,6 +36,7 @@ public class InscriptionEnLigneController {
     private static final int MAX_DEMANDES = 5, MAX_ESSAIS = 30;
 
     private final DemandeInscriptionService service;
+    private final VisiteService visites;
     private final AutoEcoleConfigRepository configRepository;
     /** Horodatages récents par adresse IP : limitent les envois en rafale (robots). */
     private final Map<String, Deque<Long>> demandes = new ConcurrentHashMap<>();
@@ -59,16 +65,33 @@ public class InscriptionEnLigneController {
 
     @PostMapping("/api/public/inscriptions")
     @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, Object> soumettre(@Valid @RequestBody DemandeInscriptionRequest r, HttpServletRequest http) {
+    public Map<String, Object> soumettre(@Valid @RequestBody DemandeInscriptionRequest r, BindingResult verif, HttpServletRequest http) {
         // Champ piège rempli : un robot ; on répond comme si tout allait bien, sans rien enregistrer
-        if (r.getSiteWeb() != null && !r.getSiteWeb().isBlank()) return Map.of("ok", true);
-        String ip = ip(http);
-        // Une erreur de saisie ne compte que dans les essais : le candidat peut corriger et renvoyer
-        compter(essais, ip, MAX_ESSAIS, true);
-        compter(demandes, ip, MAX_DEMANDES, false);
-        DemandeInscription d = service.soumettre(r);
-        compter(demandes, ip, MAX_DEMANDES, true);
-        return Map.of("ok", true, "prenom", d.getPrenom());
+        if (r.getSiteWeb() != null && !r.getSiteWeb().isBlank()) {
+            visites.inscription(http, r.getPrenom(), r.getNom(), r.getTelephone(), "Robot bloqué (champ caché rempli)");
+            return Map.of("ok", true);
+        }
+        // Chaque essai, réussi ou non, est noté dans Journal → Visites (super admin)
+        try {
+            if (verif.hasErrors())
+                throw new BusinessException(verif.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage)
+                        .distinct().collect(Collectors.joining(" · ")));
+            String ip = ip(http);
+            // Une erreur de saisie ne compte que dans les essais : le candidat peut corriger et renvoyer
+            compter(essais, ip, MAX_ESSAIS, true);
+            compter(demandes, ip, MAX_DEMANDES, false);
+            DemandeInscription d = service.soumettre(r);
+            compter(demandes, ip, MAX_DEMANDES, true);
+            visites.inscription(http, r.getPrenom(), r.getNom(), r.getTelephone(), "Demande envoyée"
+                    + (d.getFormule() != null ? " · formule " + d.getFormule() : ""));
+            return Map.of("ok", true, "prenom", d.getPrenom());
+        } catch (ResponseStatusException e) {
+            visites.inscription(http, r.getPrenom(), r.getNom(), r.getTelephone(), "Refusée : " + e.getReason());
+            throw e;
+        } catch (RuntimeException e) {
+            visites.inscription(http, r.getPrenom(), r.getNom(), r.getTelephone(), "Refusée : " + e.getMessage());
+            throw e;
+        }
     }
 
     @GetMapping("/api/demandes-inscription")

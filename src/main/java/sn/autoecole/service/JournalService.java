@@ -145,6 +145,7 @@ public class JournalService {
     public Optional<String> libelle(String methode, String chemin, Object reponse) {
         // Sauvegarde automatique du quiz en cours, à chaque réponse : pas une action à tracer
         if (chemin.startsWith("/api/eleve/quiz-en-cours")) return Optional.empty();
+        if (chemin.startsWith("/api/public/visites")) return Optional.empty();   // registre à part (Visites)
         String cle = methode + " " + modele(chemin);
         if (LIBELLES.containsKey(cle)) {
             String l = LIBELLES.get(cle);

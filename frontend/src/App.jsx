@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute from './components/PrivateRoute'
 import AppLayout from './layouts/AppLayout'
@@ -6,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import LandingPage from './pages/LandingPage'
 import InscriptionEnLigne from './pages/InscriptionEnLigne'
 import Forbidden from './pages/Forbidden'
+import { noterVisite } from './visites'
 
 function DashboardRouter() {
   return (
@@ -23,6 +25,8 @@ function DashboardRouter() {
 }
 
 export default function App() {
+  const { pathname } = useLocation()
+  useEffect(() => { noterVisite(pathname) }, [pathname])
   return (
     <AuthProvider>
       <Routes>
