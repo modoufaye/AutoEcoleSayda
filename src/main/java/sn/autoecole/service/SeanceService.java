@@ -105,25 +105,28 @@ public class SeanceService {
         return toResponse(seanceRepo.save(s));
     }
 
-    public SeanceResponse update(Long id, SeanceRequest req, String moniteurEmail) {
+    /** gestion : super admin, administrateurs et secrétariat, qui voient et gèrent toutes les séances. */
+    public SeanceResponse update(Long id, SeanceRequest req, String moniteurEmail, boolean gestion) {
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
-        if (!s.getMoniteur().getEmail().equals(moniteurEmail)) {
-            throw new BusinessException("Non autorisé");
-        }
+        verifierAuteur(s, moniteurEmail, gestion);
         s.setTitre(req.titre());
         applyFields(s, req);
         return toResponse(seanceRepo.save(s));
     }
 
-    public void delete(Long id, String moniteurEmail) {
+    public void delete(Long id, String moniteurEmail, boolean gestion) {
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
-        if (!s.getMoniteur().getEmail().equals(moniteurEmail)) {
-            throw new BusinessException("Non autorisé");
-        }
+        verifierAuteur(s, moniteurEmail, gestion);
         resultatRepo.deleteBySeanceId(s.getId());
         seanceRepo.delete(s);
+    }
+
+    /** Un moniteur ne modifie ou ne supprime que ses propres séances ; l'administration, toutes. */
+    private static void verifierAuteur(Seance s, String email, boolean gestion) {
+        if (!gestion && !s.getMoniteur().getEmail().equals(email))
+            throw new BusinessException("Seul le moniteur qui a créé cette séance, ou l'administration, peut la modifier ou la supprimer");
     }
 
     /* ── Quiz de la séance de code ── */

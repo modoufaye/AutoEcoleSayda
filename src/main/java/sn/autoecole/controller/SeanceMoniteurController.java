@@ -36,29 +36,31 @@ public class SeanceMoniteurController {
     @PutMapping("/{id}")
     public SeanceResponse update(@PathVariable Long id, @RequestBody SeanceRequest req,
                                  @AuthenticationPrincipal UserDetails user) {
-        return seanceService.update(id, req, user.getUsername());
+        return seanceService.update(id, req, user.getUsername(), gestion(user));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {
-        seanceService.delete(id, user.getUsername());
+        seanceService.delete(id, user.getUsername(), gestion(user));
+    }
+
+    /** Super admin, administrateurs et secrétariat : voient (all=true) et gèrent toutes les séances. */
+    private static boolean gestion(UserDetails user) {
+        return user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN")
+                || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SECRETAIRE"));
     }
 
     /** Résultats du quiz de la séance, élève par élève. */
     @GetMapping("/{id}/resultats")
     public List<Map<String, Object>> resultats(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {
-        boolean admin = user.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SECRETAIRE"));
-        return seanceService.resultats(id, user.getUsername(), admin);
+        return seanceService.resultats(id, user.getUsername(), gestion(user));
     }
 
     /** Élèves : tous si admin, sinon ceux du moniteur connecté */
     @GetMapping("/eleves")
     public List<Map<String, Object>> getEleves(@AuthenticationPrincipal UserDetails user) {
-        boolean isAdmin = user.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SECRETAIRE"));
-        List<Eleve> eleves = isAdmin
+        List<Eleve> eleves = gestion(user)
                 ? seanceService.findAllEleves()
                 : seanceService.findElevesByMoniteur(user.getUsername());
         // Les élèves en perfectionnement ne verront que les parties de conduite (SeanceService)
