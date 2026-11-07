@@ -340,7 +340,7 @@ export default function AppLayout() {
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} accesCours={accesCours === true} />
             : section === 'seances-moniteur' && gestion
-            ? <SeancesMoniteur key="seances-admin" isAdmin={true} onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
+            ? <SeancesMoniteur key="seances-admin" isAdmin={true} lectureSeule={user?.role === 'SECRETAIRE'} onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-moniteur'
             ? <SeancesMoniteur key="seances-moniteur" onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-eleve'

@@ -131,7 +131,8 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
   )
 }
 
-export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onOuvrir, onFermer }) {
+/* lectureSeule : secrétariat, qui consulte les séances sans les créer, modifier ni supprimer. */
+export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false, onBack, seanceId, onOuvrir, onFermer }) {
   const [seances, setSeances]         = useState([])
   const [recherche, setRecherche]     = useState('')
   const [statutFiltre, setStatutFiltre] = useState('')
@@ -198,6 +199,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
       : libellePartie(programme[0]) + (programme.length > 1 ? ` (+${programme.length - 1} partie${programme.length > 2 ? 's' : ''})` : '') })) }
 
   const toggleEleve = (id) => {
+    if (lectureSeule) return
     setForm(f => ({
       ...f,
       eleveIds: f.eleveIds.includes(id)
@@ -317,7 +319,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>
-              {editId ? 'Modifier la séance' : 'Nouvelle séance'}
+              {lectureSeule ? 'Consultation de la séance' : editId ? 'Modifier la séance' : 'Nouvelle séance'}
             </div>
             <div className="text-lg sm:text-xl font-extrabold text-white leading-tight truncate">
               {form.titre.trim() || 'Séance sans titre'}
@@ -326,7 +328,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
               {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de cours · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+          {!lectureSeule && <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
             <button
               className="flex items-center justify-center gap-2 text-sm font-bold px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5"
               style={{ minHeight: 42, borderRadius: 999, background: 'rgba(255,255,255,.14)', color: '#fff', border: '1.5px solid rgba(255,255,255,.25)' }}
@@ -345,7 +347,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
               <i className="bi bi-send-fill" />
               Publier
             </button>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -365,14 +367,14 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
             {eleves.length > 0 && (
               <div className="px-4 pt-4 pb-2 space-y-2" style={{ borderBottom: '1px solid #eef2f7' }}>
                 <div className="flex"><Recherche value={rechercheEleve} onChange={setRechercheEleve} placeholder="Nom ou téléphone…" /></div>
-                <div className="flex gap-2">
+                {!lectureSeule && <div className="flex gap-2">
                   <button type="button" onClick={() => toutCocher(true)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
                     <i className="bi bi-check2-all" />Tous
                   </button>
                   <button type="button" onClick={() => toutCocher(false)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
                     <i className="bi bi-x-lg" />Aucun
                   </button>
-                </div>
+                </div>}
               </div>
             )}
             <div style={{ maxHeight: 340, overflowY: 'auto' }}>
@@ -409,10 +411,13 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
 
         {/* Cours de code publiés, résultats du quiz, puis contenu libre */}
         <div className="lg:col-span-2 space-y-5">
-          <ChoixProgramme programme={form.programme} onChange={setProgramme}
-            dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
+          {/* Secrétariat : tout reste lisible (vidéos et audios compris), rien n'est modifiable */}
+          <fieldset disabled={lectureSeule} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+            <ChoixProgramme programme={form.programme} onChange={setProgramme}
+              dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
+          </fieldset>
           {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz seanceId={editId} />}
-          <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
+          <fieldset disabled={lectureSeule} className="bg-white rounded-2xl overflow-hidden" style={{ ...carte, padding: 0, margin: 0, minWidth: 0 }}>
             <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />
 
             <div className="p-5">
@@ -426,7 +431,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                   onMove={moveBloc} onUpload={handleUpload} />
               ))}
 
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-2 pt-4 border-t border-slate-100">
+              {!lectureSeule && <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-2 pt-4 border-t border-slate-100">
                 {BLOCS.map(b => (
                   <button key={b.type} type="button" onClick={() => addBloc(b.type)}
                     className="flex items-center justify-center gap-1.5 text-sm font-bold px-4 cursor-pointer transition-all hover:-translate-y-0.5 whitespace-nowrap"
@@ -434,9 +439,9 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                     <i className={`bi bi-${b.icon}`} />+ {b.label}
                   </button>
                 ))}
-              </div>
+              </div>}
             </div>
-          </div>
+          </fieldset>
         </div>
       </div>
     </div>
@@ -467,7 +472,7 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
           <option value="PUBLIE">Publié</option>
           <option value="BROUILLON">Brouillon</option>
         </Filtre>
-        <BoutonAjout onClick={openCreate}>Séance</BoutonAjout>
+        {!lectureSeule && <BoutonAjout onClick={openCreate}>Séance</BoutonAjout>}
       </BarreFiltres>
 
       {/* Liste : bandeau bleu nuit souligné d'or, comme « Véhicules · Flotte de l'auto-école » */}
@@ -523,8 +528,12 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
                   <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                     <Pastille couleur={isPub ? '#15803d' : '#a16207'} fond={isPub ? '#dcfce7' : '#fef9c3'}>{isPub ? 'Publié' : 'Brouillon'}</Pastille>
                     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                      <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
-                      <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => handleDelete(s.id)} />
+                      {lectureSeule
+                        ? <BoutonRond title="Consulter" icon="eye-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
+                        : <>
+                          <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
+                          <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => handleDelete(s.id)} />
+                        </>}
                     </div>
                   </div>
                 </div>

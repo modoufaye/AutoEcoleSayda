@@ -62,6 +62,10 @@ public class SecurityConfig {
                 // Comptes administrateurs : super admin seulement (l'administrateur n'en crée pas et ne touche pas au super admin)
                 .requestMatchers("/api/admin/administrateurs", "/api/admin/administrateurs/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/admin/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                // Séances de cours : le secrétariat les consulte seulement (création, modification, suppression : non)
+                .requestMatchers(HttpMethod.POST, "/api/moniteur/seances").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/moniteur/seances/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/moniteur/seances/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN")
                 .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
                 // Gestion des paiements réservée à l'admin : sinon un élève pourrait

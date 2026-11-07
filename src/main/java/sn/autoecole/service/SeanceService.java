@@ -105,7 +105,7 @@ public class SeanceService {
         return toResponse(seanceRepo.save(s));
     }
 
-    /** gestion : super admin, administrateurs et secrétariat, qui voient et gèrent toutes les séances. */
+    /** gestion : super admin et administrateurs, qui modifient et suppriment toutes les séances. */
     public SeanceResponse update(Long id, SeanceRequest req, String moniteurEmail, boolean gestion) {
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));

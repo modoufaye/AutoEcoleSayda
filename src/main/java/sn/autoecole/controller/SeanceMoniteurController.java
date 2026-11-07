@@ -36,19 +36,24 @@ public class SeanceMoniteurController {
     @PutMapping("/{id}")
     public SeanceResponse update(@PathVariable Long id, @RequestBody SeanceRequest req,
                                  @AuthenticationPrincipal UserDetails user) {
-        return seanceService.update(id, req, user.getUsername(), gestion(user));
+        return seanceService.update(id, req, user.getUsername(), administration(user));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {
-        seanceService.delete(id, user.getUsername(), gestion(user));
+        seanceService.delete(id, user.getUsername(), administration(user));
     }
 
-    /** Super admin, administrateurs et secrétariat : voient (all=true) et gèrent toutes les séances. */
+    /** Super admin, administrateurs et secrétariat : voient toutes les séances, leurs élèves et résultats. */
     private static boolean gestion(UserDetails user) {
-        return user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN")
-                || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SECRETAIRE"));
+        return administration(user) || user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SECRETAIRE"));
+    }
+
+    /** Super admin et administrateurs : modifient et suppriment toutes les séances (le secrétariat
+        les consulte seulement, voir SecurityConfig). */
+    private static boolean administration(UserDetails user) {
+        return user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     /** Résultats du quiz de la séance, élève par élève. */
