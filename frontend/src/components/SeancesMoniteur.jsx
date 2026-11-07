@@ -246,7 +246,17 @@ export default function SeancesMoniteur({ isAdmin = false, onBack, seanceId, onO
   }
 
   const handleSave = async (statut) => {
-    if (!form.programme.length && !form.blocs.length) { setErr('Ajoutez au moins une partie de cours ou un contenu'); return }
+    if (!form.programme.length && !form.blocs.length) {
+      if (!editId) { setErr('Ajoutez au moins une partie de cours ou un contenu'); return }
+      // Séance existante entièrement vidée (cours et contenus retirés) : on la supprime
+      if (!(await confirmer({ titre: 'Supprimer cette séance ?', ton: 'danger', icone: 'trash3-fill', libelle: 'Supprimer la séance',
+        message: "Vous avez retiré tous ses cours et contenus : elle sera supprimée et ses élèves ne la verront plus. Les résultats de son quiz seront aussi effacés." }))) return
+      setSaving(true); setErr('')
+      try { await api('DELETE', `/moniteur/seances/${editId}`); toast('Séance supprimée'); load(); fermerEditeur() }
+      catch (e) { setErr(e.message) }
+      finally { setSaving(false) }
+      return
+    }
     const titre = form.titre.trim() || 'Séance de cours'
     setSaving(true); setErr('')
     try {
