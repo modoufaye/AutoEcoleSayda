@@ -24,7 +24,7 @@ const THEME_MAP = Object.fromEntries(THEMES.map(t => [t.value, t.label]))
 const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUILLON', eleveIds: [], blocs: [], programme: [] })
 
 /* Bloc vidéo ou audio : choix dans la médiathèque (vidéos et audios français / wolof déposés par
-   l'équipe), ou envoi d'un fichier depuis l'appareil. */
+   l'équipe) avec une puce à cocher ou décocher, ou envoi d'un fichier depuis l'appareil. */
 const LANGUES_MEDIA = { FRANCAIS: { libelle: 'Français', couleur: '#1d4ed8', fond: '#dbeafe' }, WOLOF: { libelle: 'Wolof', couleur: '#047857', fond: '#d1fae5' } }
 function ChoixMedia({ type, medias, url, onChoisir, onFichier, uploading, accept, fichierCls }) {
   const liste = medias.filter(m => m.type === type)
@@ -60,8 +60,15 @@ function ChoixMedia({ type, medias, url, onChoisir, onFichier, uploading, accept
             {visibles.length === 0 && <div className="px-3 py-3 text-sm text-slate-400">Aucun média dans cette langue</div>}
             {visibles.map(m => {
               const l = LANGUES_MEDIA[m.langue] || LANGUES_MEDIA.FRANCAIS, actif = m.url === url
+              // Puce : toucher la ligne coche le média ; retoucher le média coché le décoche
               return (
-                <div key={m.id} className="flex items-center gap-3 px-3 py-2" style={{ borderBottom: '1px solid #f1f5f9', background: actif ? '#fffbeb' : '#fff' }}>
+                <div key={m.id} role="checkbox" aria-checked={actif} tabIndex={0} onClick={() => onChoisir(actif ? null : m)}
+                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onChoisir(actif ? null : m) } }}
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer" style={{ borderBottom: '1px solid #f1f5f9', background: actif ? '#fffbeb' : '#fff' }}>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ border: `2px solid ${actif ? '#d4a017' : '#cbd5e1'}`, background: actif ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
+                    {actif && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{m.titre}</div>
                     <div className="text-xs text-slate-400 truncate">
@@ -69,10 +76,6 @@ function ChoixMedia({ type, medias, url, onChoisir, onFichier, uploading, accept
                       {m.auteurNom}
                     </div>
                   </div>
-                  <button type="button" onClick={() => onChoisir(m)} className="text-xs font-extrabold px-3 border-0 cursor-pointer whitespace-nowrap"
-                    style={{ borderRadius: 999, minHeight: 30, ...(actif ? { background: '#dcfce7', color: '#15803d' } : { background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }) }}>
-                    {actif ? '✓ Choisi' : 'Choisir'}
-                  </button>
                 </div>
               )
             })}
@@ -159,7 +162,7 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, 
         {bloc.typeBloc === 'VIDEO' && (
           <div>
             <ChoixMedia type="VIDEO" medias={medias} url={bloc.mediaUrl} uploading={bloc._uploading}
-              onChoisir={m => onUpdate(index, 'mediaUrl', m.url)} onFichier={f => onUpload(index, f, 'video')}
+              onChoisir={m => onUpdate(index, 'mediaUrl', m ? m.url : '')} onFichier={f => onUpload(index, f, 'video')}
               accept="video/mp4,video/webm,video/ogg,video/quicktime,.mov"
               fichierCls="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700" />
             {bloc.mediaUrl && !bloc._uploading && (
@@ -174,7 +177,7 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, 
         {bloc.typeBloc === 'AUDIO' && (
           <div>
             <ChoixMedia type="AUDIO" medias={medias} url={bloc.mediaUrl} uploading={bloc._uploading}
-              onChoisir={m => onUpdate(index, 'mediaUrl', m.url)} onFichier={f => onUpload(index, f, 'audio')}
+              onChoisir={m => onUpdate(index, 'mediaUrl', m ? m.url : '')} onFichier={f => onUpload(index, f, 'audio')}
               accept="audio/*,.m4a,.mp3,.wav,.ogg,.opus,.aac,.flac"
               fichierCls="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700" />
             {bloc.mediaUrl && !bloc._uploading && (
