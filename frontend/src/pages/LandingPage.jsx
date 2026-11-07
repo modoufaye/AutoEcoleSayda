@@ -613,13 +613,15 @@ function CtaBanner() {
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────
-/* Les trois sites de l'auto-école : adresse, numéro (lien d'appel) et itinéraire. */
+/* Les trois sites de l'auto-école : adresse, numéro (lien d'appel) et itinéraire. geo : position
+   exacte (latitude, longitude) ; sans elle, l'itinéraire cherche l'adresse. */
 const SITES = [
-  { nom: 'Massalikoul Djinane', adresse: 'Avenue Cheikh Ahmadou Bamba, en face de la grande mosquée Massalikoul Djinane', tel: '77 329 35 57' },
+  { nom: 'Massalikoul Djinane', adresse: 'Avenue Cheikh Ahmadou Bamba, en face de la grande mosquée Massalikoul Djinane', tel: '77 329 35 57',
+    geo: '14.701722,-17.446889' },   // 14°42'06.2"N 17°26'48.8"W
   { nom: 'Guédiawaye', adresse: "En face de l'arrêt BRT Fith Mith", tel: '78 651 23 23' },
   { nom: 'Keur Massar', adresse: 'Rond-point Gouye Gui, immeuble CFC, 3e étage', tel: '78 431 35 35' },
 ]
-const itineraire = s => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.adresse}, ${s.nom}, Dakar, Sénégal`)}`
+const itineraire = s => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.geo || `${s.adresse}, ${s.nom}, Dakar, Sénégal`)}`
 const whatsapp = s => `https://wa.me/221${s.tel.replace(/\s/g, '')}?text=${encodeURIComponent(`Bonjour Auto-École Khadija (site de ${s.nom}), je souhaite des informations sur l'inscription au permis.`)}`
 
 function Footer() {
