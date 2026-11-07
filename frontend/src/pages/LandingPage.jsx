@@ -701,7 +701,7 @@ function Footer() {
             </ul>
             <div className="mt-3 flex items-center gap-3 text-blue-200 text-sm">
               <MailIcon />
-              <span>contact@autoecole-khadija.sn</span>
+              <a href="mailto:khadija@auto-ecole.sn" style={{ color: '#bfdbfe', textDecoration: 'none' }}>khadija@auto-ecole.sn</a>
             </div>
             <div className="mt-4 bg-white/10 rounded-xl p-3">
               <div className="text-xs text-blue-300 font-medium mb-1">Horaires d'ouverture</div>
