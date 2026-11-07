@@ -5,9 +5,9 @@ import { confirmer } from './confirmer'
 import { correspond } from '../utils'
 import { EnteteListe, BarreFiltres, Recherche, ListeVide, ListeChargement, Pastille, BoutonRond, BoutonAjout } from './ListeModerne'
 
-/* Médiathèque : vidéos et audios en français ou en wolof. Le personnel (super admin,
-   administrateurs, moniteurs) dépose, classe et choisit ce que voient les élèves ; l'élève regarde
-   et écoute les médias qui lui sont ouverts. */
+/* Médiathèque (super admin, administrateurs, moniteurs) : vidéos et audios en français ou en
+   wolof, rangés ici pour être publiés ensuite dans les séances de cours (blocs Vidéo et Audio).
+   Les élèves ne voient pas cette rubrique : ils retrouvent les médias dans leurs séances. */
 
 const TYPES = [
   { v: 'VIDEO', libelle: 'Vidéos', un: 'une vidéo', icone: 'camera-video-fill', accept: 'video/mp4,video/webm,video/ogg,video/quicktime,.mov,.mp4' },
@@ -17,7 +17,7 @@ const LANGUES = {
   FRANCAIS: { libelle: 'Français', couleur: '#1d4ed8', fond: '#dbeafe' },
   WOLOF: { libelle: 'Wolof', couleur: '#047857', fond: '#d1fae5' },
 }
-const vide = { titre: '', langue: '', description: '', visibleEleves: true, fichier: null }
+const vide = { titre: '', langue: '', description: '', fichier: null }
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 const pilule = actif => ({ borderRadius: 999, minHeight: 38, border: `1.5px solid ${actif ? '#1e3a5f' : '#e2e8f0'}`, background: actif ? '#1e3a5f' : '#fff', color: actif ? '#fff' : '#475569' })
 
@@ -34,7 +34,7 @@ function Formulaire({ type, media, onFini, onAnnuler }) {
     if (!media && !f.fichier) return toast(`Choisissez le fichier de ${t.un}`, 'warning')
     setEnvoi(true)
     try {
-      const corps = { langue: f.langue, titre: f.titre, description: f.description, visibleEleves: f.visibleEleves }
+      const corps = { langue: f.langue, titre: f.titre, description: f.description }
       if (media) await api('PUT', `/medias/${media.id}`, corps)
       else {
         const { url } = await uploadFile(`/moniteur/upload/${type === 'VIDEO' ? 'video' : 'audio'}`, f.fichier)
@@ -47,27 +47,20 @@ function Formulaire({ type, media, onFini, onAnnuler }) {
   }
   return (
     <form onSubmit={valider} className="bg-white rounded-2xl overflow-hidden" style={carte}>
-      <EnteteListe icone={t.icone} titre={media ? 'Modifier le média' : `Ajouter ${t.un}`} sousTitre="Titre, langue, et qui peut le voir" />
+      <EnteteListe icone={t.icone} titre={media ? 'Modifier le média' : `Ajouter ${t.un}`} sousTitre="Titre et langue, pour le retrouver dans les séances" />
       <div className="p-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Titre *</label>
           <input className="form-control" value={f.titre} maxLength={150} onChange={e => set('titre', e.target.value)}
             placeholder={type === 'VIDEO' ? 'Ex. Le démarrage en côte' : 'Ex. Les panneaux de danger'} />
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Langue *</label>
           <div className="flex gap-2">
             {Object.entries(LANGUES).map(([v, l]) => (
               <button key={v} type="button" onClick={() => set('langue', v)} className="flex-1 text-sm font-bold px-4 cursor-pointer" style={pilule(f.langue === v)}>{l.libelle}</button>
             ))}
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Élèves</label>
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer" style={{ minHeight: 38 }}>
-            <input type="checkbox" checked={f.visibleEleves} onChange={e => set('visibleEleves', e.target.checked)} style={{ width: 18, height: 18 }} />
-            Visible par les élèves
-          </label>
         </div>
         <div className="sm:col-span-2">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Description</label>
@@ -93,12 +86,8 @@ function Formulaire({ type, media, onFini, onAnnuler }) {
   )
 }
 
-function CarteMedia({ m, eleve, onModifier, onChanger }) {
+function CarteMedia({ m, onModifier, onChanger }) {
   const l = LANGUES[m.langue] || LANGUES.FRANCAIS
-  const basculer = async () => {
-    try { await api('PUT', `/medias/${m.id}`, { langue: m.langue, titre: m.titre, description: m.description, visibleEleves: !m.visibleEleves }); toast(m.visibleEleves ? 'Masqué aux élèves' : 'Visible par les élèves'); onChanger() }
-    catch (e) { toast(e.message, 'danger') }
-  }
   const supprimer = async () => {
     if (m.seances > 0) return toast(`Ce média est utilisé dans ${m.seances} séance${m.seances > 1 ? 's' : ''} : retirez-le d'abord de ${m.seances > 1 ? 'ces séances' : 'cette séance'}`, 'warning')
     if (!(await confirmer({ titre: 'Supprimer ce média ?', ton: 'danger', icone: 'trash3-fill', libelle: 'Supprimer',
@@ -114,10 +103,9 @@ function CarteMedia({ m, eleve, onModifier, onChanger }) {
       <div className="p-4 flex flex-col gap-2 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Pastille couleur={l.couleur} fond={l.fond}>{l.libelle}</Pastille>
-          {!eleve && (m.visibleEleves
-            ? <Pastille couleur="#15803d" fond="#dcfce7">Visible élèves</Pastille>
-            : <Pastille couleur="#64748b" fond="#f1f5f9">Équipe seulement</Pastille>)}
-          {!eleve && m.seances > 0 && <Pastille couleur="#7c3aed" fond="#ede9fe">Dans {m.seances} séance{m.seances > 1 ? 's' : ''}</Pastille>}
+          {m.seances > 0
+            ? <Pastille couleur="#7c3aed" fond="#ede9fe">Dans {m.seances} séance{m.seances > 1 ? 's' : ''}</Pastille>
+            : <Pastille couleur="#64748b" fond="#f1f5f9">Pas encore publié</Pastille>}
         </div>
         <div className="font-extrabold leading-snug" style={{ color: '#1e3a5f' }}>{m.titre}</div>
         {m.description && <div className="text-sm text-slate-600">{m.description}</div>}
@@ -126,7 +114,6 @@ function CarteMedia({ m, eleve, onModifier, onChanger }) {
         </div>
         {m.modifiable && (
           <div className="flex gap-2 pt-1">
-            <BoutonRond title={m.visibleEleves ? 'Masquer aux élèves' : 'Rendre visible aux élèves'} icon={m.visibleEleves ? 'eye-slash-fill' : 'eye-fill'} couleur="#047857" fond="#ecfdf5" onClick={basculer} />
             <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => onModifier(m)} />
             <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={supprimer} />
           </div>
@@ -136,15 +123,15 @@ function CarteMedia({ m, eleve, onModifier, onChanger }) {
   )
 }
 
-export default function Mediatheque({ eleve = false }) {
+export default function Mediatheque() {
   const [medias, setMedias] = useState(null)
   const [type, setType] = useState('VIDEO')
   const [langue, setLangue] = useState('')
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null)   // null, 'ajout' ou le média à modifier
 
-  const charger = () => api('GET', eleve ? '/eleve/medias' : '/medias').then(setMedias).catch(e => { toast(e.message, 'danger'); setMedias([]) })
-  useEffect(() => { charger() }, [eleve]) // eslint-disable-line react-hooks/exhaustive-deps
+  const charger = () => api('GET', '/medias').then(setMedias).catch(e => { toast(e.message, 'danger'); setMedias([]) })
+  useEffect(() => { charger() }, [])
 
   const t = TYPES.find(x => x.v === type)
   const duType = (medias || []).filter(m => m.type === type)
@@ -171,18 +158,18 @@ export default function Mediatheque({ eleve = false }) {
             <button key={v} type="button" onClick={() => setLangue(v)} className="text-sm font-bold px-4 cursor-pointer whitespace-nowrap" style={pilule(langue === v)}>{l}</button>
           ))}
         </div>
-        {!eleve && !form && <BoutonAjout onClick={() => setForm('ajout')}>{type === 'VIDEO' ? 'Vidéo' : 'Audio'}</BoutonAjout>}
+        {!form && <BoutonAjout onClick={() => setForm('ajout')}>{type === 'VIDEO' ? 'Vidéo' : 'Audio'}</BoutonAjout>}
       </BarreFiltres>
 
       {form && <Formulaire key={form === 'ajout' ? 'ajout' : form.id} type={type} media={form === 'ajout' ? null : form} onFini={fini} onAnnuler={() => setForm(null)} />}
 
       <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
         <EnteteListe icone={t.icone} titre={`${t.libelle} en français et en wolof`}
-          sousTitre={eleve ? 'Mis à disposition par votre auto-école' : 'À choisir dans les blocs vidéo et audio des séances · « Visible élèves » : aussi dans la médiathèque des élèves'} nombre={visibles.length} />
+          sousTitre="À choisir dans les blocs Vidéo et Audio des séances de cours" nombre={visibles.length} />
         {medias === null ? <ListeChargement />
-          : visibles.length === 0 ? <ListeVide texte={duType.length ? 'Aucun média ne correspond à la recherche' : eleve ? `Aucun${type === 'VIDEO' ? 'e vidéo' : ' audio'} pour le moment` : `Aucun${type === 'VIDEO' ? 'e vidéo' : ' audio'} · cliquez sur « + ${type === 'VIDEO' ? 'Vidéo' : 'Audio'} » pour commencer`} icone={t.icone} />
+          : visibles.length === 0 ? <ListeVide texte={duType.length ? 'Aucun média ne correspond à la recherche' : `Aucun${type === 'VIDEO' ? 'e vidéo' : ' audio'} · cliquez sur « + ${type === 'VIDEO' ? 'Vidéo' : 'Audio'} » pour commencer`} icone={t.icone} />
           : <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {visibles.map(m => <CarteMedia key={m.id} m={m} eleve={eleve} onModifier={x => setForm(x)} onChanger={charger} />)}
+            {visibles.map(m => <CarteMedia key={m.id} m={m} onModifier={x => setForm(x)} onChanger={charger} />)}
           </div>}
       </div>
     </div>

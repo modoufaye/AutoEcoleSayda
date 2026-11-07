@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 /**
  * Vidéo ou audio de la médiathèque, en français ou en wolof, déposé par le super admin, un
- * administrateur ou un moniteur. visibleEleves : présenté aussi aux élèves dans leur médiathèque.
+ * administrateur ou un moniteur pour être publié dans les séances de cours.
  */
 @Entity
 @Table(name = "medias", indexes = @Index(name = "idx_media_date", columnList = "cree_le"))
@@ -39,6 +39,7 @@ public class Media {
     @Column(nullable = false, length = 300)
     private String url;
 
+    /** Ancienne option (médiathèque des élèves, retirée) : colonne gardée, toujours fausse. */
     @Column(nullable = false)
     private boolean visibleEleves;
 

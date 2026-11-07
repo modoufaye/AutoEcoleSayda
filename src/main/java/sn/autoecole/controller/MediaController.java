@@ -23,11 +23,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Médiathèque : vidéos et audios en français ou en wolof. Personnel (super admin, administrateurs,
- * moniteurs) : /api/medias, tout voir, déposer, modifier ou supprimer les siens (l'administration :
- * tous). Élèves : /api/eleve/medias, les médias rendus visibles. Le fichier passe d'abord par
- * /api/moniteur/upload/video ou /audio. Les médias se choisissent ensuite dans les blocs vidéo et
- * audio des séances ; un média utilisé dans une séance ne peut pas être supprimé.
+ * Médiathèque : vidéos et audios en français ou en wolof, rangés par le super admin, les
+ * administrateurs et les moniteurs (/api/medias) pour les publier ensuite dans les séances de cours
+ * (blocs vidéo et audio). Pas d'accès élève : les élèves les voient dans leurs séances. Chacun
+ * modifie ou supprime ses médias, l'administration tous ; un média utilisé dans une séance ne peut
+ * pas être supprimé. Le fichier passe d'abord par /api/moniteur/upload/video ou /audio.
  */
 @RestController
 @RequiredArgsConstructor
@@ -49,12 +49,7 @@ public class MediaController {
         }).toList();
     }
 
-    @GetMapping("/api/eleve/medias")
-    public List<Map<String, Object>> pourEleves() {
-        return repo.findByVisibleElevesTrueOrderByCreeLeDesc().stream().map(m -> vue(m, false)).toList();
-    }
-
-    /** Corps : { type, langue, titre, description, url, visibleEleves }. */
+    /** Corps : { type, langue, titre, description, url }. */
     @PostMapping("/api/medias")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> ajouter(@RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
@@ -70,7 +65,7 @@ public class MediaController {
         return vue(m, true);
     }
 
-    /** Corps : { langue, titre, description, visibleEleves } (le fichier ne change pas). */
+    /** Corps : { langue, titre, description } (le fichier ne change pas). */
     @PutMapping("/api/medias/{id}")
     public Map<String, Object> modifier(@PathVariable Long id, @RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
         Media m = trouverModifiable(id, auth);
@@ -111,7 +106,6 @@ public class MediaController {
         m.setTitre(titre.length() > 150 ? titre.substring(0, 150) : titre);
         String d = body.get("description") == null ? "" : body.get("description").toString().trim();
         m.setDescription(d.isEmpty() ? null : d.length() > 500 ? d.substring(0, 500) : d);
-        m.setVisibleEleves(Boolean.TRUE.equals(body.get("visibleEleves")));
     }
 
     private static <E extends Enum<E>> E enumere(Class<E> c, Object v, String erreur) {
@@ -126,7 +120,7 @@ public class MediaController {
         Map<String, Object> v = new LinkedHashMap<>();
         v.put("id", m.getId()); v.put("type", m.getType()); v.put("langue", m.getLangue());
         v.put("titre", m.getTitre()); v.put("description", m.getDescription()); v.put("url", m.getUrl());
-        v.put("visibleEleves", m.isVisibleEleves()); v.put("auteurNom", m.getAuteurNom()); v.put("creeLe", m.getCreeLe());
+        v.put("auteurNom", m.getAuteurNom()); v.put("creeLe", m.getCreeLe());
         v.put("modifiable", modifiable);
         return v;
     }
