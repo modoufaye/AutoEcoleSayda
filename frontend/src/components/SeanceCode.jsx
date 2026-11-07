@@ -5,7 +5,7 @@ import { EnteteListe, AvatarRond, Pastille, ListeVide, ListeChargement } from '.
 import { Visuel, IconeChapitre, Quiz } from './CoursCode'
 import { genre, estScene } from './coursOutils'
 import BoutonEcouter, { BoutonWolof } from './BoutonEcouter'
-import { useAudiosWolof } from './audiosWolof'
+import { useAudiosWolof, clePanneau } from './audiosWolof'
 import { chargerQuiz } from './sauvegardeQuiz'
 import { SEUIL_REUSSITE } from '../contenu/signalisation'
 import { COURS, trouverChapitre, numeroChapitre, complete, panneauxPartie, libellePartie, questionsPartie, questionsSeance, QUESTIONS_MAX } from '../contenu/programme'
@@ -276,6 +276,7 @@ function PartieEleve({ partie, rang }) {
                 className="relative bg-white rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer text-center"
                 style={{ borderRadius: 16, border: sel?.id === pa.id ? '2px solid #1e3a5f' : '1px solid #e8edf4', boxShadow: '0 2px 8px rgba(15,34,64,.05)' }}>
                 <span className="absolute font-black" style={{ top: 8, left: 8, fontSize: '.68rem', background: '#1e3a5f', color: '#fff', borderRadius: 999, padding: '1px 7px' }}>{pa.numero}</span>
+                {wolof[clePanneau(t.ch.id, pa.id)] && <span className="absolute w-6 h-6 rounded-full flex items-center justify-center text-[11px]" title="Explication en wolof" style={{ top: 6, right: 6, background: '#d1fae5', color: '#047857' }}><i className="bi bi-headphones" /></span>}
                 <Visuel item={pa} taille={estScene(pa) ? 120 : 70} />
                 <span className="text-xs font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{pa.nom}</span>
               </button>
@@ -289,7 +290,10 @@ function PartieEleve({ partie, rang }) {
                 {sel.sens && <div className="text-sm text-slate-600 mt-1">{sel.sens}</div>}
                 {sel.action && <div className="mt-2 rounded-xl p-3 text-sm" style={{ background: '#f0fdf4', color: '#166534' }}><b><i className="bi bi-hand-index-thumb-fill me-1" />Ce qu'il faut faire :</b> {sel.action}</div>}
                 {sel.piege && <div className="mt-2 rounded-xl p-3 text-sm" style={{ background: '#fef9c3', color: '#854d0e' }}><b>⚠ Piège :</b> {sel.piege}</div>}
-                <BoutonEcouter texte={`${sel.nom}. ${sel.sens || ''} ${sel.action || ''}`} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <BoutonEcouter texte={`${sel.nom}. ${sel.sens || ''} ${sel.action || ''}`} className="px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
+                  {wolof[clePanneau(t.ch.id, sel.id)] && <BoutonWolof url={wolof[clePanneau(t.ch.id, sel.id)]} />}
+                </div>
               </div>
             </div>
           )}

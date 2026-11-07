@@ -16,7 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Explications en wolof des chapitres. Lecture : tout compte connecté (élèves compris).
+ * Explications en wolof des chapitres et de chacun de leurs panneaux (clé « danger » ou
+ * « danger:A1a »). Lecture : tout compte connecté (élèves compris).
  * Dépôt et suppression : super admin, administrateurs et moniteurs (SecurityConfig).
  */
 @RestController
@@ -56,9 +57,11 @@ public class AudioWolofController {
         http.setAttribute(JournalInterceptor.CIBLE_PRECISE, titre(titre, chapitre));
     }
 
-    /** Chapitre du cours de code ou de la conduite (pas une série d'examen). */
+    /** Chapitre du cours de code ou de la conduite (pas une série d'examen), ou « chapitre:panneau ». */
     private static String chapitre(String c) {
-        if (c == null || !ProgressionCodeController.CHAPITRES.contains(c) || c.startsWith("serie-"))
+        String ch = c == null ? null : c.split(":", 2)[0];
+        if (ch == null || !ProgressionCodeController.CHAPITRES.contains(ch) || ch.startsWith("serie-")
+                || (c.contains(":") && !c.substring(ch.length() + 1).matches("[A-Za-z0-9_.-]{1,40}")))
             throw new BusinessException("Chapitre inconnu");
         return c;
     }

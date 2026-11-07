@@ -6,8 +6,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Explication enregistrée en wolof d'un chapitre du cours de code ou de « Apprendre à conduire »
- * (bouton « Wolof » à côté de « Écouter »). Une par chapitre ; l'audio est dans /uploads/audios.
+ * Explication enregistrée en wolof d'un chapitre du cours de code ou de « Apprendre à conduire »,
+ * ou d'un de ses panneaux (bouton « Wolof » à côté de « Écouter »). Une par clé ; l'audio est dans
+ * /uploads/audios.
  */
 @Entity
 @Table(name = "audios_wolof", uniqueConstraints = @UniqueConstraint(name = "uk_audio_wolof_chapitre", columnNames = "chapitre"))
@@ -18,6 +19,7 @@ public class AudioWolof {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Chapitre (« danger ») ou panneau d'un chapitre (« danger:A1a »). */
     @Column(nullable = false, length = 80)
     private String chapitre;
 

@@ -1,5 +1,6 @@
-/* Explications en wolof des chapitres : { idDuChapitre: url }, chargées une fois et partagées
-   par les écrans ; rechargées après un dépôt ou une suppression. */
+/* Explications en wolof : { cle: url }, clé « danger » (chapitre) ou « danger:A1a » (panneau du
+   chapitre) ; chargées une fois et partagées par les écrans, rechargées après un dépôt ou une
+   suppression. */
 import { useEffect, useState } from 'react'
 import { api, uploadFile } from '../api'
 
@@ -28,14 +29,17 @@ async function rafraichir() {
   const a = await charger(true); abonnes.forEach(f => f(a))
 }
 
-/* Envoie l'enregistrement (mémo vocal, mp3…) puis l'attache au chapitre. */
-export async function deposerAudioWolof(chapitre, titre, fichier) {
+/* Clé d'un panneau dans son chapitre. */
+export const clePanneau = (chapitre, panneau) => `${chapitre}:${panneau}`
+
+/* Envoie l'enregistrement (mémo vocal, mp3…) puis l'attache au chapitre ou au panneau. */
+export async function deposerAudioWolof(cle, titre, fichier) {
   const { url } = await uploadFile('/moniteur/upload/audio', fichier)
-  await api('PUT', '/audios-wolof', { chapitre, url, titre })
+  await api('PUT', '/audios-wolof', { chapitre: cle, url, titre })
   await rafraichir()
 }
 
-export async function supprimerAudioWolof(chapitre, titre) {
-  await api('DELETE', `/audios-wolof?${new URLSearchParams({ chapitre, titre })}`)
+export async function supprimerAudioWolof(cle, titre) {
+  await api('DELETE', `/audios-wolof?${new URLSearchParams({ chapitre: cle, titre })}`)
   await rafraichir()
 }

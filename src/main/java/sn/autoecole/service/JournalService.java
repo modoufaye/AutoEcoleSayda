@@ -40,8 +40,8 @@ public class JournalService {
     static {
         String[][] l = {
             {"POST /api/admin/administrateurs", "Création d'un compte administrateur"},
-            {"PUT /api/audios-wolof", "Ajout de l'explication en wolof d'un chapitre"},
-            {"DELETE /api/audios-wolof", "Suppression de l'explication en wolof d'un chapitre"},
+            {"PUT /api/audios-wolof", "Ajout d'une explication en wolof"},
+            {"DELETE /api/audios-wolof", "Suppression d'une explication en wolof"},
             {"DELETE /api/admin/administrateurs/{id}", "Suppression d'un compte administrateur"},
             {"PATCH /api/admin/administrateurs/{id}/actif", "Activation ou désactivation d'un administrateur"},
             {"POST /api/admin/administrateurs/{id}/identifiants", "Nouveau mot de passe pour un administrateur"},

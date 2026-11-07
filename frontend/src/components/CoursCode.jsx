@@ -10,7 +10,7 @@ import { ouverturesCode } from '../contenu/programme'
 import { genre, estScene } from './coursOutils'
 import BoutonEcouter, { BoutonWolof } from './BoutonEcouter'
 import GestionWolof from './GestionWolof'
-import { useAudiosWolof } from './audiosWolof'
+import { useAudiosWolof, clePanneau } from './audiosWolof'
 import { useAuth } from '../context/AuthContext'
 import { chargerQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
 import { confirmer } from './confirmer'
@@ -166,7 +166,8 @@ function PartieQuiz({ questions: tirees, onFini, onSuivant, suivantLibelle, text
 /* ── Un chapitre : Leçon · Panneaux · Quiz ── */
 function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat, onSuivant, suivantLibelle, gerer }) {
   const [onglet, setOnglet] = useState('lecon')
-  const wolof = useAudiosWolof()[ch.id]
+  const audios = useAudiosWolof(), wolof = audios[ch.id]
+  const wolofPanneau = pa => audios[clePanneau(ch.id, pa.id)]
   // Quiz commencé (sur cet appareil ou un autre) : on rouvre directement l'onglet Quiz
   useEffect(() => { if (!ch.partiel) chargerQuiz(`chapitre:${ch.id}`).then(x => { if (x) setOnglet('quiz') }) }, [ch.id, ch.partiel])
   const [sel, setSel] = useState(ch.panneaux[0])
@@ -180,6 +181,7 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
           <div className="min-w-0">
             <div className="font-extrabold text-lg leading-tight" style={{ color: '#1e3a5f' }}>{ch.titre}</div>
             <div className="text-xs text-slate-500">Chapitre {ch.numero} sur {total} · {ch.panneaux.length} {genre(ch)}{ch.partiel ? ' ouverts par votre moniteur' : ''}</div>
+            {gerer && <div className="text-xs font-bold mt-0.5" style={{ color: '#047857' }}><i className="bi bi-headphones me-1" />Wolof : leçon {wolof ? '✓' : 'à enregistrer'} · {ch.panneaux.filter(wolofPanneau).length} {genre(ch)} sur {ch.panneaux.length}</div>}
           </div>
         </div>
         <div className="flex gap-1 p-1 rounded-full w-full sm:w-auto" style={{ background: '#f1f5f9' }}>
@@ -209,7 +211,7 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
               </div>
             </div>
           </div>
-          {gerer && <GestionWolof chapitre={ch.id} titre={`${ch.id.startsWith('conduite-') ? 'Conduite · ' : ''}${ch.titre}`} url={wolof} />}
+          {gerer && <GestionWolof cle={ch.id} titre={`${ch.id.startsWith('conduite-') ? 'Conduite · ' : ''}${ch.titre}`} url={wolof} />}
           {ch.piege && (
             <div className="rounded-2xl px-5 py-3 flex items-center gap-3 text-sm" style={{ background: '#fef2f2', border: '1.5px solid #fecaca', color: '#991b1b' }}>
               <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '1.2rem' }} /><span><b>Piège d'examen :</b> {ch.piege}</span>
@@ -228,8 +230,9 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
             {ch.panneaux.map(pa => (
               <button key={pa.id} type="button" onClick={() => setSel(pa)}
-                className="bg-white rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer text-center transition-all"
+                className="relative bg-white rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer text-center transition-all"
                 style={{ borderRadius: 16, border: sel?.id === pa.id ? '2px solid #1e3a5f' : '1px solid #e8edf4', boxShadow: sel?.id === pa.id ? '0 8px 22px rgba(30,58,95,.18)' : '0 2px 8px rgba(15,34,64,.05)' }}>
+                {wolofPanneau(pa) && <span className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-[11px]" title="Explication en wolof" style={{ background: '#d1fae5', color: '#047857' }}><i className="bi bi-headphones" /></span>}
                 <Visuel item={pa} taille={74} />
                 <span className="text-xs font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{pa.nom}</span>
               </button>
@@ -244,7 +247,11 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
                 <b><i className="bi bi-hand-index-thumb-fill me-1" />Ce qu'il faut faire :</b> {sel.action}
               </div>
               {sel.piege && <div className="mt-2 rounded-xl p-3 text-sm" style={{ background: '#fef9c3', color: '#854d0e' }}><b>⚠ Piège :</b> {sel.piege}</div>}
-              <BoutonEcouter texte={`${sel.nom}. ${sel.sens} ${sel.action}`} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <BoutonEcouter texte={`${sel.nom}. ${sel.sens} ${sel.action}`} className="px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
+                {wolofPanneau(sel) && <BoutonWolof url={wolofPanneau(sel)} />}
+              </div>
+              {gerer && <div className="mt-3"><GestionWolof cle={clePanneau(ch.id, sel.id)} titre={`${ch.titre} · ${sel.nom}`} url={wolofPanneau(sel)} panneau compact /></div>}
             </div>
           )}
           <div className="lg:col-span-2 flex justify-end">
@@ -334,7 +341,7 @@ function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour, g
       <Bandeau surtitre={`COURS DE CODE · THÈME ${theme.numero}`} titre={theme.titre} texte={theme.description} decor={theme.decor}>
         {eleve && <Progres valides={tous.filter(c => reussi(c.id)).length} total={tous.length} />}
         {eleve && ouvertures && <div className="text-xs mt-3" style={{ color: '#bfdbfe' }}><i className="bi bi-unlock-fill me-1" />Votre moniteur ouvre les chapitres au fil des séances.</div>}
-        {gerer && <div className="text-xs mt-3 font-bold" style={{ color: '#a7f3d0' }}><i className="bi bi-headphones me-1" />Explications en wolof : {avecLecon.filter(c => wolof[c.id]).length} chapitre(s) enregistré(s) sur {avecLecon.length}</div>}
+        {gerer && <div className="text-xs mt-3 font-bold" style={{ color: '#a7f3d0' }}><i className="bi bi-headphones me-1" />Explications en wolof : {avecLecon.filter(c => wolof[c.id]).length} leçon(s) sur {avecLecon.length} · {avecLecon.reduce((n, c) => n + c.panneaux.filter(pa => wolof[clePanneau(c.id, pa.id)]).length, 0)} {theme.key.startsWith('conduite-') ? 'repères' : 'panneaux'} sur {avecLecon.reduce((n, c) => n + c.panneaux.length, 0)}</div>}
       </Bandeau>
       <div className="flex flex-col gap-3">
         {/* Élève guidé par ses séances : seuls les chapitres publiés (ou déjà validés) apparaissent */}
