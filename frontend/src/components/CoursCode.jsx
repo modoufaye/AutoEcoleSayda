@@ -8,7 +8,10 @@ import { SEUIL_REUSSITE, questionsChapitre, questionsRevision } from '../contenu
 import { THEMES_CODE } from '../contenu/themes'
 import { ouverturesCode } from '../contenu/programme'
 import { genre, estScene } from './coursOutils'
-import BoutonEcouter from './BoutonEcouter'
+import BoutonEcouter, { BoutonWolof } from './BoutonEcouter'
+import GestionWolof from './GestionWolof'
+import { useAudiosWolof } from './audiosWolof'
+import { useAuth } from '../context/AuthContext'
 import { chargerQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
 import { confirmer } from './confirmer'
 
@@ -161,8 +164,9 @@ function PartieQuiz({ questions: tirees, onFini, onSuivant, suivantLibelle, text
 }
 
 /* ── Un chapitre : Leçon · Panneaux · Quiz ── */
-function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat, onSuivant, suivantLibelle }) {
+function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat, onSuivant, suivantLibelle, gerer }) {
   const [onglet, setOnglet] = useState('lecon')
+  const wolof = useAudiosWolof()[ch.id]
   // Quiz commencé (sur cet appareil ou un autre) : on rouvre directement l'onglet Quiz
   useEffect(() => { if (!ch.partiel) chargerQuiz(`chapitre:${ch.id}`).then(x => { if (x) setOnglet('quiz') }) }, [ch.id, ch.partiel])
   const [sel, setSel] = useState(ch.panneaux[0])
@@ -199,9 +203,13 @@ function Chapitre({ ch, total, retourLibelle = 'Chapitres', onRetour, onResultat
                   </li>
                 ))}
               </ul>
-              <BoutonEcouter texte={ch.aRetenir.join(' ')} className="mt-3 px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <BoutonEcouter texte={ch.aRetenir.join(' ')} className="px-3 py-1.5 rounded-full text-xs font-bold border-0 cursor-pointer" />
+                {wolof && <BoutonWolof url={wolof} />}
+              </div>
             </div>
           </div>
+          {gerer && <GestionWolof chapitre={ch.id} titre={`${ch.id.startsWith('conduite-') ? 'Conduite · ' : ''}${ch.titre}`} url={wolof} />}
           {ch.piege && (
             <div className="rounded-2xl px-5 py-3 flex items-center gap-3 text-sm" style={{ background: '#fef2f2', border: '1.5px solid #fecaca', color: '#991b1b' }}>
               <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '1.2rem' }} /><span><b>Piège d'examen :</b> {ch.piege}</span>
@@ -311,8 +319,10 @@ function Progres({ valides, total }) {
    Élève : chapitres débloqués dans l'ordre (70 % pour valider), ou, pour les cours de code,
    ouverts par les séances de son moniteur (ouvertures) ; un chapitre déjà validé reste ouvert.
    Admin et moniteurs : tout ouvert. */
-function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour }) {
+function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour, gerer }) {
   const tous = [...theme.chapitres, theme.revision]
+  const wolof = useAudiosWolof()
+  const avecLecon = theme.chapitres   // la révision n'a pas de leçon à expliquer
   const reussi = id => !!progression[id]?.reussi
   const debloque = i => !eleve || (ouvertures ? !!ouvertures[tous[i].id] || reussi(tous[i].id)
     : i === 0 || (i < theme.chapitres.length ? reussi(theme.chapitres[i - 1].id) : theme.chapitres.every(c => reussi(c.id))))
@@ -324,6 +334,7 @@ function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour })
       <Bandeau surtitre={`COURS DE CODE · THÈME ${theme.numero}`} titre={theme.titre} texte={theme.description} decor={theme.decor}>
         {eleve && <Progres valides={tous.filter(c => reussi(c.id)).length} total={tous.length} />}
         {eleve && ouvertures && <div className="text-xs mt-3" style={{ color: '#bfdbfe' }}><i className="bi bi-unlock-fill me-1" />Votre moniteur ouvre les chapitres au fil des séances.</div>}
+        {gerer && <div className="text-xs mt-3 font-bold" style={{ color: '#a7f3d0' }}><i className="bi bi-headphones me-1" />Explications en wolof : {avecLecon.filter(c => wolof[c.id]).length} chapitre(s) enregistré(s) sur {avecLecon.length}</div>}
       </Bandeau>
       <div className="flex flex-col gap-3">
         {/* Élève guidé par ses séances : seuls les chapitres publiés (ou déjà validés) apparaissent */}
@@ -341,6 +352,7 @@ function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour })
               <div className="flex-1 min-w-0">
                 <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{ch === theme.revision ? ch.numero : `${theme.numero}.${ch.numero}`} · {ch.titre}</div>
                 <div className="text-xs text-slate-500 mt-0.5 truncate">{sous}{p ? ` · meilleure note ${p.meilleurScore}/${p.total}` : ''}</div>
+                {wolof[ch.id] && <div className="text-[11px] font-bold mt-1" style={{ color: '#047857' }}><i className="bi bi-headphones me-1" />Explication en wolof</div>}
               </div>
               {fait ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: '#dcfce7', color: '#15803d' }}>✓ Validé</span>
                 : !ouvertOk ? <span className="text-xs font-extrabold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ background: '#f1f5f9', color: '#94a3b8' }} title={ouvertures ? 'Pas encore publié par votre moniteur' : 'Validez le chapitre précédent'}><i className="bi bi-lock-fill" />{ouvertures && <span className="hidden sm:inline ms-1">Bientôt</span>}</span>
@@ -365,6 +377,8 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
   const [ouvertures, setOuvertures] = useState(null)   // élève : ce que ses séances ouvrent (code ou conduite)
   const [ouvertLocal, setOuvertLocal] = useState(null)
   const parSeances = eleve   // code comme conduite : l'élève ne voit que ce que ses séances publient
+  const { user } = useAuth()
+  const gerer = !eleve && ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'].includes(user?.role)   // dépose les explications en wolof
   const cle = onOuvrirChapitre ? chapitre : ouvertLocal
   const aller = id => {
     window.scrollTo?.({ top: 0 })
@@ -407,7 +421,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
       <Quiz key={questionsRev[0]?.id} sauvegarde={`revision:${theme.revision.id}`} questions={questionsRev} nouveauTirage={() => questionsRevision(theme.chapitres, theme.revision.nombre)} onFini={(s, t) => resultat(theme.revision.id, s, t)} />
     </div>
   )
-  if (theme && idx >= 0 && ferme(tous[idx]) && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>
+  if (theme && idx >= 0 && ferme(tous[idx]) && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} gerer={gerer} progression={progression} ouvertures={ouvertures} onOuvrir={aller} onRetour={() => aller(null)} /></div>
   if (theme && idx >= 0 && !ferme(tous[idx])) {
     const brut = tous[idx], o = parSeances && ouvertures[brut.id]
     // Une partie seulement du chapitre est ouverte : ses panneaux, sans le quiz du chapitre
@@ -416,12 +430,12 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
     const suivant = tous[idx + 1] && !ferme(tous[idx + 1]) ? tous[idx + 1] : null
     return (
       <div style={police}>
-        <Chapitre key={ch.id} ch={ch} total={tous.length} retourLibelle={theme.titre} onRetour={() => aller(theme.key)} onResultat={resultat}
+        <Chapitre key={ch.id} ch={ch} total={tous.length} retourLibelle={theme.titre} onRetour={() => aller(theme.key)} onResultat={resultat} gerer={gerer}
           onSuivant={suivant ? () => aller(suivant.id) : null} suivantLibelle={suivant ? `Chapitre ${suivant.numero} : ${suivant.titre}` : ''} />
       </div>
     )
   }
-  if (theme && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} progression={progression} ouvertures={parSeances ? ouvertures : null} onOuvrir={aller} onRetour={() => aller(null)} /></div>
+  if (theme && visible(theme)) return <div style={police}><Parcours theme={theme} eleve={eleve} gerer={gerer} progression={progression} ouvertures={parSeances ? ouvertures : null} onOuvrir={aller} onRetour={() => aller(null)} /></div>
 
   return (
     <div className="space-y-4" style={police}>

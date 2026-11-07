@@ -4,7 +4,8 @@ import { toast } from './Toast'
 import { EnteteListe, AvatarRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { Visuel, IconeChapitre, Quiz } from './CoursCode'
 import { genre, estScene } from './coursOutils'
-import BoutonEcouter from './BoutonEcouter'
+import BoutonEcouter, { BoutonWolof } from './BoutonEcouter'
+import { useAudiosWolof } from './audiosWolof'
 import { chargerQuiz } from './sauvegardeQuiz'
 import { SEUIL_REUSSITE } from '../contenu/signalisation'
 import { COURS, trouverChapitre, numeroChapitre, complete, panneauxPartie, libellePartie, questionsPartie, questionsSeance, QUESTIONS_MAX } from '../contenu/programme'
@@ -238,6 +239,7 @@ function PartieEleve({ partie, rang }) {
   const t = trouverChapitre(partie.chapitre)
   const liste = useMemo(() => t && !t.revision ? panneauxPartie(t.ch, partie) : [], [partie]) // eslint-disable-line react-hooks/exhaustive-deps
   const [sel, setSel] = useState(null)
+  const wolof = useAudiosWolof()
   if (!t) return null
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
@@ -255,9 +257,12 @@ function PartieEleve({ partie, rang }) {
       ) : (
         <div className="p-5 space-y-4">
           <div className="rounded-2xl p-4" style={{ background: 'linear-gradient(135deg,#fff7ed,#fffbeb)', border: '1.5px solid #fde68a' }}>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="font-extrabold whitespace-nowrap" style={{ color: '#92400e' }}>À retenir</div>
-              <BoutonEcouter texte={t.ch.aRetenir.join(' ')} className="px-3 py-1 rounded-full text-xs font-bold border-0 cursor-pointer" />
+              <div className="flex flex-wrap gap-1.5">
+                <BoutonEcouter texte={t.ch.aRetenir.join(' ')} className="px-3 py-1 rounded-full text-xs font-bold border-0 cursor-pointer" />
+                {wolof[t.ch.id] && <BoutonWolof url={wolof[t.ch.id]} className="px-3 py-1 rounded-full text-xs font-bold border-0 cursor-pointer" />}
+              </div>
             </div>
             <ul className="mt-2 mb-0 ps-0 space-y-2" style={{ listStyle: 'none' }}>
               {t.ch.aRetenir.map(x => (

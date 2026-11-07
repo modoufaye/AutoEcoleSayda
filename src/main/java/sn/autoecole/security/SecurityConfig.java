@@ -96,6 +96,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/demandes-inscription/**", "/api/demandes-inscription").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Débloquer un compte (5 mots de passe faux) : admin, et secrétariat pour élèves et moniteurs.
                 .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
+                // Explications en wolof : déposées par l'administration et les moniteurs, écoutées par tous
+                .requestMatchers(HttpMethod.PUT, "/api/audios-wolof").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
+                .requestMatchers(HttpMethod.DELETE, "/api/audios-wolof").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
                 // Visites du site (adresses IP) : super admin seul
                 .requestMatchers("/api/journal/visites").hasRole("SUPER_ADMIN")
                 // Journal des actions : super admin (tout) et administrateurs (leurs actions et celles du secrétariat)
