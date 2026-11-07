@@ -23,7 +23,76 @@ const THEME_MAP = Object.fromEntries(THEMES.map(t => [t.value, t.label]))
 
 const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUILLON', eleveIds: [], blocs: [], programme: [] })
 
-function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }) {
+/* Bloc vidéo ou audio : choix dans la médiathèque (vidéos et audios français / wolof déposés par
+   l'équipe), ou envoi d'un fichier depuis l'appareil. */
+const LANGUES_MEDIA = { FRANCAIS: { libelle: 'Français', couleur: '#1d4ed8', fond: '#dbeafe' }, WOLOF: { libelle: 'Wolof', couleur: '#047857', fond: '#d1fae5' } }
+function ChoixMedia({ type, medias, url, onChoisir, onFichier, uploading, accept, fichierCls }) {
+  const liste = medias.filter(m => m.type === type)
+  const [mode, setMode] = useState(liste.length ? 'mediatheque' : 'fichier')
+  const [langue, setLangue] = useState('')
+  const visibles = liste.filter(m => !langue || m.langue === langue)
+  const pil = actif => ({ borderRadius: 999, minHeight: 34, border: `1.5px solid ${actif ? '#1e3a5f' : '#e2e8f0'}`, background: actif ? '#1e3a5f' : '#fff', color: actif ? '#fff' : '#475569' })
+  const choisi = liste.find(m => m.url === url)
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setMode('mediatheque')} className="text-xs font-bold px-3 cursor-pointer" style={pil(mode === 'mediatheque')}>
+          <i className="bi bi-collection-play me-1" />Médiathèque ({liste.length})
+        </button>
+        <button type="button" onClick={() => setMode('fichier')} className="text-xs font-bold px-3 cursor-pointer" style={pil(mode === 'fichier')}>
+          <i className="bi bi-upload me-1" />Envoyer un fichier
+        </button>
+      </div>
+      {mode === 'fichier' ? (
+        <input type="file" accept={accept} className={fichierCls} onChange={e => e.target.files[0] && onFichier(e.target.files[0])} />
+      ) : liste.length === 0 ? (
+        <div className="text-sm text-slate-500 rounded-xl px-3 py-2.5" style={{ background: '#f8fafc', border: '1px dashed #cbd5e1' }}>
+          Aucun{type === 'VIDEO' ? 'e vidéo' : ' audio'} dans la médiathèque : ajoutez-en depuis la rubrique « Médiathèque », ou envoyez un fichier.
+        </div>
+      ) : (
+        <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
+          <div className="flex gap-1.5 px-3 py-2" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            {[['', 'Toutes'], ['FRANCAIS', 'Français'], ['WOLOF', 'Wolof']].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setLangue(v)} className="text-xs font-bold px-3 cursor-pointer" style={{ ...pil(langue === v), minHeight: 28 }}>{l}</button>
+            ))}
+          </div>
+          <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+            {visibles.length === 0 && <div className="px-3 py-3 text-sm text-slate-400">Aucun média dans cette langue</div>}
+            {visibles.map(m => {
+              const l = LANGUES_MEDIA[m.langue] || LANGUES_MEDIA.FRANCAIS, actif = m.url === url
+              return (
+                <div key={m.id} className="flex items-center gap-3 px-3 py-2" style={{ borderBottom: '1px solid #f1f5f9', background: actif ? '#fffbeb' : '#fff' }}>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{m.titre}</div>
+                    <div className="text-xs text-slate-400 truncate">
+                      <span className="font-bold px-1.5 rounded-full me-1" style={{ background: l.fond, color: l.couleur }}>{l.libelle}</span>
+                      {m.auteurNom}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => onChoisir(m)} className="text-xs font-extrabold px-3 border-0 cursor-pointer whitespace-nowrap"
+                    style={{ borderRadius: 999, minHeight: 30, ...(actif ? { background: '#dcfce7', color: '#15803d' } : { background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }) }}>
+                    {actif ? '✓ Choisi' : 'Choisir'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {uploading && (
+        <div className="flex items-center gap-2 text-slate-400 text-sm">
+          <div className="w-4 h-4 border-2 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin" />
+          Envoi en cours…
+        </div>
+      )}
+      {choisi && !uploading && (
+        <div className="text-xs font-bold" style={{ color: '#047857' }}><i className="bi bi-collection-play me-1" />Médiathèque · {choisi.titre} ({(LANGUES_MEDIA[choisi.langue] || {}).libelle})</div>
+      )}
+    </div>
+  )
+}
+
+function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, medias = [] }) {
   const BLOC_STYLE = {
     TEXTE:  { bg: '#eff6ff', color: '#2563eb', icon: 'pencil-fill',       label: 'Texte' },
     IMAGE:  { bg: '#f0fdf4', color: '#16a34a', icon: 'image-fill',        label: 'Image' },
@@ -89,17 +158,12 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
 
         {bloc.typeBloc === 'VIDEO' && (
           <div>
-            <input type="file" accept="video/mp4,video/webm,video/ogg"
-              className="w-full text-sm text-slate-500 mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700"
-              onChange={e => e.target.files[0] && onUpload(index, e.target.files[0], 'video')} />
-            {bloc._uploading && (
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
-                <div className="w-4 h-4 border-2 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin" />
-                Envoi en cours…
-              </div>
-            )}
+            <ChoixMedia type="VIDEO" medias={medias} url={bloc.mediaUrl} uploading={bloc._uploading}
+              onChoisir={m => onUpdate(index, 'mediaUrl', m.url)} onFichier={f => onUpload(index, f, 'video')}
+              accept="video/mp4,video/webm,video/ogg,video/quicktime,.mov"
+              fichierCls="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700" />
             {bloc.mediaUrl && !bloc._uploading && (
-              <video controls className="w-full rounded-xl" style={{ maxHeight: 220 }}>
+              <video key={bloc.mediaUrl} controls className="w-full rounded-xl mt-3" style={{ maxHeight: 220 }}>
                 <source src={bloc.mediaUrl} />
                 Votre navigateur ne supporte pas la lecture vidéo.
               </video>
@@ -109,17 +173,12 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload }
 
         {bloc.typeBloc === 'AUDIO' && (
           <div>
-            <input type="file" accept="audio/*,.m4a,.mp3,.wav,.ogg,.opus,.aac,.flac"
-              className="w-full text-sm text-slate-500 mb-3 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700"
-              onChange={e => e.target.files[0] && onUpload(index, e.target.files[0], 'audio')} />
-            {bloc._uploading && (
-              <div className="flex items-center gap-2 text-slate-400 text-sm">
-                <div className="w-4 h-4 border-2 border-slate-200 border-t-[#1e3a5f] rounded-full animate-spin" />
-                Envoi en cours…
-              </div>
-            )}
+            <ChoixMedia type="AUDIO" medias={medias} url={bloc.mediaUrl} uploading={bloc._uploading}
+              onChoisir={m => onUpdate(index, 'mediaUrl', m.url)} onFichier={f => onUpload(index, f, 'audio')}
+              accept="audio/*,.m4a,.mp3,.wav,.ogg,.opus,.aac,.flac"
+              fichierCls="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700" />
             {bloc.mediaUrl && !bloc._uploading && (
-              <audio controls className="w-full rounded-xl" style={{ accentColor: '#9333ea' }}>
+              <audio key={bloc.mediaUrl} controls className="w-full rounded-xl mt-3" style={{ accentColor: '#9333ea' }}>
                 <source src={bloc.mediaUrl} />
                 Votre navigateur ne supporte pas la lecture audio.
               </audio>
@@ -145,6 +204,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const [saving, setSaving]           = useState(false)
   const [err, setErr]                 = useState('')
   const [selectedSeance, setSelectedSeance] = useState(null)
+  const [medias, setMedias] = useState([])   // médiathèque, pour les blocs vidéo et audio
 
   const openCreate = () => {
     setEditId(null)
@@ -186,6 +246,8 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   }
 
   useEffect(() => { load(true) }, [])
+  // Médiathèque (personnel qui édite) : relue à chaque ouverture de l'éditeur, pour voir les derniers ajouts
+  useEffect(() => { if (view === 'editor' && !lectureSeule) api('GET', '/medias').then(setMedias).catch(() => setMedias([])) }, [view, seanceId, lectureSeule])
 
   // Éditeur dans l'URL (…/seances-moniteur/12 ou /nouvelle) : Retour du navigateur ou
   // d'Android revient à la liste ; « nouvelle » ou une séance inconnue montre la liste.
@@ -428,7 +490,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
               {form.blocs.map((bloc, i) => (
                 <BlocEditor key={i} bloc={bloc} index={i} total={form.blocs.length}
                   onUpdate={updateBloc} onRemove={removeBloc}
-                  onMove={moveBloc} onUpload={handleUpload} />
+                  onMove={moveBloc} onUpload={handleUpload} medias={medias} />
               ))}
 
               {!lectureSeule && <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-2 pt-4 border-t border-slate-100">

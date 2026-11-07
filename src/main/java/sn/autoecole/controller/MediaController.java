@@ -12,6 +12,7 @@ import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
+import sn.autoecole.repository.BlocContenuRepository;
 import sn.autoecole.repository.MediaRepository;
 
 import java.nio.file.Files;
@@ -25,13 +26,15 @@ import java.util.Map;
  * Médiathèque : vidéos et audios en français ou en wolof. Personnel (super admin, administrateurs,
  * moniteurs) : /api/medias, tout voir, déposer, modifier ou supprimer les siens (l'administration :
  * tous). Élèves : /api/eleve/medias, les médias rendus visibles. Le fichier passe d'abord par
- * /api/moniteur/upload/video ou /audio.
+ * /api/moniteur/upload/video ou /audio. Les médias se choisissent ensuite dans les blocs vidéo et
+ * audio des séances ; un média utilisé dans une séance ne peut pas être supprimé.
  */
 @RestController
 @RequiredArgsConstructor
 public class MediaController {
 
     private final MediaRepository repo;
+    private final BlocContenuRepository blocs;
 
     @Value("${upload.dir:uploads}")
     private String uploadDir;
@@ -39,7 +42,11 @@ public class MediaController {
     @GetMapping("/api/medias")
     public List<Map<String, Object>> lister(Authentication auth) {
         User moi = (User) auth.getPrincipal();
-        return repo.findAllByOrderByCreeLeDesc().stream().map(m -> vue(m, modifiable(m, moi))).toList();
+        return repo.findAllByOrderByCreeLeDesc().stream().map(m -> {
+            Map<String, Object> v = vue(m, modifiable(m, moi));
+            v.put("seances", blocs.seancesUtilisant(m.getUrl()));
+            return v;
+        }).toList();
     }
 
     @GetMapping("/api/eleve/medias")
@@ -77,6 +84,9 @@ public class MediaController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimer(@PathVariable Long id, Authentication auth, HttpServletRequest http) {
         Media m = trouverModifiable(id, auth);
+        long n = blocs.seancesUtilisant(m.getUrl());
+        if (n > 0) throw new BusinessException("Ce média est utilisé dans " + n + " séance" + (n > 1 ? "s" : "")
+                + " : retirez-le d'abord de " + (n > 1 ? "ces séances" : "cette séance") + ", puis supprimez-le");
         repo.delete(m);
         http.setAttribute(JournalInterceptor.CIBLE_PRECISE, libelle(m));
         // Le fichier n'est utilisé que par ce média : on libère la place

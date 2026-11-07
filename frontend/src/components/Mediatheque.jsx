@@ -100,6 +100,7 @@ function CarteMedia({ m, eleve, onModifier, onChanger }) {
     catch (e) { toast(e.message, 'danger') }
   }
   const supprimer = async () => {
+    if (m.seances > 0) return toast(`Ce média est utilisé dans ${m.seances} séance${m.seances > 1 ? 's' : ''} : retirez-le d'abord de ${m.seances > 1 ? 'ces séances' : 'cette séance'}`, 'warning')
     if (!(await confirmer({ titre: 'Supprimer ce média ?', ton: 'danger', icone: 'trash3-fill', libelle: 'Supprimer',
       message: `« ${m.titre} » sera retiré de la médiathèque et son fichier effacé.` }))) return
     try { await api('DELETE', `/medias/${m.id}`); toast('Média supprimé'); onChanger() }
@@ -116,6 +117,7 @@ function CarteMedia({ m, eleve, onModifier, onChanger }) {
           {!eleve && (m.visibleEleves
             ? <Pastille couleur="#15803d" fond="#dcfce7">Visible élèves</Pastille>
             : <Pastille couleur="#64748b" fond="#f1f5f9">Équipe seulement</Pastille>)}
+          {!eleve && m.seances > 0 && <Pastille couleur="#7c3aed" fond="#ede9fe">Dans {m.seances} séance{m.seances > 1 ? 's' : ''}</Pastille>}
         </div>
         <div className="font-extrabold leading-snug" style={{ color: '#1e3a5f' }}>{m.titre}</div>
         {m.description && <div className="text-sm text-slate-600">{m.description}</div>}
@@ -176,7 +178,7 @@ export default function Mediatheque({ eleve = false }) {
 
       <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
         <EnteteListe icone={t.icone} titre={`${t.libelle} en français et en wolof`}
-          sousTitre={eleve ? 'Mis à disposition par votre auto-école' : 'Déposés par l’équipe · « Visible élèves » : les élèves les retrouvent dans leur médiathèque'} nombre={visibles.length} />
+          sousTitre={eleve ? 'Mis à disposition par votre auto-école' : 'À choisir dans les blocs vidéo et audio des séances · « Visible élèves » : aussi dans la médiathèque des élèves'} nombre={visibles.length} />
         {medias === null ? <ListeChargement />
           : visibles.length === 0 ? <ListeVide texte={duType.length ? 'Aucun média ne correspond à la recherche' : eleve ? `Aucun${type === 'VIDEO' ? 'e vidéo' : ' audio'} pour le moment` : `Aucun${type === 'VIDEO' ? 'e vidéo' : ' audio'} · cliquez sur « + ${type === 'VIDEO' ? 'Vidéo' : 'Audio'} » pour commencer`} icone={t.icone} />
           : <div className="p-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
