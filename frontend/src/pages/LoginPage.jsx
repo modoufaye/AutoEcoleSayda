@@ -292,7 +292,7 @@ export default function LoginPage() {
 
         {/* ── Pied de page sous la carte ── */}
         <p className="text-center text-blue-300/60 text-xs mt-6">
-          © 2026 Auto-École Khadija — Agréé par le Ministère des Transports
+          © 2026 Auto-École Khadija — Agréé par le Ministère des Transports terrestres et aériens
         </p>
       </div>
     </div>

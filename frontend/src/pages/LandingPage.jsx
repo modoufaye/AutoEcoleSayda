@@ -714,7 +714,7 @@ function Footer() {
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-blue-300">
           <span>© 2026 Auto-École Khadija. Tous droits réservés.</span>
-          <span>Agréé par le Ministère des Transports du Sénégal</span>
+          <span>Agréé par le Ministère des Transports terrestres et aériens</span>
         </div>
       </div>
     </footer>
