@@ -40,7 +40,7 @@ function formulesDe(infos, formation) {
   const liste = formation === 'A' ? infos.formulesMoto : formation === 'C' || formation === 'D' ? infos.formulesPoidsLourd : infos.formules
   return (liste || []).map(f => ({
     cle: f.nom, titre: f.nom, montant: f.montant, acompte: f.acompte,
-    tranches: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0),
+    tranches: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0), contenu: f.contenu || [],
   }))
 }
 
@@ -315,6 +315,15 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
                                   ))}
                                   {f.tranches.length === 1 && <span className="text-[11px] font-semibold" style={{ color: actif ? '#bfdbfe' : '#94a3b8' }}>en une fois</span>}
                                 </div>
+                                {f.contenu?.length > 0 && (
+                                  <ul className="mt-3 mb-0 p-0 list-none space-y-1">
+                                    {f.contenu.map((c, i) => (
+                                      <li key={i} className="flex items-start gap-1.5 text-[12.5px] font-semibold leading-snug" style={{ color: actif ? '#dbeafe' : '#334155' }}>
+                                        <i className="bi bi-check2-circle mt-px" style={{ color: actif ? '#f0bb2a' : '#16a34a' }} />{c}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
                               </button>
                             )
                           })}

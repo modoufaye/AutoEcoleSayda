@@ -30,8 +30,9 @@ public class AutoEcoleConfigController {
         AutoEcoleConfig cfg = repo.findAll().stream().findFirst().orElseGet(AutoEcoleConfig::new);
         var perf = FormulePerfectionnement.completer(cfg.getFormulesPerfectionnement());
         if (cfg.getId() == null || cfg.getFormules() == null || cfg.getFormulesPoidsLourd() == null || cfg.getFormulesMoto() == null
-                || !perf.equals(cfg.getFormulesPerfectionnement())) {
-            if (cfg.getFormules() == null) cfg.setFormules(FormulePermis.parDefaut());
+                || !perf.equals(cfg.getFormulesPerfectionnement())
+                || !FormulePermis.completerContenuB(cfg.getFormules()).equals(cfg.getFormules())) {
+            cfg.setFormules(cfg.getFormules() == null ? FormulePermis.parDefaut() : FormulePermis.completerContenuB(cfg.getFormules()));
             if (cfg.getFormulesPoidsLourd() == null) cfg.setFormulesPoidsLourd(FormulePermis.parDefautPoidsLourd());
             if (cfg.getFormulesMoto() == null) cfg.setFormulesMoto(FormulePermis.parDefautMoto());
             cfg.setFormulesPerfectionnement(perf);
@@ -120,9 +121,17 @@ public class AutoEcoleConfigController {
             if (total.compareTo(montant) != 0)
                 throw new BusinessException("Formule " + nom + precision + " : l'acompte et les tranches (" + total.toBigInteger()
                         + " F) ne font pas le montant de la formule (" + montant.toBigInteger() + " F)");
-            res.add(new FormulePermis(nom, montant, acompte, t2, t3));
+            res.add(new FormulePermis(nom, montant, acompte, t2, t3, contenu(f.get("contenu"))));
         }
         return res;
+    }
+
+    /** Ce que comprend une formule : une ligne par élément (8 au plus, 120 caractères chacun). */
+    private static List<String> contenu(Object v) {
+        if (v == null) return null;
+        List<?> brut = v instanceof List<?> l ? l : List.of(v.toString().split("\\R"));
+        return brut.stream().map(x -> String.valueOf(x).trim()).filter(x -> !x.isEmpty())
+                .map(x -> x.length() > 120 ? x.substring(0, 120) : x).limit(8).toList();
     }
 
     /**

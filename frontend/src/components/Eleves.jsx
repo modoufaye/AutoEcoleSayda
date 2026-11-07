@@ -53,6 +53,7 @@ function optionsPermis(tarifs, categorie) {
   return (formules || []).filter(f => Number(f.montant) > 0).map(f => ({
     libelle: f.nom, titre: f.nom, montant: Number(f.montant), acompte: Number(f.acompte),
     detail: [f.acompte, f.tranche2, f.tranche3].filter(x => Number(x) > 0).map(sepMille).join(' + '),
+    contenu: f.contenu || [],
   }))
 }
 function optionsPerfectionnement(formules, boite) {
@@ -99,6 +100,7 @@ function ChoixFormule({ options, valeur, onChoisir, verrouille = false, total })
           <span className="text-sm font-extrabold leading-tight">{o.titre}</span>
           <span className="text-base font-extrabold leading-tight mt-0.5" style={{ color: '#b45309' }}>{sepMille(o.montant)} F</span>
           <span className="text-[10px] font-semibold text-slate-400 mt-0.5">{o.detail}</span>
+          {o.contenu?.length > 0 && <span className="text-[10px] font-semibold text-slate-600 mt-1 leading-snug">{o.contenu.join(' · ')}</span>}
         </button>
       ))}
       <button type="button" onClick={() => onChoisir(null)} aria-pressed={!valeur}

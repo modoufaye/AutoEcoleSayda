@@ -24,7 +24,7 @@ const fcfa = n => `${Math.round(n).toLocaleString('fr-FR').replace(/\u202f/g, ' 
 function formulesDepuis(liste, defs = FORMULES) {
   return defs.map(({ nom }) => {
     const f = (liste || []).find(x => x.nom === nom) || {}
-    return { nom, montant: f.montant ?? '', acompte: f.acompte ?? '', tranche2: f.tranche2 ?? '', tranche3: f.tranche3 ?? '' }
+    return { nom, montant: f.montant ?? '', acompte: f.acompte ?? '', tranche2: f.tranche2 ?? '', tranche3: f.tranche3 ?? '', contenu: (f.contenu || []).join('\n') }
   })
 }
 
@@ -80,6 +80,17 @@ function Echeancier({ montants }) {
       ))}
       {reste.length === 0 && <span style={{ color: '#94a3b8', fontSize: '.72rem', fontWeight: 600, alignSelf: 'center' }}>en une fois</span>}
     </div>
+  )
+}
+
+/* Ce que comprend une formule (lecture seule), une ligne cochée par élément. */
+function ContenuFormule({ lignes }) {
+  const l = (lignes || '').split('\n').map(x => x.trim()).filter(Boolean)
+  if (!l.length) return null
+  return (
+    <ul className="list-unstyled mt-2 mb-0" style={{ fontSize: '.8rem', color: '#334155' }}>
+      {l.map((x, k) => <li key={k} className="d-flex gap-2"><i className="bi bi-check2" style={{ color: '#16a34a' }} />{x}</li>)}
+    </ul>
   )
 }
 
@@ -157,6 +168,7 @@ function CarteFormule({ def, valeur, onEnregistrer }) {
         vide ? <div className="mt-3" style={{ color: '#94a3b8', fontSize: '.85rem', fontWeight: 600 }}>À renseigner : cliquez sur Modifier</div> : <>
           <div className="mt-2 fw-bold" style={{ color: def.couleur, fontSize: '1.35rem' }}>{fcfa(n('montant'))}</div>
           <Echeancier montants={[n('acompte'), n('tranche2'), def.tranches === 3 ? n('tranche3') : 0]} />
+          <ContenuFormule lignes={v.contenu} />
         </>
       ) : <>
         <div className="row g-2 mt-2">
@@ -168,6 +180,11 @@ function CarteFormule({ def, valeur, onEnregistrer }) {
                 onChange={e => setV({ ...v, [k]: e.target.value })} />
             </div>
           ))}
+        </div>
+        <div className="mt-2">
+          <label className={labelCls} style={{ fontSize: '.65rem' }}>Ce que comprend la formule (une ligne par élément)</label>
+          <textarea className={inputCls} rows={3} value={v.contenu} placeholder={'Cours de code illimités\n10 cours de conduite'}
+            aria-label={`${def.titre || def.nom} : contenu`} onChange={e => setV({ ...v, contenu: e.target.value })} />
         </div>
         <div className="mt-2" style={{ fontSize: '.78rem', fontWeight: 600, color: ok ? '#15803d' : '#c2410c' }}>
           {ok ? <><i className="bi bi-check-circle-fill me-1" />Tranches : {fcfa(total)}</>
@@ -294,7 +311,8 @@ export default function Parametres() {
   }
 
   // Les listes au format du serveur
-  const versPermis = fs => fs.map(f => ({ nom: f.nom, ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])) }))
+  const versPermis = fs => fs.map(f => ({ nom: f.nom, ...Object.fromEntries(['montant', 'acompte', 'tranche2', 'tranche3'].map(k => [k, parseFloat(f[k]) || 0])),
+    contenu: (f.contenu || '').split('\n').map(x => x.trim()).filter(Boolean) }))
   const versServeur = (fs, fps, fpl = formulesPL, fm = formulesMoto) => ({
     formules: versPermis(fs),
     formulesPoidsLourd: versPermis(fpl),

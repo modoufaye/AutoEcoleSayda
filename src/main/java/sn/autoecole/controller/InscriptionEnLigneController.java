@@ -52,7 +52,7 @@ public class InscriptionEnLigneController {
         m.put("lienOrangeMoney", c.map(x -> x.getLienOrangeMoney()).orElse(null));
         m.put("telephone", c.map(x -> x.getTelephone()).orElse(null));
         // Formules proposées au candidat (celles qui ont un montant)
-        m.put("formules", c.map(x -> x.getFormules()).orElse(List.of()).stream()
+        m.put("formules", FormulePermis.completerContenuB(c.map(x -> x.getFormules()).orElse(List.of())).stream()
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
         m.put("formulesPoidsLourd", c.map(x -> x.getFormulesPoidsLourd()).orElse(FormulePermis.parDefautPoidsLourd()).stream()
                 .filter(f -> f.montant() != null && f.montant().signum() > 0).toList());
