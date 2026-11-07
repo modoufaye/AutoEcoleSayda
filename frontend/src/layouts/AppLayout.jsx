@@ -24,6 +24,7 @@ import TravauxDirigesAdmin from '../components/TravauxDirigesAdmin'
 import TravauxDiriges from '../components/TravauxDiriges'
 import Parametres from '../components/Parametres'
 import Journal from '../components/Journal'
+import Mediatheque from '../components/Mediatheque'
 import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
@@ -42,6 +43,7 @@ const ALL_SECTIONS = [
   { key: 'td-admin',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'] },
   { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
+  { key: 'mediatheque',      label: 'Médiathèque',      icon: 'collection-play-fill',  color: '#34d399', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'journal',          label: 'Journal',          icon: 'journal-text',          color: '#fda4af', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -60,6 +62,7 @@ const COMPONENTS = {
   'mon-profil': MonProfil,
   'parametres': Parametres,
   journal: Journal,
+  mediatheque: Mediatheque,
 }
 
 const MOBILE_QUERY = '(max-width: 768px)'
@@ -362,6 +365,8 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
             : section === 'mes-paiements'
             ? <ActiveComponent key={section} onBack={handleBack} />
+            : section === 'mediatheque'
+            ? <Mediatheque key={section} eleve={user?.role === 'ELEVE'} />
             : section === 'td-admin'
             ? <TravauxDiriges key="td-admin"><TravauxDirigesAdmin /></TravauxDiriges>
             : section === 'td-moniteur'

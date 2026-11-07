@@ -40,6 +40,9 @@ public class JournalService {
     static {
         String[][] l = {
             {"POST /api/admin/administrateurs", "Création d'un compte administrateur"},
+            {"POST /api/medias", "Ajout à la médiathèque"},
+            {"PUT /api/medias/{id}", "Modification d'un média de la médiathèque"},
+            {"DELETE /api/medias/{id}", "Suppression d'un média de la médiathèque"},
             {"PUT /api/audios-wolof", "Ajout d'une explication en wolof"},
             {"DELETE /api/audios-wolof", "Suppression d'une explication en wolof"},
             {"DELETE /api/admin/administrateurs/{id}", "Suppression d'un compte administrateur"},

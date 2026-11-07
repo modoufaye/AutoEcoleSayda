@@ -100,6 +100,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/demandes-inscription/**", "/api/demandes-inscription").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Débloquer un compte (5 mots de passe faux) : admin, et secrétariat pour élèves et moniteurs.
                 .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
+                // Médiathèque (vidéos et audios français / wolof) : personnel ; les élèves passent par /api/eleve/medias
+                .requestMatchers("/api/medias", "/api/medias/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
                 // Explications en wolof : déposées par l'administration et les moniteurs, écoutées par tous
                 .requestMatchers(HttpMethod.PUT, "/api/audios-wolof").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
                 .requestMatchers(HttpMethod.DELETE, "/api/audios-wolof").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
