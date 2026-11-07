@@ -607,6 +607,14 @@ function CtaBanner() {
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────
+/* Les trois sites de l'auto-école : adresse, numéro (lien d'appel) et itinéraire. */
+const SITES = [
+  { nom: 'Massalikoul Djinane', adresse: 'Avenue Cheikh Ahmadou Bamba, en face de la grande mosquée Massalikoul Djinane', tel: '77 329 35 57' },
+  { nom: 'Guédiawaye', adresse: "En face de l'arrêt BRT Fith Mith", tel: '78 651 23 23' },
+  { nom: 'Keur Massar', adresse: 'Rond-point Gouye Gui, immeuble CFC, 3e étage', tel: '78 431 35 35' },
+]
+const itineraire = s => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.adresse}, ${s.nom}, Dakar, Sénégal`)}`
+
 function Footer() {
   return (
     <footer id="contact" className="bg-[#142a47] text-white">
@@ -614,7 +622,7 @@ function Footer() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
 
           {/* Marque */}
-          <div className="lg:col-span-2">
+          <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 bg-[#d4a017] rounded-lg flex items-center justify-center text-white">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -641,8 +649,8 @@ function Footer() {
 
           {/* Navigation */}
           <div>
-            <h4 className="font-bold text-xs uppercase tracking-widest text-blue-300 mb-4">Navigation</h4>
-            <ul className="space-y-3">
+            <h4 className="font-bold uppercase tracking-widest mb-4" style={{ fontSize: '.75rem', color: '#93c5fd' }}>Navigation</h4>
+            <ul className="space-y-3 list-none p-0 m-0">
               {[
                 { label: 'Accueil', href: '#accueil' },
                 { label: 'Nos Services', href: '#services' },
@@ -650,7 +658,7 @@ function Footer() {
                 { label: 'Espace Élève', href: '/login' },
               ].map(l => (
                 <li key={l.label}>
-                  <a href={l.href} className="text-blue-200 hover:text-[#d4a017] text-sm transition-colors no-underline">
+                  <a href={l.href} className="text-sm transition-colors" style={{ color: '#bfdbfe', textDecoration: 'none' }}>
                     {l.label}
                   </a>
                 </li>
@@ -658,23 +666,31 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h4 className="font-bold text-xs uppercase tracking-widest text-blue-300 mb-4">Contact</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3 text-blue-200 text-sm">
-                <MapIcon />
-                <span>Rue 10 x Avenue Cheikh Anta Diop, Dakar</span>
-              </li>
-              <li className="flex items-center gap-3 text-blue-200 text-sm">
-                <PhoneIcon />
-                <span>+221 77 329 35 57</span>
-              </li>
-              <li className="flex items-center gap-3 text-blue-200 text-sm">
-                <MailIcon />
-                <span>contact@autoecole-khadija.sn</span>
-              </li>
+          {/* Contact : les trois sites */}
+          <div className="md:col-span-2">
+            <h4 className="font-bold uppercase tracking-widest mb-4" style={{ fontSize: '.75rem', color: '#93c5fd' }}>Contact · nos 3 sites</h4>
+            <ul className="grid sm:grid-cols-3 gap-3 list-none p-0 m-0">
+              {SITES.map(s => (
+                <li key={s.nom} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+                  <div className="font-bold text-white text-sm">{s.nom}</div>
+                  <div className="flex items-start gap-2 text-blue-200 text-xs leading-relaxed flex-1">
+                    <span className="flex-shrink-0"><MapIcon /></span>
+                    <span>{s.adresse}</span>
+                  </div>
+                  <a href={`tel:+221${s.tel.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm font-semibold whitespace-nowrap" style={{ color: '#fff', textDecoration: 'none' }}>
+                    <PhoneIcon />
+                    {s.tel}
+                  </a>
+                  <a href={itineraire(s)} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold" style={{ color: '#f0bb2a', textDecoration: 'none' }}>
+                    Itinéraire →
+                  </a>
+                </li>
+              ))}
             </ul>
+            <div className="mt-3 flex items-center gap-3 text-blue-200 text-sm">
+              <MailIcon />
+              <span>contact@autoecole-khadija.sn</span>
+            </div>
             <div className="mt-4 bg-white/10 rounded-xl p-3">
               <div className="text-xs text-blue-300 font-medium mb-1">Horaires d'ouverture</div>
               <div className="text-sm text-white">Lun – Sam : 8h00 – 18h00</div>
