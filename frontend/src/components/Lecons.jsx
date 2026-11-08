@@ -6,6 +6,8 @@ import { toast } from './Toast'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
+import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
+import { champCls } from './fenetreStyles'
 import Pagination from './Pagination'
 import '../landing.css'
 
@@ -29,8 +31,10 @@ const STATUT_STYLE = {
   EN_COURS:  { bg: '#eff6ff', color: '#1d4ed8', dot: '#2563eb', label: 'En cours' },
 }
 
-const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all'
-const labelCls = 'block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5'
+
+// « 08:30 » ↔ minutes depuis minuit (durée d'une leçon)
+const minutes = h => { const [a, b] = (h || '0:0').split(':').map(Number); return a * 60 + b }
+const heure = m => `${String(Math.floor(Math.min(m, 1439) / 60)).padStart(2, '0')}:${String(Math.min(m, 1439) % 60).padStart(2, '0')}`
 
 /* Choix par puces avec recherche (élèves, moniteur, véhicule) : toucher une ligne la coche,
    la retoucher la décoche. multiple : plusieurs choix, valeur = liste d'ids ; sinon un seul,
@@ -350,78 +354,75 @@ export default function Lecons({ onBack }) {
       </div>
 
       {/* ── Modal planifier / modifier ───────────────────────── */}
-      {showModal && (
-        <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content border-0 shadow-2xl" style={{ borderRadius: '1.25rem' }}>
-              <div className="modal-header border-0 px-6 pt-5 pb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(30,58,95,.1)', color: '#1e3a5f' }}>
-                    <i className="bi bi-calendar2-plus" />
-                  </div>
-                  <h5 className="modal-title fw-bold m-0" style={{ color: '#1e293b' }}>
-                    {editId ? 'Modifier la leçon' : 'Planifier une leçon'}
-                  </h5>
+      {showModal && (() => {
+        const nbEleves = editId ? (form.eleveId ? 1 : 0) : form.eleveIds.length
+        const duree = minutes(form.heureFin) - minutes(form.heureDebut)
+        return (
+          <FenetreModerne
+            surTitre="Cours de conduite"
+            titre={editId ? 'Modifier la leçon' : 'Planifier une leçon'}
+            icone="car-front-fill"
+            details={[
+              form.date && ['calendar3', fmtDate(form.date)],
+              form.heureDebut && form.heureFin && ['clock', `${form.heureDebut} – ${form.heureFin}`],
+              nbEleves > 0 && ['people-fill', nbEleves > 1 ? `${nbEleves} élèves` : '1 élève'],
+            ]}
+            piedGauche={!editId && nbEleves > 1 ? `Une leçon par élève : ${nbEleves} leçons, même créneau` : undefined}
+            libelleSave={editId ? 'Enregistrer' : nbEleves > 1 ? `Planifier ${nbEleves} leçons` : 'Planifier'}
+            onClose={() => setShowModal(false)} onSave={save}>
+
+            <Etape n={1} icon="people" titre={editId ? 'Élève' : 'Élèves · un ou plusieurs'}>
+              {editId
+                ? <ChoixPuces items={pucesEleves} placeholder="Nom, prénom ou téléphone…" valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
+                : <ChoixPuces multiple items={pucesEleves} placeholder="Nom, prénom ou téléphone…" valeur={form.eleveIds} onChoisir={ids => setForm(f => ({ ...f, eleveIds: ids }))} />}
+            </Etape>
+
+            <Etape n={2} icon="person-badge" titre="Moniteur et véhicule">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Etiquette requis>Moniteur</Etiquette>
+                  <ChoixPuces items={pucesMoniteurs} unite="moniteur" placeholder="Nom ou téléphone…" hauteur={180}
+                    valeur={form.moniteurId} onChoisir={id => setForm(f => ({ ...f, moniteurId: id }))} />
                 </div>
-                <button className="btn-close" onClick={() => setShowModal(false)} />
-              </div>
-              <div className="modal-body px-6 py-4">
-                <div className="row g-3">
-                  <div className="col-12">
-                    <label className={labelCls}>{editId ? 'Élève' : 'Élèves (un ou plusieurs)'} <span className="text-red-500 ml-0.5">*</span></label>
-                    {editId
-                      ? <ChoixPuces items={pucesEleves} placeholder="Nom, prénom ou téléphone…" valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
-                      : <ChoixPuces multiple items={pucesEleves} placeholder="Nom, prénom ou téléphone…" valeur={form.eleveIds} onChoisir={ids => setForm(f => ({ ...f, eleveIds: ids }))} />}
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
-                    <ChoixPuces items={pucesMoniteurs} unite="moniteur" placeholder="Nom ou téléphone…" hauteur={180}
-                      valeur={form.moniteurId} onChoisir={id => setForm(f => ({ ...f, moniteurId: id }))} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>
-                      Véhicule {form.type === 'CONDUITE' && <span className="text-red-500 ml-0.5">*</span>}
-                    </label>
-                    <ChoixPuces items={pucesVehicules} unite="véhicule" placeholder="Immatriculation ou modèle…" hauteur={180}
-                      valeur={form.vehiculeId} onChoisir={id => setForm(f => ({ ...f, vehiculeId: id }))} />
-                  </div>
-                  {/* 2e ligne : date et horaires côte à côte (heures côte à côte aussi sur téléphone) */}
-                  <div className="col-12 col-md-4">
-                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="date" className={inputCls} value={form.date}
-                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                  </div>
-                  <div className="col-6 col-md-4">
-                    <label className={labelCls}>Heure début <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="time" className={inputCls} value={form.heureDebut}
-                      onChange={e => setForm(f => ({ ...f, heureDebut: e.target.value }))} />
-                  </div>
-                  <div className="col-6 col-md-4">
-                    <label className={labelCls}>Heure fin <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="time" className={inputCls} value={form.heureFin}
-                      onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
-                  </div>
-                  <div className="col-12">
-                    <label className={labelCls}>Observations</label>
-                    <textarea className={inputCls} rows={2} value={form.observations}
-                      onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
-                  </div>
+                <div>
+                  <Etiquette requis={form.type === 'CONDUITE'}>Véhicule</Etiquette>
+                  <ChoixPuces items={pucesVehicules} unite="véhicule" placeholder="Immatriculation ou modèle…" hauteur={180}
+                    valeur={form.vehiculeId} onChoisir={id => setForm(f => ({ ...f, vehiculeId: id }))} />
                 </div>
               </div>
-              <div className="modal-footer border-0 px-6 pb-5 pt-2 gap-2">
-                <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
-                  onClick={() => setShowModal(false)}>Annuler</button>
-                <button className="btn fw-bold text-white px-5" style={{
-                  background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', borderRadius: '.75rem', border: 'none' }}
-                  onClick={save}>
-                  <i className="bi bi-check-lg me-1" />Enregistrer
-                </button>
+            </Etape>
+
+            <Etape n={3} icon="calendar-event" titre="Date et horaire">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+                <div className="col-span-2 sm:col-span-1">
+                  <Etiquette requis>Date</Etiquette>
+                  <input type="date" className={champCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                </div>
+                <div>
+                  <Etiquette requis>Heure début</Etiquette>
+                  {/* Changer le début garde la durée choisie */}
+                  <input type="time" className={champCls} value={form.heureDebut}
+                    onChange={e => { const d = e.target.value; setForm(f => ({ ...f, heureDebut: d, heureFin: duree > 0 && d ? heure(minutes(d) + duree) : f.heureFin })) }} />
+                </div>
+                <div>
+                  <Etiquette requis>Heure fin</Etiquette>
+                  <input type="time" className={champCls} value={form.heureFin} onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">Durée :</span>
+                <Choix value={duree} onChange={m => setForm(f => ({ ...f, heureFin: heure(minutes(f.heureDebut) + m) }))}
+                  options={[[60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h']].map(([v, label]) => ({ v, label, icon: 'stopwatch', color: '#b45309', bg: '#fffbeb' }))} />
+              </div>
+            </Etape>
+
+            <Etape n={4} icon="chat-left-text" titre="Observations">
+              <textarea className={champCls} rows={2} value={form.observations} placeholder="Ex. Créneaux, manœuvres, parcours d'examen… (facultatif)"
+                onChange={e => setForm(f => ({ ...f, observations: e.target.value }))} />
+            </Etape>
+          </FenetreModerne>
+        )
+      })()}
     </div>
   )
 }
