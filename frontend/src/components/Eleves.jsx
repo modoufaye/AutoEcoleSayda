@@ -1998,6 +1998,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   <div className="text-slate-400 mt-1">
                     {archives && e.dateArchivage ? <>Archivé le {fmtDate(e.dateArchivage)}</> : <>Inscrit le {fmtDate(e.dateInscription)}</>}
                   </div>
+                  {/* Message de bienvenue : l'élève a-t-il reçu ses identifiants ? */}
+                  {e.bienvenueEnvoyeeLe
+                    ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-whatsapp me-1" />Identifiants envoyés le {fmtDate(e.bienvenueEnvoyeeLe.slice(0, 10))}</div>
+                    : <div className="mt-1 font-semibold" style={{ color: '#b45309' }}><i className="bi bi-whatsapp me-1" />Identifiants à envoyer</div>}
                 </div>
 
                 {/* Statut et actions */}
