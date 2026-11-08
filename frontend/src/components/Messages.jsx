@@ -13,6 +13,76 @@ import { EnteteListe, ListeVide, ListeChargement, Recherche, BoutonAjout } from 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 const heure = d => new Date(d).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
+/* Fil de messages en bulles (les siens à droite, en doré). */
+function Bulles({ messages, maxHeight = '55vh' }) {
+  const bas = useRef(null)
+  useEffect(() => { bas.current?.scrollIntoView({ block: 'nearest' }) }, [messages.length])
+  return (
+    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" style={{ background: '#f8fafc', maxHeight }}>
+      {messages.length === 0 && <div className="text-sm text-slate-400 text-center py-6">Écrivez le premier message</div>}
+      {messages.map(m => (
+        <div key={m.id} className={`flex ${m.deMoi ? 'justify-end' : 'justify-start'}`}>
+          <div className="max-w-[80%] px-3 py-2 text-sm" style={{ borderRadius: m.deMoi ? '1rem 1rem .25rem 1rem' : '1rem 1rem 1rem .25rem',
+            background: m.deMoi ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff', color: m.deMoi ? '#1e3a5f' : '#334155', border: m.deMoi ? 'none' : '1px solid #e2e8f0' }}>
+            {!m.deMoi && <div className="text-[11px] font-bold mb-0.5" style={{ color: '#1d4ed8' }}>{m.auteur}</div>}
+            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>
+            <div className="text-[10px] mt-1 text-right" style={{ opacity: .65 }}>{heure(m.envoyeLe)}</div>
+          </div>
+        </div>
+      ))}
+      <div ref={bas} />
+    </div>
+  )
+}
+
+/* Zone de saisie : Entrée envoie, Maj + Entrée passe à la ligne. onEnvoyer(texte) renvoie une promesse. */
+function Saisie({ onEnvoyer }) {
+  const [texte, setTexte] = useState('')
+  const [envoi, setEnvoi] = useState(false)
+  const envoyer = async () => {
+    if (!texte.trim() || envoi) return
+    setEnvoi(true)
+    try { await onEnvoyer(texte); setTexte('') }
+    catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+  return (
+    <div className="p-3 flex gap-2 items-end" style={{ borderTop: '1px solid #eef2f7' }}>
+      <textarea className="form-control" rows={2} maxLength={2000} value={texte} placeholder="Votre message… (Entrée pour envoyer)"
+        onChange={e => setTexte(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoyer() } }} style={{ resize: 'none' }} />
+      <button type="button" onClick={envoyer} disabled={envoi || !texte.trim()} aria-label="Envoyer"
+        className="w-11 h-11 rounded-full border-0 flex items-center justify-center cursor-pointer flex-shrink-0"
+        style={{ background: texte.trim() ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#e2e8f0', color: '#1e3a5f' }}>
+        {envoi ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-send-fill" />}
+      </button>
+    </div>
+  )
+}
+
+/* Fiche élève (personnel) : la conversation privée avec cet élève, ouverte au premier message envoyé.
+   Les messages reçus passent lus à l'ouverture de l'onglet. */
+export function ConversationEleve({ eleveId, onLu }) {
+  const [conv, setConv] = useState(null)
+  const charger = () => api('GET', `/conversations/eleve/${eleveId}?lire=true`)
+    .then(c => { setConv(c); onLu?.(); window.dispatchEvent(new Event('messages-lus')) })
+    .catch(e => { toast(e.message, 'danger'); setConv({ id: null, messages: [] }) })
+  useEffect(() => { charger() }, [eleveId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const t = setInterval(charger, 20000); return () => clearInterval(t) }, [eleveId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const envoyer = async texte => {
+    const id = conv?.id || (await api('POST', '/conversations', { eleveId })).id
+    await api('POST', `/conversations/${id}/messages`, { texte })
+    await charger()
+  }
+  if (!conv) return <div className="py-10 flex justify-center"><span className="spinner-border spinner-border-sm text-secondary" /></div>
+  return (
+    <div className="flex flex-col">
+      <Bulles messages={conv.messages} maxHeight="380px" />
+      <Saisie onEnvoyer={envoyer} />
+    </div>
+  )
+}
+
 /* Personnel : choix de l'élève à qui écrire (tous pour l'auto-école, ses élèves pour un moniteur). */
 function ChoixEleve({ onChoisir, onAnnuler }) {
   const [eleves, setEleves] = useState(null)
@@ -45,10 +115,7 @@ export default function Messages({ onLus }) {
   const eleve = user?.role === 'ELEVE'
   const [convs, setConvs] = useState(null)
   const [ouverte, setOuverte] = useState(null)   // { id, titre, messages }
-  const [texte, setTexte] = useState('')
-  const [envoi, setEnvoi] = useState(false)
   const [choix, setChoix] = useState(false)
-  const bas = useRef(null)
   const ouverteId = ouverte?.id
 
   const chargerListe = () => api('GET', '/conversations').then(setConvs).catch(e => { toast(e.message, 'danger'); setConvs([]) })
@@ -62,18 +129,10 @@ export default function Messages({ onLus }) {
     const t = setInterval(() => { if (ouverteId) ouvrir(ouverteId); else chargerListe() }, 20000)
     return () => clearInterval(t)
   }, [ouverteId]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { bas.current?.scrollIntoView({ block: 'end' }) }, [ouverte?.messages?.length])
 
   const demarrer = async corps => {
     try { const c = await api('POST', '/conversations', corps); setChoix(false); ouvrir(c.id) }
     catch (e) { toast(e.message, 'danger') }
-  }
-  const envoyer = async () => {
-    if (!texte.trim() || !ouverte) return
-    setEnvoi(true)
-    try { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); setTexte(''); ouvrir(ouverte.id) }
-    catch (e) { toast(e.message, 'danger') }
-    finally { setEnvoi(false) }
   }
 
   const liste = (
@@ -111,30 +170,8 @@ export default function Messages({ onLus }) {
         </button>
         <div className="font-extrabold text-white truncate">{ouverte.titre}</div>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" style={{ background: '#f8fafc', maxHeight: '55vh' }}>
-        {ouverte.messages.length === 0 && <div className="text-sm text-slate-400 text-center py-6">Écrivez le premier message</div>}
-        {ouverte.messages.map(m => (
-          <div key={m.id} className={`flex ${m.deMoi ? 'justify-end' : 'justify-start'}`}>
-            <div className="max-w-[80%] px-3 py-2 text-sm" style={{ borderRadius: m.deMoi ? '1rem 1rem .25rem 1rem' : '1rem 1rem 1rem .25rem',
-              background: m.deMoi ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff', color: m.deMoi ? '#1e3a5f' : '#334155', border: m.deMoi ? 'none' : '1px solid #e2e8f0' }}>
-              {!m.deMoi && <div className="text-[11px] font-bold mb-0.5" style={{ color: '#1d4ed8' }}>{m.auteur}</div>}
-              <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>
-              <div className="text-[10px] mt-1 text-right" style={{ opacity: .65 }}>{heure(m.envoyeLe)}</div>
-            </div>
-          </div>
-        ))}
-        <div ref={bas} />
-      </div>
-      <div className="p-3 flex gap-2 items-end" style={{ borderTop: '1px solid #eef2f7' }}>
-        <textarea className="form-control" rows={2} maxLength={2000} value={texte} placeholder="Votre message… (Entrée pour envoyer)"
-          onChange={e => setTexte(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoyer() } }} style={{ resize: 'none' }} />
-        <button type="button" onClick={envoyer} disabled={envoi || !texte.trim()} aria-label="Envoyer"
-          className="w-11 h-11 rounded-full border-0 flex items-center justify-center cursor-pointer flex-shrink-0"
-          style={{ background: texte.trim() ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#e2e8f0', color: '#1e3a5f' }}>
-          {envoi ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-send-fill" />}
-        </button>
-      </div>
+      <Bulles messages={ouverte.messages} />
+      <Saisie onEnvoyer={async texte => { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); await ouvrir(ouverte.id) }} />
     </div>
   ) : (
     <div className="hidden lg:flex bg-white rounded-2xl items-center justify-center text-slate-400 text-sm" style={{ ...carte, minHeight: 420 }}>

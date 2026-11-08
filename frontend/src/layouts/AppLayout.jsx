@@ -32,9 +32,6 @@ import HoteConfirmation from '../components/Confirmation'
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
   { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
-  // Après « Mon Espace » et le tableau de bord : la première rubrique reste la page d'arrivée
-  { key: 'annonces',         label: 'Annonces',         icon: 'megaphone-fill',        color: '#facc15', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
-  { key: 'messages',         label: 'Messages',         icon: 'chat-dots-fill',        color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
   { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
@@ -49,6 +46,10 @@ const ALL_SECTIONS = [
   { key: 'td-moniteur',     label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['MONITEUR'] },
   { key: 'td-eleve',        label: 'Travaux Dirigés',  icon: 'pencil-square',         color: '#f97316', roles: ['ELEVE'] },
   { key: 'mediatheque',      label: 'Médiathèque',      icon: 'collection-play-fill',  color: '#34d399', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'] },
+  // Messages groupés de l'auto-école, sous la médiathèque (les messages privés sont dans la fiche élève)
+  { key: 'annonces',         label: 'Annonces',         icon: 'megaphone-fill',        color: '#facc15', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
+  // Boîte de réception des messages privés (aussi dans l'onglet Messages de chaque fiche élève)
+  { key: 'messages',         label: 'Messages',         icon: 'chat-dots-fill',        color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'journal',          label: 'Journal',          icon: 'journal-text',          color: '#fda4af', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -143,7 +144,9 @@ export default function AppLayout() {
     }
     relire()
     const t = setInterval(relire, 60000)
-    return () => clearInterval(t)
+    // Messages lus ailleurs (onglet Messages d'une fiche élève) : la pastille suit aussitôt
+    window.addEventListener('messages-lus', relire)
+    return () => { clearInterval(t); window.removeEventListener('messages-lus', relire) }
   }, [user, section])
   const pastilles = { annonces: nonLues, messages: messagesNonLus }
   const detail = rawDetail ? decodeURIComponent(rawDetail) : null

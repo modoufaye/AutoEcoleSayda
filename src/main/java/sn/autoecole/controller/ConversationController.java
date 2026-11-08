@@ -112,10 +112,42 @@ public class ConversationController {
     @Transactional
     public Map<String, Object> lire(@PathVariable Long id, Authentication auth) {
         Lecteur l = lecteur(auth);
-        Conversation c = trouver(id, l);
-        if (l.estEleve()) c.setEleveLuLe(LocalDateTime.now()); else c.setEquipeLuLe(LocalDateTime.now());
-        conversations.save(c);
-        List<Map<String, Object>> liste = messages.findByConversationIdOrderByEnvoyeLeAscIdAsc(id).stream().map(m -> {
+        return contenu(trouver(id, l), l, true);
+    }
+
+    /**
+     * Fiche élève (personnel) : la conversation avec cet élève (auto-école, ou le moniteur avec son
+     * élève), sans la créer tant qu'aucun message n'est envoyé. lire=true : ses messages passent lus.
+     */
+    @GetMapping("/eleve/{eleveId}")
+    @Transactional
+    public Map<String, Object> avecEleve(@PathVariable Long eleveId, @RequestParam(defaultValue = "false") boolean lire, Authentication auth) {
+        Lecteur l = lecteur(auth);
+        if (l.estEleve()) throw new BusinessException("Réservé au personnel");
+        Eleve eleve = eleveRepository.findById(eleveId).orElseThrow(() -> new ResourceNotFoundException("Élève introuvable"));
+        Optional<Conversation> c;
+        if (l.user().getRole() == RoleUser.MONITEUR) {
+            if (l.moniteur() == null || eleve.getMoniteur() == null || !eleve.getMoniteur().getId().equals(l.moniteur().getId()))
+                throw new BusinessException("Vous écrivez seulement à vos élèves");
+            c = conversations.findFirstByEleveIdAndTypeAndMoniteurId(eleveId, Conversation.Type.MONITEUR, l.moniteur().getId());
+        } else c = conversations.findFirstByEleveIdAndTypeAndMoniteurIdIsNull(eleveId, Conversation.Type.ECOLE);
+        if (c.isEmpty()) {
+            Map<String, Object> vide = new LinkedHashMap<>();
+            vide.put("id", null); vide.put("messages", List.of()); vide.put("nonLus", 0);
+            return vide;
+        }
+        long nonLus = nonLus(c.get(), l);
+        Map<String, Object> r = new LinkedHashMap<>(contenu(c.get(), l, lire));
+        r.put("nonLus", lire ? 0 : nonLus);
+        return r;
+    }
+
+    private Map<String, Object> contenu(Conversation c, Lecteur l, boolean marquerLu) {
+        if (marquerLu) {
+            if (l.estEleve()) c.setEleveLuLe(LocalDateTime.now()); else c.setEquipeLuLe(LocalDateTime.now());
+            conversations.save(c);
+        }
+        List<Map<String, Object>> liste = messages.findByConversationIdOrderByEnvoyeLeAscIdAsc(c.getId()).stream().map(m -> {
             Map<String, Object> v = new LinkedHashMap<>();
             v.put("id", m.getId()); v.put("texte", m.getTexte()); v.put("envoyeLe", m.getEnvoyeLe());
             v.put("deMoi", m.getCote() == l.cote());

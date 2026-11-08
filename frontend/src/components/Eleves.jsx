@@ -12,6 +12,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
+import { ConversationEleve } from './Messages'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
 import { CoursPublies } from './SeanceCode'
@@ -949,6 +950,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
+  const [conversation, setConversation] = useState({ nonLus: 0, total: 0 })   // onglet Messages de la fiche
+  const selectedId = selected?.id
+  useEffect(() => {
+    if (!selectedId) return
+    api('GET', `/conversations/eleve/${selectedId}`).then(c => setConversation({ nonLus: c.nonLus || 0, total: c.messages.length })).catch(() => setConversation({ nonLus: 0, total: 0 }))
+  }, [selectedId])
   const [ecole, setEcole]         = useState('')
   const [moniteurDefaut, setMoniteurDefaut] = useState('')
   const [tarifs, setTarifs] = useState({ formules: [], formulesMoto: [], formulesPoidsLourd: [], formulesPerfectionnement: [] })
@@ -1775,6 +1782,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   // Perfectionnement : pas d'examen du permis
                   ...(s.typeFormation !== 'PERFECTIONNEMENT' ? [{ key: 'examens', icon: 'clipboard2-check-fill', label: 'Examens', count: profileData.examens.length }] : []),
                   ...(!isMoniteur ? [{ key: 'paiements', icon: 'cash-stack', label: 'Paiements', count: profileData.paiements.length }] : []),
+                  // Conversation privée avec l'élève (auto-école, ou le moniteur avec son élève) ; non lus en doré
+                  { key: 'messages', icon: 'chat-dots-fill', label: 'Messages', count: conversation.nonLus || conversation.total, alerte: conversation.nonLus > 0 },
                 ].map(tab => (
                   <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                     className="flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-1.5 sm:gap-2 px-1.5 sm:px-4 py-3 text-xs sm:text-sm font-semibold border-0 bg-transparent cursor-pointer transition-all"
@@ -1787,7 +1796,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     {tab.label}
                     {!loadingProfile && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={activeTab === tab.key
+                        style={tab.alerte ? { background: '#f0bb2a', color: '#1e3a5f' }
+                          : activeTab === tab.key
                           ? { background: '#eff6ff', color: '#1e3a5f' }
                           : { background: '#f1f5f9', color: '#94a3b8' }}>
                         {tab.count}
@@ -1805,6 +1815,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 <>
                   {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} seances={profileData.seances} />}
                   {activeTab === 'examens'   && <TabExamens   examens={profileData.examens} />}
+                  {activeTab === 'messages' && <ConversationEleve eleveId={s.id} onLu={() => setConversation(c => ({ ...c, nonLus: 0 }))} />}
                   {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} montantTotal={s.montantTotal} eleveId={s.id} isAdmin={isAdmin} onRefresh={() => openProfile(s, 'paiements')} />}
                 </>
               )}
