@@ -32,14 +32,14 @@ const STATUT_STYLE = {
 const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all'
 const labelCls = 'block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5'
 
-/* Choix des élèves d'une leçon : liste à puces avec recherche ; toucher un élève le coche,
-   le retoucher le décoche. multiple (création) : plusieurs élèves, valeur = liste d'ids ;
-   sinon (modification) un seul, valeur = id. */
-function ChoixElevePuces({ eleves, valeur, onChoisir, multiple = false }) {
+/* Choix par puces avec recherche (élèves, moniteur, véhicule) : toucher une ligne la coche,
+   la retoucher la décoche. multiple : plusieurs choix, valeur = liste d'ids ; sinon un seul,
+   valeur = id. items : { id, titre, sous, badge, mots } (mots : texte de recherche). */
+function ChoixPuces({ items, valeur, onChoisir, multiple = false, unite = 'élève', placeholder = 'Rechercher…', hauteur = 220 }) {
   const [q, setQ] = useState('')
   const coches = multiple ? valeur.map(String) : valeur ? [String(valeur)] : []
-  const choisi = eleves.find(e => coches.includes(String(e.id)))
-  const liste = eleves.filter(e => correspond([e.prenom, e.nom, e.telephone], q))
+  const choisi = items.find(e => coches.includes(String(e.id)))
+  const liste = items.filter(e => correspond(e.mots, q))
   const basculer = id => {
     const actif = coches.includes(id)
     if (multiple) onChoisir(actif ? coches.filter(x => x !== id) : [...coches, id])
@@ -48,14 +48,14 @@ function ChoixElevePuces({ eleves, valeur, onChoisir, multiple = false }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
       <div className="p-2 flex flex-wrap items-center gap-2" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-        <div className="flex-1 min-w-[180px] flex"><Recherche value={q} onChange={setQ} placeholder="Nom, prénom ou téléphone…" /></div>
-        <span className="text-xs font-bold px-2" style={{ color: coches.length ? '#15803d' : '#94a3b8' }}>
-          {coches.length > 1 ? <><i className="bi bi-check-circle-fill me-1" />{coches.length} élèves cochés</>
-            : choisi ? <><i className="bi bi-check-circle-fill me-1" />{choisi.prenom} {choisi.nom}</> : 'Aucun élève coché'}
+        {items.length > 5 && <div className="flex-1 min-w-[160px] flex"><Recherche value={q} onChange={setQ} placeholder={placeholder} /></div>}
+        <span className="text-xs font-bold px-2 py-1" style={{ color: coches.length ? '#15803d' : '#94a3b8' }}>
+          {coches.length > 1 ? <><i className="bi bi-check-circle-fill me-1" />{coches.length} {unite}s cochés</>
+            : choisi ? <><i className="bi bi-check-circle-fill me-1" />{choisi.titre}</> : `Aucun ${unite} coché`}
         </span>
       </div>
-      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-        {liste.length === 0 && <div className="px-3 py-3 text-sm text-slate-400">Aucun élève trouvé</div>}
+      <div style={{ maxHeight: hauteur, overflowY: 'auto' }}>
+        {liste.length === 0 && <div className="px-3 py-3 text-sm text-slate-400">Aucun {unite} trouvé</div>}
         {liste.map(e => {
           const actif = coches.includes(String(e.id))
           return (
@@ -67,12 +67,12 @@ function ChoixElevePuces({ eleves, valeur, onChoisir, multiple = false }) {
                 {actif && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.prenom} {e.nom}</div>
-                <div className="text-xs text-slate-400 truncate">{e.telephone || 'Pas de numéro'}</div>
+                <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.titre}</div>
+                {e.sous && <div className="text-xs text-slate-400 truncate">{e.sous}</div>}
               </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#eef2f7', color: '#475569' }}>
-                {e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''}`}
-              </span>
+              {e.badge && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#eef2f7', color: '#475569' }}>{e.badge}</span>
+              )}
             </div>
           )
         })}
@@ -133,6 +133,12 @@ export default function Lecons({ onBack }) {
     }
     setShowModal(true)
   }
+
+  const pucesEleves = eleves.map(e => ({ id: e.id, titre: `${e.prenom} ${e.nom}`, sous: e.telephone || 'Pas de numéro',
+    badge: e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''}`, mots: [e.prenom, e.nom, e.telephone] }))
+  const pucesMoniteurs = moniteurs.map(m => ({ id: m.id, titre: `${m.prenom} ${m.nom}`, sous: m.telephone, mots: [m.prenom, m.nom, m.telephone] }))
+  const pucesVehicules = vehicules.map(v => ({ id: v.id, titre: `${v.marque} ${v.modele}`, sous: v.immatriculation,
+    badge: v.categorie ? `Permis ${v.categorie}` : null, mots: [v.immatriculation, v.marque, v.modele] }))
 
   const save = async () => {
     const { date, heureDebut, heureFin, eleveId, eleveIds, moniteurId, type, vehiculeId } = form
@@ -365,35 +371,25 @@ export default function Lecons({ onBack }) {
                   <div className="col-12">
                     <label className={labelCls}>{editId ? 'Élève' : 'Élèves (un ou plusieurs)'} <span className="text-red-500 ml-0.5">*</span></label>
                     {editId
-                      ? <ChoixElevePuces eleves={eleves} valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
-                      : <ChoixElevePuces multiple eleves={eleves} valeur={form.eleveIds} onChoisir={ids => setForm(f => ({ ...f, eleveIds: ids }))} />}
+                      ? <ChoixPuces items={pucesEleves} placeholder="Nom, prénom ou téléphone…" valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
+                      : <ChoixPuces multiple items={pucesEleves} placeholder="Nom, prénom ou téléphone…" valeur={form.eleveIds} onChoisir={ids => setForm(f => ({ ...f, eleveIds: ids }))} />}
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.moniteurId}
-                      onChange={e => setForm(f => ({ ...f, moniteurId: e.target.value }))}>
-                      <option value="">Choisir un moniteur…</option>
-                      {moniteurs.map(m => (
-                        <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
-                    <input type="date" className={inputCls} value={form.date}
-                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                    <ChoixPuces items={pucesMoniteurs} unite="moniteur" placeholder="Nom ou téléphone…" hauteur={180}
+                      valeur={form.moniteurId} onChoisir={id => setForm(f => ({ ...f, moniteurId: id }))} />
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>
                       Véhicule {form.type === 'CONDUITE' && <span className="text-red-500 ml-0.5">*</span>}
                     </label>
-                    <select className={inputCls} value={form.vehiculeId}
-                      onChange={e => setForm(f => ({ ...f, vehiculeId: e.target.value }))}>
-                      <option value="">{form.type === 'CONDUITE' ? 'Choisir un véhicule…' : 'Aucun / Non applicable'}</option>
-                      {vehicules.map(v => (
-                        <option key={v.id} value={v.id}>{v.immatriculation} – {v.marque} {v.modele} ({v.categorie})</option>
-                      ))}
-                    </select>
+                    <ChoixPuces items={pucesVehicules} unite="véhicule" placeholder="Immatriculation ou modèle…" hauteur={180}
+                      valeur={form.vehiculeId} onChoisir={id => setForm(f => ({ ...f, vehiculeId: id }))} />
+                  </div>
+                  <div className="col-md-6">
+                    <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
+                    <input type="date" className={inputCls} value={form.date}
+                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Heure début <span className="text-red-500 ml-0.5">*</span></label>
