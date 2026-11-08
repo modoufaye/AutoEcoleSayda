@@ -386,17 +386,18 @@ export default function Lecons({ onBack }) {
                     <ChoixPuces items={pucesVehicules} unite="véhicule" placeholder="Immatriculation ou modèle…" hauteur={180}
                       valeur={form.vehiculeId} onChoisir={id => setForm(f => ({ ...f, vehiculeId: id }))} />
                   </div>
-                  <div className="col-md-6">
+                  {/* 2e ligne : date et horaires côte à côte (heures côte à côte aussi sur téléphone) */}
+                  <div className="col-12 col-md-4">
                     <label className={labelCls}>Date <span className="text-red-500 ml-0.5">*</span></label>
                     <input type="date" className={inputCls} value={form.date}
                       onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-6 col-md-4">
                     <label className={labelCls}>Heure début <span className="text-red-500 ml-0.5">*</span></label>
                     <input type="time" className={inputCls} value={form.heureDebut}
                       onChange={e => setForm(f => ({ ...f, heureDebut: e.target.value }))} />
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-6 col-md-4">
                     <label className={labelCls}>Heure fin <span className="text-red-500 ml-0.5">*</span></label>
                     <input type="time" className={inputCls} value={form.heureFin}
                       onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
