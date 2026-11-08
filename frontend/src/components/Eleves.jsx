@@ -424,7 +424,7 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh, 
 function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
   const [loading, setLoading] = useState(false)
   const [creds, setCreds]     = useState(null)
-  const [envoi, setEnvoi]     = useState({ le: eleve.bienvenueEnvoyeeLe, par: eleve.bienvenueEnvoyeePar })
+  const [envoyeLe, setEnvoyeLe] = useState(eleve.bienvenueEnvoyeeLe)
 
   if (!waLink(eleve.telephone)) return null
 
@@ -441,17 +441,17 @@ function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
   const noterEnvoi = () => {
     setTimeout(() => setCreds(null), 300)
     api('POST', `/eleves/${eleve.id}/bienvenue-envoyee`).then(e => {
-      eleve.bienvenueEnvoyeeLe = e.bienvenueEnvoyeeLe; eleve.bienvenueEnvoyeePar = e.bienvenueEnvoyeePar
-      setEnvoi({ le: e.bienvenueEnvoyeeLe, par: e.bienvenueEnvoyeePar })
+      eleve.bienvenueEnvoyeeLe = e.bienvenueEnvoyeeLe
+      setEnvoyeLe(e.bienvenueEnvoyeeLe)
     }).catch(() => {})
   }
 
   const message = creds && msgBienvenue(eleve, ecole, creds)
-  const quand = envoi.le && new Date(envoi.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const quand = envoyeLe && new Date(envoyeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <div className="px-5 py-3 border-t border-slate-100">
-      {envoi.le ? (
+      {envoyeLe ? (
         <>
           <a href={waLink(eleve.telephone)} target="_blank" rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold"
@@ -459,7 +459,7 @@ function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
             <i className="bi bi-whatsapp" />Écrire à {eleve.prenom} {eleve.nom}
           </a>
           <div className="mt-2 text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span><i className="bi bi-check-circle-fill me-1" style={{ color: '#16a34a' }} />Identifiants envoyés le {quand}{envoi.par ? ` par ${envoi.par}` : ''}</span>
+            <span><i className="bi bi-check-circle-fill me-1" style={{ color: '#16a34a' }} />Identifiants envoyés le {quand}</span>
             {peutEnvoyer && (
               <button type="button" onClick={generer} disabled={loading} className="bg-transparent border-0 p-0 text-xs font-bold cursor-pointer" style={{ color: '#2563eb' }}>
                 {loading ? 'Génération…' : 'Renvoyer de nouveaux identifiants'}
