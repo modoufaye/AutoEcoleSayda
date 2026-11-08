@@ -25,11 +25,14 @@ import TravauxDiriges from '../components/TravauxDiriges'
 import Parametres from '../components/Parametres'
 import Journal from '../components/Journal'
 import Mediatheque from '../components/Mediatheque'
+import Annonces from '../components/Annonces'
 import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
   { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  // Après « Mon Espace » et le tableau de bord : la première rubrique reste la page d'arrivée
+  { key: 'annonces',         label: 'Annonces',         icon: 'megaphone-fill',        color: '#facc15', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
   { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
@@ -63,6 +66,7 @@ const COMPONENTS = {
   'parametres': Parametres,
   journal: Journal,
   mediatheque: Mediatheque,
+  annonces: Annonces,
 }
 
 const MOBILE_QUERY = '(max-width: 768px)'
@@ -123,6 +127,13 @@ export default function AppLayout() {
      Android) revient à la liste au lieu de quitter la page. */
   const [rawSection, rawDetail] = (params['*'] || '').split('/')
   const section = sections.some(s => s.key === rawSection) ? rawSection : defaultSection
+
+  // Annonces non lues (pastille du menu), relues à chaque changement de rubrique
+  const [nonLues, setNonLues] = useState(0)
+  useEffect(() => {
+    if (!user) return
+    api('GET', '/annonces/non-lues').then(r => setNonLues(r?.nombre || 0)).catch(() => {})
+  }, [user, section])
   const detail = rawDetail ? decodeURIComponent(rawDetail) : null
   const navigateToEleve = section === 'eleves' ? detail : null
 
@@ -253,6 +264,10 @@ export default function AppLayout() {
               >
                 <i className={`bi bi-${s.icon}`} style={section !== s.key ? { color: s.color } : {}}></i>
                 <span className="nav-text">{s.label}</span>
+                {s.key === 'annonces' && nonLues > 0 && section !== 'annonces' && (
+                  <span className="ms-auto" title={`${nonLues} annonce(s) non lue(s)`}
+                    style={{ background: '#f0bb2a', color: '#1e3a5f', borderRadius: 999, fontSize: '.7rem', fontWeight: 800, padding: '.05rem .45rem', lineHeight: 1.4 }}>{nonLues}</span>
+                )}
               </button>
             </li>
           ))}
@@ -365,6 +380,8 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
             : section === 'mes-paiements'
             ? <ActiveComponent key={section} onBack={handleBack} />
+            : section === 'annonces'
+            ? <Annonces key={section} onLues={() => setNonLues(0)} />
             : section === 'mediatheque'
             ? <Mediatheque key={section} />
             : section === 'td-admin'

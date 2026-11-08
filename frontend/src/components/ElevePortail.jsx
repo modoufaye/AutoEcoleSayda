@@ -100,6 +100,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
   const [editMode, setEditMode] = useState(false)
   const [form, setForm]         = useState({})
   const [saving, setSaving]     = useState(false)
+  const [annonces, setAnnonces] = useState([])   // annonces non lues, rappelées en haut de l'espace
 
   useEffect(() => {
     Promise.all([
@@ -110,6 +111,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       .then(([p, e, l]) => { setProfil(p); setExamens(e); setLecons(l); setForm(toForm(p)) })
       .catch(err => setErreur(err.message || 'Erreur de chargement'))
       .finally(() => setLoading(false))
+    api('GET', '/annonces').then(l => setAnnonces((l || []).filter(a => !a.lue))).catch(() => {})
   }, [])
 
   function toForm(p) {
@@ -188,6 +190,24 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+
+      {/* Nouvelles annonces de l'auto-école */}
+      {annonces.length > 0 && (
+        <button type="button" onClick={() => onGoSection?.('annonces')}
+          className="w-full flex items-center gap-3 text-left rounded-2xl px-4 py-3 border-0 cursor-pointer"
+          style={{ background: '#fffbeb', border: '1.5px solid #fde68a', boxShadow: '0 2px 10px rgba(212,160,23,.15)' }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#fef3c7', color: '#b45309' }}>
+            <i className="bi bi-megaphone-fill" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-extrabold uppercase tracking-wider" style={{ color: '#b45309' }}>
+              {annonces.length > 1 ? `${annonces.length} nouvelles annonces` : 'Nouvelle annonce'}
+            </div>
+            <div className="font-bold truncate" style={{ color: '#1e3a5f' }}>{annonces[0].titre}</div>
+          </div>
+          <span className="text-sm font-extrabold whitespace-nowrap" style={{ color: '#b45309' }}>Lire <i className="bi bi-arrow-right" /></span>
+        </button>
+      )}
 
       {/* ══ BANNIÈRE ══════════════════════════════════════════ */}
       <div className="rounded-2xl overflow-hidden relative"
