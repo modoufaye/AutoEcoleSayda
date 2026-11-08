@@ -1,5 +1,9 @@
 package sn.autoecole.controller;
 
+import sn.autoecole.enums.ResultatExamen;
+import sn.autoecole.enums.TypeExamen;
+import sn.autoecole.repository.ExamenRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -10,7 +14,9 @@ import sn.autoecole.dto.SeanceResponse;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.service.SeanceService;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 @RestController
@@ -19,6 +25,7 @@ import java.util.Map;
 public class SeanceMoniteurController {
 
     private final SeanceService seanceService;
+    private final ExamenRepository examenRepository;
 
     @GetMapping
     public List<SeanceResponse> list(@AuthenticationPrincipal UserDetails user,
@@ -74,9 +81,12 @@ public class SeanceMoniteurController {
         List<Eleve> eleves = gestion(user)
                 ? seanceService.findAllEleves()
                 : seanceService.findElevesByMoniteur(user.getUsername());
+        // Admis au code : plus proposés pour une nouvelle séance (gardés s'ils y sont déjà)
+        Set<Long> admisCode = new HashSet<>(examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS));
         // Les élèves en perfectionnement ne verront que les parties de conduite (SeanceService)
         return eleves.stream()
                 .map(e -> Map.<String, Object>of(
+                        "admisCode", admisCode.contains(e.getId()),
                         "perfectionnement", e.estPerfectionnement(),
                         "id",    e.getId(),
                         "nom",   e.getPrenom() + " " + e.getNom(),

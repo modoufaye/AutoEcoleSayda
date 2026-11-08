@@ -20,6 +20,10 @@ public interface ExamenRepository extends JpaRepository<Examen, Long> {
 
     List<Examen> findByResultat(ResultatExamen resultat);
 
+    /** Élèves ayant au moins un examen de ce type avec ce résultat (ex. admis au code). */
+    @Query("select distinct x.eleve.id from Examen x where x.type = :type and x.resultat = :resultat")
+    List<Long> eleveIdsParResultat(@Param("type") TypeExamen type, @Param("resultat") ResultatExamen resultat);
+
     List<Examen> findByDateBetween(LocalDate debut, LocalDate fin);
 
     @Query("SELECT COUNT(e) FROM Examen e WHERE e.resultat = :resultat")

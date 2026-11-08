@@ -208,10 +208,13 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const [err, setErr]                 = useState('')
   const [selectedSeance, setSelectedSeance] = useState(null)
   const [medias, setMedias] = useState([])   // médiathèque, pour les blocs vidéo et audio
+  // Élèves déjà dans la séance ouverte : restent proposés (et cochés) même admis au code
+  const [dejaDansSeance, setDejaDansSeance] = useState([])
 
   const openCreate = () => {
     setEditId(null)
-    setForm({ ...defaultForm(), eleveIds: eleves.map(e => e.id) })
+    setDejaDansSeance([])
+    setForm({ ...defaultForm(), eleveIds: eleves.filter(e => !e.admisCode).map(e => e.id) })
     setErr('')
     setView('editor')
     onOuvrir?.('nouvelle')
@@ -219,6 +222,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
 
   const openEdit = (s, dejaDansUrl = false) => {
     setEditId(s.id)
+    setDejaDansSeance(s.eleves.map(e => e.id))
     setForm({
       titre:     s.titre     || '',
       dateHeure: s.dateHeure ? s.dateHeure.substring(0, 16) : '',
@@ -360,8 +364,11 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
     } catch (e) { setErr(e.message) }
     finally { setSaving(false) }
   }
-  /* Élèves assignables filtrés par la recherche (nom ou téléphone) */
-  const elevesVisibles = eleves.filter(e => correspond([e.nom, e.telephone], rechercheEleve))
+  /* Élèves assignables : un élève admis au code n'est plus proposé pour une séance, sauf s'il y
+     était déjà (il reste coché quand on ajoute de nouveaux élèves) ; puis filtre de recherche. */
+  const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id))
+  const admisMasques = eleves.length - elevesAssignables.length
+  const elevesVisibles = elevesAssignables.filter(e => correspond([e.nom, e.telephone], rechercheEleve))
   const toutCocher = coche => setForm(f => {
     const ids = new Set(f.eleveIds)
     elevesVisibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
@@ -449,7 +456,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
           {/* Élèves assignés */}
           <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
             <EnteteListe icone="people-fill" titre={partagee ? 'Mes élèves' : 'Élèves'} sousTitre={partagee ? 'Cochez ceux qui doivent voir cette séance' : 'Qui verra la séance'}
-              nombre={`${partagee ? eleves.filter(e => form.eleveIds.includes(e.id)).length : form.eleveIds.length}/${eleves.length}`} />
+              nombre={`${partagee ? elevesAssignables.filter(e => form.eleveIds.includes(e.id)).length : form.eleveIds.length}/${elevesAssignables.length}`} />
             {eleves.length > 0 && (
               <div className="px-4 pt-4 pb-2 space-y-2" style={{ borderBottom: '1px solid #eef2f7' }}>
                 <div className="flex"><Recherche value={rechercheEleve} onChange={setRechercheEleve} placeholder="Nom ou téléphone…" /></div>
@@ -463,8 +470,13 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                 </div>}
               </div>
             )}
+            {admisMasques > 0 && (
+              <div className="px-4 py-2 text-xs font-semibold" style={{ background: '#f0fdf4', color: '#15803d', borderBottom: '1px solid #eef2f7' }}>
+                <i className="bi bi-patch-check-fill me-1" />{admisMasques} élève{admisMasques > 1 ? 's' : ''} admis au code, plus proposé{admisMasques > 1 ? 's' : ''}
+              </div>
+            )}
             <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-              {eleves.length === 0 ? (
+              {elevesAssignables.length === 0 ? (
                 <ListeVide texte="Aucun élève enregistré" icone="people" />
               ) : elevesVisibles.length === 0 ? (
                 <ListeVide texte="Aucun élève trouvé" icone="search" />
@@ -481,7 +493,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                       <AvatarRond prenom={prenom} nom={nom} taille={34} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</div>
-                        {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}</div>}
+                        {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}{e.admisCode && <span className="font-bold" style={{ color: '#15803d' }}> · Admis au code</span>}</div>}
                       </div>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                         style={{ border: `2px solid ${checked ? '#d4a017' : '#cbd5e1'}`, background: checked ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
