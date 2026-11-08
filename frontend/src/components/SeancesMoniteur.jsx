@@ -502,7 +502,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
             <ChoixProgramme programme={form.programme} onChange={setProgramme}
               dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
           </fieldset>
-          {editId && !partagee && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz seanceId={editId} />}
+          {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz key={`${editId}-${partagee}`} seanceId={editId} mesEleves={partagee} />}
           <fieldset disabled={contenuFige} className="bg-white rounded-2xl overflow-hidden" style={{ ...carte, padding: 0, margin: 0, minWidth: 0 }}>
             <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />
 

@@ -217,17 +217,23 @@ public class SeanceService {
                 .map(e -> resultatRepo.findByEleveId(e.getId())).orElse(List.of());
     }
 
-    /** Résultats d'une séance pour son moniteur (ou l'administration) : chaque élève de la séance,
+    /** Résultats d'une séance pour son moniteur (ou l'administration ; pour une séance de l'administration,
+        un moniteur ne voit que ses élèves) : chaque élève de la séance,
         avec son résultat s'il a passé le quiz. */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> resultats(Long id, String moniteurEmail, boolean admin) {
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
-        if (!admin && !s.getMoniteur().getEmail().equals(moniteurEmail)) throw new BusinessException("Non autorisé");
+        boolean auteur = s.getMoniteur().getEmail().equals(moniteurEmail);
+        // Séance publiée par l'administration : un moniteur voit les résultats de ses propres élèves
+        boolean partagee = !admin && !auteur && s.getStatut() == StatutSeance.PUBLIE && ADMINISTRATION.contains(s.getMoniteur().getRole());
+        if (!admin && !auteur && !partagee) throw new BusinessException("Non autorisé");
+        Set<Long> miens = partagee ? findElevesByMoniteur(moniteurEmail).stream().map(Eleve::getId).collect(Collectors.toSet()) : null;
         Map<Long, ResultatQuizSeance> parEleve = new LinkedHashMap<>();
         resultatRepo.findBySeanceId(id).forEach(r -> parEleve.put(r.getEleveId(), r));
         List<Map<String, Object>> liste = new ArrayList<>();
         for (Eleve e : s.getEleves()) {
+            if (miens != null && !miens.contains(e.getId())) continue;
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("eleveId", e.getId());
             m.put("nom", e.getPrenom() + " " + e.getNom());

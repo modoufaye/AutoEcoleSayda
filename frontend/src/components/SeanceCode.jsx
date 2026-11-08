@@ -176,7 +176,8 @@ export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) 
 }
 
 /* ── Moniteur : résultats du quiz, élève par élève ── */
-export function ResultatsQuiz({ seanceId }) {
+/* mesEleves : séance de l'administration vue par un moniteur, qui n'y voit que ses élèves. */
+export function ResultatsQuiz({ seanceId, mesEleves = false }) {
   const [liste, setListe] = useState(null)
   const [ouvert, setOuvert] = useState(null)
   useEffect(() => {
@@ -187,8 +188,8 @@ export function ResultatsQuiz({ seanceId }) {
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-      <EnteteListe icone="clipboard2-check-fill" titre="Résultats du quiz" sousTitre={liste ? `${faits.length} sur ${liste.length} ont passé le quiz · ${valides.length} validé${valides.length > 1 ? 's' : ''}` : 'Chargement…'} nombre={liste ? `${faits.length}/${liste.length}` : ''} />
-      {!liste ? <ListeChargement /> : liste.length === 0 ? <ListeVide texte="Aucun élève dans cette séance" icone="people" /> : (
+      <EnteteListe icone="clipboard2-check-fill" titre={mesEleves ? 'Résultats du quiz · vos élèves' : 'Résultats du quiz'} sousTitre={liste ? `${faits.length} sur ${liste.length} ont passé le quiz · ${valides.length} validé${valides.length > 1 ? 's' : ''}` : 'Chargement…'} nombre={liste ? `${faits.length}/${liste.length}` : ''} />
+      {!liste ? <ListeChargement /> : liste.length === 0 ? <ListeVide texte={mesEleves ? 'Aucun de vos élèves dans cette séance : cochez-les à gauche' : 'Aucun élève dans cette séance'} icone="people" /> : (
         <div style={{ maxHeight: 520, overflowY: 'auto' }}>
           {[...faits.sort((u, v) => v.resultat.derniereTentative.localeCompare(u.resultat.derniereTentative)), ...liste.filter(x => !x.resultat)].map(x => {
             const r = x.resultat, mots = (x.nom || '').split(' '), nom = mots.pop(), prenom = mots.join(' ')   // « Prénom Nom »
