@@ -146,8 +146,8 @@ export default function AppLayout() {
       api('GET', '/annonces/non-lues').then(r => setNonLues(r?.nombre || 0)).catch(() => {})
       api('GET', '/conversations/non-lus').then(r => {
         const n = r?.nombre || 0
-        // Élève connecté : un nouveau message arrive → petit carillon
-        if (user.role === 'ELEVE' && dernierNonLus.current !== null && n > dernierNonLus.current) sonNouveauMessage()
+        // Connecté (élève ou personnel) : un nouveau message arrive → petit carillon
+        if (dernierNonLus.current !== null && n > dernierNonLus.current) sonNouveauMessage()
         dernierNonLus.current = n
         setMessagesNonLus(n)
         window.dispatchEvent(new CustomEvent('messages-non-lus', { detail: n }))
