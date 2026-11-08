@@ -1670,7 +1670,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', border: '2px solid rgba(255,255,255,.85)' }} />
               <div>
                 <div className="font-extrabold text-xl leading-tight">{s.prenom} {s.nom}</div>
-                {s.telephone && <div className="text-blue-200 text-xs">{afficherTelephone(s.telephone)}</div>}
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                  {s.telephone && <span className="text-blue-200 text-xs">{afficherTelephone(s.telephone)}</span>}
+                  {/* Administration : l'élève a-t-il le site ouvert en ce moment ? */}
+                  {presence && <BadgePresence enLigne={presence.eleves.has(s.id)} />}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
