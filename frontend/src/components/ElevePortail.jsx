@@ -329,21 +329,6 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
         </div>
       )}
 
-      {/* Messages privés : écrire à l'auto-école ou à son moniteur */}
-      <button type="button" onClick={() => onGoSection?.('messages')}
-        className="w-full flex items-center gap-3 p-4 rounded-2xl border text-left cursor-pointer"
-        style={{ background: 'linear-gradient(135deg,#eff6ff,#f5f9ff)', borderColor: '#bfdbfe', boxShadow: '0 2px 8px rgba(0,0,0,.05)' }}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#1d4ed822', border: '1px solid #1d4ed844' }}>
-          <i className="bi bi-chat-dots-fill" style={{ color: '#1d4ed8', fontSize: '1.1rem' }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-slate-800 text-sm">Messages</div>
-          <div className="text-xs text-slate-500">Écrire à l'auto-école ou à votre moniteur</div>
-        </div>
-        {messagesNonLus > 0 && <span className="text-xs font-extrabold px-2 py-0.5 rounded-full" style={{ background: '#f0bb2a', color: '#1e3a5f' }}>{messagesNonLus}</span>}
-        <i className="bi bi-chevron-right text-slate-300" />
-      </button>
-
       {/* ── Raccourcis rapides : une colonne sur téléphone, trois sur ordinateur ── */}
       {/* Raccourcis (séances, code, examens) : aucun ne concerne le perfectionnement */}
       {!perf && <div className={`grid grid-cols-1 ${accesCours ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
