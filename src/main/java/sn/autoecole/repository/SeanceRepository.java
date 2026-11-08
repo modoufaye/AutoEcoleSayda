@@ -4,8 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Seance;
 import sn.autoecole.entity.User;
+import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.StatutSeance;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface SeanceRepository extends JpaRepository<Seance, Long> {
@@ -13,6 +15,7 @@ public interface SeanceRepository extends JpaRepository<Seance, Long> {
 
     long countByMoniteur(User moniteur);
     List<Seance> findAllByOrderByCreatedAtDesc();
+    List<Seance> findByStatutAndMoniteur_RoleInOrderByCreatedAtDesc(StatutSeance statut, Collection<RoleUser> roles);
     List<Seance> findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance statut, Eleve eleve);
     long countByStatut(StatutSeance statut);
 }

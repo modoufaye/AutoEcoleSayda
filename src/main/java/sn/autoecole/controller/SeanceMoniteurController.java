@@ -39,6 +39,12 @@ public class SeanceMoniteurController {
         return seanceService.update(id, req, user.getUsername(), administration(user));
     }
 
+    /** Séance publiée par l'administration : le moniteur coche ou décoche ses élèves. Corps : { eleveIds }. */
+    @PatchMapping("/{id}/eleves")
+    public SeanceResponse mesEleves(@PathVariable Long id, @RequestBody Map<String, List<Long>> body, @AuthenticationPrincipal UserDetails user) {
+        return seanceService.ajouterMesEleves(id, body.get("eleveIds"), user.getUsername());
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {

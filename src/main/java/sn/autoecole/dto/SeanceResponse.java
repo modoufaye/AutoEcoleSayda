@@ -16,7 +16,9 @@ public record SeanceResponse(
     List<EleveInfo> eleves,
     List<BlocInfo> blocs,
     List<PartieCode> programme,
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+    /** Créée par le super admin ou un administrateur : les moniteurs peuvent y ajouter leurs élèves. */
+    boolean parAdministration
 ) {
     public record EleveInfo(Long id, String nom, String email) {}
     public record BlocInfo(Long id, String typeBloc, String contenu, String mediaUrl, Integer ordre) {}

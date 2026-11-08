@@ -348,6 +348,18 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   )
 
   /* ── ÉDITEUR ── */
+  /* Séance publiée par l'administration, ouverte par un moniteur : il n'y coche que ses élèves
+     (nouvel inscrit, élève oublié) ; le contenu reste celui de l'administration. */
+  const partagee = !isAdmin && !!editId && !!seances.find(x => x.id === editId)?.parAdministration
+  const contenuFige = lectureSeule || partagee
+  const handleMesEleves = async () => {
+    setSaving(true); setErr('')
+    try {
+      await api('PATCH', `/moniteur/seances/${editId}/eleves`, { eleveIds: form.eleveIds })
+      toast('Vos élèves sont enregistrés dans la séance'); load(); fermerEditeur()
+    } catch (e) { setErr(e.message) }
+    finally { setSaving(false) }
+  }
   /* Élèves assignables filtrés par la recherche (nom ou téléphone) */
   const elevesVisibles = eleves.filter(e => correspond([e.nom, e.telephone], rechercheEleve))
   const toutCocher = coche => setForm(f => {
@@ -384,7 +396,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold uppercase tracking-widest" style={{ color: '#f0bb2a' }}>
-              {lectureSeule ? 'Consultation de la séance' : editId ? 'Modifier la séance' : 'Nouvelle séance'}
+              {lectureSeule ? 'Consultation de la séance' : partagee ? 'Séance de l’administration · ajoutez vos élèves' : editId ? 'Modifier la séance' : 'Nouvelle séance'}
             </div>
             <div className="text-lg sm:text-xl font-extrabold text-white leading-tight truncate">
               {form.titre.trim() || 'Séance sans titre'}
@@ -393,7 +405,15 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
               {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de cours · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
             </div>
           </div>
-          {!lectureSeule && <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+          {partagee && (
+            <button className="flex items-center justify-center gap-2 text-sm font-extrabold px-5 border-0 cursor-pointer w-full sm:w-auto"
+              style={{ minHeight: 42, borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}
+              disabled={saving} onClick={handleMesEleves}>
+              {saving ? <div className="w-4 h-4 border-2 border-[#1e3a5f]/30 border-t-[#1e3a5f] rounded-full animate-spin" /> : <i className="bi bi-person-check-fill" />}
+              Enregistrer mes élèves
+            </button>
+          )}
+          {!contenuFige && <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
             <button
               className="flex items-center justify-center gap-2 text-sm font-bold px-5 border-0 cursor-pointer transition-all hover:-translate-y-0.5"
               style={{ minHeight: 42, borderRadius: 999, background: 'rgba(255,255,255,.14)', color: '#fff', border: '1.5px solid rgba(255,255,255,.25)' }}
@@ -428,7 +448,8 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
         <div className="space-y-5">
           {/* Élèves assignés */}
           <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-            <EnteteListe icone="people-fill" titre="Élèves" sousTitre="Qui verra la séance" nombre={`${form.eleveIds.length}/${eleves.length}`} />
+            <EnteteListe icone="people-fill" titre={partagee ? 'Mes élèves' : 'Élèves'} sousTitre={partagee ? 'Cochez ceux qui doivent voir cette séance' : 'Qui verra la séance'}
+              nombre={`${partagee ? eleves.filter(e => form.eleveIds.includes(e.id)).length : form.eleveIds.length}/${eleves.length}`} />
             {eleves.length > 0 && (
               <div className="px-4 pt-4 pb-2 space-y-2" style={{ borderBottom: '1px solid #eef2f7' }}>
                 <div className="flex"><Recherche value={rechercheEleve} onChange={setRechercheEleve} placeholder="Nom ou téléphone…" /></div>
@@ -477,12 +498,12 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
         {/* Cours de code publiés, résultats du quiz, puis contenu libre */}
         <div className="lg:col-span-2 space-y-5">
           {/* Secrétariat : tout reste lisible (vidéos et audios compris), rien n'est modifiable */}
-          <fieldset disabled={lectureSeule} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+          <fieldset disabled={contenuFige} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <ChoixProgramme programme={form.programme} onChange={setProgramme}
               dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
           </fieldset>
-          {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz seanceId={editId} />}
-          <fieldset disabled={lectureSeule} className="bg-white rounded-2xl overflow-hidden" style={{ ...carte, padding: 0, margin: 0, minWidth: 0 }}>
+          {editId && !partagee && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz seanceId={editId} />}
+          <fieldset disabled={contenuFige} className="bg-white rounded-2xl overflow-hidden" style={{ ...carte, padding: 0, margin: 0, minWidth: 0 }}>
             <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />
 
             <div className="p-5">
@@ -496,7 +517,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                   onMove={moveBloc} onUpload={handleUpload} medias={medias} />
               ))}
 
-              {!lectureSeule && <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-2 pt-4 border-t border-slate-100">
+              {!contenuFige && <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mt-2 pt-4 border-t border-slate-100">
                 {BLOCS.map(b => (
                   <button key={b.type} type="button" onClick={() => addBloc(b.type)}
                     className="flex items-center justify-center gap-1.5 text-sm font-bold px-4 cursor-pointer transition-all hover:-translate-y-0.5 whitespace-nowrap"
@@ -591,10 +612,14 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
 
                   {/* Statut et actions : sous le titre sur téléphone, à droite sur ordinateur */}
                   <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
-                    <Pastille couleur={isPub ? '#15803d' : '#a16207'} fond={isPub ? '#dcfce7' : '#fef9c3'}>{isPub ? 'Publié' : 'Brouillon'}</Pastille>
+                    {!isAdmin && s.parAdministration
+                      ? <Pastille couleur="#7c3aed" fond="#ede9fe">Par l’administration</Pastille>
+                      : <Pastille couleur={isPub ? '#15803d' : '#a16207'} fond={isPub ? '#dcfce7' : '#fef9c3'}>{isPub ? 'Publié' : 'Brouillon'}</Pastille>}
                     <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                       {lectureSeule
                         ? <BoutonRond title="Consulter" icon="eye-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
+                        : !isAdmin && s.parAdministration
+                        ? <BoutonRond title="Ajouter mes élèves" icon="person-plus-fill" couleur="#7c3aed" fond="#f5f3ff" onClick={() => openEdit(s)} />
                         : <>
                           <BoutonRond title="Modifier" icon="pencil-fill" couleur="#2563eb" fond="#eff6ff" onClick={() => openEdit(s)} />
                           <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => handleDelete(s.id)} />

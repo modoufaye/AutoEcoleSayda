@@ -14,6 +14,7 @@ import sn.autoecole.entity.PartieCode;
 import sn.autoecole.entity.ResultatQuizSeance;
 import sn.autoecole.entity.Seance;
 import sn.autoecole.entity.User;
+import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.StatutSeance;
 import sn.autoecole.enums.ThemeSeance;
 import sn.autoecole.enums.TypeBloc;
@@ -27,9 +28,13 @@ import sn.autoecole.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,12 +56,34 @@ public class SeanceService {
                 .toList();
     }
 
+    /** Séances d'un moniteur : les siennes, puis celles publiées par l'administration (il peut y
+        ajouter ses élèves, voir ajouterMesEleves). */
     @Transactional(readOnly = true)
     public List<SeanceResponse> findByMoniteur(String email) {
         User moniteur = userRepo.findByEmail(email).orElseThrow();
-        return seanceRepo.findByMoniteurOrderByCreatedAtDesc(moniteur).stream()
-                .map(this::toResponse)
-                .toList();
+        List<Seance> liste = new ArrayList<>(seanceRepo.findByMoniteurOrderByCreatedAtDesc(moniteur));
+        seanceRepo.findByStatutAndMoniteur_RoleInOrderByCreatedAtDesc(StatutSeance.PUBLIE, ADMINISTRATION).stream()
+                .filter(s -> !liste.contains(s)).forEach(liste::add);
+        liste.sort(Comparator.comparing(Seance::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+        return liste.stream().map(this::toResponse).toList();
+    }
+
+    private static final Set<RoleUser> ADMINISTRATION = Set.of(RoleUser.SUPER_ADMIN, RoleUser.ADMIN);
+
+    /**
+     * Séance publiée par l'administration : un moniteur y coche ou décoche ses propres élèves
+     * (nouvel inscrit, élève oublié). Les élèves des autres moniteurs et le contenu ne changent pas.
+     */
+    public SeanceResponse ajouterMesEleves(Long id, List<Long> eleveIds, String moniteurEmail) {
+        Seance s = seanceRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
+        if (s.getStatut() != StatutSeance.PUBLIE || !ADMINISTRATION.contains(s.getMoniteur().getRole()))
+            throw new BusinessException("Seules les séances publiées par l'administration acceptent vos élèves");
+        Set<Long> miens = findElevesByMoniteur(moniteurEmail).stream().map(Eleve::getId).collect(Collectors.toSet());
+        Set<Long> voulus = eleveIds == null ? Set.of() : new HashSet<>(eleveIds);
+        s.getEleves().removeIf(e -> miens.contains(e.getId()) && !voulus.contains(e.getId()));
+        Set<Long> deja = s.getEleves().stream().map(Eleve::getId).collect(Collectors.toSet());
+        s.getEleves().addAll(eleveRepo.findAllById(voulus.stream().filter(x -> miens.contains(x) && !deja.contains(x)).toList()));
+        return toResponse(seanceRepo.save(s));
     }
 
     @Transactional(readOnly = true)
@@ -255,7 +282,7 @@ public class SeanceService {
         SeanceResponse r = toResponse(s);
         if (!eleve.estPerfectionnement()) return r;
         return new SeanceResponse(r.id(), r.titre(), r.dateHeure(), r.theme(), r.statut(), r.moniteurId(), r.moniteurNom(),
-                List.of(), List.of(), r.programme().stream().filter(SeanceService::conduite).toList(), r.createdAt());
+                List.of(), List.of(), r.programme().stream().filter(SeanceService::conduite).toList(), r.createdAt(), r.parAdministration());
     }
 
     /** Programme vérifié : chapitres connus du code ou du parcours de conduite (pas les séries d'examen),
@@ -290,7 +317,8 @@ public class SeanceService {
                 s.getTheme() != null ? s.getTheme().name() : null,
                 s.getStatut().name(),
                 s.getMoniteur().getId(), s.getMoniteur().getNom(),
-                elevesInfo, blocsInfo, s.getProgramme(), s.getCreatedAt()
+                elevesInfo, blocsInfo, s.getProgramme(), s.getCreatedAt(),
+                ADMINISTRATION.contains(s.getMoniteur().getRole())
         );
     }
 }

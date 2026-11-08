@@ -66,6 +66,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/moniteur/seances").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/moniteur/seances/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/moniteur/seances/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN")
+                // Séance de l'administration : un moniteur y ajoute ses élèves
+                .requestMatchers(HttpMethod.PATCH, "/api/moniteur/seances/*/eleves").hasRole("MONITEUR")
                 .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
                 // Gestion des paiements réservée à l'admin : sinon un élève pourrait
