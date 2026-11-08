@@ -141,6 +141,11 @@ public class Eleve {
     @Column(name = "bienvenue_envoyee_par", length = 120)
     private String bienvenueEnvoyeePar;
 
+    // Première fois que l'élève a utilisé son compte (PresenceService) : il a donc ses
+    // identifiants, la fiche propose aussi « Écrire à … » au lieu du message de bienvenue.
+    @Column(name = "premiere_connexion_le")
+    private LocalDateTime premiereConnexionLe;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "moniteur_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "categoriesAutorisees"})

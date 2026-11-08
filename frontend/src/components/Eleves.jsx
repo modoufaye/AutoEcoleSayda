@@ -421,8 +421,9 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh, 
 /* Chaque envoi génère de nouveaux identifiants (création du compte ou nouveau mot de passe).
    WhatsApp s'ouvre depuis un lien de la fenêtre de confirmation et non directement après
    l'appel API : les navigateurs mobiles bloquent un window.open qui suit un await.
-   Une fois le message envoyé (la fiche le retient), le bouton devient « Écrire à … » : on sait
-   que l'élève a reçu ses identifiants, et un nouvel envoi ne change pas son mot de passe par erreur.
+   Une fois le message envoyé (la fiche le retient), ou dès que l'élève s'est connecté une fois, le
+   bouton devient « Écrire à … » : on sait que l'élève a ses identifiants, et un nouvel envoi ne
+   change pas son mot de passe par erreur.
    peutEnvoyer : administration et secrétariat ; le moniteur voit l'état et peut écrire à l'élève. */
 function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
   const [loading, setLoading] = useState(false)
@@ -450,11 +451,13 @@ function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
   }
 
   const message = creds && msgBienvenue(eleve, ecole, creds)
-  const quand = envoyeLe && new Date(envoyeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const jour = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  const quand = envoyeLe && jour(envoyeLe)
+  const connecte = eleve.premiereConnexionLe   // l'élève a déjà utilisé son compte
 
   return (
     <div className="px-5 py-3 border-t border-slate-100">
-      {envoyeLe ? (
+      {envoyeLe || connecte ? (
         <>
           <a href={waLink(eleve.telephone)} target="_blank" rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold"
@@ -462,7 +465,8 @@ function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
             <i className="bi bi-whatsapp" />Écrire à {eleve.prenom} {eleve.nom}
           </a>
           <div className="mt-2 text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span><i className="bi bi-check-circle-fill me-1" style={{ color: '#16a34a' }} />Identifiants envoyés le {quand}</span>
+            <span><i className="bi bi-check-circle-fill me-1" style={{ color: '#16a34a' }} />
+              {envoyeLe ? `Identifiants envoyés le ${quand}` : `Déjà connecté (première fois le ${jour(connecte)})`}</span>
             {peutEnvoyer && (
               <button type="button" onClick={generer} disabled={loading} className="bg-transparent border-0 p-0 text-xs font-bold cursor-pointer" style={{ color: '#2563eb' }}>
                 {loading ? 'Génération…' : 'Renvoyer de nouveaux identifiants'}
@@ -1008,7 +1012,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
-    if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe)
+    if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
@@ -1947,7 +1951,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
         )}
         {/* Élèves qui n'ont pas encore reçu leurs identifiants (message de bienvenue) */}
         <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
-          Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe).length}
+          Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe).length}
         </FiltreBascule>
         {/* Admin : n'importe quel mois d'inscription ; moniteur : bascule sur le mois en cours */}
         {isMoniteur
@@ -2043,6 +2047,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   {/* Message de bienvenue : l'élève a-t-il reçu ses identifiants ? */}
                   {e.bienvenueEnvoyeeLe
                     ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-whatsapp me-1" />Identifiants envoyés le {fmtDate(e.bienvenueEnvoyeeLe.slice(0, 10))}</div>
+                    : e.premiereConnexionLe
+                    ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-person-check-fill me-1" />Déjà connecté</div>
                     : <div className="mt-1 font-semibold" style={{ color: '#b45309' }}><i className="bi bi-whatsapp me-1" />Identifiants à envoyer</div>}
                 </div>
 
