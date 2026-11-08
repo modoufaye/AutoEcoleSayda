@@ -49,8 +49,8 @@ const ALL_SECTIONS = [
   { key: 'mediatheque',      label: 'Médiathèque',      icon: 'collection-play-fill',  color: '#34d399', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'] },
   // Messages groupés de l'auto-école, sous la médiathèque (les messages privés sont dans la fiche élève)
   { key: 'annonces',         label: 'Annonces',         icon: 'megaphone-fill',        color: '#facc15', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
-  // Messages privés : hors du menu ; l'élève y va depuis Mon Espace, le personnel par l'onglet
-  // Messages de chaque fiche élève (non lus signalés sur « Élèves » et dans la liste)
+  // Messages privés : hors du menu du personnel (onglet Messages de chaque fiche élève, non lus
+  // signalés sur « Élèves » et dans la liste) ; pour l'élève, placé sous « Mon Espace » (sectionsMenu)
   { key: 'messages',         label: 'Messages',         icon: 'chat-dots-fill',        color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'], horsMenu: true },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'journal',          label: 'Journal',          icon: 'journal-text',          color: '#fda4af', roles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -160,9 +160,8 @@ export default function AppLayout() {
     return () => { clearInterval(t); window.removeEventListener('messages-lus', relire) }
   }, [user, section])
   const pastilles = { annonces: nonLues, eleves: messagesNonLus, messages: messagesNonLus }
-  // Élève avec des messages non lus : « Messages » apparaît dans le menu, juste sous « Mon Espace »
-  // (et y reste tant qu'il est sur la page Messages, une fois les messages lus)
-  const entreeMessages = user?.role === 'ELEVE' && (messagesNonLus > 0 || section === 'messages') ? sections.find(s => s.key === 'messages') : null
+  // Élève : « Messages » toujours dans le menu, entre « Mon Espace » et « Cours Code » (pastille des non lus)
+  const entreeMessages = user?.role === 'ELEVE' ? sections.find(s => s.key === 'messages') : null
   const sectionsMenu = entreeMessages
     ? sectionsMenuBase.flatMap(s => s.key === 'mon-espace' ? [s, entreeMessages] : [s])
     : sectionsMenuBase
