@@ -13,7 +13,8 @@ const PAGE_SIZE = 10
 
 const today = () => new Date().toISOString().split('T')[0]
 // Page « Cours Conduite » : toute nouvelle leçon est une leçon de conduite (pas de champ Type)
-const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: 'CONDUITE', eleveId: '', moniteurId: '', vehiculeId: '', observations: '' }
+// eleveIds : élèves cochés à la création (une leçon chacun) ; eleveId : l'élève d'une leçon modifiée
+const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: 'CONDUITE', eleveId: '', eleveIds: [], moniteurId: '', vehiculeId: '', observations: '' }
 
 
 const TYPE_STYLE = {
@@ -31,27 +32,35 @@ const STATUT_STYLE = {
 const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all'
 const labelCls = 'block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5'
 
-/* Choix de l'élève d'une leçon : liste à puces avec recherche ; toucher un élève le coche,
-   retoucher l'élève coché le décoche (un seul élève par leçon). */
-function ChoixElevePuces({ eleves, valeur, onChoisir }) {
+/* Choix des élèves d'une leçon : liste à puces avec recherche ; toucher un élève le coche,
+   le retoucher le décoche. multiple (création) : plusieurs élèves, valeur = liste d'ids ;
+   sinon (modification) un seul, valeur = id. */
+function ChoixElevePuces({ eleves, valeur, onChoisir, multiple = false }) {
   const [q, setQ] = useState('')
-  const choisi = eleves.find(e => String(e.id) === String(valeur))
+  const coches = multiple ? valeur.map(String) : valeur ? [String(valeur)] : []
+  const choisi = eleves.find(e => coches.includes(String(e.id)))
   const liste = eleves.filter(e => correspond([e.prenom, e.nom, e.telephone], q))
+  const basculer = id => {
+    const actif = coches.includes(id)
+    if (multiple) onChoisir(actif ? coches.filter(x => x !== id) : [...coches, id])
+    else onChoisir(actif ? '' : id)
+  }
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
       <div className="p-2 flex flex-wrap items-center gap-2" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
         <div className="flex-1 min-w-[180px] flex"><Recherche value={q} onChange={setQ} placeholder="Nom, prénom ou téléphone…" /></div>
-        <span className="text-xs font-bold px-2" style={{ color: choisi ? '#15803d' : '#94a3b8' }}>
-          {choisi ? <><i className="bi bi-check-circle-fill me-1" />{choisi.prenom} {choisi.nom}</> : 'Aucun élève coché'}
+        <span className="text-xs font-bold px-2" style={{ color: coches.length ? '#15803d' : '#94a3b8' }}>
+          {coches.length > 1 ? <><i className="bi bi-check-circle-fill me-1" />{coches.length} élèves cochés</>
+            : choisi ? <><i className="bi bi-check-circle-fill me-1" />{choisi.prenom} {choisi.nom}</> : 'Aucun élève coché'}
         </span>
       </div>
       <div style={{ maxHeight: 220, overflowY: 'auto' }}>
         {liste.length === 0 && <div className="px-3 py-3 text-sm text-slate-400">Aucun élève trouvé</div>}
         {liste.map(e => {
-          const actif = String(e.id) === String(valeur)
+          const actif = coches.includes(String(e.id))
           return (
-            <div key={e.id} role="checkbox" aria-checked={actif} tabIndex={0} onClick={() => onChoisir(actif ? '' : String(e.id))}
-              onKeyDown={ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); onChoisir(actif ? '' : String(e.id)) } }}
+            <div key={e.id} role="checkbox" aria-checked={actif} tabIndex={0} onClick={() => basculer(String(e.id))}
+              onKeyDown={ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); basculer(String(e.id)) } }}
               className="flex items-center gap-3 px-3 py-2 cursor-pointer" style={{ borderBottom: '1px solid #f1f5f9', background: actif ? '#fffbeb' : '#fff' }}>
               <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ border: `2px solid ${actif ? '#d4a017' : '#cbd5e1'}`, background: actif ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
@@ -126,8 +135,9 @@ export default function Lecons({ onBack }) {
   }
 
   const save = async () => {
-    const { date, heureDebut, heureFin, eleveId, moniteurId, type, vehiculeId } = form
-    if (!date || !heureDebut || !heureFin || !eleveId || !moniteurId || !type) {
+    const { date, heureDebut, heureFin, eleveId, eleveIds, moniteurId, type, vehiculeId } = form
+    const ids = editId ? [eleveId].filter(Boolean) : eleveIds
+    if (!date || !heureDebut || !heureFin || !ids.length || !moniteurId || !type) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
     }
     if (type === 'CONDUITE' && !vehiculeId) {
@@ -135,17 +145,30 @@ export default function Lecons({ onBack }) {
     }
     const data = {
       date, heureDebut, heureFin,
-      eleveId: parseInt(eleveId),
       moniteurId: parseInt(moniteurId),
       vehiculeId: vehiculeId ? parseInt(vehiculeId) : null,
       type,
       observations: form.observations || null,
     }
-    try {
-      if (editId) { await api('PUT', `/lecons/${editId}`, data); toast('Leçon modifiée') }
-      else { await api('POST', '/lecons', data); toast('Leçon planifiée') }
-      setShowModal(false); load()
-    } catch (e) { toast(e.message, 'danger') }
+    if (editId) {
+      try { await api('PUT', `/lecons/${editId}`, { ...data, eleveId: parseInt(eleveId) }); toast('Leçon modifiée'); setShowModal(false); load() }
+      catch (e) { toast(e.message, 'danger') }
+      return
+    }
+    // Plusieurs élèves sur le même créneau : une leçon chacun (même moniteur, même véhicule)
+    const refuses = [], messages = []
+    let faites = 0
+    for (const id of ids) {
+      try { await api('POST', '/lecons', { ...data, eleveId: parseInt(id) }); faites++ }
+      catch (e) {
+        const el = eleves.find(x => String(x.id) === String(id))
+        refuses.push(id); messages.push(`${el ? `${el.prenom} ${el.nom}` : 'Élève'} : ${e.message}`)
+      }
+    }
+    if (faites) { toast(faites > 1 ? `${faites} leçons planifiées` : 'Leçon planifiée'); load() }
+    // Élèves refusés (ex. perfectionnement en leçon de code) : restent cochés pour corriger
+    if (refuses.length) { toast(messages.join(' · '), 'danger'); setForm(f => ({ ...f, eleveIds: refuses })) }
+    else setShowModal(false)
   }
 
   const terminer = async (id) => {
@@ -340,8 +363,10 @@ export default function Lecons({ onBack }) {
               <div className="modal-body px-6 py-4">
                 <div className="row g-3">
                   <div className="col-12">
-                    <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
-                    <ChoixElevePuces eleves={eleves} valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
+                    <label className={labelCls}>{editId ? 'Élève' : 'Élèves (un ou plusieurs)'} <span className="text-red-500 ml-0.5">*</span></label>
+                    {editId
+                      ? <ChoixElevePuces eleves={eleves} valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
+                      : <ChoixElevePuces multiple eleves={eleves} valeur={form.eleveIds} onChoisir={ids => setForm(f => ({ ...f, eleveIds: ids }))} />}
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
