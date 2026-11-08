@@ -31,6 +31,47 @@ const STATUT_STYLE = {
 const inputCls = 'w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-800 text-sm outline-none focus:border-[#1e3a5f] focus:bg-white transition-all'
 const labelCls = 'block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5'
 
+/* Choix de l'élève d'une leçon : liste à puces avec recherche ; toucher un élève le coche,
+   retoucher l'élève coché le décoche (un seul élève par leçon). */
+function ChoixElevePuces({ eleves, valeur, onChoisir }) {
+  const [q, setQ] = useState('')
+  const choisi = eleves.find(e => String(e.id) === String(valeur))
+  const liste = eleves.filter(e => correspond([e.prenom, e.nom, e.telephone], q))
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
+      <div className="p-2 flex flex-wrap items-center gap-2" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+        <div className="flex-1 min-w-[180px] flex"><Recherche value={q} onChange={setQ} placeholder="Nom, prénom ou téléphone…" /></div>
+        <span className="text-xs font-bold px-2" style={{ color: choisi ? '#15803d' : '#94a3b8' }}>
+          {choisi ? <><i className="bi bi-check-circle-fill me-1" />{choisi.prenom} {choisi.nom}</> : 'Aucun élève coché'}
+        </span>
+      </div>
+      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+        {liste.length === 0 && <div className="px-3 py-3 text-sm text-slate-400">Aucun élève trouvé</div>}
+        {liste.map(e => {
+          const actif = String(e.id) === String(valeur)
+          return (
+            <div key={e.id} role="checkbox" aria-checked={actif} tabIndex={0} onClick={() => onChoisir(actif ? '' : String(e.id))}
+              onKeyDown={ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); onChoisir(actif ? '' : String(e.id)) } }}
+              className="flex items-center gap-3 px-3 py-2 cursor-pointer" style={{ borderBottom: '1px solid #f1f5f9', background: actif ? '#fffbeb' : '#fff' }}>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ border: `2px solid ${actif ? '#d4a017' : '#cbd5e1'}`, background: actif ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
+                {actif && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.prenom} {e.nom}</div>
+                <div className="text-xs text-slate-400 truncate">{e.telephone || 'Pas de numéro'}</div>
+              </div>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#eef2f7', color: '#475569' }}>
+                {e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''}`}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function Lecons({ onBack }) {
   const { user } = useAuth()
   const isEleve = user?.role === 'ELEVE'
@@ -298,15 +339,9 @@ export default function Lecons({ onBack }) {
               </div>
               <div className="modal-body px-6 py-4">
                 <div className="row g-3">
-                  <div className="col-md-6">
+                  <div className="col-12">
                     <label className={labelCls}>Élève <span className="text-red-500 ml-0.5">*</span></label>
-                    <select className={inputCls} value={form.eleveId}
-                      onChange={e => setForm(f => ({ ...f, eleveId: e.target.value }))}>
-                      <option value="">Choisir un élève…</option>
-                      {eleves.map(e => (
-                        <option key={e.id} value={e.id}>{e.prenom} {e.nom} ({e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : e.categoriePermis})</option>
-                      ))}
-                    </select>
+                    <ChoixElevePuces eleves={eleves} valeur={form.eleveId} onChoisir={id => setForm(f => ({ ...f, eleveId: id }))} />
                   </div>
                   <div className="col-md-6">
                     <label className={labelCls}>Moniteur <span className="text-red-500 ml-0.5">*</span></label>
