@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
@@ -369,6 +369,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id))
   const admisMasques = eleves.length - elevesAssignables.length
   const elevesVisibles = elevesAssignables.filter(e => correspond([e.nom, e.telephone], rechercheEleve))
+  // Élèves cochés toujours en tête de liste, puis les autres (ordre d'origine conservé dans chaque groupe)
+  const elevesTries = [...elevesVisibles.filter(e => form.eleveIds.includes(e.id)), ...elevesVisibles.filter(e => !form.eleveIds.includes(e.id))]
+  const nbCochesVisibles = elevesTries.filter(e => form.eleveIds.includes(e.id)).length
   const toutCocher = coche => setForm(f => {
     const ids = new Set(f.eleveIds)
     elevesVisibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
@@ -481,11 +484,21 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
               ) : elevesVisibles.length === 0 ? (
                 <ListeVide texte="Aucun élève trouvé" icone="search" />
               ) : (
-                elevesVisibles.map(e => {
+                elevesTries.map((e, i) => {
                   const checked = form.eleveIds.includes(e.id)
                   const mots = (e.nom || '').split(' '), nom = mots.pop(), prenom = mots.join(' ')   // « Prénom Nom »
+                  // Intertitre au début de chaque groupe : « Cochés · N », puis « Non cochés · N »
+                  const intertitre = i === 0 && checked ? `Cochés · ${nbCochesVisibles}`
+                    : i === nbCochesVisibles && !checked ? `Non cochés · ${elevesTries.length - nbCochesVisibles}` : null
                   return (
-                    <div key={e.id}
+                    <Fragment key={e.id}>
+                    {intertitre && (
+                      <div className="px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-wider"
+                        style={{ background: checked ? '#fef3c7' : '#f1f5f9', color: checked ? '#b45309' : '#64748b', position: 'sticky', top: 0, zIndex: 1 }}>
+                        <i className={`bi bi-${checked ? 'check-circle-fill' : 'circle'} me-1`} />{intertitre}
+                      </div>
+                    )}
+                    <div
                       className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-slate-50"
                       style={{ background: checked ? '#fffbeb' : '#fff', borderBottom: '1px solid #f1f5f9' }}
                       onClick={() => toggleEleve(e.id)}
@@ -500,6 +513,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                         {checked && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
                       </div>
                     </div>
+                    </Fragment>
                   )
                 })
               )}
