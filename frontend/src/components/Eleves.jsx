@@ -936,6 +936,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
   const [moisInscription, setMoisInscription] = useState('')
   const [formation, setFormation] = useState('')   // '' | PERMIS | PERFECTIONNEMENT
+  const [aEnvoyer, setAEnvoyer]   = useState(false)   // seulement les élèves sans message de bienvenue
   const [archives, setArchives]   = useState(false)
   const loadReq = useRef(0)
   const [form, setForm]           = useState(EMPTY)
@@ -993,10 +994,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
+    if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe)
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
     setPage(1)
-  }, [search, statut, site, moisInscription, formation, list])
+  }, [search, statut, site, moisInscription, formation, aEnvoyer, list])
 
   // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
   const moisDisponibles = Object.entries(list.reduce((acc, e) => {
@@ -1914,6 +1916,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           <option value="PERMIS">Permis</option>
           <option value="PERFECTIONNEMENT">Perfectionnement</option>
         </Filtre>
+        {/* Élèves qui n'ont pas encore reçu leurs identifiants (message de bienvenue) */}
+        <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
+          Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe).length}
+        </FiltreBascule>
         {/* Admin : n'importe quel mois d'inscription ; moniteur : bascule sur le mois en cours */}
         {isMoniteur
           ? <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
