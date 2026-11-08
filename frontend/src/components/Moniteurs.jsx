@@ -442,7 +442,11 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#93c5fd' }}>Fiche moniteur</div>
               <div className="text-xl font-extrabold text-white leading-tight">{selected.prenom} {selected.nom}</div>
-              {selected.telephone && <div className="text-sm mt-0.5" style={{ color: '#bfdbfe' }}>{selected.telephone}</div>}
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                {selected.telephone && <span className="text-sm" style={{ color: '#bfdbfe' }}>{selected.telephone}</span>}
+                {/* Administration : le moniteur a-t-il le site ouvert en ce moment ? */}
+                {presence && <BadgePresence enLigne={presence.moniteurs.has(selected.id)} />}
+              </div>
             </div>
           </div>
 
