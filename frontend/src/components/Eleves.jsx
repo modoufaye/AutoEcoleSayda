@@ -938,6 +938,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [moisInscription, setMoisInscription] = useState('')
   const [formation, setFormation] = useState('')   // '' | PERMIS | PERFECTIONNEMENT
   const [aEnvoyer, setAEnvoyer]   = useState(false)   // seulement les élèves sans message de bienvenue
+  const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(false)
   const loadReq = useRef(0)
   const [form, setForm]           = useState(EMPTY)
@@ -962,6 +963,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [piecesAttente, setPiecesAttente] = useState([])
 
   useEffect(() => {
+    // Élèves qui ont écrit (messages privés non lus), signalés dans la liste
+    api('GET', '/conversations').then(l => setMessagesNonLus(Object.fromEntries((l || []).filter(c => c.nonLus > 0).map(c => [c.eleveId, c.nonLus])))).catch(() => {})
     if (!isMoniteur) api('GET', '/config').then(c => {
       setEcole(c.nom || ''); setMoniteurDefaut(c.moniteurParDefautId ?? '')
       setTarifs({ formules: c.formules || [], formulesMoto: c.formulesMoto || [], formulesPoidsLourd: c.formulesPoidsLourd || [], formulesPerfectionnement: c.formulesPerfectionnement || [] })
@@ -2015,6 +2018,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   <div className="text-slate-400 mt-1">
                     {archives && e.dateArchivage ? <>Archivé le {fmtDate(e.dateArchivage)}</> : <>Inscrit le {fmtDate(e.dateInscription)}</>}
                   </div>
+                  {messagesNonLus[e.id] > 0 && (
+                    <button type="button" onClick={() => onOuvrirEleve ? onOuvrirEleve(e.id, 'messages') : openProfile(e, 'messages')}
+                      className="mt-1 font-bold bg-transparent border-0 p-0 cursor-pointer" style={{ color: '#1d4ed8' }}>
+                      <i className="bi bi-chat-dots-fill me-1" />{messagesNonLus[e.id]} message{messagesNonLus[e.id] > 1 ? 's' : ''} non lu{messagesNonLus[e.id] > 1 ? 's' : ''}
+                    </button>
+                  )}
                   {/* Message de bienvenue : l'élève a-t-il reçu ses identifiants ? */}
                   {e.bienvenueEnvoyeeLe
                     ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-whatsapp me-1" />Identifiants envoyés le {fmtDate(e.bienvenueEnvoyeeLe.slice(0, 10))}</div>

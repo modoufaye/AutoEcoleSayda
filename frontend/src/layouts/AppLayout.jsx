@@ -48,8 +48,9 @@ const ALL_SECTIONS = [
   { key: 'mediatheque',      label: 'Médiathèque',      icon: 'collection-play-fill',  color: '#34d399', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'] },
   // Messages groupés de l'auto-école, sous la médiathèque (les messages privés sont dans la fiche élève)
   { key: 'annonces',         label: 'Annonces',         icon: 'megaphone-fill',        color: '#facc15', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
-  // Boîte de réception des messages privés (aussi dans l'onglet Messages de chaque fiche élève)
-  { key: 'messages',         label: 'Messages',         icon: 'chat-dots-fill',        color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
+  // Messages privés : hors du menu ; l'élève y va depuis Mon Espace, le personnel par l'onglet
+  // Messages de chaque fiche élève (non lus signalés sur « Élèves » et dans la liste)
+  { key: 'messages',         label: 'Messages',         icon: 'chat-dots-fill',        color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'], horsMenu: true },
   { key: 'mon-profil',       label: 'Mon Profil',       icon: 'person-circle',         color: '#f87171', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'journal',          label: 'Journal',          icon: 'journal-text',          color: '#fda4af', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'parametres',       label: 'Paramètres',       icon: 'gear-fill',             color: '#94a3b8', roles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -121,7 +122,7 @@ export default function AppLayout() {
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false)
     && !(perfectionnement && CODE_SEUL.includes(s.key)))
-  const sectionsMenu = sections.filter(s => s.key !== 'cours' || accesCours === true)
+  const sectionsMenu = sections.filter(s => (s.key !== 'cours' || accesCours === true) && !s.horsMenu)
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'
 
@@ -148,7 +149,7 @@ export default function AppLayout() {
     window.addEventListener('messages-lus', relire)
     return () => { clearInterval(t); window.removeEventListener('messages-lus', relire) }
   }, [user, section])
-  const pastilles = { annonces: nonLues, messages: messagesNonLus }
+  const pastilles = { annonces: nonLues, eleves: messagesNonLus }
   const detail = rawDetail ? decodeURIComponent(rawDetail) : null
   const navigateToEleve = section === 'eleves' ? detail : null
 

@@ -89,7 +89,7 @@ public class ConversationController {
                 .sorted(Comparator.comparing(Conversation::getDernierMessageLe).reversed())
                 .map(c -> {
                     Map<String, Object> v = new LinkedHashMap<>();
-                    v.put("id", c.getId()); v.put("type", c.getType());
+                    v.put("id", c.getId()); v.put("type", c.getType()); v.put("eleveId", c.getEleve().getId());
                     v.put("titre", interlocuteur(c, l));
                     v.put("telephone", l.estEleve() ? null : c.getEleve().getTelephone());
                     v.put("dernierLe", c.getDernierMessageLe());
