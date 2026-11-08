@@ -114,6 +114,10 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       .finally(() => setLoading(false))
     api('GET', '/annonces').then(l => setAnnonces((l || []).filter(a => !a.lue))).catch(() => {})
     api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})
+    // Nouveau message reçu pendant que l'élève est sur Mon Espace (relevé par le menu) : bandeau et carte suivent
+    const suivre = e => setMessagesNonLus(e.detail || 0)
+    window.addEventListener('messages-non-lus', suivre)
+    return () => window.removeEventListener('messages-non-lus', suivre)
   }, [])
 
   function toForm(p) {

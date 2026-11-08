@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ROLE_BASE, estAdmin } from '../utils'
 import { useToastManager, ToastContainer } from '../components/Toast'
 import { api } from '../api'
+import { sonNouveauMessage } from '../son'
 import { toast } from '../components/Toast'
 import Dashboard from '../components/Dashboard'
 import Eleves from '../components/Eleves'
@@ -122,7 +123,7 @@ export default function AppLayout() {
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false)
     && !(perfectionnement && CODE_SEUL.includes(s.key)))
-  const sectionsMenu = sections.filter(s => (s.key !== 'cours' || accesCours === true) && !s.horsMenu)
+  const sectionsMenuBase = sections.filter(s => (s.key !== 'cours' || accesCours === true) && !s.horsMenu)
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'
 
@@ -134,22 +135,37 @@ export default function AppLayout() {
   const section = sections.some(s => s.key === rawSection) ? rawSection : defaultSection
 
   // Annonces et messages non lus (pastilles du menu), relus à chaque changement de rubrique et
-  // chaque minute (un message peut arriver pendant qu'on est sur une autre page)
+  // toutes les 30 secondes (un message peut arriver pendant qu'on est sur une autre page)
   const [nonLues, setNonLues] = useState(0)
   const [messagesNonLus, setMessagesNonLus] = useState(0)
+  // Dernier nombre de messages non lus connu : null tant que rien n'est chargé (pas de son à la connexion)
+  const dernierNonLus = useRef(null)
   useEffect(() => {
     if (!user) return
     const relire = () => {
       api('GET', '/annonces/non-lues').then(r => setNonLues(r?.nombre || 0)).catch(() => {})
-      api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})
+      api('GET', '/conversations/non-lus').then(r => {
+        const n = r?.nombre || 0
+        // Élève connecté : un nouveau message arrive → petit carillon
+        if (user.role === 'ELEVE' && dernierNonLus.current !== null && n > dernierNonLus.current) sonNouveauMessage()
+        dernierNonLus.current = n
+        setMessagesNonLus(n)
+        window.dispatchEvent(new CustomEvent('messages-non-lus', { detail: n }))
+      }).catch(() => {})
     }
     relire()
-    const t = setInterval(relire, 60000)
+    const t = setInterval(relire, 30000)
     // Messages lus ailleurs (onglet Messages d'une fiche élève) : la pastille suit aussitôt
     window.addEventListener('messages-lus', relire)
     return () => { clearInterval(t); window.removeEventListener('messages-lus', relire) }
   }, [user, section])
-  const pastilles = { annonces: nonLues, eleves: messagesNonLus }
+  const pastilles = { annonces: nonLues, eleves: messagesNonLus, messages: messagesNonLus }
+  // Élève avec des messages non lus : « Messages » apparaît dans le menu, juste sous « Mon Espace »
+  // (et y reste tant qu'il est sur la page Messages, une fois les messages lus)
+  const entreeMessages = user?.role === 'ELEVE' && (messagesNonLus > 0 || section === 'messages') ? sections.find(s => s.key === 'messages') : null
+  const sectionsMenu = entreeMessages
+    ? sectionsMenuBase.flatMap(s => s.key === 'mon-espace' ? [s, entreeMessages] : [s])
+    : sectionsMenuBase
   const detail = rawDetail ? decodeURIComponent(rawDetail) : null
   const navigateToEleve = section === 'eleves' ? detail : null
 
