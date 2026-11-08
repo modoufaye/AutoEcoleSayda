@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final JournalInterceptor journalInterceptor;
+    private final PresenceInterceptor presenceInterceptor;
 
     @Value("${upload.dir:uploads}")
     private String uploadDir;
@@ -25,9 +26,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:" + absolutePath + "/");
     }
 
-    /** Journal des actions des gestionnaires (super admin, administrateurs, secrétariat). */
+    /** Journal des actions des gestionnaires (super admin, administrateurs, secrétariat) et présence. */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(journalInterceptor).addPathPatterns("/api/**");
+        // Présence en ligne (élèves et moniteurs, vue par l'administration)
+        registry.addInterceptor(presenceInterceptor).addPathPatterns("/api/**");
     }
 }

@@ -14,6 +14,8 @@ import { champCls, stylePastille } from './fenetreStyles'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
 import { useAuth } from '../context/AuthContext'
+import { usePresence } from '../presence'
+import { BadgePresence } from './Presence'
 
 const PAGE_SIZE = 10
 
@@ -173,6 +175,7 @@ const labelCls = "block text-xs font-bold text-slate-400 uppercase tracking-wide
 export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFermer }) {
   const { user } = useAuth()
   const admin = estAdmin(user?.role)   // la suppression est réservée aux administrateurs
+  const presence = usePresence(admin)   // moniteurs connectés en ce moment (administration)
   const [list, setList]               = useState([])
   const [filtered, setFiltered]       = useState([])
   const [search, setSearch]           = useState('')
@@ -649,6 +652,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                   <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                     <span><i className="bi bi-telephone me-1" />{afficherTelephone(m.telephone)}</span>
                     {m.numeroPermis && <span><i className="bi bi-card-checklist me-1" />{m.numeroPermis}</span>}
+                    {presence && <BadgePresence enLigne={presence.moniteurs.has(m.id)} />}
                   </div>
                 </div>
               </div>

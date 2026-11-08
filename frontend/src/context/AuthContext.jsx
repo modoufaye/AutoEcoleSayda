@@ -29,6 +29,9 @@ export function AuthProvider({ children }) {
   }, [navigate])
 
   const logout = useCallback(() => {
+    // Présence : le compte passe hors ligne tout de suite (keepalive : la requête survit au changement de page)
+    const jeton = localStorage.getItem('token')
+    if (jeton) fetch('/api/presence/depart', { method: 'POST', keepalive: true, headers: { Authorization: `Bearer ${jeton}` } }).catch(() => {})
     localStorage.removeItem('token')
     localStorage.removeItem('role')
     localStorage.removeItem('nom')

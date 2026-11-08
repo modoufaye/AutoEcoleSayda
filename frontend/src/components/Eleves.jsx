@@ -7,6 +7,8 @@ import Badge from './Badge'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
+import { usePresence } from '../presence'
+import { BadgePresence } from './Presence'
 import Pagination from './Pagination'
 import PhotoPicker from './PhotoPicker'
 import '../landing.css'
@@ -927,6 +929,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const isMoniteur = user?.role === 'MONITEUR'
   // Suppression définitive (fiche, et pour un perfectionnement abandonné ses paiements) : admin seulement
   const isAdmin = estAdmin(user?.role)
+  const presence = usePresence(isAdmin)   // élèves connectés en ce moment (administration)
 
   const [list, setList]           = useState([])
   const [moniteurs, setMoniteurs] = useState([])
@@ -938,6 +941,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [moisInscription, setMoisInscription] = useState('')
   const [formation, setFormation] = useState('')   // '' | PERMIS | PERFECTIONNEMENT
   const [aEnvoyer, setAEnvoyer]   = useState(false)   // seulement les élèves sans message de bienvenue
+  const [enLigneSeul, setEnLigneSeul] = useState(false)   // seulement les élèves connectés (administration)
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(false)
   const loadReq = useRef(0)
@@ -1005,10 +1009,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe)
+    if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
     setPage(1)
-  }, [search, statut, site, moisInscription, formation, aEnvoyer, list])
+  }, [search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, presence, list])
 
   // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
   const moisDisponibles = Object.entries(list.reduce((acc, e) => {
@@ -1930,6 +1935,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
           <option value="PERMIS">Permis</option>
           <option value="PERFECTIONNEMENT">Perfectionnement</option>
         </Filtre>
+        {/* Administration : élèves connectés en ce moment */}
+        {presence && (
+          <FiltreBascule actif={enLigneSeul} onClick={() => setEnLigneSeul(x => !x)} icone="broadcast">
+            En ligne · {list.filter(e => presence.eleves.has(e.id)).length}
+          </FiltreBascule>
+        )}
         {/* Élèves qui n'ont pas encore reçu leurs identifiants (message de bienvenue) */}
         <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
           Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe).length}
@@ -1979,6 +1990,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
                       {e.site && <span><i className="bi bi-building me-1" />{LABELS[e.site] || e.site}</span>}
+                      {presence && <BadgePresence enLigne={presence.eleves.has(e.id)} />}
                     </div>
                   </div>
                 </div>
