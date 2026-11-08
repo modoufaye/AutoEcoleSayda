@@ -101,6 +101,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
   const [form, setForm]         = useState({})
   const [saving, setSaving]     = useState(false)
   const [annonces, setAnnonces] = useState([])   // annonces non lues, rappelées en haut de l'espace
+  const [messagesNonLus, setMessagesNonLus] = useState(0)
 
   useEffect(() => {
     Promise.all([
@@ -112,6 +113,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       .catch(err => setErreur(err.message || 'Erreur de chargement'))
       .finally(() => setLoading(false))
     api('GET', '/annonces').then(l => setAnnonces((l || []).filter(a => !a.lue))).catch(() => {})
+    api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})
   }, [])
 
   function toForm(p) {
@@ -206,6 +208,21 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
             <div className="font-bold truncate" style={{ color: '#1e3a5f' }}>{annonces[0].titre}</div>
           </div>
           <span className="text-sm font-extrabold whitespace-nowrap" style={{ color: '#b45309' }}>Lire <i className="bi bi-arrow-right" /></span>
+        </button>
+      )}
+
+      {/* Nouveaux messages privés (auto-école, moniteur) */}
+      {messagesNonLus > 0 && (
+        <button type="button" onClick={() => onGoSection?.('messages')}
+          className="w-full flex items-center gap-3 text-left rounded-2xl px-4 py-3 border-0 cursor-pointer"
+          style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', boxShadow: '0 2px 10px rgba(29,78,216,.12)' }}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+            <i className="bi bi-chat-dots-fill" />
+          </div>
+          <div className="flex-1 min-w-0 font-bold" style={{ color: '#1e3a5f' }}>
+            {messagesNonLus > 1 ? `${messagesNonLus} nouveaux messages` : 'Nouveau message'}
+          </div>
+          <span className="text-sm font-extrabold whitespace-nowrap" style={{ color: '#1d4ed8' }}>Lire <i className="bi bi-arrow-right" /></span>
         </button>
       )}
 

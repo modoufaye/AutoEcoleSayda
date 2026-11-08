@@ -26,6 +26,7 @@ import Parametres from '../components/Parametres'
 import Journal from '../components/Journal'
 import Mediatheque from '../components/Mediatheque'
 import Annonces from '../components/Annonces'
+import Messages from '../components/Messages'
 import HoteConfirmation from '../components/Confirmation'
 
 const ALL_SECTIONS = [
@@ -33,6 +34,7 @@ const ALL_SECTIONS = [
   { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   // Après « Mon Espace » et le tableau de bord : la première rubrique reste la page d'arrivée
   { key: 'annonces',         label: 'Annonces',         icon: 'megaphone-fill',        color: '#facc15', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
+  { key: 'messages',         label: 'Messages',         icon: 'chat-dots-fill',        color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE', 'ELEVE'] },
   { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
@@ -67,6 +69,7 @@ const COMPONENTS = {
   journal: Journal,
   mediatheque: Mediatheque,
   annonces: Annonces,
+  messages: Messages,
 }
 
 const MOBILE_QUERY = '(max-width: 768px)'
@@ -128,12 +131,21 @@ export default function AppLayout() {
   const [rawSection, rawDetail] = (params['*'] || '').split('/')
   const section = sections.some(s => s.key === rawSection) ? rawSection : defaultSection
 
-  // Annonces non lues (pastille du menu), relues à chaque changement de rubrique
+  // Annonces et messages non lus (pastilles du menu), relus à chaque changement de rubrique et
+  // chaque minute (un message peut arriver pendant qu'on est sur une autre page)
   const [nonLues, setNonLues] = useState(0)
+  const [messagesNonLus, setMessagesNonLus] = useState(0)
   useEffect(() => {
     if (!user) return
-    api('GET', '/annonces/non-lues').then(r => setNonLues(r?.nombre || 0)).catch(() => {})
+    const relire = () => {
+      api('GET', '/annonces/non-lues').then(r => setNonLues(r?.nombre || 0)).catch(() => {})
+      api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})
+    }
+    relire()
+    const t = setInterval(relire, 60000)
+    return () => clearInterval(t)
   }, [user, section])
+  const pastilles = { annonces: nonLues, messages: messagesNonLus }
   const detail = rawDetail ? decodeURIComponent(rawDetail) : null
   const navigateToEleve = section === 'eleves' ? detail : null
 
@@ -264,9 +276,9 @@ export default function AppLayout() {
               >
                 <i className={`bi bi-${s.icon}`} style={section !== s.key ? { color: s.color } : {}}></i>
                 <span className="nav-text">{s.label}</span>
-                {s.key === 'annonces' && nonLues > 0 && section !== 'annonces' && (
-                  <span className="ms-auto" title={`${nonLues} annonce(s) non lue(s)`}
-                    style={{ background: '#f0bb2a', color: '#1e3a5f', borderRadius: 999, fontSize: '.7rem', fontWeight: 800, padding: '.05rem .45rem', lineHeight: 1.4 }}>{nonLues}</span>
+                {pastilles[s.key] > 0 && section !== s.key && (
+                  <span className="ms-auto" title={`${pastilles[s.key]} non lu(s)`}
+                    style={{ background: '#f0bb2a', color: '#1e3a5f', borderRadius: 999, fontSize: '.7rem', fontWeight: 800, padding: '.05rem .45rem', lineHeight: 1.4 }}>{pastilles[s.key]}</span>
                 )}
               </button>
             </li>
@@ -382,6 +394,8 @@ export default function AppLayout() {
             ? <ActiveComponent key={section} onBack={handleBack} />
             : section === 'annonces'
             ? <Annonces key={section} onLues={() => setNonLues(0)} />
+            : section === 'messages'
+            ? <Messages key={section} onLus={() => api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})} />
             : section === 'mediatheque'
             ? <Mediatheque key={section} />
             : section === 'td-admin'
