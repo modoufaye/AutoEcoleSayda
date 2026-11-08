@@ -87,6 +87,8 @@ public class SeanceMoniteurController {
         return eleves.stream()
                 .map(e -> Map.<String, Object>of(
                         "admisCode", admisCode.contains(e.getId()),
+                        // Inscrits de la semaine mis en avant pour organiser les séances
+                        "dateInscription", e.getDateInscription() != null ? e.getDateInscription().toString() : "",
                         "perfectionnement", e.estPerfectionnement(),
                         "id",    e.getId(),
                         "nom",   e.getPrenom() + " " + e.getNom(),

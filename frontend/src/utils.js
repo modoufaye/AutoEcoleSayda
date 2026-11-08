@@ -84,3 +84,11 @@ export function correspond(champs, recherche) {
   if (/^\+?\d{3,}$/.test(numero) && chiffres.includes(numero.replace('+', ''))) return true
   return mots.every(m => texte.includes(m))
 }
+
+/* Élève inscrit dans les 7 derniers jours (aujourd'hui compris) ; date « AAAA-MM-JJ… ». */
+export function inscritCetteSemaine(date) {
+  if (!date) return false
+  const d = new Date(); d.setDate(d.getDate() - 6)
+  const limite = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return date.slice(0, 10) >= limite
+}

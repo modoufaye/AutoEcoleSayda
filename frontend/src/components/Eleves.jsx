@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond, estAdmin } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond, estAdmin, inscritCetteSemaine } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -943,6 +943,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const [site, setSite]           = useState('')
   // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
   const [moisInscription, setMoisInscription] = useState('')
+  const [semaine, setSemaine] = useState(false)   // seulement les inscrits des 7 derniers jours
   const [formation, setFormation] = useState('')   // '' | PERMIS | PERFECTIONNEMENT
   const [aEnvoyer, setAEnvoyer]   = useState(false)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(false)   // seulement les élèves connectés (administration)
@@ -1011,13 +1012,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     if (statut) r = r.filter(e => e.statut === statut)
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
+    if (semaine) r = r.filter(e => inscritCetteSemaine(e.dateInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
     setPage(1)
-  }, [search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, presence, list])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, presence, list])
 
   // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
   const moisDisponibles = Object.entries(list.reduce((acc, e) => {
@@ -1953,6 +1955,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
         <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
           Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe).length}
         </FiltreBascule>
+        {/* Inscrits des 7 derniers jours : les élèves arrivent au fil de la semaine */}
+        <FiltreBascule actif={semaine} onClick={() => setSemaine(x => !x)} icone="calendar-week">
+          Nouveaux cette semaine · {list.filter(e => inscritCetteSemaine(e.dateInscription)).length}
+        </FiltreBascule>
         {/* Admin : n'importe quel mois d'inscription ; moniteur : bascule sur le mois en cours */}
         {isMoniteur
           ? <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
@@ -2037,6 +2043,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   </div>
                   <div className="text-slate-400 mt-1">
                     {archives && e.dateArchivage ? <>Archivé le {fmtDate(e.dateArchivage)}</> : <>Inscrit le {fmtDate(e.dateInscription)}</>}
+                    {!archives && inscritCetteSemaine(e.dateInscription) && (
+                      <span className="ms-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#b45309' }}>NOUVEAU</span>
+                    )}
                   </div>
                   {messagesNonLus[e.id] > 0 && (
                     <button type="button" onClick={() => onOuvrirEleve ? onOuvrirEleve(e.id, 'messages') : openProfile(e, 'messages')}

@@ -4,7 +4,7 @@ import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { EnteteListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import '../landing.css'
-import { correspond } from '../utils'
+import { correspond, inscritCetteSemaine } from '../utils'
 import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
 import { libellePartie } from '../contenu/programme'
 
@@ -210,6 +210,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const [medias, setMedias] = useState([])   // médiathèque, pour les blocs vidéo et audio
   // Élèves déjà dans la séance ouverte : restent proposés (et cochés) même admis au code
   const [dejaDansSeance, setDejaDansSeance] = useState([])
+  const [nouveauxSeuls, setNouveauxSeuls] = useState(false)   // seulement les inscrits des 7 derniers jours
 
   const openCreate = () => {
     setEditId(null)
@@ -368,7 +369,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
      était déjà (il reste coché quand on ajoute de nouveaux élèves) ; puis filtre de recherche. */
   const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id))
   const admisMasques = eleves.length - elevesAssignables.length
-  const elevesVisibles = elevesAssignables.filter(e => correspond([e.nom, e.telephone], rechercheEleve))
+  const nbNouveaux = elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).length
+  const elevesVisibles = elevesAssignables.filter(e => correspond([e.nom, e.telephone], rechercheEleve)
+    && (!nouveauxSeuls || inscritCetteSemaine(e.dateInscription)))
   // Élèves cochés toujours en tête de liste, puis les autres (ordre d'origine conservé dans chaque groupe)
   const elevesTries = [...elevesVisibles.filter(e => form.eleveIds.includes(e.id)), ...elevesVisibles.filter(e => !form.eleveIds.includes(e.id))]
   const nbCochesVisibles = elevesTries.filter(e => form.eleveIds.includes(e.id)).length
@@ -471,6 +474,20 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                     <i className="bi bi-x-lg" />Aucun
                   </button>
                 </div>}
+                {/* Inscrits des 7 derniers jours : « Tous » ne coche alors que ceux-là */}
+                {nbNouveaux > 0 && (
+                  <button type="button" onClick={() => setNouveauxSeuls(x => !x)} className="filtre filtre-bouton"
+                    style={{ minHeight: 34, fontSize: '.8rem', ...(nouveauxSeuls ? { background: '#fef3c7', borderColor: '#d4a017', color: '#b45309' } : {}) }}>
+                    <i className={`bi bi-${nouveauxSeuls ? 'check-circle-fill' : 'calendar-week'}`} />Nouveaux cette semaine · {nbNouveaux}
+                  </button>
+                )}
+                {/* Nouvelle séance (tout le monde est coché par défaut) : séance réservée aux nouveaux */}
+                {nouveauxSeuls && !editId && !lectureSeule && (
+                  <button type="button" className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}
+                    onClick={() => setForm(f => ({ ...f, eleveIds: elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).map(e => e.id) }))}>
+                    <i className="bi bi-funnel-fill" />Ne cocher que les nouveaux
+                  </button>
+                )}
               </div>
             )}
             {admisMasques > 0 && (
@@ -507,6 +524,11 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</div>
                         {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}{e.admisCode && <span className="font-bold" style={{ color: '#15803d' }}> · Admis au code</span>}</div>}
+                        {inscritCetteSemaine(e.dateInscription) && (
+                          <span className="inline-block mt-0.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#b45309' }}>
+                            NOUVEAU · inscrit le {e.dateInscription.slice(8, 10)}/{e.dateInscription.slice(5, 7)}
+                          </span>
+                        )}
                       </div>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                         style={{ border: `2px solid ${checked ? '#d4a017' : '#cbd5e1'}`, background: checked ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
