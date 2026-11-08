@@ -417,10 +417,14 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh, 
 /* ─── Message de bienvenue WhatsApp ─────────────────────── */
 /* Chaque envoi génère de nouveaux identifiants (création du compte ou nouveau mot de passe).
    WhatsApp s'ouvre depuis un lien de la fenêtre de confirmation et non directement après
-   l'appel API : les navigateurs mobiles bloquent un window.open qui suit un await. */
-function BienvenueWhatsApp({ eleve, ecole }) {
+   l'appel API : les navigateurs mobiles bloquent un window.open qui suit un await.
+   Une fois le message envoyé (la fiche le retient), le bouton devient « Écrire à … » : on sait
+   que l'élève a reçu ses identifiants, et un nouvel envoi ne change pas son mot de passe par erreur.
+   peutEnvoyer : administration et secrétariat ; le moniteur voit l'état et peut écrire à l'élève. */
+function BienvenueWhatsApp({ eleve, ecole, peutEnvoyer = true }) {
   const [loading, setLoading] = useState(false)
   const [creds, setCreds]     = useState(null)
+  const [envoi, setEnvoi]     = useState({ le: eleve.bienvenueEnvoyeeLe, par: eleve.bienvenueEnvoyeePar })
 
   if (!waLink(eleve.telephone)) return null
 
@@ -433,18 +437,48 @@ function BienvenueWhatsApp({ eleve, ecole }) {
     finally { setLoading(false) }
   }
 
+  // Le lien WhatsApp vient d'être ouvert : la fiche retient l'envoi (et la liste déjà chargée aussi)
+  const noterEnvoi = () => {
+    setTimeout(() => setCreds(null), 300)
+    api('POST', `/eleves/${eleve.id}/bienvenue-envoyee`).then(e => {
+      eleve.bienvenueEnvoyeeLe = e.bienvenueEnvoyeeLe; eleve.bienvenueEnvoyeePar = e.bienvenueEnvoyeePar
+      setEnvoi({ le: e.bienvenueEnvoyeeLe, par: e.bienvenueEnvoyeePar })
+    }).catch(() => {})
+  }
+
   const message = creds && msgBienvenue(eleve, ecole, creds)
+  const quand = envoi.le && new Date(envoi.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <div className="px-5 py-3 border-t border-slate-100">
-      <button onClick={generer} disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold border-0 cursor-pointer"
-        style={{ background: '#25d366', color: '#fff', opacity: loading ? .7 : 1 }}>
-        {loading
-          ? <span className="spinner-border spinner-border-sm" style={{ width: 14, height: 14 }} />
-          : <i className="bi bi-whatsapp" />}
-        Message de bienvenue
-      </button>
+      {envoi.le ? (
+        <>
+          <a href={waLink(eleve.telephone)} target="_blank" rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold"
+            style={{ background: '#25d366', color: '#fff', textDecoration: 'none' }}>
+            <i className="bi bi-whatsapp" />Écrire à {eleve.prenom} {eleve.nom}
+          </a>
+          <div className="mt-2 text-xs text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span><i className="bi bi-check-circle-fill me-1" style={{ color: '#16a34a' }} />Identifiants envoyés le {quand}{envoi.par ? ` par ${envoi.par}` : ''}</span>
+            {peutEnvoyer && (
+              <button type="button" onClick={generer} disabled={loading} className="bg-transparent border-0 p-0 text-xs font-bold cursor-pointer" style={{ color: '#2563eb' }}>
+                {loading ? 'Génération…' : 'Renvoyer de nouveaux identifiants'}
+              </button>
+            )}
+          </div>
+        </>
+      ) : peutEnvoyer ? (
+        <button onClick={generer} disabled={loading}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-bold border-0 cursor-pointer"
+          style={{ background: '#25d366', color: '#fff', opacity: loading ? .7 : 1 }}>
+          {loading
+            ? <span className="spinner-border spinner-border-sm" style={{ width: 14, height: 14 }} />
+            : <i className="bi bi-whatsapp" />}
+          Message de bienvenue
+        </button>
+      ) : (
+        <div className="text-xs text-slate-500"><i className="bi bi-hourglass-split me-1" style={{ color: '#d4a017' }} />Identifiants pas encore envoyés à l'élève</div>
+      )}
 
       {creds && (
         <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.55)', backdropFilter: 'blur(4px)' }}>
@@ -468,7 +502,7 @@ function BienvenueWhatsApp({ eleve, ecole }) {
                 <button className="btn btn-light fw-semibold px-4" style={{ borderRadius: '.75rem' }}
                   onClick={() => setCreds(null)}>Fermer</button>
                 <a href={waLink(eleve.telephone, message)} target="_blank" rel="noopener noreferrer"
-                  onClick={() => setTimeout(() => setCreds(null), 300)}
+                  onClick={noterEnvoi}
                   className="btn fw-bold text-white px-4 d-inline-flex align-items-center gap-2"
                   style={{ background: '#25d366', borderRadius: '.75rem', border: 'none' }}>
                   <i className="bi bi-whatsapp" />Envoyer sur WhatsApp
@@ -1721,7 +1755,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                   </div>
                 ) : null)}
               </div>
-              {!isMoniteur && !s.archive && <BienvenueWhatsApp eleve={s} ecole={ecole} />}
+              {!s.archive && <BienvenueWhatsApp key={`${s.id}-${s.bienvenueEnvoyeeLe || ''}`} eleve={s} ecole={ecole} peutEnvoyer={!isMoniteur} />}
             </div>
 
           </div>

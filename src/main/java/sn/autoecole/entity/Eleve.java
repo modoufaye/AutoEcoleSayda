@@ -10,6 +10,7 @@ import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -131,6 +132,14 @@ public class Eleve {
 
     @Column(name = "date_archivage")
     private LocalDate dateArchivage;
+
+    // ── Message de bienvenue ── envoyé sur WhatsApp avec les identifiants : la fiche propose
+    // ensuite « Écrire à … » au lieu d'un nouvel envoi (qui changerait le mot de passe).
+    @Column(name = "bienvenue_envoyee_le")
+    private LocalDateTime bienvenueEnvoyeeLe;
+
+    @Column(name = "bienvenue_envoyee_par", length = 120)
+    private String bienvenueEnvoyeePar;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "moniteur_id")

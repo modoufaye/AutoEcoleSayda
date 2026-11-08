@@ -146,7 +146,7 @@ export default function DemandesInscription({ onTraitee }) {
               <div className="px-5 pb-4 flex justify-end gap-2">
                 <button className="btn btn-light fw-semibold" style={{ borderRadius: '.7rem' }} onClick={() => setBienvenue(null)}>Plus tard</button>
                 <a href={waLink(bienvenue.eleve.telephone, message)} target="_blank" rel="noopener noreferrer"
-                  onClick={() => setTimeout(() => setBienvenue(null), 300)}
+                  onClick={() => { api('POST', `/eleves/${bienvenue.eleve.id}/bienvenue-envoyee`).catch(() => {}); setTimeout(() => setBienvenue(null), 300) }}
                   className="btn fw-bold text-white d-inline-flex align-items-center gap-2"
                   style={{ background: '#25d366', borderRadius: '.7rem', border: 'none' }}>
                   <i className="bi bi-whatsapp" />Envoyer sur WhatsApp

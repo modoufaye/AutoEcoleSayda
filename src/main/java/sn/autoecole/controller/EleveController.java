@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import sn.autoecole.dto.EleveRequest;
@@ -16,6 +17,7 @@ import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Examen;
 import sn.autoecole.entity.Lecon;
 import sn.autoecole.entity.Paiement;
+import sn.autoecole.entity.User;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.Site;
@@ -201,6 +203,13 @@ public class EleveController {
     @PostMapping("/{id}/identifiants")
     public ResponseEntity<Map<String, Object>> genererIdentifiants(@PathVariable Long id) {
         return ResponseEntity.ok(eleveService.genererIdentifiants(id));
+    }
+
+    /** Le message de bienvenue a été ouvert dans WhatsApp pour cet élève (même rôles que les identifiants). */
+    @PostMapping("/{id}/bienvenue-envoyee")
+    public ResponseEntity<Eleve> bienvenueEnvoyee(@PathVariable Long id, Authentication auth) {
+        String par = auth.getPrincipal() instanceof User u ? u.getNom() : auth.getName();
+        return ResponseEntity.ok(eleveService.noterBienvenueEnvoyee(id, par));
     }
 
     @GetMapping("/{id}/compte")

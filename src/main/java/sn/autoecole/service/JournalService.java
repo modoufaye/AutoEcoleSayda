@@ -41,6 +41,7 @@ public class JournalService {
         String[][] l = {
             {"POST /api/admin/administrateurs", "Création d'un compte administrateur"},
             {"PATCH /api/moniteur/seances/{id}/eleves", "Ajout ou retrait de ses élèves dans une séance de l'administration"},
+            {"POST /api/eleves/{id}/bienvenue-envoyee", "Envoi du message de bienvenue (identifiants) sur WhatsApp"},
             {"POST /api/medias", "Ajout à la médiathèque"},
             {"PUT /api/medias/{id}", "Modification d'un média de la médiathèque"},
             {"DELETE /api/medias/{id}", "Suppression d'un média de la médiathèque"},

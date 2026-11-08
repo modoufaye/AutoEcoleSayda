@@ -30,6 +30,7 @@ import sn.autoecole.repository.UserRepository;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -186,6 +187,14 @@ public class EleveService {
         StringBuilder sb = new StringBuilder(8);
         for (int i = 0; i < 8; i++) sb.append(ALPHABET.charAt(RANDOM.nextInt(ALPHABET.length())));
         return sb.toString();
+    }
+
+    /** Le message de bienvenue (identifiants) vient de partir sur WhatsApp : la fiche le retient. */
+    public Eleve noterBienvenueEnvoyee(Long id, String par) {
+        Eleve eleve = trouverParId(id);
+        eleve.setBienvenueEnvoyeeLe(LocalDateTime.now());
+        eleve.setBienvenueEnvoyeePar(par);
+        return eleveRepository.save(eleve);
     }
 
     void creerCompteParDefaut(Eleve eleve) {
