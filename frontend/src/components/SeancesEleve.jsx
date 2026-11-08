@@ -121,11 +121,13 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
 
         <div className="px-6 py-3 flex flex-wrap gap-4 border-b border-slate-50"
           style={{ background: '#fafbfc', fontSize: '.82rem', color: '#64748b' }}>
-          <span className="flex items-center gap-1.5">
-            <i className="bi bi-person-fill text-[#1e3a5f]" />
-            <span className="font-medium">Moniteur :</span>
-            {ouverte.moniteurNom}
-          </span>
+          {ouverte.moniteurNom && (
+            <span className="flex items-center gap-1.5">
+              <i className="bi bi-person-fill text-[#1e3a5f]" />
+              <span className="font-medium">Moniteur :</span>
+              {ouverte.moniteurNom}
+            </span>
+          )}
           {ouverte.blocs.length > 0 && (
             <span className="flex items-center gap-1.5">
               <i className="bi bi-layers-fill text-[#1e3a5f]" />
@@ -213,10 +215,12 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
                             {new Date(s.dateHeure).toLocaleDateString('fr-FR', { dateStyle: 'medium' })}
                           </span>
                         )}
-                        <span className="flex items-center gap-1">
-                          <i className="bi bi-person" />
-                          {s.moniteurNom}
-                        </span>
+                        {s.moniteurNom && (
+                          <span className="flex items-center gap-1">
+                            <i className="bi bi-person" />
+                            {s.moniteurNom}
+                          </span>
+                        )}
                         {(s.programme || []).length > 0 && (
                           <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
                             <i className="bi bi-signpost-split" />

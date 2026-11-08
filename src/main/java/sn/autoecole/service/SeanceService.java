@@ -70,6 +70,12 @@ public class SeanceService {
 
     private static final Set<RoleUser> ADMINISTRATION = Set.of(RoleUser.SUPER_ADMIN, RoleUser.ADMIN);
 
+    /** Nom affiché à côté de la date d'un cours publié : aucun pour le super admin. */
+    private static String nomAuteur(Seance s) {
+        User u = s.getMoniteur();
+        return u == null || u.getRole() == RoleUser.SUPER_ADMIN ? null : u.getNom();
+    }
+
     /**
      * Séance publiée par l'administration : un moniteur y coche ou décoche ses propres élèves
      * (nouvel inscrit, élève oublié). Les élèves des autres moniteurs et le contenu ne changent pas.
@@ -202,7 +208,7 @@ public class SeanceService {
             m.put("id", s.getId());
             m.put("titre", s.getTitre());
             m.put("date", s.getDateHeure() != null ? s.getDateHeure() : s.getCreatedAt());
-            m.put("moniteurNom", s.getMoniteur() != null ? s.getMoniteur().getNom() : null);
+            m.put("moniteurNom", nomAuteur(s));
             m.put("programme", programme);
             m.put("resultat", resultats.get(s.getId()));
             liste.add(m);
@@ -322,7 +328,7 @@ public class SeanceService {
                 s.getId(), s.getTitre(), s.getDateHeure(),
                 s.getTheme() != null ? s.getTheme().name() : null,
                 s.getStatut().name(),
-                s.getMoniteur().getId(), s.getMoniteur().getNom(),
+                s.getMoniteur().getId(), nomAuteur(s),
                 elevesInfo, blocsInfo, s.getProgramme(), s.getCreatedAt(),
                 ADMINISTRATION.contains(s.getMoniteur().getRole())
         );
