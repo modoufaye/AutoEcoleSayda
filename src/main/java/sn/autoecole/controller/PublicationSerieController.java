@@ -13,7 +13,9 @@ import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
+import sn.autoecole.entity.ProgressionCode;
 import sn.autoecole.repository.EleveRepository;
+import sn.autoecole.repository.ProgressionCodeRepository;
 import sn.autoecole.repository.PublicationSerieRepository;
 import sn.autoecole.service.SeanceService;
 
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
  * Travaux Dirigés : publication des séries d'examen et des catalogues des annales, en entraînement
  * ou en examen blanc. Le super admin, les administrateurs et les moniteurs (pour leurs élèves)
  * publient ; le secrétariat consulte ; l'élève ne voit dans Travaux Dirigés que ce qui lui est publié.
+ * Chaque élève d'une publication vient avec son résultat d'examen blanc à cette série (meilleure
+ * note, essais) : le personnel voit qui l'a assimilée.
  */
 @RestController
 @RequestMapping("/api/publications-series")
@@ -37,6 +41,7 @@ public class PublicationSerieController {
     private final PublicationSerieRepository repo;
     private final EleveRepository eleveRepository;
     private final SeanceService seanceService;
+    private final ProgressionCodeRepository progressionRepository;
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -132,7 +137,18 @@ public class PublicationSerieController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", p.getId()); m.put("serie", p.getSerie()); m.put("mode", p.getMode()); m.put("creeLe", p.getCreeLe());
         m.put("auteur", p.getAuteur() == null ? "" : p.getAuteur().getRole() == RoleUser.SUPER_ADMIN ? "Auto-École Khadija" : p.getAuteur().getNom());
-        m.put("eleves", p.getEleves().stream().map(e -> Map.of("id", e.getId(), "nom", e.getPrenom() + " " + e.getNom())).toList());
+        Map<Long, ProgressionCode> notes = new HashMap<>();
+        progressionRepository.findByChapitre(p.getSerie()).forEach(n -> notes.put(n.getEleveId(), n));
+        m.put("eleves", p.getEleves().stream().map(e -> {
+            Map<String, Object> x = new LinkedHashMap<>();
+            x.put("id", e.getId()); x.put("nom", e.getPrenom() + " " + e.getNom());
+            ProgressionCode n = notes.get(e.getId());
+            if (n != null) {
+                x.put("meilleurScore", n.getMeilleurScore()); x.put("total", n.getTotal());
+                x.put("tentatives", n.getTentatives()); x.put("derniereTentative", n.getDerniereTentative());
+            }
+            return x;
+        }).toList());
         m.put("modifiable", peutModifier(p, u));
         return m;
     }

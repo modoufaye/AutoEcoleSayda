@@ -23,3 +23,13 @@ export function seriesOuvertes(publiees) {
   for (const x of publiees || []) (ouv[x.serie] ||= new Set()).add(x.mode.toLowerCase())
   return ouv
 }
+
+/* Assimilée : au moins 80 % de bonnes réponses en examen blanc (20/25, l'objectif affiché à
+   l'élève). n : { meilleurScore, total, tentatives } ou rien si l'examen blanc n'a pas été passé. */
+export const SEUIL_ASSIMILE = 0.8
+export const STATUTS = {
+  assimile: { libelle: 'Assimilé', icone: 'check-circle-fill', couleur: '#15803d', fond: '#dcfce7' },
+  revoir: { libelle: 'À revoir', icone: 'arrow-repeat', couleur: '#b45309', fond: '#fef3c7' },
+  afaire: { libelle: 'Pas encore fait', icone: 'hourglass', couleur: '#64748b', fond: '#f1f5f9' },
+}
+export const statutSerie = n => n?.total ? (n.meilleurScore >= Math.ceil(SEUIL_ASSIMILE * n.total) ? 'assimile' : 'revoir') : 'afaire'

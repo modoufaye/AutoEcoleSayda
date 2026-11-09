@@ -18,6 +18,7 @@ import { ConversationEleve } from './Messages'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
 import { CoursPublies } from './SeanceCode'
+import { STATUTS as STATUTS_SERIE, serieDe, statutSerie } from '../contenu/seriesPubliees'
 import { compterSeances } from '../contenu/programme'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
 
@@ -160,14 +161,42 @@ function Avatar({ p, className, style }) {
   return <div className={`${className} flex items-center justify-center flex-shrink-0`} style={style}>{initials(p.nom, p.prenom)}</div>
 }
 
-/* ─── Onglet Leçons : cours publiés dans les séances, puis leçons planifiées ─── */
-function TabLecons({ lecons, seances }) {
+/* Annales et séries d'examen passées en examen blanc : meilleure note, essais, assimilée ou non. */
+function SeriesPassees({ series }) {
+  if (!series.length) return (
+    <div className="px-4 py-4 text-sm text-slate-400 flex items-center gap-2"><i className="bi bi-journal-bookmark" />Aucun examen blanc d'annales ou de série passé pour le moment</div>
+  )
+  return (
+    <div>
+      {series.map(n => {
+        const s = STATUTS_SERIE[statutSerie(n)]
+        return (
+          <div key={n.chapitre} className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-sm" style={{ color: '#1e3a5f' }}>{serieDe(n.chapitre)?.titre || n.chapitre}</div>
+              <div className="text-xs text-slate-400">{n.tentatives} essai{n.tentatives > 1 ? 's' : ''}{n.derniereTentative && ` · dernier le ${new Date(n.derniereTentative).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}</div>
+            </div>
+            <span className="text-sm font-extrabold" style={{ color: '#1e3a5f' }}>{n.meilleurScore}/{n.total}</span>
+            <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: s.fond, color: s.couleur }}><i className={`bi bi-${s.icone} me-1`} />{s.libelle}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ─── Onglet Leçons : cours publiés dans les séances, annales et séries passées, puis leçons planifiées ─── */
+function TabLecons({ lecons, seances, series = [] }) {
   return (
     <div>
       <div className="px-4 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#a16207' }}>
         <i className="bi bi-signpost-split-fill me-1" />Cours publiés ({seances.length})
       </div>
       <CoursPublies seances={seances} />
+      <div className="px-4 pt-4 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#0f766e', borderTop: '1px solid #eef2f7' }}>
+        <i className="bi bi-journal-bookmark-fill me-1" />Annales et séries d'examen ({series.length})
+      </div>
+      <SeriesPassees series={series} />
       <div className="px-4 pt-4 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#475569', borderTop: '1px solid #eef2f7' }}>
         <i className="bi bi-calendar2-check-fill me-1" />Leçons planifiées ({lecons.length})
       </div>
@@ -1031,14 +1060,18 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
     try {
-      const [lecons, seances, examens, paiements, tp] = await Promise.all([
+      const [lecons, seances, examens, paiements, tp, progression] = await Promise.all([
         api('GET', `/eleves/${eleve.id}/lecons`),
         api('GET', `/eleves/${eleve.id}/seances`).catch(() => []),
         api('GET', `/eleves/${eleve.id}/examens`),
         api('GET', `/eleves/${eleve.id}/paiements`),
         api('GET', `/eleves/${eleve.id}/total-paye`),
+        api('GET', `/eleves/${eleve.id}/progression-code`).catch(() => []),
       ])
-      setProfileData({ lecons, seances, examens, paiements, totalPaye: tp?.totalPaye ?? 0 })
+      // Examens blancs des annales et séries d'examen, les plus récents d'abord
+      const series = (progression || []).filter(n => /^(serie|annale)-/.test(n.chapitre))
+        .sort((a, b) => String(b.derniereTentative || '').localeCompare(String(a.derniereTentative || '')))
+      setProfileData({ lecons, seances, examens, paiements, series, totalPaye: tp?.totalPaye ?? 0 })
     } catch { toast('Erreur chargement profil', 'danger') }
     finally { setLoadingProfile(false) }
   }
@@ -1831,7 +1864,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
                 </div>
               ) : (
                 <>
-                  {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} seances={profileData.seances} />}
+                  {activeTab === 'lecons'    && <TabLecons    lecons={profileData.lecons} seances={profileData.seances} series={profileData.series} />}
                   {activeTab === 'examens'   && <TabExamens   examens={profileData.examens} />}
                   {activeTab === 'messages' && <ConversationEleve eleveId={s.id} onLu={() => setConversation(c => ({ ...c, nonLus: 0 }))} />}
                   {activeTab === 'paiements' && !isMoniteur && <TabPaiements paiements={profileData.paiements} totalPaye={profileData.totalPaye} montantTotal={s.montantTotal} eleveId={s.id} isAdmin={isAdmin} onRefresh={() => openProfile(s, 'paiements')} />}

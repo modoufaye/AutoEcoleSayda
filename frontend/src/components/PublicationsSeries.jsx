@@ -6,7 +6,7 @@ import { FenetreModerne, Etape } from './FenetreModerne'
 import ChoixPuces from './ChoixPuces'
 import { EnteteListe, BoutonRond } from './ListeModerne'
 import { inscritCetteSemaine } from '../utils'
-import { GROUPES, MODES, libelleSerie, serieDe } from '../contenu/seriesPubliees'
+import { GROUPES, MODES, STATUTS, libelleSerie, serieDe, statutSerie } from '../contenu/seriesPubliees'
 
 /* Travaux Dirigés : publication des annales et des séries d'examen pour des élèves, en
    entraînement et/ou en examen blanc (une publication par mode). Le super admin et les
@@ -97,8 +97,33 @@ export function FenetrePublication({ genre, edition, onClose, onFini }) {
   )
 }
 
-/* Publications du personnel pour un onglet (annales ou séries d'examen). */
+const Statut = ({ k, n }) => {
+  const s = STATUTS[k]
+  return <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: s.fond, color: s.couleur }}><i className={`bi bi-${s.icone} me-1`} />{n != null ? `${n} ` : ''}{n != null ? s.libelle.toLowerCase() : s.libelle}</span>
+}
+
+/* Élèves d'une publication et leur résultat d'examen blanc à cette série (meilleure note, essais). */
+function ResultatsEleves({ p }) {
+  const ordre = { assimile: 0, revoir: 1, afaire: 2 }
+  const eleves = [...p.eleves].sort((a, b) => ordre[statutSerie(a)] - ordre[statutSerie(b)] || a.nom.localeCompare(b.nom))
+  return (
+    <div className="px-4 sm:px-5 pb-3" style={{ background: '#f8fafc' }}>
+      {p.mode === 'ENTRAINEMENT' && <div className="text-xs text-slate-500 pt-3"><i className="bi bi-info-circle me-1" />L’entraînement n’est pas noté : le résultat affiché est celui de l’examen blanc de cette série, si l’élève l’a passé.</div>}
+      {eleves.map(e => (
+        <div key={e.id} className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid #eef2f7' }}>
+          <span className="flex-1 min-w-0 text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</span>
+          {e.total ? <span className="text-xs text-slate-500 text-right whitespace-nowrap"><b className="text-sm" style={{ color: '#1e3a5f' }}>{e.meilleurScore}/{e.total}</b> · {e.tentatives} essai{e.tentatives > 1 ? 's' : ''}</span> : null}
+          <Statut k={statutSerie(e)} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* Publications du personnel pour un onglet (annales ou séries d'examen) ; un clic sur une ligne
+   montre qui l'a assimilée. */
 export function ListePublications({ genre, publications, onModifier, onRecharger }) {
+  const [ouverte, setOuverte] = useState(null)
   const ids = new Set((GROUPES.find(g => g.key === genre)?.series || []).map(s => s.id))
   const liste = (publications || []).filter(p => ids.has(p.serie))
   if (!liste.length) return null
@@ -110,11 +135,16 @@ export function ListePublications({ genre, publications, onModifier, onRecharger
   }
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-      <EnteteListe icone="send-check-fill" titre="Publié pour les élèves" sousTitre="Ce que vos élèves voient dans Travaux Dirigés" nombre={liste.length} />
+      <EnteteListe icone="send-check-fill" titre="Publié pour les élèves" sousTitre="Touchez une ligne pour voir qui a assimilé · objectif 20/25 en examen blanc" nombre={liste.length} />
       {liste.map(p => {
         const m = MODES.find(x => x.key === p.mode)
+        const compte = k => p.eleves.filter(e => statutSerie(e) === k).length
+        const ouvert = ouverte === p.id
         return (
-          <div key={p.id} className="px-4 sm:px-5 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <div key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <div className="px-4 sm:px-5 py-3 flex items-center gap-3 cursor-pointer" role="button" tabIndex={0} aria-expanded={ouvert}
+            onClick={() => setOuverte(ouvert ? null : p.id)} onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOuverte(ouvert ? null : p.id) } }}
+            style={{ background: ouvert ? '#f8fafc' : '#fff' }}>
             <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-sm font-black text-white" style={{ borderRadius: 12, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>{vignette(serieDe(p.serie))}</span>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -124,11 +154,17 @@ export function ListePublications({ genre, publications, onModifier, onRecharger
               <div className="text-xs text-slate-500 truncate" title={p.eleves.map(e => e.nom).join(', ')}>
                 <i className="bi bi-people me-1" />{p.eleves.length} élève{p.eleves.length > 1 ? 's' : ''}{p.auteur && ` · ${p.auteur}`} · {new Date(p.creeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
               </div>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {['assimile', 'revoir', 'afaire'].filter(k => compte(k)).map(k => <Statut key={k} k={k} n={compte(k)} />)}
+              </div>
             </div>
-            {p.modifiable && <>
+            {p.modifiable && <div className="flex gap-2" onClick={ev => ev.stopPropagation()}>
               <BoutonRond title="Modifier les élèves" icon="pencil-fill" couleur="#1d4ed8" fond="#eff6ff" onClick={() => onModifier(p)} />
               <BoutonRond title="Retirer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimer(p)} />
-            </>}
+            </div>}
+            <i className={`bi bi-chevron-${ouvert ? 'up' : 'down'} text-slate-400`} />
+          </div>
+          {ouvert && <ResultatsEleves p={p} />}
           </div>
         )
       })}

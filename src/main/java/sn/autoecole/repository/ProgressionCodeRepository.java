@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface ProgressionCodeRepository extends JpaRepository<ProgressionCode, Long> {
     List<ProgressionCode> findByEleveId(Long eleveId);
+    List<ProgressionCode> findByChapitre(String chapitre);
     Optional<ProgressionCode> findByEleveIdAndChapitre(Long eleveId, String chapitre);
 }
