@@ -142,6 +142,8 @@ public class PublicationSerieController {
         m.put("eleves", p.getEleves().stream().map(e -> {
             Map<String, Object> x = new LinkedHashMap<>();
             x.put("id", e.getId()); x.put("nom", e.getPrenom() + " " + e.getNom());
+            // Homonymes fréquents : le numéro distingue deux élèves de même prénom et nom
+            x.put("telephone", e.getTelephone() == null ? "" : e.getTelephone());
             ProgressionCode n = notes.get(e.getId());
             if (n != null) {
                 x.put("meilleurScore", n.getMeilleurScore()); x.put("total", n.getTotal());

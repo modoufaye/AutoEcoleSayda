@@ -6,6 +6,7 @@ import { FenetreModerne, Etape } from './FenetreModerne'
 import ChoixPuces from './ChoixPuces'
 import { EnteteListe, BoutonRond } from './ListeModerne'
 import { inscritCetteSemaine } from '../utils'
+import { afficherTelephone } from '../telephones'
 import { GROUPES, MODES, STATUTS, libelleSerie, serieDe, statutSerie } from '../contenu/seriesPubliees'
 
 /* Travaux Dirigés : publication des annales et des séries d'examen pour des élèves, en
@@ -144,7 +145,11 @@ function ResultatsEleves({ p, publications, onAjouterMode }) {
       {p.mode === 'ENTRAINEMENT' && <div className="text-xs text-slate-500 pt-3"><i className="bi bi-info-circle me-1" />L’entraînement n’est pas noté : le résultat affiché est celui de l’examen blanc de cette série, si l’élève l’a passé.</div>}
       {eleves.map(e => (
         <div key={e.id} className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid #eef2f7' }}>
-          <span className="flex-1 min-w-0 text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</span>
+          {/* Numéro sous le nom : distingue les homonymes (même prénom et nom) */}
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</span>
+            {e.telephone && <span className="block text-xs font-semibold text-slate-500"><i className="bi bi-telephone me-1" />{afficherTelephone(e.telephone)}</span>}
+          </span>
           {e.total ? <span className="text-xs text-slate-500 text-right whitespace-nowrap"><b className="text-sm" style={{ color: '#1e3a5f' }}>{e.meilleurScore}/{e.total}</b> · {e.tentatives} essai{e.tentatives > 1 ? 's' : ''}</span> : null}
           <Statut k={statutSerie(e)} />
         </div>

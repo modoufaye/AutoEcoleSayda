@@ -4,6 +4,7 @@ import { toast } from './Toast'
 import { EnteteListe, AvatarRond, Pastille, ListeVide, ListeChargement } from './ListeModerne'
 import { Visuel, IconeChapitre, Quiz } from './CoursCode'
 import { genre, estScene } from './coursOutils'
+import { afficherTelephone } from '../telephones'
 import BoutonEcouter, { BoutonWolof } from './BoutonEcouter'
 import { useAudiosWolof, clePanneau } from './audiosWolof'
 import { chargerQuiz } from './sauvegardeQuiz'
@@ -203,6 +204,8 @@ export function ResultatsQuiz({ seanceId, mesEleves = false }) {
                   <AvatarRond prenom={prenom} nom={nom} taille={36} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{x.nom}</div>
+                    {/* Numéro : distingue les homonymes (même prénom et nom) */}
+                    {x.telephone && <div className="text-xs font-semibold text-slate-500"><i className="bi bi-telephone me-1" />{afficherTelephone(x.telephone)}</div>}
                     <div className="text-xs text-slate-400">
                       {r ? <>Dernier essai {r.score}/{r.total} ({pct} %) · meilleure note {r.meilleurScore}/{r.meilleurTotal} · {r.tentatives} essai{r.tentatives > 1 ? 's' : ''} · {dateCourte(r.derniereTentative)}</> : 'Pas encore passé'}
                     </div>
