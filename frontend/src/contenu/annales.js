@@ -1,8 +1,7 @@
 /* Annales (onglet Travaux Dirigés) : les catalogues de questions qui tombent souvent à l'examen du
    code. Même format que les séries d'examen (contenu/seriesExamen.js), mais l'illustration est une
    photo du catalogue (public/annales/<série>/<n>.jpg, recadrée au-dessus du texte imprimé) ; les
-   questions sans photo n'ont que l'énoncé. L'id sert aussi de chapitre pour la note de l'élève.
-   « neutralisee » : question sans réponse dans la correction du catalogue, comptée juste pour tous. */
+   questions sans photo n'ont que l'énoncé. L'id sert aussi de chapitre pour la note de l'élève. */
 
 const OUI_NON = (a, b) => [[a, 'OUI'], [b, 'NON']]
 const oui = (enonce, bonne) => ({ enonce, blocs: [{ choix: OUI_NON('A', 'B') }], bonnes: [bonne] })
@@ -37,10 +36,10 @@ const B1 = [
   oui('Je passe avant la voiture blanche', 'B'),
 ].map((q, k) => ({ ...q, photo: [21, 22].includes(k + 1) ? null : `/annales/b1/${k + 1}.jpg` }))
 
-// B2_24 et B2_25 manquent encore (corrections : 24 BD, 25 BC)
+// Question 2 : sans réponse sur la fiche de correction ; BD, comme la même photo en B1 (question 1)
 const B2 = [
   deux('Ce signal indique :', 'une route prioritaire', 'une interdiction de stationner', ['A', 'D']),
-  { enonce: 'Pour aller tout droit,', blocs: [{ intro: "je m'arrête :", choix: [['A', 'au niveau du signal'], ['B', 'au niveau de la bande blanche']] }, { intro: 'je passerai avant les voitures venant de gauche', choix: OUI_NON('C', 'D') }], bonnes: [], neutralisee: true },
+  { enonce: 'Pour aller tout droit,', blocs: [{ intro: "je m'arrête :", choix: [['A', 'au niveau du signal'], ['B', 'au niveau de la bande blanche']] }, { intro: 'je passerai avant les voitures venant de gauche', choix: OUI_NON('C', 'D') }], bonnes: ['B', 'D'] },
   deux(null, "Je m'arrête au niveau du signal", 'Je passerai avant les voitures venant de gauche', ['B', 'D']),
   ouBien('Cette balise annonce :', ['un virage', 'un passage à niveau'], ['B']),
   deux('Ce signal indique :', 'une hauteur limitée', 'une largeur limitée', ['A', 'D']),
@@ -62,6 +61,8 @@ const B2 = [
   ouBien('Pour dépasser, la nuit, en campagne, je fais des appels :', ['feux de croisement / feux de route', 'feux de croisement / feux de position'], ['A']),
   oui('En ville, la nuit, je dois mettre ma ceinture de sécurité', 'A'),
   deux(null, 'Je vais rencontrer un endroit fréquenté par des enfants', 'Je ralentis', ['A', 'C']),
+  deux('Le long du trottoir,', "je peux m'arrêter", 'je peux stationner', ['B', 'D']),
+  deux('Derrière la voiture bleue,', 'je peux stationner', "je peux m'arrêter", ['B', 'C']),
 ].map((q, k) => ({ ...q, photo: [21, 22].includes(k + 1) ? null : `/annales/b2/${k + 1}.jpg` }))
 
 export const ANNALES = [

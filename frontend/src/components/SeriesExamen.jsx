@@ -13,8 +13,7 @@ import { SERIES } from '../contenu/seriesExamen'
 const OBJECTIF = 20   // bonnes réponses visées sur 25, repère d'entraînement
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 const btnOr = { borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }
-// Question neutralisée (sans réponse dans la correction du catalogue) : juste pour tout le monde
-const juste = (q, choix) => !!q.neutralisee || (choix.length === q.bonnes.length && q.bonnes.every(l => choix.includes(l)))
+const juste = (q, choix) => choix.length === q.bonnes.length && q.bonnes.every(l => choix.includes(l))
 const enonceCourt = q => q.enonce || q.blocs.map(b => b.intro).filter(Boolean).join(' · ')
 const estScene = v => !!v?.dessin?.startsWith('scene-')
 
@@ -37,7 +36,7 @@ function Question({ q, choix, setChoix, corrige }) {
             <div className="flex flex-col gap-2">
               {b.choix.map(([l, t]) => {
                 const coche = choix.includes(l), bonne = q.bonnes.includes(l)
-                const etat = !corrige ? (coche ? 'coche' : '') : bonne ? 'bonne' : coche ? (q.neutralisee ? 'coche' : 'fausse') : ''
+                const etat = !corrige ? (coche ? 'coche' : '') : bonne ? 'bonne' : coche ? 'fausse' : ''
                 const st = {
                   coche: { border: '2px solid #f0bb2a', background: 'rgba(240,187,42,.15)' },
                   bonne: { border: '2px solid #22c55e', background: 'rgba(34,197,94,.2)' },
@@ -51,7 +50,7 @@ function Question({ q, choix, setChoix, corrige }) {
                       style={{ borderRadius: 8, background: coche || etat === 'bonne' ? (etat === 'fausse' ? '#ef4444' : etat === 'bonne' ? '#22c55e' : '#f0bb2a') : 'rgba(255,255,255,.12)', color: coche || etat === 'bonne' ? '#0f2240' : '#cbd5e1' }}>{l}</span>
                     <span className="flex-1">{t}</span>
                     {corrige && bonne && <i className="bi bi-check-lg" style={{ color: '#86efac' }} />}
-                    {corrige && coche && !bonne && !q.neutralisee && <i className="bi bi-x-lg" style={{ color: '#fca5a5' }} />}
+                    {corrige && coche && !bonne && <i className="bi bi-x-lg" style={{ color: '#fca5a5' }} />}
                   </button>
                 )
               })}
@@ -60,7 +59,7 @@ function Question({ q, choix, setChoix, corrige }) {
         ))}
         {corrige && (
           <div className="mt-4 rounded-xl p-3 text-sm" style={{ background: juste(q, choix) ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)', color: '#e2e8f0' }}>
-            <b>{q.neutralisee ? 'Question neutralisée : pas de réponse dans la correction, comptée juste pour tous.' : juste(q, choix) ? '👍 Bonne réponse.' : `Bonne réponse : ${q.bonnes.join(' et ')}.`}</b>{q.explication && <> {q.explication}</>}
+            <b>{juste(q, choix) ? '👍 Bonne réponse.' : `Bonne réponse : ${q.bonnes.join(' et ')}.`}</b>{q.explication && <> {q.explication}</>}
           </div>
         )}
       </div>
@@ -200,7 +199,7 @@ function Resultat({ serie, reponses, onRejouer, onQuitter }) {
               <button type="button" onClick={() => setVoir(voir === k ? null : k)} className="w-full flex items-center gap-3 px-5 py-3 text-left bg-white border-0 cursor-pointer">
                 <span className="w-8 h-8 flex items-center justify-center flex-shrink-0 font-black text-sm" style={{ borderRadius: 999, background: bon ? '#dcfce7' : '#fee2e2', color: bon ? '#15803d' : '#b91c1c' }}>{k + 1}</span>
                 <span className="flex-1 min-w-0 text-sm font-semibold text-slate-700">{enonceCourt(q)}</span>
-                <span className="text-xs font-bold whitespace-nowrap" style={{ color: bon ? '#15803d' : '#b91c1c' }}>{q.neutralisee ? 'neutralisée ✓' : <>{r.length ? r.join(' ') : '—'} {bon ? '✓' : `→ ${q.bonnes.join(' ')}`}</>}</span>
+                <span className="text-xs font-bold whitespace-nowrap" style={{ color: bon ? '#15803d' : '#b91c1c' }}>{r.length ? r.join(' ') : '—'} {bon ? '✓' : `→ ${q.bonnes.join(' ')}`}</span>
               </button>
               {voir === k && <div className="px-4 pb-4"><Question q={q} choix={r} setChoix={() => {}} corrige /></div>}
             </div>
