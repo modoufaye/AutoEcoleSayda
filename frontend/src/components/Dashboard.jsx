@@ -286,10 +286,22 @@ function SectionTitle({ gradient, label }) {
   )
 }
 
+const CLE_MONTANTS_MASQUES = 'dashboard.montantsMasques'
+
 function DashboardAdmin({ stats, user }) {
   const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const tauxReussite = stats.totalExamens > 0 ? Math.round((stats.examensAdmis / stats.totalExamens) * 100) : null
+
+  /* Montants masquables (ex. présentation en partage d'écran) ; choix retenu sur ce navigateur */
+  const [montantsMasques, setMontantsMasques] = useState(() => {
+    try { return localStorage.getItem(CLE_MONTANTS_MASQUES) === '1' } catch { return false }
+  })
+  const basculerMontants = () => setMontantsMasques(m => {
+    try { localStorage.setItem(CLE_MONTANTS_MASQUES, m ? '0' : '1') } catch { /* stockage indisponible */ }
+    return !m
+  })
+  const montant = n => montantsMasques ? '•••••• FCFA' : fmtMontant(n)
 
   const bannerKpis = [
     { label: 'Élèves',    value: stats.totalEleves,        icon: 'people-fill',          color: '#60a5fa' },
@@ -331,8 +343,17 @@ function DashboardAdmin({ stats, user }) {
           {/* Finance rapide */}
           <div className="rounded-2xl px-5 py-3 border flex-shrink-0"
             style={{ background: 'rgba(255,255,255,.07)', borderColor: 'rgba(255,255,255,.12)' }}>
-            <div className="text-xs text-blue-300 font-semibold mb-1">Total encaissé</div>
-            <div className="text-2xl font-extrabold text-white">{fmtMontant(stats.totalEncaisse)}</div>
+            <div className="flex items-center justify-between gap-3 mb-1">
+              <div className="text-xs text-blue-300 font-semibold">Total encaissé</div>
+              <button type="button" onClick={basculerMontants}
+                title={montantsMasques ? 'Afficher les montants' : 'Masquer les montants'}
+                aria-label={montantsMasques ? 'Afficher les montants' : 'Masquer les montants'}
+                className="text-blue-200 hover:text-white transition-colors"
+                style={{ background: 'none', border: 'none', padding: 0, lineHeight: 1, cursor: 'pointer' }}>
+                <i className={`bi bi-${montantsMasques ? 'eye-slash-fill' : 'eye-fill'}`} style={{ fontSize: '1rem' }} />
+              </button>
+            </div>
+            <div className="text-2xl font-extrabold text-white">{montant(stats.totalEncaisse)}</div>
             <div className="text-xs text-blue-300 mt-0.5">{stats.totalPaiements} paiement{stats.totalPaiements > 1 ? 's' : ''}</div>
           </div>
         </div>
@@ -586,8 +607,8 @@ function DashboardAdmin({ stats, user }) {
 
           {/* Finance x2 */}
           <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
-            <FinanceCard value={fmtMontant(stats.totalEncaisse)} label="Total encaissé"      icon="cash-coin"    accent="#10b981" />
-            <FinanceCard value={fmtMontant(stats.revenusMois)}   label={`Revenus ${new Date().toLocaleDateString('fr-SN', { month: 'long' })}`} icon="graph-up-arrow" accent="#8b5cf6" />
+            <FinanceCard value={montant(stats.totalEncaisse)} label="Total encaissé"      icon="cash-coin"    accent="#10b981" />
+            <FinanceCard value={montant(stats.revenusMois)}   label={`Revenus ${new Date().toLocaleDateString('fr-SN', { month: 'long' })}`} icon="graph-up-arrow" accent="#8b5cf6" />
           </div>
         </div>
       </div>
