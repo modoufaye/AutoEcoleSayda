@@ -175,6 +175,57 @@ function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer }) {
 }
 
 /* Résultat et correction complète. */
+/* Contenu d'une série (personnel) : ses questions, chacune dépliable avec sa photo et ses bonnes
+   réponses, et les boutons pour la lancer. */
+function Contenu({ serie, modes, onLancer, onQuitter }) {
+  const [voir, setVoir] = useState(null)
+  return (
+    <div className="space-y-4 max-w-2xl mx-auto">
+      <div className="rounded-2xl overflow-hidden relative text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 60%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
+        <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
+        <div className="px-4 sm:px-5 pt-5 pb-6">
+          <button type="button" onClick={onQuitter} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-pointer"
+            style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.18)' }}>
+            <i className="bi bi-arrow-left" />Séries
+          </button>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center flex-shrink-0 text-xl font-black" style={{ borderRadius: 18, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#0f2240' }}>{serie.titre.split(' ')[1]}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-black tracking-widest" style={{ color: '#f0bb2a' }}>CONTENU · CORRIGÉ</div>
+              <div className="text-2xl font-black leading-tight">{serie.titre}</div>
+              <div className="text-xs sm:text-sm" style={{ color: '#bfdbfe' }}>{serie.sousTitre} · {serie.questions.length} questions</div>
+            </div>
+          </div>
+          <div className={`grid ${modes.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mt-4`}>
+            {modes.map(([mode, icone, libelle, style]) => (
+              <button key={mode} type="button" onClick={() => onLancer(mode)} className="py-2.5 font-extrabold border-0 cursor-pointer" style={style}>
+                <i className={`bi bi-${icone} me-1`} />{libelle}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
+        <div className="px-5 py-3 font-extrabold flex items-center justify-between" style={{ color: '#1e3a5f', borderBottom: '1px solid #eef2f7' }}>
+          Questions et bonnes réponses<span className="text-xs font-semibold text-slate-400">Touchez une question pour la voir</span>
+        </div>
+        {serie.questions.map((q, k) => (
+          <div key={k} style={{ borderBottom: '1px solid #eef2f7' }}>
+            <button type="button" onClick={() => setVoir(voir === k ? null : k)} aria-expanded={voir === k} className="w-full flex items-center gap-3 px-5 py-3 text-left bg-white border-0 cursor-pointer">
+              <span className="w-8 h-8 flex items-center justify-center flex-shrink-0 font-black text-sm" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>{k + 1}</span>
+              {q.photo ? <img src={q.photo} alt="" className="hidden sm:block flex-shrink-0" style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 6 }} /> : null}
+              <span className="flex-1 min-w-0 text-sm font-semibold text-slate-700">{enonceCourt(q)}</span>
+              <span className="text-xs font-black px-2 py-1 whitespace-nowrap" style={{ borderRadius: 8, background: '#dcfce7', color: '#15803d' }}>{q.bonnes.join(' ')}</span>
+              <i className={`bi bi-chevron-${voir === k ? 'up' : 'down'} text-slate-400`} />
+            </button>
+            {voir === k && <div className="px-4 pb-4"><Question q={q} choix={q.bonnes} setChoix={() => {}} corrige /></div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Resultat({ serie, reponses, onRejouer, onQuitter }) {
   const score = serie.questions.filter((q, k) => juste(q, reponses[k] || [])).length
   const [voir, setVoir] = useState(null)
@@ -228,6 +279,7 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
   const [fin, setFin] = useState(null)              // réponses de la partie terminée
   const [notes, setNotes] = useState({})
   const [enCours, setEnCours] = useState({})        // parties commencées, par série et par mode
+  const [apercu, setApercu] = useState(null)        // série dont le personnel consulte le contenu
   const recharger = () => chargerQuizs(series.flatMap(s => ['entrainement', 'examen'].map(m => cleSerie(s, m)))).then(setEnCours)
   useEffect(() => { recharger() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -247,8 +299,19 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
   // Reprise : la partie commencée continue ; nouvelle partie (ou redémarrage) : elle est oubliée
   const lancer = (serie, mode, reprise = null) => { if (!reprise) effacerQuiz(cleSerie(serie, mode)); setFin(null); setPartie(x => ({ serie, mode, reprise, tour: (x?.tour || 0) + 1 })); window.scrollTo?.({ top: 0 }) }
 
+  // Boutons des modes proposés pour une série (élève : seulement ceux qui lui sont publiés)
+  const boutonsModes = s => [['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].filter(([mode]) => modesDe(s).has(mode))
+  // Clic sur la carte : le personnel ouvre le contenu corrigé ; l'élève lance la série si un seul mode lui est publié
+  const ouvrir = s => {
+    if (!eleve) { setApercu(s); window.scrollTo?.({ top: 0 }); return }
+    const modes = boutonsModes(s)
+    if (modes.length === 1) lancer(s, modes[0][0], enCours[cleSerie(s, modes[0][0])])
+  }
+
   if (partie && fin) return <Resultat serie={partie.serie} reponses={fin} onRejouer={() => lancer(partie.serie, partie.mode)} onQuitter={quitter} />
   if (partie) return <Partie key={partie.tour} serie={partie.serie} mode={partie.mode} reprise={partie.reprise} onFin={terminer} onQuitter={quitter} onRedemarrer={() => lancer(partie.serie, partie.mode)} />
+  if (apercu) return <Contenu serie={apercu} modes={boutonsModes(apercu)} onQuitter={() => { setApercu(null); window.scrollTo?.({ top: 0 }) }}
+    onLancer={mode => { setApercu(null); lancer(apercu, mode, enCours[cleSerie(apercu, mode)]) }} />
 
   return (
     <div className="space-y-4">
@@ -271,8 +334,11 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
       <div className="grid sm:grid-cols-2 gap-4">
         {series.map(s => {
           const n = notes[s.id]
+          const cliquable = !eleve || boutonsModes(s).length === 1
           return (
-            <div key={s.id} className="bg-white p-5" style={{ borderRadius: 20, ...carte }}>
+            <div key={s.id} className={`bg-white p-5 ${cliquable ? 'cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg' : ''}`} style={{ borderRadius: 20, ...carte }}
+              {...(cliquable ? { role: 'button', tabIndex: 0, title: eleve ? 'Commencer' : 'Voir les questions et les réponses', onClick: () => ouvrir(s),
+                onKeyDown: ev => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); ouvrir(s) } } } : {})}>
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 flex items-center justify-center flex-shrink-0 text-xl font-black text-white" style={{ borderRadius: 18, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>{s.titre.split(' ')[1]}</div>
                 <div className="flex-1 min-w-0">
@@ -280,13 +346,14 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
                   <div className="text-sm text-slate-500">{s.sousTitre}</div>
                   <div className="text-xs text-slate-400 mt-1">{s.questions.length} questions · {s.duree} s par question en examen blanc</div>
                   {n && <div className="text-xs font-bold mt-1" style={{ color: n.meilleurScore >= OBJECTIF ? '#15803d' : '#b45309' }}>Meilleure note : {n.meilleurScore}/{n.total}</div>}
+                  {!eleve && <div className="text-xs font-bold mt-1.5" style={{ color: '#1d4ed8' }}><i className="bi bi-eye me-1" />Voir les questions et les réponses</div>}
                 </div>
               </div>
               <div className={`grid ${modesDe(s).size > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mt-4`}>
-                {[['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].filter(([mode]) => modesDe(s).has(mode)).map(([mode, icone, libelle, style]) => {
+                {boutonsModes(s).map(([mode, icone, libelle, style]) => {
                   const c = enCours[cleSerie(s, mode)]
                   return (
-                    <button key={mode} type="button" onClick={() => lancer(s, mode, c)} className="py-2.5 font-extrabold border-0 cursor-pointer leading-tight" style={style}>
+                    <button key={mode} type="button" onClick={ev => { ev.stopPropagation(); lancer(s, mode, c) }} className="py-2.5 font-extrabold border-0 cursor-pointer leading-tight" style={style}>
                       <i className={`bi bi-${icone} me-1`} />{libelle}
                       {c && <span className="block text-[11px] font-bold opacity-80">Reprendre · question {c.i + 1}/{s.questions.length}</span>}
                     </button>
