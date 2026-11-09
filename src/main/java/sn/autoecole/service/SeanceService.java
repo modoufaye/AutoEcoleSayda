@@ -13,6 +13,7 @@ import sn.autoecole.entity.Moniteur;
 import sn.autoecole.entity.PartieCode;
 import sn.autoecole.entity.ResultatQuizSeance;
 import sn.autoecole.entity.Seance;
+import sn.autoecole.entity.SeriePubliee;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.StatutSeance;
@@ -267,6 +268,7 @@ public class SeanceService {
         }
 
         s.setProgramme(programme(req.programme()));
+        s.setSeries(series(req.series()));
 
         s.getBlocs().clear();
         if (req.blocs() != null) {
@@ -294,7 +296,7 @@ public class SeanceService {
         SeanceResponse r = toResponse(s);
         if (!eleve.estPerfectionnement()) return r;
         return new SeanceResponse(r.id(), r.titre(), r.dateHeure(), r.theme(), r.statut(), r.moniteurId(), r.moniteurNom(),
-                List.of(), List.of(), r.programme().stream().filter(SeanceService::conduite).toList(), r.createdAt(), r.parAdministration());
+                List.of(), List.of(), r.programme().stream().filter(SeanceService::conduite).toList(), List.of(), r.createdAt(), r.parAdministration());
     }
 
     /** Programme vérifié : chapitres connus du code ou du parcours de conduite (pas les séries d'examen),
@@ -316,6 +318,24 @@ public class SeanceService {
         return propre;
     }
 
+    /** Séries vérifiées : séries d'examen ou catalogues des annales connus, en entraînement ou en
+        examen blanc ; une même série peut être publiée dans les deux modes. */
+    private static List<SeriePubliee> series(List<SeriePubliee> series) {
+        List<SeriePubliee> propre = new ArrayList<>();
+        if (series == null) return propre;
+        if (series.size() > 20) throw new BusinessException("20 séries au plus par séance");
+        for (SeriePubliee x : series) {
+            String id = x.serie();
+            if (id == null || !ProgressionCodeController.CHAPITRES.contains(id) || !(id.startsWith("serie-") || id.startsWith("annale-")))
+                throw new BusinessException("Série inconnue : " + id);
+            if (!"ENTRAINEMENT".equals(x.mode()) && !"EXAMEN".equals(x.mode()))
+                throw new BusinessException("Choisissez entraînement ou examen blanc pour la série « " + id + " »");
+            SeriePubliee y = new SeriePubliee(id, x.mode());
+            if (!propre.contains(y)) propre.add(y);
+        }
+        return propre;
+    }
+
     private SeanceResponse toResponse(Seance s) {
         List<SeanceResponse.EleveInfo> elevesInfo = s.getEleves().stream()
                 .map(e -> new SeanceResponse.EleveInfo(e.getId(), e.getPrenom() + " " + e.getNom(), e.getEmail()))
@@ -329,7 +349,7 @@ public class SeanceService {
                 s.getTheme() != null ? s.getTheme().name() : null,
                 s.getStatut().name(),
                 s.getMoniteur().getId(), nomAuteur(s),
-                elevesInfo, blocsInfo, s.getProgramme(), s.getCreatedAt(),
+                elevesInfo, blocsInfo, s.getProgramme(), s.getSeries(), s.getCreatedAt(),
                 ADMINISTRATION.contains(s.getMoniteur().getRole())
         );
     }

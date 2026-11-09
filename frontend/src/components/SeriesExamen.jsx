@@ -215,8 +215,13 @@ const ENTETE_SERIES = {
   vide: 'Aucune série pour le moment.',
 }
 
-/* Liste des séries (séries d'examen, ou annales avec leur propre en-tête) et déroulé d'une partie. */
-export default function SeriesExamen({ eleve = false, series = SERIES, entete = ENTETE_SERIES }) {
+/* Liste des séries (séries d'examen, ou annales avec leur propre en-tête ; sans en-tête dans une
+   séance) et déroulé d'une partie. « ouvertes » (élève) : id → modes publiés dans ses séances ;
+   seules ces séries, et ces modes, lui sont proposés. */
+const TOUS_MODES = new Set(['entrainement', 'examen'])
+export default function SeriesExamen({ eleve = false, series: toutes = SERIES, entete = ENTETE_SERIES, ouvertes }) {
+  const series = ouvertes ? toutes.filter(s => ouvertes[s.id]?.size) : toutes
+  const modesDe = s => ouvertes ? ouvertes[s.id] : TOUS_MODES
   const [partie, setPartie] = useState(null)        // { serie, mode, tour }
   const [fin, setFin] = useState(null)              // réponses de la partie terminée
   const [notes, setNotes] = useState({})
@@ -245,17 +250,19 @@ export default function SeriesExamen({ eleve = false, series = SERIES, entete = 
 
   return (
     <div className="space-y-4">
+      {entete && (
       <div className="rounded-2xl overflow-hidden relative text-white px-6 py-6" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 55%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
         <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
         <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>{entete.surTitre}</div>
         <h2 className="text-3xl font-black m-0 mt-1">{entete.titre}</h2>
         <p className="text-sm m-0 mt-1 max-w-lg" style={{ color: '#bfdbfe' }}>{entete.texte}</p>
       </div>
+      )}
       {series.length === 0 && (
         <div className="bg-white p-8 text-center" style={{ borderRadius: 20, ...carte }}>
           <div className="w-14 h-14 mx-auto flex items-center justify-center text-2xl" style={{ borderRadius: 18, background: '#fef3c7', color: '#b45309' }}><i className="bi bi-journal-bookmark-fill" /></div>
-          <div className="font-extrabold mt-3" style={{ color: '#1e3a5f' }}>Bientôt disponible</div>
-          <div className="text-sm text-slate-500 mt-1">{entete.vide}</div>
+          <div className="font-extrabold mt-3" style={{ color: '#1e3a5f' }}>{ouvertes ? 'Rien de publié pour le moment' : 'Bientôt disponible'}</div>
+          <div className="text-sm text-slate-500 mt-1">{ouvertes ? 'Votre moniteur ne vous a pas encore publié de série ici. Elles apparaîtront dès qu’il les ajoutera à une séance.' : entete?.vide}</div>
         </div>
       )}
       <div className="grid sm:grid-cols-2 gap-4">
@@ -272,8 +279,8 @@ export default function SeriesExamen({ eleve = false, series = SERIES, entete = 
                   {n && <div className="text-xs font-bold mt-1" style={{ color: n.meilleurScore >= OBJECTIF ? '#15803d' : '#b45309' }}>Meilleure note : {n.meilleurScore}/{n.total}</div>}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {[['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].map(([mode, icone, libelle, style]) => {
+              <div className={`grid ${modesDe(s).size > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mt-4`}>
+                {[['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].filter(([mode]) => modesDe(s).has(mode)).map(([mode, icone, libelle, style]) => {
                   const c = enCours[cleSerie(s, mode)]
                   return (
                     <button key={mode} type="button" onClick={() => lancer(s, mode, c)} className="py-2.5 font-extrabold border-0 cursor-pointer leading-tight" style={style}>

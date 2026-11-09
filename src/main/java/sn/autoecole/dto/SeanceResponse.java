@@ -1,6 +1,7 @@
 package sn.autoecole.dto;
 
 import sn.autoecole.entity.PartieCode;
+import sn.autoecole.entity.SeriePubliee;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +17,7 @@ public record SeanceResponse(
     List<EleveInfo> eleves,
     List<BlocInfo> blocs,
     List<PartieCode> programme,
+    List<SeriePubliee> series,
     LocalDateTime createdAt,
     /** Créée par le super admin ou un administrateur : les moniteurs peuvent y ajouter leurs élèves. */
     boolean parAdministration

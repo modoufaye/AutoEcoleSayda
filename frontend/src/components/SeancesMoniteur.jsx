@@ -7,6 +7,8 @@ import '../landing.css'
 import { correspond, inscritCetteSemaine } from '../utils'
 import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
 import { libellePartie } from '../contenu/programme'
+import { libelleSerie } from '../contenu/seriesPubliees'
+import ChoixSeries from './ChoixSeries'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -21,7 +23,7 @@ const THEMES = [
 ]
 const THEME_MAP = Object.fromEntries(THEMES.map(t => [t.value, t.label]))
 
-const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUILLON', eleveIds: [], blocs: [], programme: [] })
+const defaultForm = () => ({ titre: '', dateHeure: '', theme: '', statut: 'BROUILLON', eleveIds: [], blocs: [], programme: [], series: [] })
 
 /* Bloc vidéo ou audio : choix dans la médiathèque (vidéos et audios français / wolof déposés par
    l'équipe) avec une puce à cocher ou décocher, ou envoi d'un fichier depuis l'appareil. */
@@ -232,6 +234,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
       eleveIds:  s.eleves.map(e => e.id),
       blocs:     s.blocs.map(b => ({ ...b, _uploading: false })),
       programme: s.programme || [],
+      series:    s.series || [],
     })
     setErr('')
     setView('editor')
@@ -263,10 +266,14 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const enEditeur = view === 'editor' && (!onOuvrir || !!seanceId)
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  // Programme de code : le titre de la séance est le nom de sa première partie (+ le nombre des autres)
-  const setProgramme = programme => { setErr(''); setForm(f => ({ ...f, programme,
-    titre: !programme.length ? f.titre
-      : libellePartie(programme[0]) + (programme.length > 1 ? ` (+${programme.length - 1} partie${programme.length > 2 ? 's' : ''})` : '') })) }
+  // Le titre de la séance est le nom de sa première partie de cours, ou à défaut de sa première
+  // série (+ le nombre des autres)
+  const titreAuto = (f, programme, series) => {
+    const parties = [...programme.map(libellePartie), ...series.map(libelleSerie)]
+    return !parties.length ? f.titre : parties[0] + (parties.length > 1 ? ` (+${parties.length - 1} partie${parties.length > 2 ? 's' : ''})` : '')
+  }
+  const setProgramme = programme => { setErr(''); setForm(f => ({ ...f, programme, titre: titreAuto(f, programme, f.series) })) }
+  const setSeries = series => { setErr(''); setForm(f => ({ ...f, series, titre: titreAuto(f, f.programme, series) })) }
 
   const toggleEleve = (id) => {
     if (lectureSeule) return
@@ -318,8 +325,8 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   }
 
   const handleSave = async (statut) => {
-    if (!form.programme.length && !form.blocs.length) {
-      if (!editId) { setErr('Ajoutez au moins une partie de cours ou un contenu'); return }
+    if (!form.programme.length && !form.series.length && !form.blocs.length) {
+      if (!editId) { setErr('Ajoutez au moins une partie de cours, une série ou un contenu'); return }
       // Séance existante entièrement vidée (cours et contenus retirés) : on la supprime
       if (!(await confirmer({ titre: 'Supprimer cette séance ?', ton: 'danger', icone: 'trash3-fill', libelle: 'Supprimer la séance',
         message: "Vous avez retiré tous ses cours et contenus : elle sera supprimée et ses élèves ne la verront plus. Les résultats de son quiz seront aussi effacés." }))) return
@@ -415,7 +422,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
               {form.titre.trim() || 'Séance sans titre'}
             </div>
             <div className="text-xs mt-0.5" style={{ color: '#bfdbfe' }}>
-              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de cours · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
+              {form.eleveIds.length} élève{form.eleveIds.length > 1 ? 's' : ''} · {form.programme.length} partie{form.programme.length > 1 ? 's' : ''} de cours · {form.series.length} série{form.series.length > 1 ? 's' : ''} · {form.blocs.length} bloc{form.blocs.length > 1 ? 's' : ''} de contenu
             </div>
           </div>
           {partagee && (
@@ -550,6 +557,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
             <ChoixProgramme programme={form.programme} onChange={setProgramme}
               dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
           </fieldset>
+          <fieldset disabled={contenuFige} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+            <ChoixSeries series={form.series} onChange={setSeries} />
+          </fieldset>
           {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz key={`${editId}-${partagee}`} seanceId={editId} mesEleves={partagee} />}
           <fieldset disabled={contenuFige} className="bg-white rounded-2xl overflow-hidden" style={{ ...carte, padding: 0, margin: 0, minWidth: 0 }}>
             <EnteteListe icone="layout-text-window-reverse" titre="Contenu pédagogique" sousTitre="Texte, image, vidéo, audio" nombre={form.blocs.length} />
@@ -648,6 +658,12 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                         <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
                           <i className="bi bi-signpost-split" />
                           {s.programme.length} partie{s.programme.length > 1 ? 's' : ''} de cours · quiz
+                        </span>
+                      )}
+                      {(s.series || []).length > 0 && (
+                        <span className="flex items-center gap-1 font-bold" style={{ color: '#0f766e' }}>
+                          <i className="bi bi-journal-bookmark" />
+                          {s.series.map(libelleSerie).join(' · ')}
                         </span>
                       )}
                       <span className="flex items-center gap-1">

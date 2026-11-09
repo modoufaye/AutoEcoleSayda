@@ -5,6 +5,10 @@ import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche } from
 import '../landing.css'
 import { correspond } from '../utils'
 import { ProgrammeEleve } from './SeanceCode'
+import SeriesExamen from './SeriesExamen'
+import { SERIES } from '../contenu/seriesExamen'
+import { ANNALES } from '../contenu/annales'
+import { seriesOuvertes } from '../contenu/seriesPubliees'
 
 const PAGE_SIZE = 10
 
@@ -144,7 +148,17 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
 
         {(ouverte.programme || []).length > 0 && <div className="px-4 sm:px-6 py-5" style={{ background: '#f8fafc' }}><ProgrammeEleve seance={ouverte} /></div>}
 
-        {(ouverte.blocs.length > 0 || !(ouverte.programme || []).length) && <div className="px-6 py-5">
+        {/* Annales et séries d'examen publiées, dans le mode choisi par le moniteur */}
+        {(ouverte.series || []).length > 0 && (
+          <div className="px-4 sm:px-6 py-5 space-y-4" style={{ background: '#f8fafc', borderTop: '1px solid #eef2f7' }}>
+            <div className="flex items-center gap-2 text-sm font-extrabold" style={{ color: '#1e3a5f' }}>
+              <i className="bi bi-journal-bookmark-fill" style={{ color: '#d4a017' }} />Annales et séries d'examen de la séance
+            </div>
+            <SeriesExamen eleve series={[...ANNALES, ...SERIES]} entete={null} ouvertes={seriesOuvertes([ouverte])} />
+          </div>
+        )}
+
+        {(ouverte.blocs.length > 0 || (!(ouverte.programme || []).length && !(ouverte.series || []).length)) && <div className="px-6 py-5">
           {ouverte.blocs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: '#f1f5f9' }}>
@@ -225,6 +239,12 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
                           <span className="flex items-center gap-1 font-bold" style={{ color: '#a16207' }}>
                             <i className="bi bi-signpost-split" />
                             Cours · quiz
+                          </span>
+                        )}
+                        {(s.series || []).length > 0 && (
+                          <span className="flex items-center gap-1 font-bold" style={{ color: '#0f766e' }}>
+                            <i className="bi bi-journal-bookmark" />
+                            {s.series.length} série{s.series.length > 1 ? 's' : ''} d'examen
                           </span>
                         )}
                         {s.blocs.length > 0 && <span className="flex items-center gap-1">

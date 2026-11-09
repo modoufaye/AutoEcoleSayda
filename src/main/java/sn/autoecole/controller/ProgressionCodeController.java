@@ -40,6 +40,8 @@ public class ProgressionCodeController {
             "usagers-revision", "environnement-eco", "environnement-respect", "environnement-revision",
             // Séries d'examen (contenu/seriesExamen.js, onglet Travaux Dirigés)
             "serie-b1", "serie-b2", "serie-b3", "serie-b4",
+            // Annales (contenu/annales.js), catalogues des questions fréquentes à l'examen
+            "annale-b1",
             // Parcours « Apprendre à conduire » (contenu/conduite.js), ouvert aussi aux perfectionnements
             "conduite-prise-en-main", "conduite-boite-manuelle", "conduite-manoeuvres-parking", "conduite-manoeuvres-revision",
             "conduite-circulation-urbaine", "conduite-carrefours-ville", "conduite-ville-revision", "conduite-route-nationale",
