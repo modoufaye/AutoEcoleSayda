@@ -56,6 +56,10 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut AND e.archive = false")
     long countByStatut(@Param("statut") StatutEleve statut);
 
+    /** Comme countByStatut, mais archivés compris (ex. tous les diplômés de l'auto-école). */
+    @Query("SELECT COUNT(e) FROM Eleve e WHERE e.statut = :statut")
+    long countByStatutArchivesCompris(@Param("statut") StatutEleve statut);
+
     /** Élèves en cours de perfectionnement (non archivés) pour une boîte de vitesses. */
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.typeFormation = sn.autoecole.enums.TypeFormation.PERFECTIONNEMENT "
          + "AND e.boiteVitesse = :boite AND e.statut = sn.autoecole.enums.StatutEleve.EN_COURS AND e.archive = false")

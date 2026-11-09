@@ -40,6 +40,7 @@ public class DashboardService {
                 .elevesEnCours(enCours)
                 .elevesDiplomes(diplomes)
                 .elevesSuspendus(suspendus)
+                .diplomesTotal(eleveRepository.countByStatutArchivesCompris(StatutEleve.DIPLOME))
                 .elevesNouveauxMois(eleveRepository.countByDateInscriptionBetween(debutMois, finMois))
                 .perfectionnementManuelle(eleveRepository.countPerfectionnementEnCours(BoiteVitesse.MANUELLE))
                 .perfectionnementAutomatique(eleveRepository.countPerfectionnementEnCours(BoiteVitesse.AUTOMATIQUE))

@@ -573,6 +573,20 @@ function DashboardAdmin({ stats, user }) {
                 )
               })}
             </div>
+
+            {/* Aboutissement : tous les élèves diplômés, archivés compris (statut de l'élève, pas une part des examens) */}
+            <div className="mt-5 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+              <i className="bi bi-award-fill" style={{ color: '#10b981', fontSize: '1.2rem' }} />
+              <div className="min-w-0">
+                <div className="text-sm font-extrabold text-slate-700">Élèves diplômés</div>
+                <div className="text-xs text-slate-400">
+                  {stats.diplomesTotal > stats.elevesDiplomes
+                    ? `Archivés compris (dont ${stats.diplomesTotal - stats.elevesDiplomes} archivé${stats.diplomesTotal - stats.elevesDiplomes > 1 ? 's' : ''})`
+                    : 'Depuis la création de l\'auto-école'}
+                </div>
+              </div>
+              <span className="ml-auto text-2xl font-extrabold" style={{ color: '#10b981' }}>{stats.diplomesTotal ?? stats.elevesDiplomes}</span>
+            </div>
           </div>
         </div>
       </div>

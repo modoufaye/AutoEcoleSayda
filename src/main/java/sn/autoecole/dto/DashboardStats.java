@@ -12,6 +12,8 @@ public class DashboardStats {
     private long elevesEnCours;
     private long elevesDiplomes;
     private long elevesSuspendus;
+    // Tous les diplômés, archivés compris (anciens élèves, perfectionnements terminés…)
+    private long diplomesTotal;
     private long elevesNouveauxMois;
     // Perfectionnement en cours, par boîte de vitesses
     private long perfectionnementManuelle;
