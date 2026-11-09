@@ -110,23 +110,35 @@ function ChoixEleve({ onChoisir, onAnnuler }) {
   )
 }
 
-export default function Messages({ onLus }) {
+export default function Messages({ onLus, conversationId, onOuvrir, onFermer }) {
   const { user } = useAuth()
   const eleve = user?.role === 'ELEVE'
   const [convs, setConvs] = useState(null)
-  const [ouverte, setOuverte] = useState(null)   // { id, titre, messages }
+  const [chargee, setChargee] = useState(null)   // { id, titre, messages }
   const [choix, setChoix] = useState(false)
-  const ouverteId = ouverte?.id
+  /* Conversation dans l'adresse (…/messages/12) quand la mise en page la gère : le Retour d'Android
+     ou du navigateur revient à la liste au lieu de quitter la page. Sinon, état local. */
+  const [idLocal, setIdLocal] = useState(null)
+  const ouverteId = onOuvrir ? (conversationId || null) : idLocal
+  // Affichée seulement si c'est bien celle de l'adresse (pas l'ancienne pendant le chargement)
+  const ouverte = chargee && String(chargee.id) === String(ouverteId) ? chargee : null
 
   const chargerListe = () => api('GET', '/conversations').then(setConvs).catch(e => { toast(e.message, 'danger'); setConvs([]) })
-  const ouvrir = id => api('GET', `/conversations/${id}/messages`)
-    .then(c => { setOuverte(c); chargerListe(); onLus?.() })
+  const charger = id => api('GET', `/conversations/${id}/messages`)
+    .then(c => { setChargee(c); chargerListe(); onLus?.() })
     .catch(e => toast(e.message, 'danger'))
+  // Passer d'une conversation à l'autre remplace l'étape : Retour ramène toujours à la liste
+  const ouvrir = id => {
+    if (String(id) === String(ouverteId)) return
+    if (onOuvrir) onOuvrir(id, ouverteId ? { replace: true } : undefined); else setIdLocal(id)
+  }
+  const fermer = () => onFermer ? onFermer() : setIdLocal(null)
 
-  useEffect(() => { chargerListe() }, [])
+  // Ouverture, fermeture (y compris par le Retour d'Android) : conversation ou liste relue
+  useEffect(() => { if (ouverteId) charger(ouverteId); else chargerListe() }, [ouverteId]) // eslint-disable-line react-hooks/exhaustive-deps
   // Nouveaux messages : liste et conversation ouverte relues régulièrement
   useEffect(() => {
-    const t = setInterval(() => { if (ouverteId) ouvrir(ouverteId); else chargerListe() }, 20000)
+    const t = setInterval(() => { if (ouverteId) charger(ouverteId); else chargerListe() }, 20000)
     return () => clearInterval(t)
   }, [ouverteId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -163,15 +175,16 @@ export default function Messages({ onLus }) {
   )
 
   const fil = ouverte ? (
+    <div className="space-y-3">
+    {/* Téléphone : la liste est masquée, retour vers elle au style commun (sur ordinateur, elle est à côté) */}
+    <div className="lg:hidden"><button type="button" onClick={fermer} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Conversations</button></div>
     <div className="bg-white rounded-2xl overflow-hidden flex flex-col" style={{ ...carte, minHeight: 420 }}>
       <div className="flex items-center gap-3 px-4 py-3" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '3px solid #d4a017' }}>
-        <button type="button" onClick={() => { setOuverte(null); chargerListe() }} className="lg:hidden w-8 h-8 rounded-full border-0 flex items-center justify-center cursor-pointer" style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }} aria-label="Retour aux conversations">
-          <i className="bi bi-arrow-left" />
-        </button>
         <div className="font-extrabold text-white truncate">{ouverte.titre}</div>
       </div>
       <Bulles messages={ouverte.messages} />
-      <Saisie onEnvoyer={async texte => { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); await ouvrir(ouverte.id) }} />
+      <Saisie onEnvoyer={async texte => { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); await charger(ouverte.id) }} />
+    </div>
     </div>
   ) : (
     <div className="hidden lg:flex bg-white rounded-2xl items-center justify-center text-slate-400 text-sm" style={{ ...carte, minHeight: 420 }}>

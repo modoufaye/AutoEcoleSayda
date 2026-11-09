@@ -19,9 +19,6 @@ import SeancesEleve from '../components/SeancesEleve'
 import ElevePortail from '../components/ElevePortail'
 import MonProfil from '../components/MonProfil'
 import MesPaiements from '../components/MesPaiements'
-import TravauxDirigesMoniteur from '../components/TravauxDirigesMoniteur'
-import TravauxDirigesEleve from '../components/TravauxDirigesEleve'
-import TravauxDirigesAdmin from '../components/TravauxDirigesAdmin'
 import TravauxDiriges from '../components/TravauxDiriges'
 import Parametres from '../components/Parametres'
 import Journal from '../components/Journal'
@@ -64,9 +61,6 @@ const COMPONENTS = {
   examens: Examens, paiements: Paiements, 'mes-paiements': MesPaiements,
   'seances-moniteur': SeancesMoniteur,
   'seances-eleve': SeancesEleve,
-  'td-admin': TravauxDirigesAdmin,
-  'td-moniteur': TravauxDirigesMoniteur,
-  'td-eleve': TravauxDirigesEleve,
   'mon-profil': MonProfil,
   'parametres': Parametres,
   journal: Journal,
@@ -74,6 +68,10 @@ const COMPONENTS = {
   annonces: Annonces,
   messages: Messages,
 }
+
+/* Pages dont la vue ouverte (fiche, thème, série, conversation) a son propre bouton de retour :
+   celui de la mise en page est alors masqué pour ne pas en afficher deux. */
+const AVEC_RETOUR_PROPRE = ['moniteurs', 'cours', 'lecons', 'td-admin', 'messages']
 
 const MOBILE_QUERY = '(max-width: 768px)'
 
@@ -238,7 +236,7 @@ export default function AppLayout() {
     setDrawerOpen(false)
     navigate(`${base}/eleves/${eleveId}`, onglet ? { state: { onglet } } : undefined)
   }
-  const ouvrirDetail = (id) => { setDrawerOpen(false); navigate(`${base}/${section}/${encodeURIComponent(id)}`) }
+  const ouvrirDetail = (id, options) => { setDrawerOpen(false); navigate(`${base}/${section}/${encodeURIComponent(id)}`, options) }
   /* Un profil élève ou moniteur ouvert depuis la liste ne change pas l'URL : recliquer sur
      la section naviguait vers l'URL déjà affichée et laissait le profil ouvert. Ce compteur,
      dans la clé du composant, le remonte pour revenir à la liste. */
@@ -251,6 +249,9 @@ export default function AppLayout() {
   const handleBack = () => navigate(-1)
 
   const canGoBack = historyIdx > entryIdx
+  /* Retour des pages qui ont le leur : seulement s'il reste une étape interne. Sinon (rafraîchissement,
+     appli ouverte directement sur la page) navigate(-1) sortait vers /login ou fermait l'appli. */
+  const retour = canGoBack ? handleBack : undefined
   // Fermer un détail : revenir d'une étape, ou, arrivé directement sur l'URL, rejoindre la liste.
   const fermerDetail = () => canGoBack ? navigate(-1) : navigate(`${base}/${section}`, { replace: true })
   const activeSection = sections.find(s => s.key === section)
@@ -375,9 +376,9 @@ export default function AppLayout() {
           <HoteConfirmation />
           {/* Admin : Retour sur toutes les pages (sauf celles qui ont le leur : séances, fiche moniteur,
               thème des cours de code avec « Retour aux thèmes »). Moniteur : sur « Mes élèves » et sur la
-              fiche d'un élève (les Véhicules ont le leur). */}
-          {((gestion && canGoBack && section !== 'seances-moniteur' && section !== 'dashboard' && !(section === 'moniteurs' && detail)
-              && !(section === 'cours' && detail))
+              fiche d'un élève (les Véhicules ont le leur). Fiche ouverte : Retour même sans historique
+              (rafraîchissement, lien direct), fermerDetail rejoint alors la liste. */}
+          {((gestion && (canGoBack || detail) && section !== 'seances-moniteur' && section !== 'dashboard' && !(detail && AVEC_RETOUR_PROPRE.includes(section)))
             || (user?.role === 'MONITEUR' && section === 'eleves' && (detail || canGoBack))) && (
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={detail ? fermerDetail : handleBack} className="btn-retour">
@@ -389,42 +390,46 @@ export default function AppLayout() {
           {section === 'mon-espace'
             ? <ElevePortail key="mon-espace" onGoSection={handleSectionChange} accesCours={accesCours === true} />
             : section === 'seances-moniteur' && gestion
-            ? <SeancesMoniteur key="seances-admin" isAdmin={true} lectureSeule={user?.role === 'SECRETAIRE'} onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
+            ? <SeancesMoniteur key="seances-admin" isAdmin={true} lectureSeule={user?.role === 'SECRETAIRE'} onBack={retour} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-moniteur'
-            ? <SeancesMoniteur key="seances-moniteur" onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
+            ? <SeancesMoniteur key="seances-moniteur" onBack={retour} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'seances-eleve'
-            ? <SeancesEleve key="seances-eleve" onBack={handleBack} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
+            ? <SeancesEleve key="seances-eleve" onBack={retour} seanceId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : section === 'examens'
-            ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? handleBack : undefined} />
+            ? <Examens key="examens" onEleveClick={handleEleveClick} onBack={user?.role === 'ELEVE' ? retour : undefined} />
             : section === 'paiements'
             ? <Paiements key="paiements" onEleveClick={handleEleveClick} />
             : section === 'lecons'
-            ? <ActiveComponent key={section} onBack={!gestion ? handleBack : undefined} />
+            ? <ActiveComponent key={section} onBack={!gestion ? retour : undefined}
+                chapitre={detail} onOuvrirChapitre={ouvrirDetail}
+                /* Comme les cours de code : « Thèmes » va à la liste, pas à la page précédente */
+                onFermerChapitre={() => navigate(`${base}/${section}`)} />
             : section === 'cours'
-            ? <ActiveComponent key={section} onBack={!gestion ? handleBack : undefined}
+            ? <ActiveComponent key={section} onBack={!gestion ? retour : undefined}
                 themeKey={detail} onOuvrirTheme={ouvrirDetail}
                 /* Deux niveaux (thème puis chapitre) : « Thèmes » va à la liste, pas à la page précédente */
                 onFermerTheme={() => navigate(`${base}/${section}`)} />
             : section === 'vehicules'
-            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' && canGoBack ? handleBack : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? retour : undefined} />
             : section === 'mon-profil'
-            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? handleBack : undefined} />
+            ? <ActiveComponent key={section} onBack={user?.role === 'MONITEUR' ? retour : undefined} />
             : section === 'mes-paiements'
-            ? <ActiveComponent key={section} onBack={handleBack} />
+            ? <ActiveComponent key={section} onBack={retour} />
             : section === 'annonces'
             ? <Annonces key={section} onLues={() => setNonLues(0)} />
             : section === 'messages'
-            ? <Messages key={section} onLus={() => api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})} />
+            ? <Messages key={section} conversationId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} onLus={() => api('GET', '/conversations/non-lus').then(r => setMessagesNonLus(r?.nombre || 0)).catch(() => {})} />
             : section === 'mediatheque'
             ? <Mediatheque key={section} />
             : section === 'td-admin'
-            ? <TravauxDiriges key="td-admin" />
+            ? <TravauxDiriges key="td-admin" vue={detail} onOuvrirVue={ouvrirDetail} onFermerVue={fermerDetail} />
             : section === 'td-moniteur'
-            ? <TravauxDiriges key="td-moniteur" />
+            ? <TravauxDiriges key="td-moniteur" vue={detail} onOuvrirVue={ouvrirDetail} onFermerVue={fermerDetail} />
             : section === 'td-eleve'
-            ? <TravauxDiriges key="td-eleve" eleve />
+            ? <TravauxDiriges key="td-eleve" eleve vue={detail} onOuvrirVue={ouvrirDetail} onFermerVue={fermerDetail} />
             : section === 'eleves'
-            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick} />
+            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick}
+                onQuitterFiche={() => navigate(`${base}/eleves`, { replace: true })} />
             : section === 'moniteurs'
             ? <Moniteurs key={`moniteurs-${detail ?? 'list'}-${retourListe}`} moniteurId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : <ActiveComponent key={section} />}

@@ -395,7 +395,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
       <div style={{ marginBottom: '1rem' }}>
         <button onClick={fermerEditeur} className="btn-retour">
           <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-          Retour
+          Séances
         </button>
       </div>
 

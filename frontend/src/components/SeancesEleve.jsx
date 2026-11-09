@@ -93,7 +93,7 @@ export default function SeancesEleve({ onBack, seanceId, onOuvrir, onFermer }) {
       {/* Bouton retour */}
       <button onClick={fermer} className="btn-retour">
         <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-        Retour aux cours
+        Mes séances
       </button>
 
       {/* En-tête séance */}

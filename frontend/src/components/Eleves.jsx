@@ -957,7 +957,7 @@ const libelleMois = (m) => {
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
-export default function Eleves({ initialEleveId, onOuvrirEleve }) {
+export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }) {
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
   // Suppression définitive (fiche, et pour un perfectionnement abandonné ses paiements) : admin seulement
@@ -1081,6 +1081,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const ouvrirFiche = (eleve) => onOuvrirEleve ? onOuvrirEleve(eleve.id) : openProfile(eleve)
 
   const closeProfile = () => { setSelected(null); setProfileData({ lecons: [], examens: [], paiements: [], totalPaye: 0 }) }
+  /* Élève supprimé : sa fiche ouverte par l'adresse (…/eleves/42) est remplacée par la liste, sinon
+     l'adresse gardait un élève qui n'existe plus (Retour affiché, « Élève introuvable » au rafraîchissement). */
+  const apresSuppression = () => { closeProfile(); if (initialEleveId && onQuitterFiche) onQuitterFiche(); else load() }
 
   const changerStatut = async (id, newStatut) => {
     try {
@@ -1099,7 +1102,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
     try { paye = Number((await api('GET', `/eleves/${eleve.id}/total-paye`))?.totalPaye || 0) } catch { /* montant indicatif */ }
     if (!(await confirmer({ titre: `Supprimer ${eleve.prenom} ${eleve.nom} ?`, ton: 'danger', libelle: 'Supprimer',
       message: `Perfectionnement abandonné : sa fiche, ses leçons et ses paiements${paye > 0 ? ` (${fmtMontant(paye)})` : ''} seront supprimés définitivement.${paye > 0 ? ' La caisse baisse d\'autant.' : ''}` }))) return
-    try { await api('DELETE', `/eleves/${eleve.id}`); toast('Élève supprimé'); closeProfile(); load() }
+    try { await api('DELETE', `/eleves/${eleve.id}`); toast('Élève supprimé'); apresSuppression() }
     catch (e) { toast(e.message, 'danger') }
   }
 
@@ -1198,7 +1201,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve }) {
   const del = async (id) => {
     if (!(await confirmer({ titre: 'Supprimer cet élève définitivement ?', ton: 'danger', libelle: 'Supprimer',
       message: "Possible uniquement pour une fiche créée par erreur (sans paiement ni leçon). Pour un élève qui a un historique, utilisez « Archiver »." }))) return
-    try { await api('DELETE', `/eleves/${id}`); toast('Élève supprimé'); closeProfile(); load() }
+    try { await api('DELETE', `/eleves/${id}`); toast('Élève supprimé'); apresSuppression() }
     catch (e) { toast(e.message, 'danger') }
   }
 

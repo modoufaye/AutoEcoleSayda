@@ -10,12 +10,22 @@ const ENTETE = { titre: 'Apprendre à conduire', decor: ['AB25', 'B14', 'C107'],
 /* Onglet « Cours Conduite » : le planning des leçons (inchangé) et le parcours « Apprendre à
    conduire » (thèmes, chapitres, quiz), ouvert à tous ceux qui voient l'onglet, élèves en
    perfectionnement compris. */
-export default function CoursConduite({ onBack }) {
+export default function CoursConduite({ onBack, chapitre, onOuvrirChapitre, onFermerChapitre }) {
   const { user } = useAuth()
-  const [vue, setVue] = useState('lecons')
-  const onglets = [['lecons', 'calendar2-check', 'Mes leçons'], ['apprendre', 'mortarboard-fill', 'Apprendre à conduire']]
+  /* Thème ou chapitre dans l'adresse (…/lecons/<clé>) quand la mise en page le gère : le Retour
+     d'Android ou du navigateur revient au thème, puis à la liste, au lieu de quitter la page. */
+  const [onglet, setOnglet] = useState('lecons')
+  const vue = chapitre ? 'apprendre' : onglet
+  const setVue = v => { setOnglet(v); if (chapitre && v !== 'apprendre') onFermerChapitre?.() }
+  // Admin et secrétariat voient le planning de tous les élèves, pas « leurs » leçons
+  const gestion = ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'].includes(user?.role)
+  const onglets = [['lecons', 'calendar2-check', gestion ? 'Planning des leçons' : 'Mes leçons'], ['apprendre', 'mortarboard-fill', 'Apprendre à conduire']]
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Retour en premier, comme sur les autres pages (thème ou chapitre ouvert : il a le sien) */}
+      {onBack && !chapitre && (
+        <div><button type="button" onClick={onBack} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Retour</button></div>
+      )}
       <div className="flex gap-1 p-1 w-full sm:w-auto sm:inline-flex" style={{ background: '#eef2f7', borderRadius: 999 }}>
         {onglets.map(([v, icone, label]) => (
           <button key={v} type="button" onClick={() => setVue(v)}
@@ -26,8 +36,9 @@ export default function CoursConduite({ onBack }) {
         ))}
       </div>
       {vue === 'lecons'
-        ? <Lecons onBack={onBack} />
-        : <CoursCode themes={THEMES_CONDUITE} entete={ENTETE} eleve={user?.role === 'ELEVE'} onRetour={onBack} />}
+        ? <Lecons />
+        : <CoursCode themes={THEMES_CONDUITE} entete={ENTETE} eleve={user?.role === 'ELEVE'}
+            chapitre={chapitre} onOuvrirChapitre={onOuvrirChapitre} onFermerChapitre={onFermerChapitre} />}
     </div>
   )
 }

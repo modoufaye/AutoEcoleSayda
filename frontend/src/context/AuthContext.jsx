@@ -25,7 +25,8 @@ export function AuthProvider({ children }) {
     // Admin ou secrétaire au mot de passe trop court : AppLayout impose de le changer
     if (data.changerMotDePasse) localStorage.setItem('changerMdp', '1'); else localStorage.removeItem('changerMdp')
     setUser(data)
-    navigate(ROLE_BASE[data.role] || '/dashboard/admin')
+    // replace : /login sort de l'historique, le Retour du téléphone n'y revient pas depuis l'accueil
+    navigate(ROLE_BASE[data.role] || '/dashboard/admin', { replace: true })
   }, [navigate])
 
   const logout = useCallback(() => {
@@ -38,7 +39,8 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('email')
     localStorage.removeItem('changerMdp')
     setUser(null)
-    navigate('/login')
+    // replace : la page quittée sort de l'historique (elle redirigerait de toute façon vers /login)
+    navigate('/login', { replace: true })
   }, [navigate])
 
   return (

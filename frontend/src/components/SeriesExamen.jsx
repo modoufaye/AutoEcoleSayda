@@ -71,7 +71,7 @@ function Question({ q, choix, setChoix, corrige }) {
    quitter puis revenir, même sur un autre appareil, la reprend à la même question (en examen
    blanc, le chrono de cette question repart). « Redémarrer » l'efface et repart de la question 1. */
 const cleSerie = (serie, mode) => `serie:${serie.id}:${mode}`
-function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer }) {
+function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer, nomListe }) {
   const [enCours] = useState(reprise)
   const [i, setI] = useState(enCours?.i || 0)
   const [choix, setChoix] = useState(enCours?.choix || [])
@@ -112,14 +112,13 @@ function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer }) {
   const btnClair = { borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.18)' }
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
+      {/* Comme sur les autres pages : le retour en premier, au style commun */}
+      <div><button type="button" onClick={onQuitter} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>{nomListe}</button></div>
       {/* En-tête : série, mode (entraînement ou examen blanc), chrono et progression */}
       <div className="rounded-2xl overflow-hidden relative text-white" style={{ background: examen ? 'linear-gradient(135deg,#0f2240,#1e3a5f 60%,#3b2f12)' : 'linear-gradient(135deg,#0f2240,#1e3a5f 60%,#0f4c4a)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
         <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: examen ? 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' : 'linear-gradient(90deg,#14b8a6,#5eead4,#14b8a6)' }} />
         <div className="px-4 sm:px-5 pt-5 pb-4">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={onQuitter} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-pointer me-auto" style={btnClair}>
-              <i className="bi bi-arrow-left" />Séries
-            </button>
+          <div className="flex items-center justify-end gap-2">
             {commence && (
               <button type="button" title="Redémarrer la série depuis la première question" onClick={async () => {
                 if (await confirmer({ titre: 'Redémarrer la série ?', ton: 'alerte', icone: 'arrow-counterclockwise', libelle: 'Redémarrer',
@@ -177,18 +176,15 @@ function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer }) {
 /* Résultat et correction complète. */
 /* Contenu d'une série (personnel) : ses questions, chacune dépliable avec sa photo et ses bonnes
    réponses, et les boutons pour la lancer. */
-function Contenu({ serie, modes, onLancer, onQuitter }) {
+function Contenu({ serie, modes, onLancer, onQuitter, nomListe }) {
   const [voir, setVoir] = useState(null)
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
+      <div><button type="button" onClick={onQuitter} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>{nomListe}</button></div>
       <div className="rounded-2xl overflow-hidden relative text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 60%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
         <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
         <div className="px-4 sm:px-5 pt-5 pb-6">
-          <button type="button" onClick={onQuitter} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-pointer"
-            style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.18)' }}>
-            <i className="bi bi-arrow-left" />Séries
-          </button>
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex items-center gap-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center flex-shrink-0 text-xl font-black" style={{ borderRadius: 18, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#0f2240' }}>{serie.titre.split(' ')[1]}</div>
             <div className="flex-1 min-w-0">
               <div className="text-[11px] font-black tracking-widest" style={{ color: '#f0bb2a' }}>CONTENU · CORRIGÉ</div>
@@ -226,19 +222,20 @@ function Contenu({ serie, modes, onLancer, onQuitter }) {
   )
 }
 
-function Resultat({ serie, reponses, onRejouer, onQuitter }) {
+function Resultat({ serie, reponses, onRejouer, onQuitter, nomListe }) {
   const score = serie.questions.filter((q, k) => juste(q, reponses[k] || [])).length
   const [voir, setVoir] = useState(null)
   const ok = score >= OBJECTIF
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
+      <div><button type="button" onClick={onQuitter} className="btn-retour"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>{nomListe}</button></div>
       <div className="rounded-2xl p-6 text-center text-white" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '5px solid #d4a017' }}>
         <div style={{ fontSize: 52 }}>{ok ? '🏆' : '💪'}</div>
         <div className="text-4xl font-black">{score} / {serie.questions.length}</div>
         <div className="mt-1 font-bold" style={{ color: ok ? '#86efac' : '#fcd34d' }}>{ok ? 'Objectif atteint, bravo !' : `Objectif : ${OBJECTIF} bonnes réponses. Revoyez vos erreurs et recommencez !`}</div>
         <div className="flex flex-wrap justify-center gap-2 mt-5">
           <button type="button" onClick={onRejouer} className="px-5 py-2.5 font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: 'rgba(255,255,255,.15)', color: '#fff' }}><i className="bi bi-arrow-repeat me-1" />Recommencer</button>
-          <button type="button" onClick={onQuitter} className="px-5 py-2.5 font-bold border-0 cursor-pointer" style={btnOr}>Autres séries</button>
+          <button type="button" onClick={onQuitter} className="px-5 py-2.5 font-bold border-0 cursor-pointer" style={btnOr}><i className="bi bi-arrow-left me-1" />{nomListe}</button>
         </div>
       </div>
       <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
@@ -272,46 +269,74 @@ const ENTETE_SERIES = {
    Dirigés ; seules ces séries, et ces modes, lui sont proposés. « sousEntete » : affiché sous
    l'en-tête de la liste (publications du personnel), caché pendant une partie. */
 const TOUS_MODES = new Set(['entrainement', 'examen'])
-export default function SeriesExamen({ eleve = false, series: toutes = SERIES, entete = ENTETE_SERIES, ouvertes, sousEntete }) {
+export default function SeriesExamen({ eleve = false, series: toutes = SERIES, entete = ENTETE_SERIES, ouvertes, sousEntete, vue: vueUrl, onOuvrirVue, onFermerVue, nomListe = 'Séries' }) {
   const series = ouvertes ? toutes.filter(s => ouvertes[s.id]?.size) : toutes
   const modesDe = s => ouvertes ? ouvertes[s.id] : TOUS_MODES
-  const [partie, setPartie] = useState(null)        // { serie, mode, tour }
-  const [fin, setFin] = useState(null)              // réponses de la partie terminée
+  /* Série ouverte dans l'adresse quand la mise en page la gère (…/td-eleve/serie-b1:examen pour une
+     partie, …/serie-b1 pour l'aperçu du personnel) : le Retour d'Android ou du navigateur referme la
+     série au lieu de quitter les Travaux Dirigés. Sans onOuvrirVue (dans une séance), état local. */
+  const [vueLocale, setVueLocale] = useState(null)
+  const vue = onOuvrirVue ? (vueUrl || null) : vueLocale
+  const allerVue = (v, options) => onOuvrirVue ? onOuvrirVue(v, options) : setVueLocale(v)
+  const fermerVue = () => onFermerVue ? onFermerVue() : setVueLocale(null)
+  const [idVue, modeVue] = (vue || '').split(':')
+  const serieVue = series.find(s => s.id === idVue)
+  const apercu = !eleve && serieVue && !modeVue ? serieVue : null   // le personnel consulte le contenu
+  const [lancement, setLancement] = useState(null)  // { vue, reprise } : partie lancée d'un clic
+  const [tour, setTour] = useState(0)               // nouvelle partie (rejouer, redémarrer) : Partie remontée
+  const [fin, setFin] = useState(null)              // { vue, reponses } : partie terminée
   const [notes, setNotes] = useState({})
   const [enCours, setEnCours] = useState({})        // parties commencées, par série et par mode
-  const [apercu, setApercu] = useState(null)        // série dont le personnel consulte le contenu
-  const recharger = () => chargerQuizs(series.flatMap(s => ['entrainement', 'examen'].map(m => cleSerie(s, m)))).then(setEnCours)
-  useEffect(() => { recharger() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const [charge, setCharge] = useState(false)       // parties commencées relues au moins une fois
+  const recharger = () => chargerQuizs(series.flatMap(s => ['entrainement', 'examen'].map(m => cleSerie(s, m)))).then(r => { setEnCours(r); setCharge(true) })
+  // Relues à chaque ouverture ou fermeture (y compris par le Retour d'Android) : « Reprendre » reste juste
+  useEffect(() => { recharger() }, [vue]) // eslint-disable-line react-hooks/exhaustive-deps
+  /* Partie : lancée d'un clic, elle reprend ce qu'on lui a passé ; ouverte par l'adresse (rafraîchissement,
+     Suivant du navigateur), elle reprend la partie commencée une fois celles-ci relues. */
+  const partieValide = !!(serieVue && modeVue && modesDe(serieVue)?.has(modeVue))
+  const parClic = lancement?.vue === vue
+  const partie = partieValide && (parClic || charge)
+    ? { serie: serieVue, mode: modeVue, reprise: parClic ? lancement.reprise : enCours[cleSerie(serieVue, modeVue)] || null }
+    : null
   useEffect(() => {
     if (!eleve) return
     api('GET', '/eleve/code/progression').then(l => setNotes(Object.fromEntries((l || []).map(x => [x.chapitre, x])))).catch(() => {})
   }, [eleve])
 
   const terminer = async (reponses) => {
-    setFin(reponses)
+    setFin({ vue, reponses })
     const { serie, mode } = partie
     if (!eleve || mode !== 'examen') return
     const score = serie.questions.filter((q, k) => juste(q, reponses[k] || [])).length
     try { const p = await api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length }); setNotes(n => ({ ...n, [serie.id]: p })) }
     catch { toast('Note non enregistrée : vérifiez votre connexion', 'warning') }
   }
-  const quitter = () => { setPartie(null); setFin(null); recharger(); window.scrollTo?.({ top: 0 }) }
-  // Reprise : la partie commencée continue ; nouvelle partie (ou redémarrage) : elle est oubliée
-  const lancer = (serie, mode, reprise = null) => { if (!reprise) effacerQuiz(cleSerie(serie, mode)); setFin(null); setPartie(x => ({ serie, mode, reprise, tour: (x?.tour || 0) + 1 })); window.scrollTo?.({ top: 0 }) }
+  const quitter = () => { setFin(null); fermerVue(); window.scrollTo?.({ top: 0 }) }
+  // Reprise : la partie commencée continue ; nouvelle partie (ou redémarrage) : elle est oubliée.
+  // Rejouer ou redémarrer la partie ouverte ne change pas l'adresse (pas d'étape d'historique en plus).
+  const lancer = (serie, mode, reprise = null, options) => {
+    const v = `${serie.id}:${mode}`
+    if (!reprise) effacerQuiz(cleSerie(serie, mode))
+    setFin(null); setLancement({ vue: v, reprise }); setTour(t => t + 1)
+    if (v !== vue) allerVue(v, options)
+    window.scrollTo?.({ top: 0 })
+  }
 
   // Boutons des modes proposés pour une série (élève : seulement ceux qui lui sont publiés)
   const boutonsModes = s => [['entrainement', 'mortarboard-fill', 'Entraînement', { borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }], ['examen', 'stopwatch', 'Examen blanc', btnOr]].filter(([mode]) => modesDe(s).has(mode))
   // Clic sur la carte : le personnel ouvre le contenu corrigé ; l'élève lance la série si un seul mode lui est publié
   const ouvrir = s => {
-    if (!eleve) { setApercu(s); window.scrollTo?.({ top: 0 }); return }
+    if (!eleve) { allerVue(s.id); window.scrollTo?.({ top: 0 }); return }
     const modes = boutonsModes(s)
     if (modes.length === 1) lancer(s, modes[0][0], enCours[cleSerie(s, modes[0][0])])
   }
 
-  if (partie && fin) return <Resultat serie={partie.serie} reponses={fin} onRejouer={() => lancer(partie.serie, partie.mode)} onQuitter={quitter} />
-  if (partie) return <Partie key={partie.tour} serie={partie.serie} mode={partie.mode} reprise={partie.reprise} onFin={terminer} onQuitter={quitter} onRedemarrer={() => lancer(partie.serie, partie.mode)} />
-  if (apercu) return <Contenu serie={apercu} modes={boutonsModes(apercu)} onQuitter={() => { setApercu(null); window.scrollTo?.({ top: 0 }) }}
-    onLancer={mode => { setApercu(null); lancer(apercu, mode, enCours[cleSerie(apercu, mode)]) }} />
+  if (partie && fin?.vue === vue) return <Resultat serie={partie.serie} reponses={fin.reponses} onRejouer={() => lancer(partie.serie, partie.mode)} onQuitter={quitter} nomListe={nomListe} />
+  if (partie) return <Partie key={`${vue}-${tour}`} serie={partie.serie} mode={partie.mode} reprise={partie.reprise} onFin={terminer} onQuitter={quitter} onRedemarrer={() => lancer(partie.serie, partie.mode)} nomListe={nomListe} />
+  if (partieValide) return null   // ouverte par l'adresse : parties commencées en cours de lecture
+  // Depuis l'aperçu, la partie le remplace dans l'historique : « Séries » ramène à la liste, comme avant
+  if (apercu) return <Contenu serie={apercu} modes={boutonsModes(apercu)} nomListe={nomListe} onQuitter={() => { fermerVue(); window.scrollTo?.({ top: 0 }) }}
+    onLancer={mode => lancer(apercu, mode, enCours[cleSerie(apercu, mode)], { replace: true })} />
 
   return (
     <div className="space-y-4">

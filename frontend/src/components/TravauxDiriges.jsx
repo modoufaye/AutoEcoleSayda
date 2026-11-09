@@ -17,8 +17,12 @@ const ENTETE_ANNALES = {
   vide: "Les catalogues arrivent bientôt : revenez d'ici quelques jours.",
 }
 
-export default function TravauxDiriges({ eleve = false }) {
-  const [vue, setVue] = useState('annales')
+export default function TravauxDiriges({ eleve = false, vue: serieOuverte, onOuvrirVue, onFermerVue }) {
+  const [onglet, setOnglet] = useState('annales')
+  // Série ouverte par l'adresse : son onglet (annales ou séries d'examen) d'après son identifiant
+  const vue = serieOuverte ? (serieOuverte.startsWith('annale-') ? 'annales' : 'series') : onglet
+  // Changer d'onglet referme la série ouverte
+  const setVue = v => { setOnglet(v); if (serieOuverte) onFermerVue?.() }
   const { user } = useAuth()
   const publie = ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'].includes(user?.role)
   const [ouvertes, setOuvertes] = useState(eleve ? null : undefined)
@@ -60,8 +64,8 @@ export default function TravauxDiriges({ eleve = false }) {
       {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition} prerempli={fenetre.prerempli}
         onClose={() => setFenetre(null)} onFini={() => { setFenetre(null); chargerPublications() }} />}
       {ouvertes === null ? <ListeChargement />
-        : vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} ouvertes={ouvertes} sousEntete={liste('annales')} />
-        : <SeriesExamen key="series" eleve={eleve} ouvertes={ouvertes} sousEntete={liste('series')} />}
+        : vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} nomListe="Annales" ouvertes={ouvertes} sousEntete={liste('annales')} vue={serieOuverte} onOuvrirVue={onOuvrirVue} onFermerVue={onFermerVue} />
+        : <SeriesExamen key="series" eleve={eleve} ouvertes={ouvertes} sousEntete={liste('series')} vue={serieOuverte} onOuvrirVue={onOuvrirVue} onFermerVue={onFermerVue} />}
     </div>
   )
 }
