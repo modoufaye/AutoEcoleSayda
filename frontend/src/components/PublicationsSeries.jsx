@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
@@ -25,7 +25,28 @@ export function FenetrePublication({ genre, edition, prerempli, publications = [
   const [eleveIds, setEleveIds] = useState(edition ? edition.eleves.map(e => String(e.id)) : (prerempli?.eleveIds || []).map(String))
   const [eleves, setEleves] = useState([])
   const [envoi, setEnvoi] = useState(false)
-  useEffect(() => { api('GET', '/moniteur/seances/eleves').then(setEleves).catch(e => toast(e.message, 'danger')) }, [])
+  /* Nouvelle publication : les élèves qui ont déjà ce catalogue ou cette série sont cochés d'office
+     (parmi ceux qu'on peut choisir). Sans doublon : le serveur ajoute les élèves à la publication
+     existante du même auteur, même série et même mode. Changer de série échange ces cases. */
+  const dejaDe = (id, liste) => {
+    const permis = new Set(liste.map(e => String(e.id)))
+    return [...new Set(publications.filter(p => p.serie === id && p.id !== edition?.id)
+      .flatMap(p => p.eleves.map(e => String(e.id))))].filter(x => permis.has(x))
+  }
+  const serieCourante = useRef(serie)   // série choisie au moment où la liste des élèves arrive
+  const choisirSerie = id => {
+    if (edition) return
+    const avant = dejaDe(serie, eleves), apres = dejaDe(id, eleves)
+    serieCourante.current = id
+    setSerie(id)
+    setEleveIds(c => [...new Set([...c.filter(x => !avant.includes(x)), ...apres])])
+  }
+  useEffect(() => {
+    api('GET', '/moniteur/seances/eleves').then(l => {
+      setEleves(l)
+      if (!edition) setEleveIds(c => [...new Set([...c, ...dejaDe(serieCourante.current, l || [])])])
+    }).catch(e => toast(e.message, 'danger'))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Élèves à qui ce catalogue ou cette série est déjà publié (autres publications que celle modifiée),
      avec les modes reçus : ils passent en tête de liste, juste après les élèves cochés. */
@@ -64,7 +85,7 @@ export function FenetrePublication({ genre, edition, prerempli, publications = [
           {groupe.series.map(x => {
             const on = serie === x.id
             return (
-              <button key={x.id} type="button" disabled={!!edition && !on} onClick={() => !edition && setSerie(x.id)}
+              <button key={x.id} type="button" disabled={!!edition && !on} onClick={() => choisirSerie(x.id)}
                 className="flex items-center gap-3 p-2.5 text-left cursor-pointer" style={{ borderRadius: 14, border: `1.5px solid ${on ? '#d4a017' : '#e2e8f0'}`, background: on ? '#fffbeb' : '#fff', opacity: edition && !on ? .45 : 1 }}>
                 <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-sm font-black text-white" style={{ borderRadius: 12, background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>{vignette(x)}</span>
                 <span className="min-w-0 flex-1">
