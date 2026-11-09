@@ -23,14 +23,15 @@ export default function TravauxDiriges({ eleve = false }) {
   const publie = ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'].includes(user?.role)
   const [ouvertes, setOuvertes] = useState(eleve ? null : undefined)
   const [publications, setPublications] = useState([])
-  const [fenetre, setFenetre] = useState(null)      // { genre, edition }
+  const [fenetre, setFenetre] = useState(null)      // { genre, edition, prerempli }
   const chargerPublications = () => api('GET', '/publications-series').then(setPublications).catch(() => {})
   useEffect(() => {
     if (eleve) api('GET', '/publications-series/mes').then(l => setOuvertes(seriesOuvertes(l))).catch(() => setOuvertes({}))
     else chargerPublications()
   }, [eleve])
   const liste = genre => !eleve && <ListePublications genre={genre} publications={publications} onRecharger={chargerPublications}
-    onModifier={p => setFenetre({ genre, edition: p })} />
+    onModifier={p => setFenetre({ genre, edition: p })}
+    onAjouterMode={publie ? (p, mode, eleveIds) => setFenetre({ genre, prerempli: { serie: p.serie, modes: [mode], eleveIds } }) : null} />
   const onglets = [['annales', 'journal-bookmark-fill', 'Annales'], ['series', 'stopwatch', "Séries d'examen"]]
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -56,7 +57,7 @@ export default function TravauxDiriges({ eleve = false }) {
         </div>
       )}
       </div>
-      {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition}
+      {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition} prerempli={fenetre.prerempli}
         onClose={() => setFenetre(null)} onFini={() => { setFenetre(null); chargerPublications() }} />}
       {ouvertes === null ? <ListeChargement />
         : vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} ouvertes={ouvertes} sousEntete={liste('annales')} />

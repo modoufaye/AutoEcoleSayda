@@ -16,12 +16,13 @@ const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #
 const vignette = s => s?.titre.split(' ')[1] || '?'
 
 /* Fenêtre « + Annales » / « + Série d'examen » ; edition : publication existante (seuls ses
-   élèves changent). */
-export function FenetrePublication({ genre, edition, onClose, onFini }) {
+   élèves changent) ; prerempli : { serie, modes, eleveIds } d'une nouvelle publication (l'examen
+   blanc ajouté à un entraînement publié, pour les mêmes élèves). */
+export function FenetrePublication({ genre, edition, prerempli, onClose, onFini }) {
   const groupe = GROUPES.find(g => g.key === genre) || GROUPES[0]
-  const [serie, setSerie] = useState(edition?.serie || groupe.series[0]?.id || '')
-  const [modes, setModes] = useState(edition ? [edition.mode] : [])
-  const [eleveIds, setEleveIds] = useState(edition ? edition.eleves.map(e => String(e.id)) : [])
+  const [serie, setSerie] = useState(edition?.serie || prerempli?.serie || groupe.series[0]?.id || '')
+  const [modes, setModes] = useState(edition ? [edition.mode] : prerempli?.modes || [])
+  const [eleveIds, setEleveIds] = useState(edition ? edition.eleves.map(e => String(e.id)) : (prerempli?.eleveIds || []).map(String))
   const [eleves, setEleves] = useState([])
   const [envoi, setEnvoi] = useState(false)
   useEffect(() => { api('GET', '/moniteur/seances/eleves').then(setEleves).catch(e => toast(e.message, 'danger')) }, [])
@@ -102,8 +103,13 @@ const Statut = ({ k, n }) => {
   return <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: s.fond, color: s.couleur }}><i className={`bi bi-${s.icone} me-1`} />{n != null ? `${n} ` : ''}{n != null ? s.libelle.toLowerCase() : s.libelle}</span>
 }
 
-/* Élèves d'une publication et leur résultat d'examen blanc à cette série (meilleure note, essais). */
-function ResultatsEleves({ p }) {
+/* Élèves d'une publication et leur résultat d'examen blanc à cette série (meilleure note, essais),
+   puis l'autre mode à ajouter pour les mêmes élèves (examen blanc d'un entraînement, ou l'inverse). */
+function ResultatsEleves({ p, publications, onAjouterMode }) {
+  const autre = MODES.find(m => m.key !== p.mode)
+  // Élèves de cette publication qui ont déjà l'autre mode (publié par n'importe qui)
+  const dejaAutre = new Set((publications || []).filter(x => x.serie === p.serie && x.mode === autre.key).flatMap(x => x.eleves.map(e => e.id)))
+  const manquants = p.eleves.filter(e => !dejaAutre.has(e.id))
   const ordre = { assimile: 0, revoir: 1, afaire: 2 }
   const eleves = [...p.eleves].sort((a, b) => ordre[statutSerie(a)] - ordre[statutSerie(b)] || a.nom.localeCompare(b.nom))
   return (
@@ -116,13 +122,26 @@ function ResultatsEleves({ p }) {
           <Statut k={statutSerie(e)} />
         </div>
       ))}
+      {onAjouterMode && (
+        <div className="flex flex-wrap items-center gap-2 pt-3">
+          {manquants.length ? (
+            <button type="button" onClick={() => onAjouterMode(p, autre.key, manquants.map(e => e.id))}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-extrabold cursor-pointer"
+              style={{ borderRadius: 999, border: `1.5px solid ${autre.couleur}`, background: autre.fond, color: autre.couleur }}>
+              <i className="bi bi-plus-lg" />Ajouter {autre.key === 'EXAMEN' ? "l’examen blanc" : 'l’entraînement'} pour {manquants.length === p.eleves.length ? 'ces élèves' : `les ${manquants.length} élève${manquants.length > 1 ? 's' : ''} qui ne l’ont pas`}
+            </button>
+          ) : (
+            <span className="text-xs font-bold" style={{ color: autre.couleur }}><i className={`bi bi-${autre.icone} me-1`} />{autre.libelle} déjà publié pour tous ces élèves</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 /* Publications du personnel pour un onglet (annales ou séries d'examen) ; un clic sur une ligne
    montre qui l'a assimilée. */
-export function ListePublications({ genre, publications, onModifier, onRecharger }) {
+export function ListePublications({ genre, publications, onModifier, onAjouterMode, onRecharger }) {
   const [ouverte, setOuverte] = useState(null)
   const ids = new Set((GROUPES.find(g => g.key === genre)?.series || []).map(s => s.id))
   const liste = (publications || []).filter(p => ids.has(p.serie))
@@ -158,13 +177,13 @@ export function ListePublications({ genre, publications, onModifier, onRecharger
                 {['assimile', 'revoir', 'afaire'].filter(k => compte(k)).map(k => <Statut key={k} k={k} n={compte(k)} />)}
               </div>
             </div>
-            {p.modifiable && <div className="flex gap-2" onClick={ev => ev.stopPropagation()}>
-              <BoutonRond title="Modifier les élèves" icon="pencil-fill" couleur="#1d4ed8" fond="#eff6ff" onClick={() => onModifier(p)} />
-              <BoutonRond title="Retirer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimer(p)} />
+            {p.modifiable && <div className="flex gap-2">
+              <BoutonRond title="Modifier les élèves" icon="pencil-fill" couleur="#1d4ed8" fond="#eff6ff" onClick={ev => { ev.stopPropagation(); onModifier(p) }} />
+              <BoutonRond title="Retirer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={ev => { ev.stopPropagation(); supprimer(p) }} />
             </div>}
             <i className={`bi bi-chevron-${ouvert ? 'up' : 'down'} text-slate-400`} />
           </div>
-          {ouvert && <ResultatsEleves p={p} />}
+          {ouvert && <ResultatsEleves p={p} publications={publications} onAjouterMode={onAjouterMode} />}
           </div>
         )
       })}
