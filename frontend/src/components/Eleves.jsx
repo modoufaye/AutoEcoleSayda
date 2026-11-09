@@ -24,6 +24,13 @@ import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, L
 
 const PAGE_SIZE = 10
 
+/* Filtres de la liste retenus le temps de l'onglet : ouvrir une fiche puis revenir recrée la liste,
+   qui retrouve ainsi ses filtres et sa page. Stockage indisponible (navigation privée…) : on repart à zéro. */
+const cleFiltres = userId => `eleves.filtres.${userId ?? ''}`
+function lireFiltres(userId) {
+  try { return JSON.parse(sessionStorage.getItem(cleFiltres(userId))) || {} } catch { return {} }
+}
+
 const DOCS = [
   { key: 'docCertResidence',  label: 'Certificat de résidence', type: 'CERT_RESIDENCE' },
   { key: 'docCniLegalisee',   label: 'Photocopie CNI légalisée', type: 'CNI' },
@@ -964,20 +971,21 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const isAdmin = estAdmin(user?.role)
   const presence = usePresence(isAdmin)   // élèves connectés en ce moment (administration)
 
+  const [memo] = useState(() => lireFiltres(user?.id))   // filtres retenus (retour depuis une fiche)
   const [list, setList]           = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [filtered, setFiltered]   = useState([])
-  const [search, setSearch]       = useState('')
-  const [statut, setStatut]       = useState('')
-  const [site, setSite]           = useState('')
+  const [search, setSearch]       = useState(memo.search ?? '')
+  const [statut, setStatut]       = useState(memo.statut ?? '')
+  const [site, setSite]           = useState(memo.site ?? '')
   // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
-  const [moisInscription, setMoisInscription] = useState('')
-  const [semaine, setSemaine] = useState(false)   // seulement les inscrits des 7 derniers jours
-  const [formation, setFormation] = useState('')   // '' | PERMIS | PERFECTIONNEMENT
-  const [aEnvoyer, setAEnvoyer]   = useState(false)   // seulement les élèves sans message de bienvenue
-  const [enLigneSeul, setEnLigneSeul] = useState(false)   // seulement les élèves connectés (administration)
+  const [moisInscription, setMoisInscription] = useState(memo.moisInscription ?? '')
+  const [semaine, setSemaine] = useState(!!memo.semaine)   // seulement les inscrits des 7 derniers jours
+  const [formation, setFormation] = useState(memo.formation ?? '')   // '' | PERMIS | PERFECTIONNEMENT
+  const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
+  const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
-  const [archives, setArchives]   = useState(false)
+  const [archives, setArchives]   = useState(!!memo.archives)
   const loadReq = useRef(0)
   const [form, setForm]           = useState(EMPTY)
   const [editId, setEditId]       = useState(null)
@@ -985,7 +993,17 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [showImport, setShowImport] = useState(false)
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
-  const [page, setPage]           = useState(1)
+  const [page, setPage]           = useState(memo.page ?? 1)
+  // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, archives])
+  const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(cleFiltres(user?.id), JSON.stringify({
+        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, archives, page, signature: signatureFiltres,
+      }))
+    } catch { /* stockage indisponible */ }
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, archives, page, signatureFiltres, user?.id])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1047,8 +1065,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
-    setPage(1)
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, presence, list])
+    if (signaturePrecedente.current !== signatureFiltres) {
+      signaturePrecedente.current = signatureFiltres
+      setPage(1)
+    } else {
+      // Liste rechargée (retour depuis une fiche) : on garde la page, dans les limites de la liste
+      setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
+    }
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, presence, list, signatureFiltres])
 
   // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
   const moisDisponibles = Object.entries(list.reduce((acc, e) => {
