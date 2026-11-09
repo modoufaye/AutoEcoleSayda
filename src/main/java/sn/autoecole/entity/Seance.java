@@ -58,12 +58,6 @@ public class Seance {
     @Builder.Default
     private List<PartieCode> programme = new ArrayList<>();
 
-    /** Séries d'examen et annales publiées dans la séance, chacune en entraînement ou en examen blanc. */
-    @Convert(converter = SeriesPublieesConverter.class)
-    @Column(name = "series_publiees", columnDefinition = "TEXT")
-    @Builder.Default
-    private List<SeriePubliee> series = new ArrayList<>();
-
     @Column(name = "created_at")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

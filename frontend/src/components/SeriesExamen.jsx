@@ -216,10 +216,11 @@ const ENTETE_SERIES = {
 }
 
 /* Liste des séries (séries d'examen, ou annales avec leur propre en-tête ; sans en-tête dans une
-   séance) et déroulé d'une partie. « ouvertes » (élève) : id → modes publiés dans ses séances ;
-   seules ces séries, et ces modes, lui sont proposés. */
+   séance) et déroulé d'une partie. « ouvertes » (élève) : id → modes publiés pour lui en Travaux
+   Dirigés ; seules ces séries, et ces modes, lui sont proposés. « sousEntete » : affiché sous
+   l'en-tête de la liste (publications du personnel), caché pendant une partie. */
 const TOUS_MODES = new Set(['entrainement', 'examen'])
-export default function SeriesExamen({ eleve = false, series: toutes = SERIES, entete = ENTETE_SERIES, ouvertes }) {
+export default function SeriesExamen({ eleve = false, series: toutes = SERIES, entete = ENTETE_SERIES, ouvertes, sousEntete }) {
   const series = ouvertes ? toutes.filter(s => ouvertes[s.id]?.size) : toutes
   const modesDe = s => ouvertes ? ouvertes[s.id] : TOUS_MODES
   const [partie, setPartie] = useState(null)        // { serie, mode, tour }
@@ -258,6 +259,7 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
         <p className="text-sm m-0 mt-1 max-w-lg" style={{ color: '#bfdbfe' }}>{entete.texte}</p>
       </div>
       )}
+      {sousEntete}
       {series.length === 0 && (
         <div className="bg-white p-8 text-center" style={{ borderRadius: 20, ...carte }}>
           <div className="w-14 h-14 mx-auto flex items-center justify-center text-2xl" style={{ borderRadius: 18, background: '#fef3c7', color: '#b45309' }}><i className="bi bi-journal-bookmark-fill" /></div>

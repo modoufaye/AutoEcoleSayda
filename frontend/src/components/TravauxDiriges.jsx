@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { seriesOuvertes } from '../contenu/seriesPubliees'
 import { ListeChargement } from './ListeModerne'
+import { useAuth } from '../context/AuthContext'
+import { FenetrePublication, ListePublications } from './PublicationsSeries'
 import SeriesExamen from './SeriesExamen'
 import { ANNALES } from '../contenu/annales'
 
 /* Onglet « Travaux Dirigés » : les annales (catalogues des questions fréquentes à l'examen) et les
    séries d'examen de l'auto-école, même déroulé (entraînement ou examen blanc). Le personnel voit
-   tout ; l'élève ne voit que les séries, et les modes, publiés dans ses séances. */
+   tout ; le super admin, les administrateurs et les moniteurs publient (« + Annales », « + Série
+   d'examen ») pour des élèves, qui ne voient que les séries, et les modes, publiés pour eux. */
 const ENTETE_ANNALES = {
   surTitre: 'TRAVAUX DIRIGÉS · ANNALES', titre: 'Annales',
   texte: "Les catalogues de questions qui tombent souvent à l'examen du code.",
@@ -16,13 +19,22 @@ const ENTETE_ANNALES = {
 
 export default function TravauxDiriges({ eleve = false }) {
   const [vue, setVue] = useState('annales')
+  const { user } = useAuth()
+  const publie = ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'].includes(user?.role)
   const [ouvertes, setOuvertes] = useState(eleve ? null : undefined)
+  const [publications, setPublications] = useState([])
+  const [fenetre, setFenetre] = useState(null)      // { genre, edition }
+  const chargerPublications = () => api('GET', '/publications-series').then(setPublications).catch(() => {})
   useEffect(() => {
-    if (eleve) api('GET', '/eleve/seances').then(l => setOuvertes(seriesOuvertes(l))).catch(() => setOuvertes({}))
+    if (eleve) api('GET', '/publications-series/mes').then(l => setOuvertes(seriesOuvertes(l))).catch(() => setOuvertes({}))
+    else chargerPublications()
   }, [eleve])
+  const liste = genre => !eleve && <ListePublications genre={genre} publications={publications} onRecharger={chargerPublications}
+    onModifier={p => setFenetre({ genre, edition: p })} />
   const onglets = [['annales', 'journal-bookmark-fill', 'Annales'], ['series', 'stopwatch', "Séries d'examen"]]
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="flex flex-wrap items-center gap-2">
       <div className="flex gap-1 p-1 w-full sm:w-auto sm:inline-flex" style={{ background: '#eef2f7', borderRadius: 999 }}>
         {onglets.map(([v, icone, label]) => (
           <button key={v} type="button" onClick={() => setVue(v)}
@@ -32,9 +44,23 @@ export default function TravauxDiriges({ eleve = false }) {
           </button>
         ))}
       </div>
+      {publie && (
+        <div className="flex gap-2 w-full sm:w-auto sm:ms-auto">
+          {[['annales', 'Annales'], ['series', "Série d'examen"]].map(([g, l]) => (
+            <button key={g} type="button" onClick={() => { setVue(g); setFenetre({ genre: g }) }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm font-bold px-3 sm:px-5 border-0 cursor-pointer whitespace-nowrap transition-all hover:-translate-y-0.5"
+              style={{ minHeight: 40, borderRadius: 999, color: '#fff', background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+              <i className="bi bi-plus-lg" />{l}
+            </button>
+          ))}
+        </div>
+      )}
+      </div>
+      {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition}
+        onClose={() => setFenetre(null)} onFini={() => { setFenetre(null); chargerPublications() }} />}
       {ouvertes === null ? <ListeChargement />
-        : vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} ouvertes={ouvertes} />
-        : <SeriesExamen key="series" eleve={eleve} ouvertes={ouvertes} />}
+        : vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} ouvertes={ouvertes} sousEntete={liste('annales')} />
+        : <SeriesExamen key="series" eleve={eleve} ouvertes={ouvertes} sousEntete={liste('series')} />}
     </div>
   )
 }
