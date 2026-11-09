@@ -14,6 +14,7 @@ import PhotoPicker from './PhotoPicker'
 import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
+import EnvoiGroupeIdentifiants from './EnvoiGroupeIdentifiants'
 import { ConversationEleve } from './Messages'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
@@ -991,6 +992,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [envoiGroupe, setEnvoiGroupe] = useState(false)   // file d'envoi des identifiants (WhatsApp)
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
@@ -1074,6 +1076,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
   }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, presence, list, signatureFiltres])
+
+  // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
+  const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
 
   // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
   const moisDisponibles = Object.entries(list.reduce((acc, e) => {
@@ -2032,6 +2037,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
         {/* Admin : import Excel et inscription (le moniteur ne fait que consulter ses élèves) */}
         {!isMoniteur && (
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
+            {/* Identifiants à envoyer, parmi les élèves affichés (filtres compris : bureau, semaine…) */}
+            {aEnvoyerAffiches.length > 0 && (
+              <div className="col-span-2 sm:col-span-1 grid">
+                <BoutonAjout vert icone="whatsapp" onClick={() => setEnvoiGroupe(true)}>Envoi groupé · {aEnvoyerAffiches.length}</BoutonAjout>
+              </div>
+            )}
             <BoutonAjout vert icone="file-earmark-spreadsheet-fill" onClick={() => setShowImport(true)}>Importer</BoutonAjout>
             <BoutonAjout onClick={() => openModal()}>Élève</BoutonAjout>
             {/* Perfectionnement : conduite seule, inscription simplifiée */}
@@ -2146,6 +2157,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
       </div>
 
       {showImport && <ImportEleves onClose={() => setShowImport(false)} onDone={load} />}
+      {envoiGroupe && (
+        <EnvoiGroupeIdentifiants eleves={aEnvoyerAffiches} ecole={ecole}
+          onEnvoye={(id, le) => setList(l => l.map(e => e.id === id ? { ...e, bienvenueEnvoyeeLe: le } : e))}
+          onClose={() => setEnvoiGroupe(false)} />
+      )}
       {showModal && fenetreEleve()}
     </div>
   )
