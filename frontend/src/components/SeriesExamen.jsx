@@ -101,39 +101,62 @@ function Partie({ serie, mode, reprise, onFin, onQuitter, onRedemarrer }) {
     return () => clearInterval(t)
   }, [mode, i, serie.duree])
 
+  const examen = mode === 'examen'
+  const bonnes = reponses.filter((r, k) => juste(serie.questions[k], r)).length
+  const commence = i > 0 || reponses.length > 0 || choix.length > 0
+  const urgent = examen && reste <= 10
+  const btnClair = { borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.18)' }
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3" style={carte}>
-        <button type="button" onClick={onQuitter} className="btn-retour me-auto sm:me-0"><span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>Séries</button>
-        {/* Sur téléphone, le titre passe sous les boutons */}
-        <div className="w-full sm:w-auto sm:flex-1 min-w-0 order-last sm:order-none">
-          <div className="font-extrabold leading-tight" style={{ color: '#1e3a5f' }}>{serie.titre}</div>
-          <div className="text-xs text-slate-500">{mode === 'examen' ? 'Examen blanc · correction à la fin' : 'Entraînement · correction à chaque question'}{enCours ? ' · reprise' : ''}</div>
-        </div>
-        {(i > 0 || reponses.length > 0 || choix.length > 0) && (
-          <button type="button" title="Redémarrer la série depuis la première question" onClick={async () => {
-            if (await confirmer({ titre: 'Redémarrer la série ?', ton: 'alerte', icone: 'arrow-counterclockwise', libelle: 'Redémarrer',
-              message: 'Les réponses déjà données seront effacées et la série reprendra à la première question.' })) onRedemarrer()
-          }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border-0 cursor-pointer whitespace-nowrap" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>
-            <i className="bi bi-arrow-counterclockwise" /><span className="hidden sm:inline">Redémarrer</span>
-          </button>
-        )}
-        {mode === 'examen' && (
-          <span className="text-sm font-black px-3 py-1.5 whitespace-nowrap" style={{ borderRadius: 999, background: reste <= 10 ? '#fee2e2' : '#eef2f7', color: reste <= 10 ? '#b91c1c' : '#1e3a5f' }}>
-            <i className="bi bi-stopwatch me-1" />{Math.max(reste, 0)} s
-          </span>
-        )}
-      </div>
-      <div>
-        <div className="flex justify-between text-xs font-extrabold mb-1.5" style={{ color: '#475569' }}>
-          <span>QUESTION {i + 1} SUR {serie.questions.length}</span>
-          {mode === 'entrainement' && <span style={{ color: '#15803d' }}>{reponses.filter((r, k) => juste(serie.questions[k], r)).length} bonne(s) réponse(s)</span>}
-        </div>
-        <div className="flex gap-1">
-          {serie.questions.map((x, k) => {
-            const fait = k < reponses.length, ok = fait && juste(x, reponses[k])
-            return <div key={k} className="h-1.5 flex-1 rounded-full" style={{ background: k === i ? '#d4a017' : fait && mode === 'entrainement' ? (ok ? '#22c55e' : '#ef4444') : fait ? '#64748b' : '#cbd5e1' }} />
-          })}
+      {/* En-tête : série, mode (entraînement ou examen blanc), chrono et progression */}
+      <div className="rounded-2xl overflow-hidden relative text-white" style={{ background: examen ? 'linear-gradient(135deg,#0f2240,#1e3a5f 60%,#3b2f12)' : 'linear-gradient(135deg,#0f2240,#1e3a5f 60%,#0f4c4a)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
+        <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: examen ? 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' : 'linear-gradient(90deg,#14b8a6,#5eead4,#14b8a6)' }} />
+        <div className="px-4 sm:px-5 pt-5 pb-4">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onQuitter} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-pointer me-auto" style={btnClair}>
+              <i className="bi bi-arrow-left" />Séries
+            </button>
+            {commence && (
+              <button type="button" title="Redémarrer la série depuis la première question" onClick={async () => {
+                if (await confirmer({ titre: 'Redémarrer la série ?', ton: 'alerte', icone: 'arrow-counterclockwise', libelle: 'Redémarrer',
+                  message: 'Les réponses déjà données seront effacées et la série reprendra à la première question.' })) onRedemarrer()
+              }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold cursor-pointer whitespace-nowrap" style={btnClair}>
+                <i className="bi bi-arrow-counterclockwise" /><span className="hidden sm:inline">Redémarrer</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 mt-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center flex-shrink-0 text-xl font-black" style={{ borderRadius: 18, background: examen ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : 'linear-gradient(135deg,#14b8a6,#5eead4)', color: '#0f2240' }}>{serie.titre.split(' ')[1]}</div>
+            <div className="flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-black tracking-widest" style={{ borderRadius: 999, background: examen ? 'rgba(240,187,42,.18)' : 'rgba(94,234,212,.16)', color: examen ? '#fcd34d' : '#5eead4', border: `1px solid ${examen ? 'rgba(240,187,42,.45)' : 'rgba(94,234,212,.4)'}` }}>
+                <i className={`bi bi-${examen ? 'stopwatch-fill' : 'mortarboard-fill'}`} />{examen ? 'EXAMEN BLANC' : 'ENTRAÎNEMENT'}{enCours ? ' · REPRISE' : ''}
+              </span>
+              <div className="text-2xl font-black leading-tight mt-1.5">{serie.titre}</div>
+              <div className="text-xs sm:text-sm" style={{ color: '#bfdbfe' }}>
+                {examen ? `Chronométré · ${serie.duree} s par question · correction à la fin` : 'Sans chrono · correction après chaque question'}
+              </div>
+            </div>
+            {examen && (
+              <div className="flex flex-col items-center justify-center flex-shrink-0 w-16 h-16 sm:w-[72px] sm:h-[72px]" style={{ borderRadius: 999, background: urgent ? 'rgba(239,68,68,.2)' : 'rgba(255,255,255,.08)', border: `3px solid ${urgent ? '#ef4444' : '#f0bb2a'}` }}>
+                <span className="text-xl font-black leading-none" style={{ color: urgent ? '#fca5a5' : '#fff' }}>{Math.max(reste, 0)}</span>
+                <span className="text-[10px] font-bold" style={{ color: '#bfdbfe' }}>secondes</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <div className="flex justify-between text-xs font-extrabold mb-1.5">
+              <span>QUESTION {i + 1} <span style={{ color: '#93c5fd' }}>SUR {serie.questions.length}</span></span>
+              {!examen && <span style={{ color: '#86efac' }}><i className="bi bi-check-circle-fill me-1" />{bonnes} bonne{bonnes > 1 ? 's' : ''} réponse{bonnes > 1 ? 's' : ''}</span>}
+            </div>
+            <div className="flex gap-1">
+              {serie.questions.map((x, k) => {
+                const fait = k < reponses.length, ok = fait && juste(x, reponses[k])
+                return <div key={k} className="h-1.5 flex-1 rounded-full" style={{ background: k === i ? (examen ? '#f0bb2a' : '#5eead4') : fait && !examen ? (ok ? '#22c55e' : '#ef4444') : fait ? '#94a3b8' : 'rgba(255,255,255,.15)' }} />
+              })}
+            </div>
+          </div>
         </div>
       </div>
       <Question key={i} q={q} choix={choix} setChoix={setChoix} corrige={corrige} />
