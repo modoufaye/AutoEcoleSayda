@@ -1068,8 +1068,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
     if (signaturePrecedente.current !== signatureFiltres) {
       signaturePrecedente.current = signatureFiltres
       setPage(1)
-    } else {
-      // Liste rechargée (retour depuis une fiche) : on garde la page, dans les limites de la liste
+    } else if (list.length > 0) {
+      // Liste rechargée (retour depuis une fiche) : on garde la page, dans les limites de la liste.
+      // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
   }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, presence, list, signatureFiltres])
