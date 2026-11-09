@@ -18,7 +18,7 @@ const vignette = s => s?.titre.split(' ')[1] || '?'
 /* Fenêtre « + Annales » / « + Série d'examen » ; edition : publication existante (seuls ses
    élèves changent) ; prerempli : { serie, modes, eleveIds } d'une nouvelle publication (l'examen
    blanc ajouté à un entraînement publié, pour les mêmes élèves). */
-export function FenetrePublication({ genre, edition, prerempli, onClose, onFini }) {
+export function FenetrePublication({ genre, edition, prerempli, publications = [], onClose, onFini }) {
   const groupe = GROUPES.find(g => g.key === genre) || GROUPES[0]
   const [serie, setSerie] = useState(edition?.serie || prerempli?.serie || groupe.series[0]?.id || '')
   const [modes, setModes] = useState(edition ? [edition.mode] : prerempli?.modes || [])
@@ -27,9 +27,15 @@ export function FenetrePublication({ genre, edition, prerempli, onClose, onFini 
   const [envoi, setEnvoi] = useState(false)
   useEffect(() => { api('GET', '/moniteur/seances/eleves').then(setEleves).catch(e => toast(e.message, 'danger')) }, [])
 
-  const items = eleves.map(e => ({
-    id: e.id, titre: e.nom, sous: e.telephone, mots: [e.nom, e.telephone],
-    badge: e.admisCode ? 'Admis au code' : inscritCetteSemaine(e.dateInscription) ? 'NOUVEAU' : null,
+  /* Élèves à qui ce catalogue ou cette série est déjà publié (autres publications que celle modifiée),
+     avec les modes reçus : ils passent en tête de liste, juste après les élèves cochés. */
+  const deja = new Map()
+  publications.filter(p => p.serie === serie && p.id !== edition?.id).forEach(p => p.eleves.forEach(e =>
+    deja.set(e.id, [...(deja.get(e.id) || []), MODES.find(m => m.key === p.mode)?.libelle || p.mode])))
+  const items = [...eleves.filter(e => deja.has(e.id)), ...eleves.filter(e => !deja.has(e.id))].map(e => ({
+    id: e.id, titre: e.nom, sous: e.telephone, mots: [e.nom, e.telephone], nouveau: inscritCetteSemaine(e.dateInscription),
+    badge: deja.has(e.id) ? `Déjà : ${deja.get(e.id).join(' + ')}`
+      : e.admisCode ? 'Admis au code' : inscritCetteSemaine(e.dateInscription) ? 'NOUVEAU' : null,
   }))
   const basculerMode = m => { if (!edition) setModes(x => x.includes(m) ? x.filter(y => y !== m) : [...x, m]) }
   const s = serieDe(serie)
@@ -89,10 +95,10 @@ export function FenetrePublication({ genre, edition, prerempli, onClose, onFini 
       <Etape n={3} icon="people" titre="Élèves">
         <div className="flex flex-wrap gap-2 mb-2">
           <button type="button" onClick={() => setEleveIds(items.map(e => String(e.id)))} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>Tout cocher</button>
-          <button type="button" onClick={() => setEleveIds(items.filter(e => e.badge === 'NOUVEAU').map(e => String(e.id)))} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>Nouveaux de la semaine</button>
+          <button type="button" onClick={() => setEleveIds(items.filter(e => e.nouveau).map(e => String(e.id)))} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>Nouveaux de la semaine</button>
           <button type="button" onClick={() => setEleveIds([])} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#64748b' }}>Tout décocher</button>
         </div>
-        <ChoixPuces items={items} valeur={eleveIds} onChoisir={setEleveIds} multiple placeholder="Nom ou téléphone…" hauteur={260} />
+        <ChoixPuces items={items} valeur={eleveIds} onChoisir={setEleveIds} multiple cochesEnTete placeholder="Nom ou téléphone…" hauteur={260} />
       </Etape>
     </FenetreModerne>
   )

@@ -61,7 +61,7 @@ export default function TravauxDiriges({ eleve = false, vue: serieOuverte, onOuv
         </div>
       )}
       </div>
-      {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition} prerempli={fenetre.prerempli}
+      {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition} prerempli={fenetre.prerempli} publications={publications}
         onClose={() => setFenetre(null)} onFini={() => { setFenetre(null); chargerPublications() }} />}
       {ouvertes === null ? <ListeChargement />
         : vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} nomListe="Annales" ouvertes={ouvertes} sousEntete={liste('annales')} vue={serieOuverte} onOuvrirVue={onOuvrirVue} onFermerVue={onFermerVue} />

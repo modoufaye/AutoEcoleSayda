@@ -4,12 +4,17 @@ import { correspond } from '../utils'
 
 /* Choix par puces avec recherche (élèves, moniteur, véhicule) : toucher une ligne la coche,
    la retoucher la décoche. multiple : plusieurs choix, valeur = liste d'ids ; sinon un seul,
-   valeur = id. items : { id, titre, sous, badge, mots } (mots : texte de recherche). */
-export default function ChoixPuces({ items, valeur, onChoisir, multiple = false, unite = 'élève', placeholder = 'Rechercher…', hauteur = 220 }) {
+   valeur = id. items : { id, titre, sous, badge, mots } (mots : texte de recherche).
+   cochesEnTete : les lignes cochées remontent en haut, comme les élèves d'une séance de cours
+   (ordre des items conservé dans chaque groupe). */
+export default function ChoixPuces({ items, valeur, onChoisir, multiple = false, unite = 'élève', placeholder = 'Rechercher…', hauteur = 220, cochesEnTete = false }) {
   const [q, setQ] = useState('')
   const coches = multiple ? valeur.map(String) : valeur ? [String(valeur)] : []
   const choisi = items.find(e => coches.includes(String(e.id)))
-  const liste = items.filter(e => correspond(e.mots, q))
+  const trouves = items.filter(e => correspond(e.mots, q))
+  const liste = cochesEnTete
+    ? [...trouves.filter(e => coches.includes(String(e.id))), ...trouves.filter(e => !coches.includes(String(e.id)))]
+    : trouves
   const basculer = id => {
     const actif = coches.includes(id)
     if (multiple) onChoisir(actif ? coches.filter(x => x !== id) : [...coches, id])
