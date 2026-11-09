@@ -103,12 +103,13 @@ export default function EnvoiGroupeIdentifiants({ eleves, ecole, onClose, onEnvo
   if (termine) {
     return (
       <FenetreModerne surTitre="Message de bienvenue" titre="Envoi terminé" icone="check2-all"
-        onClose={onClose} onSave={onClose} libelleSave="Fermer" taille="">
+        onClose={onClose} libelleAnnuler="Fermer" taille="">
         <div className="bg-white rounded-2xl p-5 text-center" style={{ border: '1px solid #eef2f7' }}>
           <i className="bi bi-whatsapp" style={{ fontSize: '2.2rem', color: '#25d366' }} />
           <div className="text-lg font-extrabold text-slate-800 mt-2">
             {bilan.envoyes} message{bilan.envoyes > 1 ? 's' : ''} envoyé{bilan.envoyes > 1 ? 's' : ''}
           </div>
+          {bilan.envoyes === 0 && <div className="text-sm text-slate-500 mt-1">Pour envoyer, appuyez sur le bouton vert « Envoyer à … sur WhatsApp » de chaque élève.</div>}
           {bilan.passes > 0 && <div className="text-sm text-slate-500 mt-1">{bilan.passes} élève{bilan.passes > 1 ? 's' : ''} passé{bilan.passes > 1 ? 's' : ''} : ils restent dans « Identifiants à envoyer ».</div>}
         </div>
       </FenetreModerne>
@@ -121,7 +122,7 @@ export default function EnvoiGroupeIdentifiants({ eleves, ecole, onClose, onEnvo
   return (
     <FenetreModerne surTitre={`Élève ${index + 1} sur ${file.length}`} titre={`${courant.prenom} ${courant.nom}`} icone="whatsapp"
       details={[['telephone-fill', afficherTelephone(courant.telephone)], ['check2-all', `${bilan.envoyes} envoyé${bilan.envoyes > 1 ? 's' : ''}`]]}
-      onClose={onClose} onSave={() => suivant(false)} libelleSave="Passer cet élève" taille=""
+      onClose={onClose} libelleAnnuler="Arrêter l'envoi" taille=""
       piedGauche="Revenez sur cette page après chaque envoi pour passer au suivant.">
       <div className="h-2 rounded-full overflow-hidden" style={{ background: '#e2e8f0' }}>
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#10b981,#25d366)' }} />
@@ -129,7 +130,10 @@ export default function EnvoiGroupeIdentifiants({ eleves, ecole, onClose, onEnvo
 
       {erreur ? (
         <div className="rounded-2xl p-4 text-sm" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c' }}>
-          <i className="bi bi-x-circle-fill me-1" />{erreur}. Passez cet élève et corrigez sa fiche.
+          <i className="bi bi-x-circle-fill me-1" />{erreur}. Corrigez sa fiche plus tard.
+          <div className="mt-2">
+            <button type="button" onClick={() => suivant(false)} className="btn btn-light btn-sm fw-semibold">Passer à l'élève suivant</button>
+          </div>
         </div>
       ) : !creds ? (
         <div className="flex items-center justify-center gap-2 py-8 text-sm text-slate-500">
@@ -137,11 +141,22 @@ export default function EnvoiGroupeIdentifiants({ eleves, ecole, onClose, onEnvo
         </div>
       ) : (
         <>
+          {/* Le geste attendu, en clair : la seule grande action de la fenêtre est le bouton vert */}
+          <ol className="list-decimal text-xs text-slate-600 bg-white rounded-xl px-4 py-3 m-0 space-y-1" style={{ border: '1px solid #eef2f7', paddingLeft: '1.6rem' }}>
+            <li>Appuyez sur le <b style={{ color: '#16a34a' }}>bouton vert</b> : WhatsApp s'ouvre avec le message.</li>
+            <li>Dans WhatsApp, appuyez sur <b>Envoyer</b>.</li>
+            <li>Revenez ici : l'élève suivant est déjà prêt.</li>
+          </ol>
           <a href={waLink(courant.telephone, message)} target="_blank" rel="noopener noreferrer" onClick={envoyer}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-base font-extrabold"
             style={{ background: '#25d366', color: '#fff', textDecoration: 'none', boxShadow: '0 6px 18px rgba(37,211,102,.35)' }}>
             <i className="bi bi-whatsapp" />Envoyer à {courant.prenom} sur WhatsApp
           </a>
+          <div className="text-center">
+            <button type="button" onClick={() => suivant(false)} className="bg-transparent border-0 p-0 text-xs font-semibold text-slate-400 cursor-pointer underline">
+              Ne pas envoyer à {courant.prenom} pour l'instant
+            </button>
+          </div>
           <div>
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Aperçu du message</div>
             <div className="text-sm text-slate-700 bg-white rounded-xl p-3" style={{ whiteSpace: 'pre-wrap', border: '1px solid #eef2f7' }}>{message}</div>

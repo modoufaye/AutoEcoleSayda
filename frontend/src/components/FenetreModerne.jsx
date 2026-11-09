@@ -15,7 +15,7 @@ export function Etiquette({ children, requis }) {
 
 /* avatar : élément affiché à gauche du titre (photo, initiales…) ; à défaut, l'icône. */
 export function FenetreModerne({ surTitre, titre, icone, avatar, details = [], onClose, onSave,
-  libelleSave = 'Enregistrer', piedGauche, taille = 'lg', children }) {
+  libelleSave = 'Enregistrer', piedGauche, taille = 'lg', libelleAnnuler = 'Annuler', children }) {
   return (
     <div className="modal show d-block" style={{ background: 'rgba(15,34,64,.6)', backdropFilter: 'blur(6px)' }}>
       <div className={`modal-dialog ${taille ? `modal-${taille}` : ''} modal-dialog-centered modal-dialog-scrollable`}>
@@ -49,11 +49,12 @@ export function FenetreModerne({ surTitre, titre, icone, avatar, details = [], o
           <div className="modal-footer border-0 px-6 py-3 flex items-center justify-between gap-2" style={{ background: '#fff', borderTop: '1px solid #eef2f7' }}>
             <div className="text-xs text-slate-500 hidden sm:block">{piedGauche || 'Les champs * sont obligatoires'}</div>
             <div className="flex gap-2 ms-auto">
-              <button className="btn btn-light fw-semibold px-3 sm:px-4" style={{ borderRadius: '.85rem' }} onClick={onClose}>Annuler</button>
-              <button className="btn fw-bold px-3 sm:px-4 text-nowrap" onClick={onSave}
+              <button className="btn btn-light fw-semibold px-3 sm:px-4" style={{ borderRadius: '.85rem' }} onClick={onClose}>{libelleAnnuler}</button>
+              {/* Sans onSave (ex. l'action principale est dans la fenêtre), pas de bouton doré */}
+              {onSave && <button className="btn fw-bold px-3 sm:px-4 text-nowrap" onClick={onSave}
                 style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', borderRadius: '.85rem', border: 'none', boxShadow: '0 4px 14px rgba(212,160,23,.35)' }}>
                 <i className="bi bi-check2-circle me-1" />{libelleSave}
-              </button>
+              </button>}
             </div>
           </div>
         </div>
