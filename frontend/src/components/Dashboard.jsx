@@ -171,9 +171,10 @@ function DashboardMoniteur({ stats, user }) {
           <span className="text-sm font-extrabold text-slate-700 uppercase tracking-wide">Formation</span>
           <div className="flex-1 h-px bg-slate-100" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard title="Total leçons"     value={stats.totalLecons}     icon="journal-text"          accent="#1e3a5f" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
-          <StatCard title="Leçons terminées" value={stats.leconsTerminees} icon="check-circle-fill"     accent="#10b981" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Leçons de conduite terminées" value={stats.leconsTerminees} icon="check-circle-fill" accent="#10b981" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
+          <StatCard title="Séances de code suivies" value={stats.seancesSuivies} icon="camera-video-fill" accent="#6366f1" sub={`${stats.seancesReussies} réussie${stats.seancesReussies > 1 ? 's' : ''}`} cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
           <StatCard title="Total examens"    value={stats.totalExamens}    icon="clipboard2-check-fill" accent="#3b82f6" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
           <StatCard title="Admis"            value={stats.examensAdmis}    icon="emoji-smile-fill"      accent="#10b981" cardStyle={{ paddingTop: 15, paddingBottom: 15 }} />
         </div>
@@ -503,8 +504,8 @@ function DashboardAdmin({ stats, user }) {
                 <i className="bi bi-journal-text text-white" style={{ fontSize: '.9rem' }} />
               </div>
               <div>
-                <div className="font-extrabold text-slate-800 text-sm">Leçons</div>
-                <div className="text-xs text-slate-400">{stats.totalLecons} leçons planifiées</div>
+                <div className="font-extrabold text-slate-800 text-sm">Leçons de conduite</div>
+                <div className="text-xs text-slate-400">{stats.totalLecons} leçons au total</div>
               </div>
               <span className="ml-auto text-2xl font-extrabold" style={{ color: '#1e3a5f' }}>{stats.totalLecons}</span>
             </div>
@@ -512,6 +513,8 @@ function DashboardAdmin({ stats, user }) {
               {[
                 { label: 'Terminées',  value: stats.leconsTerminees,  color: '#10b981', bg: '#f0fdf4', icon: 'check-circle-fill' },
                 { label: 'Planifiées', value: stats.leconsPlanifiees, color: '#3b82f6', bg: '#eff6ff', icon: 'calendar-check-fill' },
+                { label: 'Séances de code suivies', value: stats.seancesSuivies, color: '#6366f1', bg: '#eef2ff', icon: 'camera-video-fill' },
+                { label: 'Séances réussies',        value: stats.seancesReussies, color: '#d97706', bg: '#fffbeb', icon: 'patch-check-fill' },
               ].map(({ label, value, color, bg, icon }) => (
                 <div key={label} className="rounded-xl p-4 text-center" style={{ background: bg }}>
                   <i className={`bi bi-${icon}`} style={{ color, fontSize: '1.1rem' }} />

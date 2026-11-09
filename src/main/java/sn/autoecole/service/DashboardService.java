@@ -27,6 +27,7 @@ public class DashboardService {
     private final ExamenRepository examenRepository;
     private final PaiementRepository paiementRepository;
     private final SeanceRepository seanceRepository;
+    private final ResultatQuizSeanceRepository resultatQuizSeanceRepository;
 
     public DashboardStats getStats() {
         LocalDate debutMois = LocalDate.now().withDayOfMonth(1);
@@ -50,6 +51,8 @@ public class DashboardService {
                 .totalLecons(leconRepository.count())
                 .leconsTerminees(leconRepository.findByStatut(StatutLecon.TERMINEE).size())
                 .leconsPlanifiees(leconRepository.findByStatut(StatutLecon.PLANIFIEE).size())
+                .seancesSuivies(resultatQuizSeanceRepository.count())
+                .seancesReussies(resultatQuizSeanceRepository.countByReussiTrue())
                 .totalExamens(examenRepository.count())
                 .examensAdmis(examenRepository.countByResultat(ResultatExamen.ADMIS))
                 .examensRefuses(examenRepository.countByResultat(ResultatExamen.REFUSE))

@@ -11,4 +11,5 @@ public interface ResultatQuizSeanceRepository extends JpaRepository<ResultatQuiz
     List<ResultatQuizSeance> findByEleveId(Long eleveId);
     Optional<ResultatQuizSeance> findBySeanceIdAndEleveId(Long seanceId, Long eleveId);
     void deleteBySeanceId(Long seanceId);
+    long countByReussiTrue();
 }

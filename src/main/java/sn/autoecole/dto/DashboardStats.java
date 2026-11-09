@@ -28,6 +28,10 @@ public class DashboardStats {
     private long leconsTerminees;
     private long leconsPlanifiees;
 
+    // Séances de code suivies : un quiz de séance fait par un élève (élève × séance), dont réussis
+    private long seancesSuivies;
+    private long seancesReussies;
+
     private long totalExamens;
     private long examensAdmis;
     private long examensRefuses;
