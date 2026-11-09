@@ -206,13 +206,20 @@ function Resultat({ serie, reponses, onRejouer, onQuitter }) {
   )
 }
 
-export default function SeriesExamen({ eleve = false }) {
+const ENTETE_SERIES = {
+  surTitre: "TRAVAUX DIRIGÉS · SÉRIES D'EXAMEN", titre: "Séries d'examen",
+  texte: "25 questions comme le jour de l'examen : une image, une situation, une ou plusieurs bonnes réponses à cocher.",
+  vide: 'Aucune série pour le moment.',
+}
+
+/* Liste des séries (séries d'examen, ou annales avec leur propre en-tête) et déroulé d'une partie. */
+export default function SeriesExamen({ eleve = false, series = SERIES, entete = ENTETE_SERIES }) {
   const [partie, setPartie] = useState(null)        // { serie, mode, tour }
   const [fin, setFin] = useState(null)              // réponses de la partie terminée
   const [notes, setNotes] = useState({})
   const [enCours, setEnCours] = useState({})        // parties commencées, par série et par mode
-  const recharger = () => chargerQuizs(SERIES.flatMap(s => ['entrainement', 'examen'].map(m => cleSerie(s, m)))).then(setEnCours)
-  useEffect(() => { recharger() }, [])
+  const recharger = () => chargerQuizs(series.flatMap(s => ['entrainement', 'examen'].map(m => cleSerie(s, m)))).then(setEnCours)
+  useEffect(() => { recharger() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!eleve) return
     api('GET', '/eleve/code/progression').then(l => setNotes(Object.fromEntries((l || []).map(x => [x.chapitre, x])))).catch(() => {})
@@ -237,12 +244,19 @@ export default function SeriesExamen({ eleve = false }) {
     <div className="space-y-4">
       <div className="rounded-2xl overflow-hidden relative text-white px-6 py-6" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f 55%,#2a4f7c)', boxShadow: '0 8px 28px rgba(15,34,64,.25)' }}>
         <div className="absolute inset-x-0 bottom-0 h-1.5" style={{ background: 'linear-gradient(90deg,#d4a017,#f0bb2a,#d4a017)' }} />
-        <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>TRAVAUX DIRIGÉS · SÉRIES D'EXAMEN</div>
-        <h2 className="text-3xl font-black m-0 mt-1">Séries d'examen</h2>
-        <p className="text-sm m-0 mt-1 max-w-lg" style={{ color: '#bfdbfe' }}>25 questions comme le jour de l'examen : une image, une situation, une ou plusieurs bonnes réponses à cocher.</p>
+        <div className="text-[11px] font-extrabold tracking-widest" style={{ color: '#f0bb2a' }}>{entete.surTitre}</div>
+        <h2 className="text-3xl font-black m-0 mt-1">{entete.titre}</h2>
+        <p className="text-sm m-0 mt-1 max-w-lg" style={{ color: '#bfdbfe' }}>{entete.texte}</p>
       </div>
+      {series.length === 0 && (
+        <div className="bg-white p-8 text-center" style={{ borderRadius: 20, ...carte }}>
+          <div className="w-14 h-14 mx-auto flex items-center justify-center text-2xl" style={{ borderRadius: 18, background: '#fef3c7', color: '#b45309' }}><i className="bi bi-journal-bookmark-fill" /></div>
+          <div className="font-extrabold mt-3" style={{ color: '#1e3a5f' }}>Bientôt disponible</div>
+          <div className="text-sm text-slate-500 mt-1">{entete.vide}</div>
+        </div>
+      )}
       <div className="grid sm:grid-cols-2 gap-4">
-        {SERIES.map(s => {
+        {series.map(s => {
           const n = notes[s.id]
           return (
             <div key={s.id} className="bg-white p-5" style={{ borderRadius: 20, ...carte }}>

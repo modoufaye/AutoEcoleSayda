@@ -418,11 +418,11 @@ export default function AppLayout() {
             : section === 'mediatheque'
             ? <Mediatheque key={section} />
             : section === 'td-admin'
-            ? <TravauxDiriges key="td-admin"><TravauxDirigesAdmin /></TravauxDiriges>
+            ? <TravauxDiriges key="td-admin" />
             : section === 'td-moniteur'
-            ? <TravauxDiriges key="td-moniteur"><TravauxDirigesMoniteur onBack={handleBack} /></TravauxDiriges>
+            ? <TravauxDiriges key="td-moniteur" />
             : section === 'td-eleve'
-            ? <TravauxDiriges key="td-eleve" eleve><TravauxDirigesEleve onBack={handleBack} /></TravauxDiriges>
+            ? <TravauxDiriges key="td-eleve" eleve />
             : section === 'eleves'
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick} />
             : section === 'moniteurs'

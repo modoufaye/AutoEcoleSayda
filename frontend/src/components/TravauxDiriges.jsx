@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import SeriesExamen from './SeriesExamen'
+import { ANNALES } from '../contenu/annales'
 
-/* Onglet « Travaux Dirigés » : les exercices des moniteurs (vue propre à chaque rôle, passée en
-   enfant et inchangée) et les séries d'examen de l'auto-école. */
-export default function TravauxDiriges({ eleve = false, children }) {
-  const [vue, setVue] = useState('exercices')
-  const onglets = [['exercices', 'pencil-square', 'Exercices'], ['series', 'stopwatch', "Séries d'examen"]]
+/* Onglet « Travaux Dirigés » : les annales (catalogues des questions fréquentes à l'examen) et les
+   séries d'examen de l'auto-école, même déroulé (entraînement ou examen blanc). */
+const ENTETE_ANNALES = {
+  surTitre: 'TRAVAUX DIRIGÉS · ANNALES', titre: 'Annales',
+  texte: "Les catalogues de questions qui tombent souvent à l'examen du code.",
+  vide: "Les catalogues arrivent bientôt : revenez d'ici quelques jours.",
+}
+
+export default function TravauxDiriges({ eleve = false }) {
+  const [vue, setVue] = useState('annales')
+  const onglets = [['annales', 'journal-bookmark-fill', 'Annales'], ['series', 'stopwatch', "Séries d'examen"]]
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="flex gap-1 p-1 w-full sm:w-auto sm:inline-flex" style={{ background: '#eef2f7', borderRadius: 999 }}>
@@ -17,7 +24,7 @@ export default function TravauxDiriges({ eleve = false, children }) {
           </button>
         ))}
       </div>
-      {vue === 'exercices' ? children : <SeriesExamen eleve={eleve} />}
+      {vue === 'annales' ? <SeriesExamen key="annales" eleve={eleve} series={ANNALES} entete={ENTETE_ANNALES} /> : <SeriesExamen key="series" eleve={eleve} />}
     </div>
   )
 }
