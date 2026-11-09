@@ -21,9 +21,12 @@ function Question({ q, choix, setChoix, corrige }) {
   const basculer = l => { if (!corrige) setChoix(c => c.includes(l) ? c.filter(x => x !== l) : [...c, l]) }
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: '#0f2240', border: '1px solid #1e3a5f' }}>
-      <div className="flex justify-center py-4" style={{ background: 'linear-gradient(180deg,#f8fafc,#e2e8f0)' }}>
-        <Visuel item={q.visuel} taille={estScene(q.visuel) ? 240 : 150} />
-      </div>
+      {q.photo ? <img src={q.photo} alt="" className="block w-full" style={{ background: '#e2e8f0' }} />
+        : q.visuel && (
+        <div className="flex justify-center py-4" style={{ background: 'linear-gradient(180deg,#f8fafc,#e2e8f0)' }}>
+          <Visuel item={q.visuel} taille={estScene(q.visuel) ? 240 : 150} />
+        </div>
+      )}
       <div className="p-4 sm:p-5 text-white">
         <div className="text-lg font-extrabold">{q.enonce}</div>
         {q.blocs.map((b, i) => (
@@ -55,7 +58,7 @@ function Question({ q, choix, setChoix, corrige }) {
         ))}
         {corrige && (
           <div className="mt-4 rounded-xl p-3 text-sm" style={{ background: juste(q, choix) ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)', color: '#e2e8f0' }}>
-            <b>{juste(q, choix) ? '👍 Bonne réponse.' : `Bonne réponse : ${q.bonnes.join(' et ')}.`}</b> {q.explication}
+            <b>{juste(q, choix) ? '👍 Bonne réponse.' : `Bonne réponse : ${q.bonnes.join(' et ')}.`}</b>{q.explication && <> {q.explication}</>}
           </div>
         )}
       </div>
