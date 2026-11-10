@@ -10,6 +10,7 @@ import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './Fenetre
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser, BoutonAjout } from './ListeModerne'
 import { champCls } from './fenetreStyles'
 import '../landing.css'
+import { afficherTelephone } from '../telephones'
 
 const PAGE_SIZE = 10
 
@@ -407,8 +408,8 @@ export default function Examens({ onEleveClick, onBack }) {
                           <AvatarRond photoUrl={e.photoUrl} prenom={e.prenom} nom={e.nom} taille={32} />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.prenom} {e.nom}</div>
-                            {(e.telephone || e.categoriePermis) && <div className="text-xs text-slate-400 truncate">
-                              {[e.telephone, e.categoriePermis && `Permis ${e.categoriePermis}`].filter(Boolean).join(' · ')}</div>}
+                            {(e.telephone || e.categoriePermis) && <div className="text-xs font-semibold text-slate-500 truncate">
+                              {[e.telephone && afficherTelephone(e.telephone), e.categoriePermis && `Permis ${e.categoriePermis}`].filter(Boolean).join(' · ')}</div>}
                           </div>
                           <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{ border: `2px solid ${coche ? '#d4a017' : '#cbd5e1'}`, background: coche ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>

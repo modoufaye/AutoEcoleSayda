@@ -43,7 +43,7 @@ export default function ChoixPuces({ items, valeur, onChoisir, multiple = false,
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.titre}</div>
-                {e.sous && <div className="text-xs text-slate-400 truncate">{e.sous}</div>}
+                {e.sous && <div className="text-xs font-semibold text-slate-500 truncate">{e.sous}</div>}
               </div>
               {e.badge && (
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: '#eef2f7', color: '#475569' }}>{e.badge}</span>

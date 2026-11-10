@@ -55,7 +55,7 @@ export function FenetrePublication({ genre, edition, prerempli, publications = [
   publications.filter(p => p.serie === serie && p.id !== edition?.id).forEach(p => p.eleves.forEach(e =>
     deja.set(e.id, [...(deja.get(e.id) || []), MODES.find(m => m.key === p.mode)?.libelle || p.mode])))
   const items = [...eleves.filter(e => deja.has(e.id)), ...eleves.filter(e => !deja.has(e.id))].map(e => ({
-    id: e.id, titre: e.nom, sous: e.telephone, mots: [e.nom, e.telephone], nouveau: inscritCetteSemaine(e.dateInscription),
+    id: e.id, titre: e.nom, sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro', mots: [e.nom, e.telephone], nouveau: inscritCetteSemaine(e.dateInscription),
     badge: deja.has(e.id) ? `Déjà : ${deja.get(e.id).join(' + ')}`
       : e.admisCode ? 'Admis au code' : inscritCetteSemaine(e.dateInscription) ? 'NOUVEAU' : null,
   }))

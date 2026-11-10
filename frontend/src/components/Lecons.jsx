@@ -11,6 +11,7 @@ import { champCls } from './fenetreStyles'
 import Pagination from './Pagination'
 import ChoixPuces from './ChoixPuces'
 import '../landing.css'
+import { afficherTelephone } from '../telephones'
 
 const PAGE_SIZE = 10
 
@@ -90,7 +91,7 @@ export default function Lecons({ onBack }) {
     setShowModal(true)
   }
 
-  const pucesEleves = eleves.map(e => ({ id: e.id, titre: `${e.prenom} ${e.nom}`, sous: e.telephone || 'Pas de numéro',
+  const pucesEleves = eleves.map(e => ({ id: e.id, titre: `${e.prenom} ${e.nom}`, sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro',
     badge: e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''}`, mots: [e.prenom, e.nom, e.telephone] }))
   const pucesMoniteurs = moniteurs.map(m => ({ id: m.id, titre: `${m.prenom} ${m.nom}`, sous: m.telephone, mots: [m.prenom, m.nom, m.telephone] }))
   const pucesVehicules = vehicules.map(v => ({ id: v.id, titre: `${v.marque} ${v.modele}`, sous: v.immatriculation,

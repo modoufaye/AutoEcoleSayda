@@ -9,6 +9,7 @@ import { FenetreModerne, Etape, Etiquette, Choix, ChampMontant } from './Fenetre
 import { champCls } from './fenetreStyles'
 import { useAuth } from '../context/AuthContext'
 import '../landing.css'
+import { afficherTelephone } from '../telephones'
 
 const PAGE_SIZE = 10
 
@@ -525,7 +526,8 @@ export default function Paiements({ onEleveClick }) {
               <Etiquette requis>Élève</Etiquette>
               <select className={champCls} value={form.eleveId} onChange={e => set('eleveId', e.target.value)}>
                 <option value="">Choisir un élève…</option>
-                {eleves.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}</option>)}
+                {/* Numéro après le nom : distingue les homonymes */}
+                {eleves.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}{e.telephone ? ` · ${afficherTelephone(e.telephone)}` : ''}</option>)}
               </select>
               {eleve && (
                 <div className="mt-3 rounded-xl p-3" style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)' }}>

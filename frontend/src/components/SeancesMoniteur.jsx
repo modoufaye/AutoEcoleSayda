@@ -7,6 +7,7 @@ import '../landing.css'
 import { correspond, inscritCetteSemaine } from '../utils'
 import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
 import { libellePartie } from '../contenu/programme'
+import { afficherTelephone } from '../telephones'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -523,7 +524,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                       <AvatarRond prenom={prenom} nom={nom} taille={34} />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{e.nom}</div>
-                        {(e.telephone || e.email) && <div className="text-xs text-slate-400 truncate">{e.telephone || e.email}{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}{e.admisCode && <span className="font-bold" style={{ color: '#15803d' }}> · Admis au code</span>}</div>}
+                        {(e.telephone || e.email) && <div className="text-xs text-slate-500 truncate"><span className="font-semibold">{e.telephone ? afficherTelephone(e.telephone) : e.email}</span>{e.perfectionnement && <span className="font-bold" style={{ color: '#7c3aed' }}> · Perfectionnement (conduite seule)</span>}{e.admisCode && <span className="font-bold" style={{ color: '#15803d' }}> · Admis au code</span>}</div>}
                         {inscritCetteSemaine(e.dateInscription) && (
                           <span className="inline-block mt-0.5 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#b45309' }}>
                             NOUVEAU · inscrit le {e.dateInscription.slice(8, 10)}/{e.dateInscription.slice(5, 7)}
