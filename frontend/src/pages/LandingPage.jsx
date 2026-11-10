@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '../landing.css'
-import affichePerfAuto from '../assets/perf-boite-automatique.jpeg'
-import affichePerfManuelle from '../assets/perf-boite-manuelle.jpeg'
-import afficheCoursCode from '../assets/cours-code-horaires.jpeg'
 import { useEcole } from '../ecole'
 import { useBureaux } from '../bureaux'
 
@@ -109,6 +106,8 @@ const statsDe = e => [
   { value: e.nombreMoniteurs, label: 'Moniteurs certifiés' },
   { value: e.anneeCreation && new Date().getFullYear() - e.anneeCreation > 0 ? `${new Date().getFullYear() - e.anneeCreation} ans` : null, label: "D'expérience" },
 ].filter(x => x.value)
+const SLOGAN_GENERIQUE = 'Votre permis de conduire, en toute confiance'
+const decouperSlogan = t => { const i = t.indexOf(','); return i < 0 ? [t.trim(), ''] : [t.slice(0, i).trim(), t.slice(i + 1).trim()] }
 // « depuis 2016 », « à Dakar » : rien si le réglage est vide
 const depuis = e => (e.anneeCreation ? ` depuis ${e.anneeCreation}` : '')
 const a = e => (e.ville ? ` à ${e.ville}` : '')
@@ -206,6 +205,8 @@ function Navbar() {
 // ── Hero ───────────────────────────────────────────────────────────────────
 function Hero() {
   const ecole = useEcole()
+  // Slogan de Paramètres : la partie après la première virgule est en couleur
+  const slogan = decouperSlogan(ecole.slogan || SLOGAN_GENERIQUE)
   return (
     <section
       id="accueil"
@@ -243,9 +244,9 @@ function Hero() {
               Auto-École agréée{ecole.ville && ` — ${ecole.ville}`}
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
-              LA CONFIANCE AU VOLANT,<br />
-              <span className="text-[#d4a017]">LA RÉUSSITE AU RENDEZ-VOUS</span>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6 uppercase">
+              {slogan[0]}{slogan[1] && <>,<br /></>}
+              {slogan[1] && <span className="text-[#d4a017]">{slogan[1]}</span>}
             </h1>
 
             <p className="text-lg text-blue-100 leading-relaxed mb-8 max-w-xl">
@@ -489,13 +490,14 @@ function Avantages() {
 }
 
 // ── Galerie (affiches en diaporama horizontal) ───────────────────────────────
-const AFFICHES = [
-  { src: afficheCoursCode,    titre: 'Cours de code sur WhatsApp — emploi du temps' },
-  { src: affichePerfAuto,     titre: 'Cours de perfectionnement — boîte automatique' },
-  { src: affichePerfManuelle, titre: 'Cours de perfectionnement — boîte manuelle' },
-]
 
+/* Affiches de Paramètres ; aucune : pas de section. */
 function Galerie() {
+  const affiches = useEcole().affiches || []
+  return affiches.length ? <Diaporama affiches={affiches} /> : null
+}
+
+function Diaporama({ affiches }) {
   const piste = useRef(null)
   const [actif, setActif] = useState(0)
   const [pause, setPause] = useState(false)
@@ -503,7 +505,7 @@ function Galerie() {
   const allerA = i => {
     const el = piste.current
     if (!el) return
-    const n = (i + AFFICHES.length) % AFFICHES.length
+    const n = (i + affiches.length) % affiches.length
     el.scrollTo({ left: n * el.clientWidth, behavior: 'smooth' })
   }
 
@@ -525,7 +527,7 @@ function Galerie() {
         <SectionHeader
           eyebrow="Nos offres"
           title="Nos formations"
-          subtitle="Cours de code sur WhatsApp et cours de perfectionnement en boîte automatique ou manuelle."
+          subtitle="Nos formations et nos horaires en images."
         />
 
         <div
@@ -539,10 +541,10 @@ function Galerie() {
             onScroll={auDefilement}
             className="flex overflow-x-auto snap-x snap-mandatory rounded-2xl bg-slate-900 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {AFFICHES.map((a, i) => (
+            {affiches.map((a, i) => (
               <div key={i} className="w-full flex-shrink-0 snap-center flex justify-center p-3 sm:p-5">
                 <img
-                  src={a.src}
+                  src={a.url}
                   alt={a.titre}
                   loading="lazy"
                   draggable="false"
@@ -570,7 +572,7 @@ function Galerie() {
         </div>
 
         <div className="flex justify-center gap-2 mt-6">
-          {AFFICHES.map((a, i) => (
+          {affiches.map((a, i) => (
             <button
               key={i}
               type="button"

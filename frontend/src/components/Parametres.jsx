@@ -379,6 +379,7 @@ export default function Parametres() {
     tarifInscription: '', tarifHeureCode: '', tarifHeureConduite: '',
     lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
     ville: '', anneeCreation: '', elevesFormes: '', tauxReussite: '', nombreMoniteurs: '', horaires: '',
+    slogan: '', affiches: [],
   })
   const [formules, setFormules] = useState(formulesDepuis([]))
   const [formulesPerf, setFormulesPerf] = useState([])
@@ -410,6 +411,8 @@ export default function Parametres() {
         tauxReussite:      data.tauxReussite      || '',
         nombreMoniteurs:   data.nombreMoniteurs   || '',
         horaires:          data.horaires          || '',
+        slogan:            data.slogan            || '',
+        affiches:          data.affiches          || [],
       }) })
       .catch(e => toast(e.message, 'danger'))
       .finally(() => setLoading(false))
@@ -559,6 +562,32 @@ export default function Parametres() {
               <div className="col-12">
                 <label className={labelCls}>Horaires d'ouverture</label>
                 <input className={inputCls} value={form.horaires} placeholder="Ex : Lun – Sam : 8h00 – 18h00" onChange={e => set('horaires', e.target.value)} />
+              </div>
+              <div className="col-12">
+                <label className={labelCls}>Slogan</label>
+                <input className={inputCls} value={form.slogan} maxLength={300} placeholder="Ex : La confiance au volant, la réussite au rendez-vous" onChange={e => set('slogan', e.target.value)} />
+                <div className="text-xs text-slate-400 mt-1">En grand en haut de l'accueil ; la partie après la virgule s'affiche en doré. Vide : « Votre permis de conduire, en toute confiance ».</div>
+              </div>
+              <div className="col-12">
+                <label className={labelCls}>Affiches (diaporama « Nos formations »)</label>
+                {form.affiches.length === 0 && <div className="text-xs text-slate-400 mb-2">Aucune affiche : la section n'apparaît pas sur l'accueil.</div>}
+                <div className="space-y-2 mb-2">
+                  {form.affiches.map((a, i) => (
+                    <div key={a.url} className="d-flex align-items-center gap-3 p-2 rounded-xl" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      <img src={a.url} alt="" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} />
+                      <input className={inputCls} value={a.titre} placeholder="Légende de l'affiche"
+                        onChange={e => set('affiches', form.affiches.map((x, j) => (j === i ? { ...x, titre: e.target.value } : x)))} />
+                      <button type="button" className="btn btn-sm btn-light" title="Monter" disabled={i === 0}
+                        onClick={() => { const l = [...form.affiches]; [l[i - 1], l[i]] = [l[i], l[i - 1]]; set('affiches', l) }}><i className="bi bi-arrow-up" /></button>
+                      <button type="button" className="btn btn-sm btn-light" title="Retirer" style={{ color: '#b91c1c' }}
+                        onClick={() => set('affiches', form.affiches.filter((_, j) => j !== i))}><i className="bi bi-trash3" /></button>
+                    </div>
+                  ))}
+                </div>
+                {form.affiches.length < 20 && (
+                  <UploadZone label="Ajouter une affiche" value="" onUploaded={url => set('affiches', [...form.affiches, { url, titre: '' }])} />
+                )}
+                <div className="text-xs text-slate-400 mt-1">Pensez à « Enregistrer » en bas de la page.</div>
               </div>
             </div>
 

@@ -67,6 +67,9 @@ public class AutoEcoleConfigController {
         if (body.containsKey("tauxReussite"))    cfg.setTauxReussite(texte(body.get("tauxReussite")));
         if (body.containsKey("nombreMoniteurs")) cfg.setNombreMoniteurs(texte(body.get("nombreMoniteurs")));
         if (body.containsKey("horaires"))        cfg.setHoraires(texte(body.get("horaires")));
+        // Slogan effacé : on garde « » (et non null), pour ne jamais remettre l'ancien slogan d'office
+        if (body.containsKey("slogan"))          cfg.setSlogan(body.get("slogan") == null ? "" : body.get("slogan").toString().trim());
+        if (body.containsKey("affiches"))        cfg.setAffiches(affiches(body.get("affiches")));
         if (body.containsKey("lienWave"))        cfg.setLienWave(lienPaiement(body.get("lienWave")));
         if (body.containsKey("lienOrangeMoney")) cfg.setLienOrangeMoney(lienPaiement(body.get("lienOrangeMoney")));
 
@@ -96,6 +99,22 @@ public class AutoEcoleConfigController {
      * Donne le moniteur par défaut aux élèves actifs qui n'ont aucun moniteur (ex. inscrits importés
      * avant ce réglage). Ceux qui ont déjà un moniteur ne changent pas. Réservé à l'admin (/api/admin/**).
      */
+    /** Images envoyées par Paramètres (/uploads/images/…) et leur légende ; 20 au plus. */
+    private static List<sn.autoecole.entity.Affiche> affiches(Object o) {
+        if (!(o instanceof List<?> l)) return List.of();
+        List<sn.autoecole.entity.Affiche> r = new java.util.ArrayList<>();
+        for (Object x : l) {
+            if (!(x instanceof Map<?, ?> m)) continue;
+            String url = texte(m.get("url"));
+            if (url == null || !url.matches("/uploads/images/[\\w.-]+"))
+                throw new sn.autoecole.exception.BusinessException("Affiche invalide : envoyez une image");
+            String titre = texte(m.get("titre"));
+            r.add(new sn.autoecole.entity.Affiche(url, titre == null ? "" : titre));
+        }
+        if (r.size() > 20) throw new sn.autoecole.exception.BusinessException("20 affiches au plus");
+        return r;
+    }
+
     private static String texte(Object o) {
         if (o == null) return null;
         String s = o.toString().trim();

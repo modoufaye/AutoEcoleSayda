@@ -54,6 +54,8 @@ public class EcoleService {
         m.put("tauxReussite", c.map(AutoEcoleConfig::getTauxReussite).map(EcoleService::texte).orElse(null));
         m.put("nombreMoniteurs", c.map(AutoEcoleConfig::getNombreMoniteurs).map(EcoleService::texte).orElse(null));
         m.put("horaires", c.map(AutoEcoleConfig::getHoraires).map(EcoleService::texte).orElse(null));
+        m.put("slogan", c.map(AutoEcoleConfig::getSlogan).map(EcoleService::texte).orElse(null));
+        m.put("affiches", c.map(AutoEcoleConfig::getAffiches).orElse(java.util.List.of()));
         return m;
     }
 }

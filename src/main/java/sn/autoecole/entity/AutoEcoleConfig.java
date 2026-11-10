@@ -32,6 +32,14 @@ public class AutoEcoleConfig {
     private String tauxReussite;
     private String nombreMoniteurs;
     private String horaires;
+    /** Slogan en tête de l'accueil (« …, … » : la partie après la virgule est en couleur). Vide : slogan générique. */
+    @Column(length = 300)
+    private String slogan;
+
+    /** Affiches du diaporama « Nos formations ». Aucune : la section n'est pas affichée. */
+    @Convert(converter = AffichesConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private List<Affiche> affiches;
 
     /** Liens marchands affichés à l'élève pour payer (Wave Business / Orange Money). */
     @Column(length = 500)

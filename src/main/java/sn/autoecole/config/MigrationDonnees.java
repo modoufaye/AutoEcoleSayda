@@ -28,6 +28,9 @@ public class MigrationDonnees {
 
     private final JdbcTemplate jdbc;
 
+    @org.springframework.beans.factory.annotation.Value("${upload.dir:uploads}")
+    private String uploadDir;
+
     @PostConstruct
     public void migrer() {
         etape("colonnes TD", this::colonnesTd);
@@ -40,6 +43,7 @@ public class MigrationDonnees {
         etape("téléphones des moniteurs", this::telephonesMoniteurs);
         etape("lieu d'inscription", this::lieuInscription);
         etape("bureaux", this::bureaux);
+        etape("slogan et affiches d'origine", this::accueilOrigine);
     }
 
     /**
@@ -89,6 +93,44 @@ public class MigrationDonnees {
             for (String[] a : accueil) jdbc.update("UPDATE auto_ecole_config SET " + a[0] + " = ? WHERE " + a[0] + " IS NULL", a[1]);
             jdbc.update("UPDATE auto_ecole_config SET annee_creation = 2016 WHERE annee_creation IS NULL");
             log.info("Migration : textes de la page d'accueil reportés dans Paramètres");
+        }
+    }
+
+    /**
+     * Le slogan et les trois affiches de la page d'accueil étaient dans le code du site ; ils sont
+     * désormais réglés dans Paramètres. Une seule fois, pour l'installation d'origine (bureau
+     * MAZALIK_JINAN) quand ni slogan ni affiches n'ont jamais été enregistrés : on recopie les
+     * affiches dans les images envoyées (uploads/images) et on reporte le slogan. Effacés plus tard
+     * dans Paramètres, ils valent « » et [] : jamais remis d'office.
+     */
+    private void accueilOrigine() {
+        Integer origine = jdbc.queryForObject("SELECT COUNT(*) FROM bureaux WHERE code = 'MAZALIK_JINAN'", Integer.class);
+        if (origine == null || origine == 0) return;
+        Integer vierge = jdbc.queryForObject("SELECT COUNT(*) FROM auto_ecole_config WHERE slogan IS NULL AND affiches IS NULL", Integer.class);
+        if (vierge == null || vierge == 0) return;
+        String[][] affiches = {
+            {"cours-code-horaires.jpeg", "Cours de code sur WhatsApp — emploi du temps"},
+            {"perf-boite-automatique.jpeg", "Cours de perfectionnement — boîte automatique"},
+            {"perf-boite-manuelle.jpeg", "Cours de perfectionnement — boîte manuelle"},
+        };
+        List<Map<String, String>> liste = new java.util.ArrayList<>();
+        try {
+            java.nio.file.Path dossier = java.nio.file.Paths.get(uploadDir, "images");
+            java.nio.file.Files.createDirectories(dossier);
+            for (String[] a : affiches) {
+                String nom = "affiche-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "-" + a[0];
+                try (var in = getClass().getResourceAsStream("/accueil-origine/" + a[0])) {
+                    if (in == null) throw new IllegalStateException("affiche absente du serveur : " + a[0]);
+                    java.nio.file.Files.copy(in, dossier.resolve(nom));
+                }
+                liste.add(Map.of("url", "/uploads/images/" + nom, "titre", a[1]));
+            }
+            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(liste);
+            jdbc.update("UPDATE auto_ecole_config SET slogan = ?, affiches = ? WHERE slogan IS NULL AND affiches IS NULL",
+                    "La confiance au volant, la réussite au rendez-vous", json);
+            log.info("Migration : slogan et {} affiche(s) d'accueil reportés dans Paramètres", liste.size());
+        } catch (Exception e) {
+            throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
