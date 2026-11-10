@@ -13,7 +13,7 @@
   },
   {
     "id": "demo",
-    "actif": false,
+    "actif": true,
     "domaine": "demo.auto-ecole.sn",
     "appSite": "demo",
     "appServeur": "demo-backend",
