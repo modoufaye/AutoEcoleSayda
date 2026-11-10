@@ -8,7 +8,6 @@ import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Moniteur;
 import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.CategoriePermis;
-import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.time.LocalDate;
@@ -31,7 +30,7 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
 
     List<Eleve> findByCategoriePermisAndArchiveFalse(CategoriePermis categorie);
 
-    List<Eleve> findBySiteAndArchiveFalse(Site site);
+    List<Eleve> findBySiteAndArchiveFalse(String site);
 
     Optional<Eleve> findByNumeroCni(String numeroCni);
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, BUREAUX, LIEUX_INSCRIPTION, waLink, correspond, estAdmin, inscritCetteSemaine } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, waLink, correspond, estAdmin, inscritCetteSemaine } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -22,6 +22,8 @@ import { CoursPublies } from './SeanceCode'
 import { STATUTS as STATUTS_SERIE, MODES as MODES_SERIE, serieDe, statutSerie } from '../contenu/seriesPubliees'
 import { compterSeances } from '../contenu/programme'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
+import { useBureaux, EN_LIGNE } from '../bureaux'
+import PastilleBureau from './PastilleBureau'
 
 const PAGE_SIZE = 10
 
@@ -977,6 +979,7 @@ const libelleMois = (m) => {
 }
 
 export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }) {
+  const bureaux = useBureaux()
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
   // Suppression définitive (fiche, et pour un perfectionnement abandonné ses paiements) : admin seulement
@@ -1334,7 +1337,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                   <div className="text-xl font-extrabold text-white leading-tight truncate">{nomComplet || 'Nouvel élève'}</div>
                   <div className="text-xs mt-1 flex flex-wrap gap-x-3" style={{ color: '#bfdbfe' }}>
                     {form.categoriePermis && <span><i className="bi bi-award me-1" />Permis {form.categoriePermis}</span>}
-                    {form.site && <span><i className="bi bi-geo-alt me-1" />{LABELS[form.site]}</span>}
+                    {form.site && <span><i className="bi bi-geo-alt me-1" />{bureaux.libelle(form.site)}</span>}
                     {total > 0 && <span><i className="bi bi-cash-stack me-1" />{fmtMontant(total)}</span>}
                   </div>
                 </div>
@@ -1408,14 +1411,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                   <div className="col-12">
                     <label className={labelCls}>Lieu d'inscription</label>
                     <div className="flex flex-wrap gap-2">
-                      {LIEUX_INSCRIPTION.map(l => (
+                      {bureaux.lieux.map(l => (
                         <button key={l.value} type="button"
                           onClick={() => setForm(fm => ({ ...fm, lieuInscription: l.value,
-                            // Inscription : en ligne → Massalikoul Djinane, sinon le bureau suit le lieu.
+                            // Inscription : en ligne → le bureau principal, sinon le bureau suit le lieu.
                             // Modification : le bureau de suivi ne change pas.
-                            site: editId ? fm.site : l.value === 'EN_LIGNE' ? (fm.site || 'MAZALIK_JINAN') : l.value }))}
+                            site: editId ? fm.site : l.value === EN_LIGNE ? (fm.site || bureaux.principal?.code || '') : l.value }))}
                           className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.lieuInscription === l.value)}>
-                          {l.value === 'EN_LIGNE' && <i className="bi bi-globe2 me-1" />}{l.label}
+                          {l.value === EN_LIGNE && <i className="bi bi-globe2 me-1" />}{l.label}
                         </button>
                       ))}
                     </div>
@@ -1423,12 +1426,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                   <div className="col-12">
                     <label className={labelCls}>Bureau de suivi <span className="text-red-500">*</span></label>
                     <div className="flex flex-wrap gap-2">
-                      {BUREAUX.map(b => (
-                        <button key={b.value} type="button" onClick={() => set('site', b.value)}
-                          className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.site === b.value)}>
-                          <i className="bi bi-building me-1" />{b.label}
+                      {/* Bureaux ouverts ; un bureau fermé reste affiché s'il est déjà celui de l'élève */}
+                      {bureaux.tous.filter(b => b.actif || b.code === form.site).map(b => (
+                        <button key={b.code} type="button" onClick={() => set('site', b.code)}
+                          className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.site === b.code)}>
+                          <i className="bi bi-building me-1" />{b.nom}{!b.actif && ' (fermé)'}
                         </button>
                       ))}
+                      {bureaux.tous.length === 0 && <span className="text-sm text-slate-500">Aucun bureau : créez-en un dans Paramètres.</span>}
                     </div>
                   </div>
                 </div>
@@ -1648,14 +1653,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                 </div>
                 <label className={labelCls}>Lieu d'inscription <span className="text-red-500">*</span></label>
                 <div className="flex flex-wrap gap-2">
-                  {LIEUX_INSCRIPTION.map(l => (
+                  {bureaux.lieux.map(l => (
                     <button key={l.value} type="button"
                       onClick={() => setForm(fm => ({ ...fm, lieuInscription: l.value,
-                        // Pas de choix du bureau : à l'inscription il suit le lieu (en ligne → Massalikoul
-                        // Djinane) ; en modification, le bureau de suivi ne change pas.
-                        site: editId && fm.site ? fm.site : l.value === 'EN_LIGNE' ? 'MAZALIK_JINAN' : l.value }))}
+                        // Pas de choix du bureau : à l'inscription il suit le lieu (en ligne → le bureau
+                        // principal) ; en modification, le bureau de suivi ne change pas.
+                        site: editId && fm.site ? fm.site : l.value === EN_LIGNE ? (bureaux.principal?.code || '') : l.value }))}
                       className="px-3 py-2 text-sm font-semibold cursor-pointer" style={pill(form.lieuInscription === l.value)}>
-                      <i className={`bi bi-${l.value === 'EN_LIGNE' ? 'globe2' : 'building'} me-1`} />{l.label}
+                      <i className={`bi bi-${l.value === EN_LIGNE ? 'globe2' : 'building'} me-1`} />{l.label}
                     </button>
                   ))}
                 </div>
@@ -1773,7 +1778,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                   <i className="bi bi-archive-fill me-1" />Archivé{s.dateArchivage ? ` le ${fmtDate(s.dateArchivage)}` : ''}
                 </span>
               )}
-              {s.site && <Badge value={s.site} map={BADGES.site} />}
+              {s.site && <PastilleBureau code={s.site} />}
               {!isMoniteur && s.archive && (
                 <>
                   <button onClick={() => reactiver(s)}
@@ -2020,7 +2025,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
         </Filtre>
         <Filtre icone="building" value={site} onChange={setSite}>
           <option value="">Tous les bureaux</option>
-          {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          {bureaux.tous.map(b => <option key={b.code} value={b.code}>{b.nom}{!b.actif && ' (fermé)'}</option>)}
         </Filtre>
         <Filtre icone="mortarboard" value={formation} onChange={setFormation}>
           <option value="">Toutes les formations</option>
@@ -2091,7 +2096,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                     </button>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
-                      {e.site && <span><i className="bi bi-building me-1" />{LABELS[e.site] || e.site}</span>}
+                      {e.site && <span><i className="bi bi-building me-1" />{bureaux.libelle(e.site)}</span>}
                       {presence && <BadgePresence enLigne={presence.eleves.has(e.id)} />}
                     </div>
                   </div>

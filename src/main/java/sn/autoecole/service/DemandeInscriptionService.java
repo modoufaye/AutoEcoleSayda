@@ -1,5 +1,7 @@
 package sn.autoecole.service;
 
+import sn.autoecole.entity.Bureau;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,7 +119,7 @@ public class DemandeInscriptionService {
      * Crée l'élève (lieu « En ligne », date = jour de la demande), l'acompte comme 1re tranche
      * payée avec sa référence de transaction, puis ses identifiants pour le message de bienvenue.
      */
-    public Map<String, Object> approuver(Long id, BigDecimal montantTotal, Site bureau, String par) {
+    public Map<String, Object> approuver(Long id, BigDecimal montantTotal, String bureau, String par) {
         DemandeInscription d = enAttente(id);
         if (montantTotal == null || montantTotal.signum() <= 0) throw new BusinessException("Indiquez le montant total de la formation");
         if (d.getMontantAcompte().compareTo(montantTotal) > 0) throw new BusinessException("L'acompte dépasse le montant total");
@@ -127,8 +129,8 @@ public class DemandeInscriptionService {
         req.setNom(d.getNom());
         req.setTelephone(d.getTelephone());
         req.setDateInscription(d.getDateDemande());
-        req.setLieuInscription(Site.EN_LIGNE);
-        req.setSite(bureau != null ? bureau : Site.EN_LIGNE);   // en ligne → suivi par Massalikoul Djinane
+        req.setLieuInscription(Bureau.EN_LIGNE);
+        req.setSite(bureau != null ? bureau : Bureau.EN_LIGNE);   // en ligne → suivi par le bureau principal
         req.setTypeFormation(d.getTypeFormation());
         req.setCategoriePermis(d.getCategoriePermis());
         req.setBoiteVitesse(d.getBoiteVitesse());

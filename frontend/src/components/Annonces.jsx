@@ -4,17 +4,18 @@ import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import { EnteteListe, ListeVide, ListeChargement, Pastille, BoutonRond, BoutonAjout } from './ListeModerne'
+import { useBureaux } from '../bureaux'
 
 /* Annonces de l'auto-école. Le personnel (super admin, administrateurs, secrétariat, moniteurs)
    écrit à tout le monde, aux élèves (tous, d'un bureau, d'un moniteur) ou au personnel ; un moniteur
    écrit à ses élèves ou au personnel. Chacun lit les annonces qui lui sont adressées ; ouvrir la page
    les marque lues (pastille du menu). */
 
-const BUREAUX = [['MAZALIK_JINAN', 'Massalikoul Djinane'], ['GUEDIAWAYE', 'Guédiawaye'], ['KEUR_MASSAR', 'Keur Massar']]
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 const etiquette = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 
 function Formulaire({ moniteur, onFini, onAnnuler }) {
+  const bureaux = useBureaux()
   const [f, setF] = useState({ titre: '', contenu: '', cible: moniteur ? 'MONITEUR' : 'ELEVES', valeur: '' })
   const [moniteurs, setMoniteurs] = useState([])
   const [envoi, setEnvoi] = useState(false)
@@ -56,7 +57,7 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
             <label className={etiquette}>Bureau *</label>
             <select className="form-select" value={f.valeur} onChange={e => set('valeur', e.target.value)}>
               <option value="">Choisir…</option>
-              {BUREAUX.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {bureaux.actifs.map(b => <option key={b.code} value={b.code}>{b.nom}</option>)}
             </select>
           </div>
         )}

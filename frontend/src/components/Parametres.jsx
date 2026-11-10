@@ -5,6 +5,7 @@ import { confirmer } from './confirmer'
 import ComptesSecretariat from './ComptesSecretariat'
 import { useAuth } from '../context/AuthContext'
 import { rechargerEcole } from '../ecole'
+import { useBureaux, rechargerBureaux } from '../bureaux'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 const inputCls = 'form-control'
@@ -254,6 +255,122 @@ function UploadZone({ label, value, onUploaded, accept = 'image/*' }) {
   )
 }
 
+/* ── Bureaux : chaque auto-école crée les siens ; un bureau fermé garde ses élèves mais n'en
+   reçoit plus. Le principal suit les inscriptions en ligne. Enregistré tout de suite. ── */
+const BUREAU_VIDE = { nom: '', adresse: '', telephone: '', localisation: '', actif: true, principal: false }
+
+function SectionBureaux() {
+  const { tous } = useBureaux()
+  const [edition, setEdition] = useState(null)   // { id?, ...champs } : bureau en cours de saisie
+  const [envoi, setEnvoi] = useState(false)
+  const champ = (k, v) => setEdition(e => ({ ...e, [k]: v }))
+
+  async function enregistrer() {
+    if (!edition.nom.trim()) return toast('Indiquez le nom du bureau', 'warning')
+    setEnvoi(true)
+    try {
+      const corps = { nom: edition.nom, adresse: edition.adresse, telephone: edition.telephone,
+        localisation: edition.localisation, actif: edition.actif, principal: edition.principal }
+      if (edition.id) await api('PUT', `/admin/bureaux/${edition.id}`, corps)
+      else await api('POST', '/admin/bureaux', corps)
+      await rechargerBureaux()
+      toast(edition.id ? 'Bureau enregistré' : 'Bureau ajouté')
+      setEdition(null)
+    } catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+
+  return (
+    <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '1.1rem' }}>
+      <div className="card-body p-0">
+        <div className="d-flex align-items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <div className="d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{ background: 'rgba(16,185,129,.1)', color: '#047857', width: 38, height: 38, borderRadius: '.75rem' }}>
+            <i className="bi bi-geo-alt-fill" />
+          </div>
+          <div className="flex-1">
+            <div className="fw-bold" style={{ color: '#1e293b' }}>Bureaux</div>
+            <div className="text-slate-400" style={{ fontSize: '.82rem' }}>Rattachement des élèves, page d'accueil (adresse, numéro, itinéraire)</div>
+          </div>
+          {!edition && (
+            <button type="button" className="btn btn-sm fw-bold" onClick={() => setEdition({ ...BUREAU_VIDE })}
+              style={{ background: '#ecfdf5', color: '#047857', borderRadius: 999, border: '1px solid #a7f3d0' }}>
+              <i className="bi bi-plus-lg me-1" />Ajouter
+            </button>
+          )}
+        </div>
+
+        <div className="px-5 py-3">
+          {tous.length === 0 && !edition && (
+            <div className="text-sm text-slate-500 py-2">Aucun bureau pour l'instant. Ajoutez-en au moins un : c'est là que les élèves sont rattachés.</div>
+          )}
+          {tous.map(b => (edition?.id === b.id ? null : (
+            <div key={b.id} className="d-flex align-items-start gap-3 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <i className="bi bi-building mt-1" style={{ color: b.actif ? '#1e3a5f' : '#94a3b8' }} />
+              <div className="flex-1 min-w-0">
+                <div className="fw-bold" style={{ color: b.actif ? '#1e293b' : '#94a3b8' }}>
+                  {b.nom}
+                  {b.principal && b.actif && <span className="badge ms-2" style={{ background: '#fef3c7', color: '#92400e' }}>Inscriptions en ligne</span>}
+                  {!b.actif && <span className="badge ms-2" style={{ background: '#f1f5f9', color: '#64748b' }}>Fermé</span>}
+                </div>
+                <div className="text-xs text-slate-500">{[b.adresse, b.telephone].filter(Boolean).join(' · ') || 'Ni adresse ni numéro'}</div>
+              </div>
+              {!edition && (
+                <button type="button" className="btn btn-sm btn-light fw-semibold" style={{ borderRadius: 999 }}
+                  onClick={() => setEdition({ ...BUREAU_VIDE, ...b, adresse: b.adresse || '', telephone: b.telephone || '', localisation: b.localisation || '' })}>
+                  <i className="bi bi-pencil me-1" />Modifier
+                </button>
+              )}
+            </div>
+          )))}
+
+          {edition && (
+            <div className="rounded-xl p-3 my-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <div className="row g-3">
+                <div className="col-12">
+                  <label className={labelCls}>Nom du bureau *</label>
+                  <input className={inputCls} value={edition.nom} placeholder="Ex : Thiès centre" onChange={e => champ('nom', e.target.value)} />
+                </div>
+                <div className="col-12">
+                  <label className={labelCls}>Adresse</label>
+                  <input className={inputCls} value={edition.adresse} placeholder="Ex : En face de la gare routière" onChange={e => champ('adresse', e.target.value)} />
+                </div>
+                <div className="col-md-6">
+                  <label className={labelCls}>Téléphone</label>
+                  <input className={inputCls} value={edition.telephone} placeholder="Ex : 77 123 45 67" onChange={e => champ('telephone', e.target.value)} />
+                </div>
+                <div className="col-md-6">
+                  <label className={labelCls}>Position GPS (facultatif)</label>
+                  <input className={inputCls} value={edition.localisation} placeholder="Ex : 14.7017,-17.4469" onChange={e => champ('localisation', e.target.value)} />
+                  <div className="text-xs text-slate-400 mt-1">Pour un itinéraire exact ; sinon on cherche l'adresse.</div>
+                </div>
+                <div className="col-12 d-flex flex-wrap gap-4">
+                  <label className="d-flex align-items-center gap-2 text-sm fw-semibold mb-0" style={{ cursor: 'pointer' }}>
+                    <input type="checkbox" className="form-check-input m-0" checked={edition.actif} onChange={e => champ('actif', e.target.checked)} />Bureau ouvert
+                  </label>
+                  <label className="d-flex align-items-center gap-2 text-sm fw-semibold mb-0" style={{ cursor: 'pointer' }}>
+                    <input type="checkbox" className="form-check-input m-0" checked={edition.principal} onChange={e => champ('principal', e.target.checked)} />Suit les inscriptions en ligne
+                  </label>
+                </div>
+                {!edition.actif && edition.id && (
+                  <div className="col-12 text-xs" style={{ color: '#92400e' }}><i className="bi bi-info-circle me-1" />Fermé : ses élèves y restent rattachés, mais aucun nouvel élève ne pourra y être inscrit.</div>
+                )}
+              </div>
+              <div className="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" className="btn btn-light fw-semibold" style={{ borderRadius: '.75rem' }} onClick={() => setEdition(null)} disabled={envoi}>Annuler</button>
+                <button type="button" className="btn fw-bold" onClick={enregistrer} disabled={envoi}
+                  style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', borderRadius: '.75rem', border: 'none' }}>
+                  {envoi ? <span className="spinner-border spinner-border-sm" /> : <><i className="bi bi-check2-circle me-1" />Enregistrer</>}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Parametres() {
   const { user } = useAuth()
   const [form, setForm] = useState({
@@ -261,6 +378,7 @@ export default function Parametres() {
     logoUrl: '', signatureUrl: '',
     tarifInscription: '', tarifHeureCode: '', tarifHeureConduite: '',
     lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
+    ville: '', anneeCreation: '', elevesFormes: '', tauxReussite: '', nombreMoniteurs: '', horaires: '',
   })
   const [formules, setFormules] = useState(formulesDepuis([]))
   const [formulesPerf, setFormulesPerf] = useState([])
@@ -286,6 +404,12 @@ export default function Parametres() {
         lienWave:          data.lienWave          || '',
         lienOrangeMoney:   data.lienOrangeMoney   || '',
         moniteurParDefautId: data.moniteurParDefautId ?? '',
+        ville:             data.ville             || '',
+        anneeCreation:     data.anneeCreation     ?? '',
+        elevesFormes:      data.elevesFormes      || '',
+        tauxReussite:      data.tauxReussite      || '',
+        nombreMoniteurs:   data.nombreMoniteurs   || '',
+        horaires:          data.horaires          || '',
       }) })
       .catch(e => toast(e.message, 'danger'))
       .finally(() => setLoading(false))
@@ -408,9 +532,41 @@ export default function Parametres() {
               </div>
             </div>
 
+            {/* Textes de la page d'accueil publique : un champ vide n'y apparaît pas */}
+            <div className="text-sm font-extrabold text-slate-700 mb-1"><i className="bi bi-globe2 me-2" />Page d'accueil du site</div>
+            <div className="text-xs text-slate-400 mb-3">Affiché aux visiteurs. Laissez vide ce que vous ne voulez pas montrer.</div>
+            <div className="row g-3 mb-4">
+              <div className="col-md-6">
+                <label className={labelCls}>Ville</label>
+                <input className={inputCls} value={form.ville} placeholder="Ex : Dakar" onChange={e => set('ville', e.target.value)} />
+              </div>
+              <div className="col-md-6">
+                <label className={labelCls}>Année de création</label>
+                <input className={inputCls} inputMode="numeric" value={form.anneeCreation} placeholder="Ex : 2016" onChange={e => set('anneeCreation', e.target.value.replace(/\D/g, '').slice(0, 4))} />
+              </div>
+              <div className="col-md-4">
+                <label className={labelCls}>Élèves formés</label>
+                <input className={inputCls} value={form.elevesFormes} placeholder="Ex : 12 000+" onChange={e => set('elevesFormes', e.target.value)} />
+              </div>
+              <div className="col-md-4">
+                <label className={labelCls}>Taux de réussite</label>
+                <input className={inputCls} value={form.tauxReussite} placeholder="Ex : 94 %" onChange={e => set('tauxReussite', e.target.value)} />
+              </div>
+              <div className="col-md-4">
+                <label className={labelCls}>Moniteurs</label>
+                <input className={inputCls} value={form.nombreMoniteurs} placeholder="Ex : 15+" onChange={e => set('nombreMoniteurs', e.target.value)} />
+              </div>
+              <div className="col-12">
+                <label className={labelCls}>Horaires d'ouverture</label>
+                <input className={inputCls} value={form.horaires} placeholder="Ex : Lun – Sam : 8h00 – 18h00" onChange={e => set('horaires', e.target.value)} />
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
+
+      <SectionBureaux />
 
       {/* Section : Tarification */}
       <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '1.1rem' }}>

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { LABELS } from '../utils'
+import { useBureaux } from '../bureaux'
 import { EnteteListe } from './ListeModerne'
 
-const COULEURS = { EN_LIGNE: '#d4a017', MAZALIK_JINAN: '#1e3a5f', GUEDIAWAYE: '#0ea5e9', KEUR_MASSAR: '#10b981' }
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
 /* Anneau SVG : une part par lieu, pourcentage écrit dans les parts assez larges. */
 function Anneau({ lieux, total }) {
+  const { couleur } = useBureaux()
   const R = 150, r0 = 92, c = 180
   // Angle de départ de chaque part : la somme des parts précédentes, depuis midi
   const debuts = lieux.map((_, i) => -Math.PI / 2 + 2 * Math.PI * lieux.slice(0, i).reduce((t, l) => t + l.nombre, 0) / total)
@@ -25,7 +25,7 @@ function Anneau({ lieux, total }) {
     const [tx, ty] = pt((R + r0) / 2, m)
     return (
       <g key={lieu}>
-        <path d={d} fill={COULEURS[lieu] || '#94a3b8'} fillRule="evenodd" stroke="#fff" strokeWidth="4" />
+        <path d={d} fill={couleur(lieu)} fillRule="evenodd" stroke="#fff" strokeWidth="4" />
         {pc >= 5 && <text x={tx} y={ty + 6} textAnchor="middle" fontSize="19" fontWeight="800" fill="#fff">{pc}%</text>}
       </g>
     )
@@ -42,6 +42,7 @@ function Anneau({ lieux, total }) {
 /* Tableau de bord (admin, secrétariat) : élèves par lieu d'inscription (anneau) et quartiers
    les plus représentés (barres ; les adresses comptent trop de quartiers pour un camembert). */
 export default function RepartitionLocalites() {
+  const bureaux = useBureaux()
   const [annee, setAnnee] = useState(String(new Date().getFullYear()))
   const [d, setD] = useState(null)
   useEffect(() => {
@@ -77,12 +78,12 @@ export default function RepartitionLocalites() {
             <div className="flex-1 min-w-0 w-full flex flex-col gap-2.5">
               {d.lieux.map(({ lieu, nombre }) => (
                 <div key={lieu} className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: '#f8fafc' }}>
-                  <span className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ background: COULEURS[lieu] || '#94a3b8' }} />
+                  <span className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ background: bureaux.couleur(lieu) }} />
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-slate-800 truncate">{LABELS[lieu] || lieu}</div>
+                    <div className="font-bold text-sm text-slate-800 truncate">{bureaux.libelle(lieu)}</div>
                     <div className="text-xs text-slate-500">{nombre} élève{nombre > 1 ? 's' : ''}</div>
                   </div>
-                  <div className="text-lg font-black whitespace-nowrap" style={{ color: COULEURS[lieu] || '#64748b' }}>
+                  <div className="text-lg font-black whitespace-nowrap" style={{ color: bureaux.couleur(lieu) }}>
                     {Math.round(100 * nombre / d.total)} %
                   </div>
                 </div>

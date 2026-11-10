@@ -1,12 +1,13 @@
 package sn.autoecole.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.MoyenPaiement;
-import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.math.BigDecimal;
@@ -33,11 +34,12 @@ public class EleveRequest {
 
     private String adresse;
 
-    @NotNull(message = "Le bureau est obligatoire")
-    private Site site;
+    /** Code du bureau (Paramètres → Bureaux), ou EN_LIGNE : le bureau principal. */
+    @NotBlank(message = "Le bureau est obligatoire")
+    private String site;
 
     /** Absent : le bureau. */
-    private Site lieuInscription;
+    private String lieuInscription;
 
     private String numeroCni;
 

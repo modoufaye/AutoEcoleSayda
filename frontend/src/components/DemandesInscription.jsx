@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtMontant, waLink, BUREAUX } from '../utils'
+import { fmtDate, fmtMontant, waLink } from '../utils'
 import { afficherTelephone } from '../telephones'
 import { msgBienvenue } from '../messages'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { EnteteListe } from './ListeModerne'
+import { useBureaux } from '../bureaux'
 
 const FORMATION = d => d.typeFormation === 'PERFECTIONNEMENT'
   ? `Perfectionnement · boîte ${d.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}`
@@ -16,6 +17,7 @@ const MOYEN = { WAVE: 'Wave', ORANGE_MONEY: 'Orange Money' }
    À l'approbation, l'élève est créé et le message de bienvenue WhatsApp est prêt à partir.
    Rien ne s'affiche tant qu'il n'y a pas de demande. */
 export default function DemandesInscription({ onTraitee }) {
+  const bureaux = useBureaux()
   const [demandes, setDemandes] = useState([])
   const [ecole, setEcole] = useState('')
   const [approbation, setApprobation] = useState(null)   // { demande, total, site }
@@ -69,7 +71,7 @@ export default function DemandesInscription({ onTraitee }) {
                   <div className="text-xs text-slate-500">{MOYEN[d.moyenPaiement]}{d.transactionId && <> · réf. <b className="text-slate-700">{d.transactionId}</b></>}</div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setApprobation({ demande: d, total: d.montantFormule ? String(d.montantFormule) : '', site: 'MAZALIK_JINAN' })}
+                  <button type="button" onClick={() => setApprobation({ demande: d, total: d.montantFormule ? String(d.montantFormule) : '', site: bureaux.principal?.code || '' })}
                     className="flex items-center gap-1.5 text-sm font-bold px-4 border-0 cursor-pointer"
                     style={{ minHeight: 36, borderRadius: 999, background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
                     <i className="bi bi-check2-circle" />Approuver
@@ -111,7 +113,7 @@ export default function DemandesInscription({ onTraitee }) {
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Bureau de suivi</label>
                   <select className="form-control" value={approbation.site} onChange={e => setApprobation(a => ({ ...a, site: e.target.value }))}>
-                    {BUREAUX.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    {bureaux.actifs.map(b => <option key={b.code} value={b.code}>{b.nom}</option>)}
                   </select>
                 </div>
                 <div className="text-xs rounded-xl px-3 py-2" style={{ background: '#fffbeb', color: '#92400e' }}>

@@ -13,7 +13,6 @@ import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Moniteur;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
-import sn.autoecole.enums.Site;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.service.EcoleService;
 import sn.autoecole.exception.ResourceNotFoundException;
@@ -43,6 +42,7 @@ public class AnnonceController {
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
     private final EcoleService ecoleService;
+    private final sn.autoecole.service.BureauService bureauService;
 
     /** Qui lit : son compte, et sa fiche élève ou moniteur (bureau, moniteur de l'élève). */
     private record Lecteur(User user, Eleve eleve, Moniteur moniteur) {}
@@ -60,7 +60,7 @@ public class AnnonceController {
         return switch (a.getCible()) {
             case TOUS -> true;
             case ELEVES -> r == RoleUser.ELEVE;
-            case BUREAU -> l.eleve() != null && l.eleve().getSite() != null && l.eleve().getSite().name().equals(a.getValeur());
+            case BUREAU -> l.eleve() != null && l.eleve().getSite() != null && l.eleve().getSite().equals(a.getValeur());
             case MONITEUR -> (l.eleve() != null && l.eleve().getMoniteur() != null && String.valueOf(l.eleve().getMoniteur().getId()).equals(a.getValeur()))
                     || (l.moniteur() != null && String.valueOf(l.moniteur().getId()).equals(a.getValeur()));
             case PERSONNEL -> r != RoleUser.ELEVE;
@@ -130,8 +130,8 @@ public class AnnonceController {
                 valeur = String.valueOf(l.moniteur().getId());
             }
         } else if (cible == Annonce.Cible.BUREAU) {
-            try { valeur = Site.valueOf(String.valueOf(body.get("valeur"))).name(); }
-            catch (IllegalArgumentException e) { throw new BusinessException("Choisissez le bureau"); }
+            valeur = String.valueOf(body.get("valeur"));
+            if (!bureauService.existe(valeur)) throw new BusinessException("Choisissez le bureau");
         } else if (cible == Annonce.Cible.MONITEUR) {
             Long id;
             try { id = Long.valueOf(String.valueOf(body.get("valeur"))); } catch (NumberFormatException e) { throw new BusinessException("Choisissez le moniteur"); }
@@ -164,7 +164,7 @@ public class AnnonceController {
             case TOUS -> "Tout le monde";
             case ELEVES -> "Tous les élèves";
             case BUREAU -> {
-                try { yield "Élèves de " + Site.valueOf(a.getValeur()).getLibelle(); } catch (Exception e) { yield "Élèves d'un bureau"; }
+                yield bureauService.existe(a.getValeur()) ? "Élèves de " + bureauService.libelle(a.getValeur()) : "Élèves d'un bureau";
             }
             case MONITEUR -> moniteurRepository.findById(Long.valueOf(a.getValeur()))
                     .map(m -> "Élèves de " + m.getPrenom() + " " + m.getNom()).orElse("Élèves d'un moniteur");

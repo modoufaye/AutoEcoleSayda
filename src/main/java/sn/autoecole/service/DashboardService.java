@@ -28,6 +28,7 @@ public class DashboardService {
     private final PaiementRepository paiementRepository;
     private final SeanceRepository seanceRepository;
     private final ResultatQuizSeanceRepository resultatQuizSeanceRepository;
+    private final BureauService bureauService;
 
     public DashboardStats getStats() {
         LocalDate debutMois = LocalDate.now().withDayOfMonth(1);
@@ -109,12 +110,13 @@ public class DashboardService {
                 .filter(e -> annee == null || (e.getDateInscription() != null && e.getDateInscription().getYear() == annee))
                 .toList();
         Map<String, Long> lieux = new LinkedHashMap<>();
-        for (Site s : Site.values()) lieux.put(s.name(), 0L);
+        for (var b : bureauService.tous()) lieux.put(b.getCode(), 0L);
+        lieux.put(sn.autoecole.entity.Bureau.EN_LIGNE, 0L);
         Map<String, Long> quartiers = new HashMap<>();
         long sansAdresse = 0;
         for (var e : eleves) {
-            Site lieu = e.getLieuInscription() != null ? e.getLieuInscription() : e.getSite();
-            if (lieu != null) lieux.merge(lieu.name(), 1L, Long::sum);
+            String lieu = e.getLieuInscription() != null ? e.getLieuInscription() : e.getSite();
+            if (lieu != null) lieux.merge(lieu, 1L, Long::sum);
             String q = quartier(e.getAdresse());
             if (q == null) sansAdresse++; else quartiers.merge(q, 1L, Long::sum);
         }

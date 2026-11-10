@@ -47,6 +47,13 @@ public class EcoleService {
         m.put("email", c.map(AutoEcoleConfig::getEmail).map(EcoleService::texte).orElse(null));
         m.put("adresse", c.map(AutoEcoleConfig::getAdresse).map(EcoleService::texte).orElse(null));
         m.put("logoUrl", c.map(AutoEcoleConfig::getLogoUrl).map(EcoleService::texte).orElse(null));
+        // Page d'accueil : ville, ancienneté, chiffres clés, horaires (absents : non affichés)
+        m.put("ville", c.map(AutoEcoleConfig::getVille).map(EcoleService::texte).orElse(null));
+        m.put("anneeCreation", c.map(AutoEcoleConfig::getAnneeCreation).orElse(null));
+        m.put("elevesFormes", c.map(AutoEcoleConfig::getElevesFormes).map(EcoleService::texte).orElse(null));
+        m.put("tauxReussite", c.map(AutoEcoleConfig::getTauxReussite).map(EcoleService::texte).orElse(null));
+        m.put("nombreMoniteurs", c.map(AutoEcoleConfig::getNombreMoniteurs).map(EcoleService::texte).orElse(null));
+        m.put("horaires", c.map(AutoEcoleConfig::getHoraires).map(EcoleService::texte).orElse(null));
         return m;
     }
 }

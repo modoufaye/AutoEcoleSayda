@@ -20,7 +20,6 @@ import sn.autoecole.entity.Paiement;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.RoleUser;
-import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 import sn.autoecole.enums.TypeDocument;
 import sn.autoecole.repository.UserRepository;
@@ -78,7 +77,7 @@ public class EleveController {
     }
 
     @GetMapping("/site/{site}")
-    public ResponseEntity<List<Eleve>> listerParSite(@PathVariable Site site) {
+    public ResponseEntity<List<Eleve>> listerParSite(@PathVariable String site) {
         return ResponseEntity.ok(eleveService.listerParSite(site));
     }
 

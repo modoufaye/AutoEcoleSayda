@@ -61,6 +61,12 @@ public class AutoEcoleConfigController {
         if (body.containsKey("email"))        cfg.setEmail((String) body.get("email"));
         if (body.containsKey("logoUrl"))      cfg.setLogoUrl((String) body.get("logoUrl"));
         if (body.containsKey("signatureUrl")) cfg.setSignatureUrl((String) body.get("signatureUrl"));
+        if (body.containsKey("ville"))           cfg.setVille(texte(body.get("ville")));
+        if (body.containsKey("anneeCreation"))   cfg.setAnneeCreation(annee(body.get("anneeCreation")));
+        if (body.containsKey("elevesFormes"))    cfg.setElevesFormes(texte(body.get("elevesFormes")));
+        if (body.containsKey("tauxReussite"))    cfg.setTauxReussite(texte(body.get("tauxReussite")));
+        if (body.containsKey("nombreMoniteurs")) cfg.setNombreMoniteurs(texte(body.get("nombreMoniteurs")));
+        if (body.containsKey("horaires"))        cfg.setHoraires(texte(body.get("horaires")));
         if (body.containsKey("lienWave"))        cfg.setLienWave(lienPaiement(body.get("lienWave")));
         if (body.containsKey("lienOrangeMoney")) cfg.setLienOrangeMoney(lienPaiement(body.get("lienOrangeMoney")));
 
@@ -90,6 +96,25 @@ public class AutoEcoleConfigController {
      * Donne le moniteur par défaut aux élèves actifs qui n'ont aucun moniteur (ex. inscrits importés
      * avant ce réglage). Ceux qui ont déjà un moniteur ne changent pas. Réservé à l'admin (/api/admin/**).
      */
+    private static String texte(Object o) {
+        if (o == null) return null;
+        String s = o.toString().trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /** Année de création : vide accepté ; sinon une année plausible. */
+    private static Integer annee(Object o) {
+        String s = texte(o);
+        if (s == null) return null;
+        try {
+            int a = Integer.parseInt(s);
+            if (a < 1950 || a > java.time.Year.now().getValue()) throw new sn.autoecole.exception.BusinessException("Année de création invalide");
+            return a;
+        } catch (NumberFormatException e) {
+            throw new sn.autoecole.exception.BusinessException("Année de création invalide");
+        }
+    }
+
     @PostMapping("/api/admin/config/moniteur-par-defaut/appliquer")
     @Transactional
     public Map<String, Object> appliquerMoniteurParDefaut() {

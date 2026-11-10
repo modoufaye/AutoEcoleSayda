@@ -10,7 +10,6 @@ import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.MoyenPaiement;
-import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.EleveRepository;
@@ -38,6 +37,7 @@ import java.util.*;
 public class EleveImportService {
 
     private final EleveService eleveService;
+    private final BureauService bureauService;
     private final EleveRepository eleveRepository;
     private final sn.autoecole.repository.AutoEcoleConfigRepository configRepository;
     private final sn.autoecole.repository.MoniteurRepository moniteurRepository;
@@ -85,7 +85,7 @@ public class EleveImportService {
                 LocalDate date = date(row.getCell(col.get("date")), fmt);
                 BigDecimal acompte = montant(row.getCell(col.get("acompte")), fmt);
                 BigDecimal total = montant(row.getCell(col.get("total")), fmt);
-                Site lieu = lieu(lieuBrut);
+                String lieu = bureauService.trouverParNom(lieuBrut).orElse(null);
                 MoyenPaiement mode = modeBrut.isEmpty() ? MoyenPaiement.ESPECES : mode(modeBrut);
                 String adresse = texte(row, col.get("adresse"), fmt);
 
@@ -115,7 +115,7 @@ public class EleveImportService {
                         : permis != null && !perf ? permis.name() : permisBrut;
                 lignes.add(new Ligne(r + 1, prenom, nom, tel, permisAffiche, date,
                         acompte, total, mode != null ? mode.name() : modeBrut,
-                        lieu != null ? lieu.getLibelle() : lieuBrut, statut, message));
+                        lieu != null ? bureauService.libelle(lieu) : lieuBrut, statut, message));
 
                 if (OK.equals(statut)) {
                     EleveRequest req = new EleveRequest();
@@ -251,15 +251,6 @@ public class EleveImportService {
         String t = simplifier(s).replaceFirst("^cp", "");
         if (t.isEmpty() || t.equals("m") || t.startsWith("manu")) return BoiteVitesse.MANUELLE;
         if (t.equals("a") || t.startsWith("auto")) return BoiteVitesse.AUTOMATIQUE;
-        return null;
-    }
-
-    private static Site lieu(String s) {
-        String t = simplifier(s);
-        if (t.contains("ligne")) return Site.EN_LIGNE;
-        if (t.contains("guediawaye")) return Site.GUEDIAWAYE;
-        if (t.startsWith("keurmas")) return Site.KEUR_MASSAR;
-        if (t.startsWith("massalik") || t.startsWith("mazalik") || t.contains("djinane") || t.contains("jinan")) return Site.MAZALIK_JINAN;
         return null;
     }
 

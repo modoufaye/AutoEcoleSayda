@@ -45,7 +45,6 @@ export const BADGES = {
   type_lecon:      { CODE: 'secondary', CONDUITE: 'primary' },
   statut_paiement: { PAYE: 'success', EN_ATTENTE: 'warning text-dark', ANNULE: 'secondary' },
   type_paiement:   { TRANCHE_1: 'info text-dark', TRANCHE_2: 'primary', TRANCHE_3: 'warning text-dark' },
-  site:            { MAZALIK_JINAN: 'primary', GUEDIAWAYE: 'secondary', KEUR_MASSAR: 'warning text-dark', EN_LIGNE: 'info text-dark' },
 }
 
 export const LABELS = {
@@ -56,18 +55,9 @@ export const LABELS = {
   CODE: 'Code', CONDUITE: 'Conduite',
   PAYE: 'Payé', ANNULE: 'Annulé',
   TRANCHE_1: '1re tranche (acompte)', TRANCHE_2: '2e tranche', TRANCHE_3: '3e tranche',
-  MAZALIK_JINAN: 'Massalikoul Djinane', GUEDIAWAYE: 'Guédiawaye', KEUR_MASSAR: 'Keur Massar', EN_LIGNE: 'En ligne',
 }
 
-/* Bureaux de rattachement des élèves (champ `site` côté API). */
-export const BUREAUX = [
-  { value: 'MAZALIK_JINAN', label: 'Massalikoul Djinane' },
-  { value: 'KEUR_MASSAR',   label: 'Keur Massar' },
-  { value: 'GUEDIAWAYE',    label: 'Guédiawaye' },
-]
-
-/* Lieux d'inscription : les bureaux, plus « En ligne » (l'élève est alors suivi par Massalikoul Djinane). */
-export const LIEUX_INSCRIPTION = [...BUREAUX, { value: 'EN_LIGNE', label: 'En ligne' }]
+/* Bureaux : réglés dans Paramètres, voir bureaux.jsx (useBureaux). */
 
 
 /* Recherche : chaque mot tapé doit se trouver dans le texte, dans n'importe quel ordre,

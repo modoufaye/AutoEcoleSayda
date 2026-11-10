@@ -5,6 +5,7 @@ import affichePerfAuto from '../assets/perf-boite-automatique.jpeg'
 import affichePerfManuelle from '../assets/perf-boite-manuelle.jpeg'
 import afficheCoursCode from '../assets/cours-code-horaires.jpeg'
 import { useEcole } from '../ecole'
+import { useBureaux } from '../bureaux'
 
 // ── Icônes SVG inline ──────────────────────────────────────────────────────
 const CarIcon = () => (
@@ -86,7 +87,7 @@ const SERVICES = [
   {
     icon: <CarIcon />,
     title: 'Cours de Conduite',
-    desc: 'Apprentissage pratique avec des moniteurs certifiés sur des véhicules récents et bien entretenus dans les rues de Dakar.',
+    desc: 'Apprentissage pratique avec des moniteurs certifiés sur des véhicules récents et bien entretenus, en conditions réelles de circulation.',
     color: 'from-amber-50 to-amber-100',
     iconBg: 'bg-[#d4a017]',
     badge: 'Pratique',
@@ -101,14 +102,16 @@ const SERVICES = [
   },
 ]
 
-const ANNEE_CREATION = 2016
-
-const STATS = [
-  { value: '12 000+', label: 'Élèves formés' },
-  { value: '94 %', label: 'Taux de réussite' },
-  { value: '15+', label: 'Moniteurs certifiés' },
-  { value: `${new Date().getFullYear() - ANNEE_CREATION} ans`, label: "D'expérience" },
-]
+/* Chiffres clés et ancienneté : Paramètres → Page d'accueil ; un chiffre vide n'est pas affiché. */
+const statsDe = e => [
+  { value: e.elevesFormes, label: 'Élèves formés' },
+  { value: e.tauxReussite, label: 'Taux de réussite' },
+  { value: e.nombreMoniteurs, label: 'Moniteurs certifiés' },
+  { value: e.anneeCreation && new Date().getFullYear() - e.anneeCreation > 0 ? `${new Date().getFullYear() - e.anneeCreation} ans` : null, label: "D'expérience" },
+].filter(x => x.value)
+// « depuis 2016 », « à Dakar » : rien si le réglage est vide
+const depuis = e => (e.anneeCreation ? ` depuis ${e.anneeCreation}` : '')
+const a = e => (e.ville ? ` à ${e.ville}` : '')
 
 const AVANTAGES = [
   "Moniteurs diplômés d'État",
@@ -202,6 +205,7 @@ function Navbar() {
 
 // ── Hero ───────────────────────────────────────────────────────────────────
 function Hero() {
+  const ecole = useEcole()
   return (
     <section
       id="accueil"
@@ -236,7 +240,7 @@ function Hero() {
           <div>
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/90 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 uppercase tracking-widest">
               <span className="w-2 h-2 bg-[#d4a017] rounded-full" style={{ animation: 'pulse 2s infinite' }} />
-              Auto-École agréée — Dakar
+              Auto-École agréée{ecole.ville && ` — ${ecole.ville}`}
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
@@ -246,7 +250,9 @@ function Hero() {
 
             <p className="text-lg text-blue-100 leading-relaxed mb-8 max-w-xl">
               Formation de qualité au code de la route et à la conduite avec des moniteurs certifiés.
-              Rejoignez plus de 12 000 élèves formés avec succès depuis 2016.
+              {ecole.elevesFormes
+                ? ` Rejoignez plus de ${ecole.elevesFormes.replace(/\s*\+$/, '')} élèves formés avec succès${depuis(ecole)}.`
+                : ` Rejoignez nos élèves${depuis(ecole) ? ` formés avec succès${depuis(ecole)}` : ''}.`}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -383,6 +389,9 @@ function Services() {
 
 // ── Stats ──────────────────────────────────────────────────────────────────
 function StatsSection() {
+  const ecole = useEcole()
+  const stats = statsDe(ecole)
+  if (!stats.length) return null   // aucun chiffre saisi dans Paramètres
   return (
     <section className="py-20" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2a4f7c 100%)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -390,11 +399,11 @@ function StatsSection() {
           <h2 className="text-3xl font-extrabold text-white">
             La confiance de nos élèves, en chiffres
           </h2>
-          <p className="text-blue-200 mt-3">Des résultats qui parlent depuis plus d'une décennie</p>
+          <p className="text-blue-200 mt-3">Des résultats qui parlent d'eux-mêmes{depuis(ecole)}</p>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATS.map((s, i) => (
+        <div className={`grid grid-cols-2 ${stats.length >= 4 ? 'lg:grid-cols-4' : stats.length === 3 ? 'lg:grid-cols-3' : ''} gap-6`}>
+          {stats.map((s, i) => (
             <div
               key={i}
               className="bg-white/10 backdrop-blur border border-white/20 rounded-2xl p-6 text-center hover:bg-white/15 transition-all duration-200"
@@ -411,6 +420,7 @@ function StatsSection() {
 
 // ── Avantages ──────────────────────────────────────────────────────────────
 function Avantages() {
+  const ecole = useEcole()
   return (
     <section id="avantages" className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -418,8 +428,8 @@ function Avantages() {
           <div>
             <SectionHeader
               eyebrow="Pourquoi nous choisir"
-              title="Une auto-école de référence à Dakar"
-              subtitle="Depuis 2016, nous formons les conducteurs sénégalais avec les plus hauts standards de qualité pédagogique."
+              title={`Une auto-école de référence${a(ecole)}`}
+              subtitle={`${ecole.anneeCreation ? `Depuis ${ecole.anneeCreation}, nous formons` : 'Nous formons'} les conducteurs sénégalais avec les plus hauts standards de qualité pédagogique.`}
               align="left"
             />
 
@@ -616,19 +626,15 @@ function CtaBanner() {
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────
-/* Les trois sites de l'auto-école : adresse, numéro (lien d'appel) et itinéraire. geo : position
-   exacte (latitude, longitude) ; sans elle, l'itinéraire cherche l'adresse. */
-const SITES = [
-  { nom: 'Massalikoul Djinane', adresse: 'Avenue Cheikh Ahmadou Bamba, en face de la grande mosquée Massalikoul Djinane', tel: '77 329 35 57',
-    geo: '14.701722,-17.446889' },   // 14°42'06.2"N 17°26'48.8"W
-  { nom: 'Guédiawaye', adresse: "En face de l'arrêt BRT Fith Mith", tel: '78 651 23 23' },
-  { nom: 'Keur Massar', adresse: 'Rond-point Gouye Gui, immeuble CFC, 3e étage', tel: '78 431 35 35' },
-]
-const itineraire = s => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.geo || `${s.adresse}, ${s.nom}, Dakar, Sénégal`)}`
-const whatsapp = (s, nom) => `https://wa.me/221${s.tel.replace(/\s/g, '')}?text=${encodeURIComponent(`Bonjour ${nom} (site de ${s.nom}), je souhaite des informations sur l'inscription au permis.`)}`
+/* Sites de l'auto-école (Paramètres → Bureaux, ouverts) : adresse, numéro (lien d'appel) et
+   itinéraire. localisation : position exacte (latitude, longitude) ; sans elle, on cherche l'adresse. */
+const itineraire = (s, ville) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.localisation || [s.adresse, s.nom, ville, 'Sénégal'].filter(Boolean).join(', '))}`
+const whatsapp = (s, nom) => `https://wa.me/221${s.telephone.replace(/\D/g, '')}?text=${encodeURIComponent(`Bonjour ${nom} (site de ${s.nom}), je souhaite des informations sur l'inscription au permis.`)}`
 
 function Footer() {
   const ecole = useEcole()
+  // Bureaux ouverts avec au moins une adresse ou un numéro
+  const sites = useBureaux().actifs.filter(b => b.adresse || b.telephone)
   return (
     <footer id="contact" className="bg-[#142a47] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -645,7 +651,7 @@ function Footer() {
               <span className="font-bold text-lg">{ecole.nom}</span>
             </div>
             <p className="text-blue-200 text-sm leading-relaxed max-w-xs mb-6">
-              Votre partenaire de confiance pour l'obtention du permis de conduire à Dakar depuis 2016.
+              Votre partenaire de confiance pour l'obtention du permis de conduire{a(ecole)}{depuis(ecole)}.
               Formation de qualité, moniteurs certifiés, suivi personnalisé.
             </p>
             <div className="flex gap-3">
@@ -679,27 +685,30 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Contact : les trois sites */}
+          {/* Contact : les sites de l'auto-école */}
           <div className="md:col-span-2">
-            <h4 className="font-bold uppercase tracking-widest mb-4" style={{ fontSize: '.75rem', color: '#93c5fd' }}>Contact · nos 3 sites</h4>
-            <ul className="grid sm:grid-cols-3 gap-3 list-none p-0 m-0">
-              {SITES.map(s => (
-                <li key={s.nom} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+            <h4 className="font-bold uppercase tracking-widest mb-4" style={{ fontSize: '.75rem', color: '#93c5fd' }}>
+              Contact{sites.length > 1 ? ` · nos ${sites.length} sites` : ''}
+            </h4>
+            <ul className={`grid gap-3 list-none p-0 m-0 ${sites.length >= 3 ? 'sm:grid-cols-3' : sites.length === 2 ? 'sm:grid-cols-2' : ''}`}>
+              {sites.map(s => (
+                <li key={s.code} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
                   <div className="font-bold text-white text-sm">{s.nom}</div>
                   <div className="flex items-start gap-2 text-blue-200 text-xs leading-relaxed flex-1">
-                    <span className="flex-shrink-0"><MapIcon /></span>
-                    <span>{s.adresse}</span>
+                    {s.adresse && <><span className="flex-shrink-0"><MapIcon /></span><span>{s.adresse}</span></>}
                   </div>
-                  <a href={`tel:+221${s.tel.replace(/\s/g, '')}`} className="flex items-center gap-2 text-sm font-semibold whitespace-nowrap" style={{ color: '#fff', textDecoration: 'none' }}>
+                  {s.telephone && (
+                  <a href={`tel:+221${s.telephone.replace(/\D/g, '')}`} className="flex items-center gap-2 text-sm font-semibold whitespace-nowrap" style={{ color: '#fff', textDecoration: 'none' }}>
                     <PhoneIcon />
-                    {s.tel}
+                    {s.telephone}
                   </a>
-                  <a href={whatsapp(s, ecole.nom)} target="_blank" rel="noopener noreferrer" aria-label={`Écrire sur WhatsApp au site de ${s.nom}`}
+                  )}
+                  {s.telephone && <a href={whatsapp(s, ecole.nom)} target="_blank" rel="noopener noreferrer" aria-label={`Écrire sur WhatsApp au site de ${s.nom}`}
                     className="flex items-center justify-center gap-2 rounded-full py-2 text-sm font-bold"
                     style={{ background: '#25d366', color: '#fff', textDecoration: 'none' }}>
                     <WhatsappIcon />WhatsApp
-                  </a>
-                  <a href={itineraire(s)} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold" style={{ color: '#f0bb2a', textDecoration: 'none' }}>
+                  </a>}
+                  <a href={itineraire(s, ecole.ville)} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold" style={{ color: '#f0bb2a', textDecoration: 'none' }}>
                     Itinéraire →
                   </a>
                 </li>
@@ -712,10 +721,12 @@ function Footer() {
                 <a href={`mailto:${ecole.email}`} style={{ color: '#bfdbfe', textDecoration: 'none' }}>{ecole.email}</a>
               </div>
             )}
-            <div className="mt-4 bg-white/10 rounded-xl p-3">
-              <div className="text-xs text-blue-300 font-medium mb-1">Horaires d'ouverture</div>
-              <div className="text-sm text-white">Lun – Sam : 8h00 – 18h00</div>
-            </div>
+            {ecole.horaires && (
+              <div className="mt-4 bg-white/10 rounded-xl p-3">
+                <div className="text-xs text-blue-300 font-medium mb-1">Horaires d'ouverture</div>
+                <div className="text-sm text-white">{ecole.horaires}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>

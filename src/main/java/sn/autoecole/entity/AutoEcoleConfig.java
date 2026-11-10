@@ -24,6 +24,15 @@ public class AutoEcoleConfig {
     private String logoUrl;
     private String signatureUrl;
 
+    /* Page d'accueil publique : ville, année de création, chiffres clés et horaires.
+       Un champ vide n'est pas affiché. */
+    private String ville;
+    private Integer anneeCreation;
+    private String elevesFormes;
+    private String tauxReussite;
+    private String nombreMoniteurs;
+    private String horaires;
+
     /** Liens marchands affichés à l'élève pour payer (Wave Business / Orange Money). */
     @Column(length = 500)
     private String lienWave;

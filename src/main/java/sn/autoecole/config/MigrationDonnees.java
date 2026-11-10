@@ -8,6 +8,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -36,6 +39,57 @@ public class MigrationDonnees {
         etape("téléphones des élèves", this::telephonesEleves);
         etape("téléphones des moniteurs", this::telephonesMoniteurs);
         etape("lieu d'inscription", this::lieuInscription);
+        etape("bureaux", this::bureaux);
+    }
+
+    /**
+     * Les bureaux étaient une liste figée dans le code (MAZALIK_JINAN, GUEDIAWAYE, KEUR_MASSAR) ; ils
+     * sont désormais réglés dans Paramètres (table bureaux). Une seule fois, table vide : on crée un
+     * bureau pour chaque code déjà porté par un élève ou une annonce. Si ce sont les anciens codes
+     * (installation d'origine), on recrée les trois bureaux tels qu'ils étaient affichés, avec leurs
+     * adresses, et on reporte sur Paramètres les textes de la page d'accueil, jusque-là dans le code.
+     * Les élèves gardent leur code : rien ne change pour eux. Nouvelle installation : aucun élève,
+     * aucun bureau ; l'auto-école crée les siens dans Paramètres.
+     */
+    private void bureaux() {
+        Integer deja = jdbc.queryForObject("SELECT COUNT(*) FROM bureaux", Integer.class);
+        if (deja != null && deja > 0) return;
+        Set<String> codes = new LinkedHashSet<>();
+        codes.addAll(jdbc.queryForList("SELECT DISTINCT site FROM eleves WHERE site IS NOT NULL", String.class));
+        codes.addAll(jdbc.queryForList("SELECT DISTINCT lieu_inscription FROM eleves WHERE lieu_inscription IS NOT NULL", String.class));
+        codes.addAll(jdbc.queryForList("SELECT DISTINCT valeur FROM annonces WHERE cible = 'BUREAU' AND valeur IS NOT NULL", String.class));
+        codes.remove("EN_LIGNE");
+        if (codes.isEmpty()) return;
+
+        // code, nom, adresse, téléphone, localisation (installation d'origine)
+        String[][] anciens = {
+            {"MAZALIK_JINAN", "Massalikoul Djinane", "Avenue Cheikh Ahmadou Bamba, en face de la grande mosquée Massalikoul Djinane", "77 329 35 57", "14.701722,-17.446889"},
+            {"GUEDIAWAYE", "Guédiawaye", "En face de l'arrêt BRT Fith Mith", "78 651 23 23", null},
+            {"KEUR_MASSAR", "Keur Massar", "Rond-point Gouye Gui, immeuble CFC, 3e étage", "78 431 35 35", null},
+        };
+        boolean origine = Arrays.stream(anciens).anyMatch(a -> codes.contains(a[0]));
+        String sql = "INSERT INTO bureaux (code, nom, adresse, telephone, localisation, actif, principal, ordre) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        int ordre = 0;
+        if (origine) {
+            for (String[] a : anciens) {
+                ordre++;
+                jdbc.update(sql, a[0], a[1], a[2], a[3], a[4], true, ordre == 1, ordre);
+                codes.remove(a[0]);
+            }
+        }
+        for (String c : codes) {   // codes inconnus : un bureau à renommer dans Paramètres
+            ordre++;
+            jdbc.update(sql, c, c, null, null, null, true, ordre == 1, ordre);
+        }
+        log.info("Migration : {} bureau(x) créé(s) à partir des élèves existants", ordre);
+
+        if (origine) {
+            String[][] accueil = {{"ville", "Dakar"}, {"eleves_formes", "12 000+"}, {"taux_reussite", "94 %"},
+                    {"nombre_moniteurs", "15+"}, {"horaires", "Lun – Sam : 8h00 – 18h00"}};
+            for (String[] a : accueil) jdbc.update("UPDATE auto_ecole_config SET " + a[0] + " = ? WHERE " + a[0] + " IS NULL", a[1]);
+            jdbc.update("UPDATE auto_ecole_config SET annee_creation = 2016 WHERE annee_creation IS NULL");
+            log.info("Migration : textes de la page d'accueil reportés dans Paramètres");
+        }
     }
 
     private void etape(String nom, Runnable r) {

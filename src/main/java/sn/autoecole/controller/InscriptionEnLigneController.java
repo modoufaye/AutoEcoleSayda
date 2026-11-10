@@ -13,7 +13,6 @@ import sn.autoecole.dto.DemandeInscriptionRequest;
 import sn.autoecole.entity.DemandeInscription;
 import sn.autoecole.entity.FormulePerfectionnement;
 import sn.autoecole.entity.FormulePermis;
-import sn.autoecole.enums.Site;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.repository.AutoEcoleConfigRepository;
 import sn.autoecole.service.DemandeInscriptionService;
@@ -109,7 +108,7 @@ public class InscriptionEnLigneController {
     @PostMapping("/api/demandes-inscription/{id}/approuver")
     public Map<String, Object> approuver(@PathVariable Long id, @RequestBody Map<String, Object> body, Authentication auth) {
         BigDecimal total = body.get("montantTotal") == null ? null : new BigDecimal(body.get("montantTotal").toString());
-        Site site = body.get("site") == null || body.get("site").toString().isBlank() ? null : Site.valueOf(body.get("site").toString());
+        String site = body.get("site") == null || body.get("site").toString().isBlank() ? null : body.get("site").toString();
         return service.approuver(id, total, site, auth.getName());
     }
 

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtTime, BADGES, BUREAUX, correspond } from '../utils'
-import Badge from './Badge'
+import { fmtDate, fmtTime, correspond } from '../utils'
 import { toast } from './Toast'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import { confirmer } from './confirmer'
@@ -12,6 +11,8 @@ import Pagination from './Pagination'
 import ChoixPuces from './ChoixPuces'
 import '../landing.css'
 import { afficherTelephone } from '../telephones'
+import { useBureaux } from '../bureaux'
+import PastilleBureau from './PastilleBureau'
 
 const PAGE_SIZE = 10
 
@@ -39,6 +40,7 @@ const minutes = h => { const [a, b] = (h || '0:0').split(':').map(Number); retur
 const heure = m => `${String(Math.floor(Math.min(m, 1439) / 60)).padStart(2, '0')}:${String(Math.min(m, 1439) % 60).padStart(2, '0')}`
 
 export default function Lecons({ onBack }) {
+  const bureaux = useBureaux()
   const { user } = useAuth()
   const isEleve = user?.role === 'ELEVE'
 
@@ -178,7 +180,7 @@ export default function Lecons({ onBack }) {
           <>
             <Filtre icone="building" value={site} onChange={setSite}>
               <option value="">Tous les bureaux</option>
-              {BUREAUX.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {bureaux.tous.map(b => <option key={b.code} value={b.code}>{b.nom}</option>)}
             </Filtre>
             <BoutonAjout onClick={() => openModal()}>Leçon</BoutonAjout>
           </>
@@ -240,7 +242,7 @@ export default function Lecons({ onBack }) {
                     )}
                     {!isEleve && (
                       <td className="py-3.5 px-4" data-label="Bureau">
-                        {l.eleve?.site ? <Badge value={l.eleve.site} map={BADGES.site} /> : <span className="text-slate-300">—</span>}
+                        {l.eleve?.site ? <PastilleBureau code={l.eleve.site} /> : <span className="text-slate-300">—</span>}
                       </td>
                     )}
                     <td className="py-3.5 px-4 text-sm text-slate-600" data-label="Moniteur">

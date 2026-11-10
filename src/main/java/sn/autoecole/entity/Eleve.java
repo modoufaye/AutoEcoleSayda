@@ -6,7 +6,6 @@ import lombok.*;
 import sn.autoecole.enums.BoiteVitesse;
 import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.CategoriePermis;
-import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 
 import java.time.LocalDate;
@@ -40,14 +39,13 @@ public class Eleve {
 
     private String adresse;
 
-    @Enumerated(EnumType.STRING)
+    /** Code du bureau qui suit l'élève (voir Bureau). */
     @Column(name = "site")
-    private Site site;
+    private String site;
 
     // Où l'élève s'est inscrit (bureau ou en ligne), distinct du bureau qui le suit ensuite.
-    @Enumerated(EnumType.STRING)
     @Column(name = "lieu_inscription")
-    private Site lieuInscription;
+    private String lieuInscription;
 
     // Ancien identifiant de connexion, plus saisi : conservé pour les fiches existantes.
     @Email(message = "Format d'email invalide")

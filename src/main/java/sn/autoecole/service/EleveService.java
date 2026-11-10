@@ -13,7 +13,6 @@ import sn.autoecole.entity.User;
 import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.enums.CategoriePermis;
 import sn.autoecole.enums.RoleUser;
-import sn.autoecole.enums.Site;
 import sn.autoecole.enums.StatutEleve;
 import sn.autoecole.enums.StatutPaiement;
 import sn.autoecole.enums.TypePaiement;
@@ -41,6 +40,7 @@ import java.util.Optional;
 public class EleveService {
 
     private final EleveRepository    eleveRepository;
+    private final BureauService      bureauService;
     private final MoniteurRepository moniteurRepository;
     private final UserRepository     userRepository;
     private final PaiementRepository paiementRepository;
@@ -73,18 +73,12 @@ public class EleveService {
         return eleveRepository.findByCategoriePermisAndArchiveFalse(categorie);
     }
 
-    public List<Eleve> listerParSite(Site site) {
+    public List<Eleve> listerParSite(String site) {
         return eleveRepository.findBySiteAndArchiveFalse(site);
     }
 
-    /** Guédiawaye est fermé : refusé pour une inscription ou un changement, toléré s'il est déjà en place. */
-    /** « En ligne » est un lieu d'inscription, pas un bureau : ces élèves sont suivis par Massalikoul Djinane. */
     private static String formule(String f) {
         return f == null || f.isBlank() ? null : f.trim();
-    }
-
-    private static Site bureau(Site site) {
-        return site == Site.EN_LIGNE ? Site.MAZALIK_JINAN : site;
     }
 
     /** Un numéro identifie un seul élève : c'est son identifiant de connexion. */
@@ -114,8 +108,8 @@ public class EleveService {
                 .dateNaissance(request.getDateNaissance())
                 .telephone(telephone)
                 .adresse(request.getAdresse())
-                .site(bureau(request.getSite()))
-                .lieuInscription(request.getLieuInscription() != null ? request.getLieuInscription() : request.getSite())
+                .site(bureauService.pourEleve(request.getSite(), null))
+                .lieuInscription(bureauService.lieu(request.getLieuInscription() != null ? request.getLieuInscription() : request.getSite()))
                 .numeroCni(request.getNumeroCni())
                 .photoUrl(request.getPhotoUrl())
                 .montantTotal(request.getMontantTotal())
@@ -227,8 +221,8 @@ public class EleveService {
         if (request.getDateInscription() != null) eleve.setDateInscription(request.getDateInscription());
         eleve.setTelephone(telephone);
         eleve.setAdresse(request.getAdresse());
-        eleve.setSite(bureau(request.getSite()));
-        if (request.getLieuInscription() != null) eleve.setLieuInscription(request.getLieuInscription());
+        eleve.setSite(bureauService.pourEleve(request.getSite(), eleve.getSite()));
+        if (request.getLieuInscription() != null) eleve.setLieuInscription(bureauService.lieu(request.getLieuInscription()));
         eleve.setNumeroCni(request.getNumeroCni());
         eleve.setPhotoUrl(request.getPhotoUrl());
         eleve.setMontantTotal(request.getMontantTotal());
