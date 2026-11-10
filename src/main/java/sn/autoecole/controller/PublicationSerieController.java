@@ -61,6 +61,27 @@ public class PublicationSerieController {
         return repo.findByElevesContaining(e).stream().map(p -> Map.of("serie", p.getSerie(), "mode", p.getMode())).distinct().toList();
     }
 
+    /** Fiche d'un élève (personnel) : séries publiées pour lui, une ligne par série avec ses modes,
+        même s'il ne les a pas encore faites ; la plus récemment publiée d'abord. */
+    @GetMapping("/eleve/{id}")
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> pourEleve(@PathVariable Long id) {
+        Eleve e = eleveRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Élève introuvable"));
+        Map<String, Map<String, Object>> parSerie = new LinkedHashMap<>();
+        repo.findByElevesContaining(e).stream()
+                .sorted(Comparator.comparing(PublicationSerie::getCreeLe, Comparator.nullsLast(Comparator.reverseOrder())))
+                .forEach(p -> {
+                    Map<String, Object> x = parSerie.computeIfAbsent(p.getSerie(), k -> {
+                        Map<String, Object> n = new LinkedHashMap<>();
+                        n.put("serie", k); n.put("modes", new ArrayList<String>()); n.put("creeLe", p.getCreeLe());
+                        return n;
+                    });
+                    @SuppressWarnings("unchecked") List<String> modes = (List<String>) x.get("modes");
+                    if (!modes.contains(p.getMode())) modes.add(p.getMode());
+                });
+        return new ArrayList<>(parSerie.values());
+    }
+
     /** Corps : { serie, modes: ["ENTRAINEMENT", "EXAMEN"], eleveIds } ; une publication par mode. Déjà
         publiée par le même auteur dans ce mode : les élèves cochés s'ajoutent à cette publication. */
     @PostMapping

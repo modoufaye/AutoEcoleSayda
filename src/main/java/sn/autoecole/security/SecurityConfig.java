@@ -72,7 +72,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
                 // Travaux Dirigés : séries et annales publiées (l'élève lit les siennes, le secrétariat consulte)
                 .requestMatchers(HttpMethod.GET, "/api/publications-series/mes").hasRole("ELEVE")
-                .requestMatchers(HttpMethod.GET, "/api/publications-series").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
+                .requestMatchers(HttpMethod.GET, "/api/publications-series", "/api/publications-series/eleve/*").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
                 .requestMatchers("/api/publications-series", "/api/publications-series/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
                 // Gestion des paiements réservée à l'admin : sinon un élève pourrait
                 // valider lui-même un paiement déclaré (PATCH /statut).

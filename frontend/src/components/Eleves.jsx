@@ -19,7 +19,7 @@ import { ConversationEleve } from './Messages'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
 import { CoursPublies } from './SeanceCode'
-import { STATUTS as STATUTS_SERIE, serieDe, statutSerie } from '../contenu/seriesPubliees'
+import { STATUTS as STATUTS_SERIE, MODES as MODES_SERIE, serieDe, statutSerie } from '../contenu/seriesPubliees'
 import { compterSeances } from '../contenu/programme'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
 
@@ -169,10 +169,11 @@ function Avatar({ p, className, style }) {
   return <div className={`${className} flex items-center justify-center flex-shrink-0`} style={style}>{initials(p.nom, p.prenom)}</div>
 }
 
-/* Annales et séries d'examen passées en examen blanc : meilleure note, essais, assimilée ou non. */
+/* Annales et séries d'examen de l'élève : publiées pour lui (modes entraînement / examen blanc), même
+   pas encore faites, et passées en examen blanc (meilleure note, essais, assimilée ou non). */
 function SeriesPassees({ series }) {
   if (!series.length) return (
-    <div className="px-4 py-4 text-sm text-slate-400 flex items-center gap-2"><i className="bi bi-journal-bookmark" />Aucun examen blanc d'annales ou de série passé pour le moment</div>
+    <div className="px-4 py-4 text-sm text-slate-400 flex items-center gap-2"><i className="bi bi-journal-bookmark" />Aucune annale ni série d'examen publiée pour cet élève</div>
   )
   return (
     <div>
@@ -181,10 +182,20 @@ function SeriesPassees({ series }) {
         return (
           <div key={n.chapitre} className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm" style={{ color: '#1e3a5f' }}>{serieDe(n.chapitre)?.titre || n.chapitre}</div>
-              <div className="text-xs text-slate-400">{n.tentatives} essai{n.tentatives > 1 ? 's' : ''}{n.derniereTentative && ` · dernier le ${new Date(n.derniereTentative).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}</div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-bold text-sm" style={{ color: '#1e3a5f' }}>{serieDe(n.chapitre)?.titre || n.chapitre}</span>
+                {(n.modes || []).map(k => {
+                  const m = MODES_SERIE.find(x => x.key === k)
+                  return m && <span key={k} className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: m.fond, color: m.couleur }}><i className={`bi bi-${m.icone} me-1`} />{m.libelle}</span>
+                })}
+              </div>
+              <div className="text-xs text-slate-400">
+                {n.total
+                  ? <>{n.tentatives} essai{n.tentatives > 1 ? 's' : ''} en examen blanc{n.derniereTentative && ` · dernier le ${new Date(n.derniereTentative).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}</>
+                  : <>Examen blanc pas encore passé{n.publieeLe && ` · publiée le ${new Date(n.publieeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`}</>}
+              </div>
             </div>
-            <span className="text-sm font-extrabold" style={{ color: '#1e3a5f' }}>{n.meilleurScore}/{n.total}</span>
+            {n.total ? <span className="text-sm font-extrabold" style={{ color: '#1e3a5f' }}>{n.meilleurScore}/{n.total}</span> : null}
             <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: s.fond, color: s.couleur }}><i className={`bi bi-${s.icone} me-1`} />{s.libelle}</span>
           </div>
         )
@@ -1090,17 +1101,22 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
     try {
-      const [lecons, seances, examens, paiements, tp, progression] = await Promise.all([
+      const [lecons, seances, examens, paiements, tp, progression, publiees] = await Promise.all([
         api('GET', `/eleves/${eleve.id}/lecons`),
         api('GET', `/eleves/${eleve.id}/seances`).catch(() => []),
         api('GET', `/eleves/${eleve.id}/examens`),
         api('GET', `/eleves/${eleve.id}/paiements`),
         api('GET', `/eleves/${eleve.id}/total-paye`),
         api('GET', `/eleves/${eleve.id}/progression-code`).catch(() => []),
+        api('GET', `/publications-series/eleve/${eleve.id}`).catch(() => []),
       ])
-      // Examens blancs des annales et séries d'examen, les plus récents d'abord
-      const series = (progression || []).filter(n => /^(serie|annale)-/.test(n.chapitre))
-        .sort((a, b) => String(b.derniereTentative || '').localeCompare(String(a.derniereTentative || '')))
+      /* Annales et séries d'examen : celles publiées pour l'élève (même pas encore faites, avec leurs
+         modes), plus celles qu'il a passées en examen blanc ; les plus récentes d'abord. */
+      const notes = new Map((progression || []).filter(n => /^(serie|annale)-/.test(n.chapitre)).map(n => [n.chapitre, n]))
+      const series = (publiees || []).map(p => ({ ...(notes.get(p.serie) || {}), chapitre: p.serie, modes: p.modes, publieeLe: p.creeLe }))
+      notes.forEach((n, ch) => { if (!series.some(x => x.chapitre === ch)) series.push({ ...n, modes: [] }) })
+      const date = x => String(x.derniereTentative || x.publieeLe || '')
+      series.sort((a, b) => date(b).localeCompare(date(a)))
       setProfileData({ lecons, seances, examens, paiements, series, totalPaye: tp?.totalPaye ?? 0 })
     } catch { toast('Erreur chargement profil', 'danger') }
     finally { setLoadingProfile(false) }
