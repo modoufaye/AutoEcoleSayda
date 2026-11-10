@@ -1,0 +1,26 @@
+[
+  {
+    "id": "khadija",
+    "actif": true,
+    "domaine": "www.khadija.auto-ecole.sn",
+    "appSite": "www",
+    "appServeur": "sayda-backend",
+    "jetonSite": "CAPROVER_TOKEN_WWW",
+    "jetonServeur": "CAPROVER_TOKEN_BACKEND",
+    "nom": "Auto-École Khadija",
+    "nomCourt": "Khadija",
+    "lieu": "Dakar · Sénégal"
+  },
+  {
+    "id": "demo",
+    "actif": false,
+    "domaine": "demo.auto-ecole.sn",
+    "appSite": "demo",
+    "appServeur": "demo-backend",
+    "jetonSite": "CAPROVER_TOKEN_DEMO_SITE",
+    "jetonServeur": "CAPROVER_TOKEN_DEMO_SERVEUR",
+    "nom": "Auto-École Démo",
+    "nomCourt": "Démo",
+    "lieu": "Sénégal"
+  }
+]
