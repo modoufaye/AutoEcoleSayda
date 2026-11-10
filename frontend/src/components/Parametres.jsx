@@ -4,6 +4,7 @@ import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import ComptesSecretariat from './ComptesSecretariat'
 import { useAuth } from '../context/AuthContext'
+import { rechargerEcole } from '../ecole'
 
 const labelCls = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5'
 const inputCls = 'form-control'
@@ -337,6 +338,7 @@ export default function Parametres() {
         tarifHeureConduite: parseFloat(form.tarifHeureConduite) || 0,
         ...versServeur(formules, formulesPerf),
       })
+      rechargerEcole()   // nouveau nom affiché partout sans recharger la page
       toast('Paramètres enregistrés avec succès')
     } catch (e) {
       toast(e.message, 'danger')
@@ -383,7 +385,7 @@ export default function Parametres() {
               <div className="col-12">
                 <label className={labelCls}>Nom de l'auto-école</label>
                 <input className={inputCls} value={form.nom}
-                  placeholder="Ex : Auto-École Khadija"
+                  placeholder="Ex : Auto-École Excellence"
                   onChange={e => set('nom', e.target.value)} />
               </div>
               <div className="col-12">

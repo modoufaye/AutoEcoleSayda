@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { toast } from './Toast'
 import { EnteteListe } from './ListeModerne'
 import '../landing.css'
+import { useEcole } from '../ecole'
 
 const RES_STYLE = {
   ADMIS:      { bg: '#dcfce7', color: '#15803d', dot: '#16a34a', label: 'Admis' },
@@ -91,6 +92,7 @@ function TableLecons({ lecons, empty }) {
 }
 
 export default function ElevePortail({ onGoSection, accesCours = false }) {
+  const ecole = useEcole()
   const { user } = useAuth()
   const [profil, setProfil]   = useState(null)
   const [examens, setExamens] = useState([])
@@ -525,7 +527,7 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
           {(() => {
             const m = profil.moniteur
             const lien = m && waLink(m.telephone,
-              `Bonjour ${m.prenom}, c'est ${profil.prenom} ${profil.nom}, votre élève à l'Auto-École Khadija.`)
+              `Bonjour ${m.prenom}, c'est ${profil.prenom} ${profil.nom}, votre élève (${ecole.nom}).`)
             return lien && (
               <div className="mx-6 mb-4">
                 <a href={lien} target="_blank" rel="noopener noreferrer"

@@ -26,6 +26,7 @@ import Mediatheque from '../components/Mediatheque'
 import Annonces from '../components/Annonces'
 import Messages from '../components/Messages'
 import HoteConfirmation from '../components/Confirmation'
+import { useEcole } from '../ecole'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
@@ -89,6 +90,7 @@ function useIsMobile() {
 }
 
 export default function AppLayout() {
+  const ecole = useEcole()
   const { user, logout } = useAuth()
   const { toasts } = useToastManager()
   const navigate = useNavigate()
@@ -281,7 +283,7 @@ export default function AppLayout() {
         <button className="sidebar-brand w-100" onClick={() => handleSectionChange(sectionsMenu[0]?.key)}>
           <i className="bi bi-car-front-fill" style={{ fontSize: '1.2rem', color: '#f0bb2a', flexShrink: 0 }} />
           <div className="brand-text">
-            <div>Auto-École Khadija</div>
+            <div>{ecole.nom}</div>
           </div>
         </button>
 
@@ -345,7 +347,7 @@ export default function AppLayout() {
 
           <div>
             <div className="page-title">{activeSection?.label || ''}</div>
-            <div className="page-breadcrumb">Auto-École Khadija</div>
+            <div className="page-breadcrumb">{ecole.nom}</div>
           </div>
 
           <div className="ms-auto">

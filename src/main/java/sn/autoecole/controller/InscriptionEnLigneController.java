@@ -38,6 +38,7 @@ public class InscriptionEnLigneController {
     private final DemandeInscriptionService service;
     private final VisiteService visites;
     private final AutoEcoleConfigRepository configRepository;
+    private final sn.autoecole.service.EcoleService ecoleService;
     /** Horodatages récents par adresse IP : limitent les envois en rafale (robots). */
     private final Map<String, Deque<Long>> demandes = new ConcurrentHashMap<>();
     private final Map<String, Deque<Long>> essais = new ConcurrentHashMap<>();
@@ -47,7 +48,7 @@ public class InscriptionEnLigneController {
     public Map<String, Object> infos() {
         var c = configRepository.findAll().stream().findFirst();
         Map<String, Object> m = new HashMap<>();
-        m.put("nom", c.map(x -> x.getNom()).orElse("Auto-École Khadija"));
+        m.put("nom", ecoleService.nom());
         m.put("lienWave", c.map(x -> x.getLienWave()).orElse(null));
         m.put("lienOrangeMoney", c.map(x -> x.getLienOrangeMoney()).orElse(null));
         m.put("telephone", c.map(x -> x.getTelephone()).orElse(null));

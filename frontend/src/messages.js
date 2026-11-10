@@ -1,8 +1,8 @@
 /* Textes des messages WhatsApp envoyés par l'administration.
    Modifier ici pour changer la formulation partout dans l'application. */
 import { fmtDate } from './utils'
+import { nomEcole } from './ecole'
 
-const ECOLE_DEFAUT = 'Auto-École Khadija'
 
 const CATEGORIE = { A: 'A', B: 'B', C: 'C', D: 'D' }
 
@@ -28,7 +28,7 @@ function quand(dateIso) {
 
 /* identifiants : { identifiant, motDePasse } renvoyés par POST /moniteurs/{id}/identifiants */
 export function msgBienvenueMoniteur(moniteur, ecole, identifiants) {
-  const nom = ecole || ECOLE_DEFAUT
+  const nom = ecole || nomEcole()
   return [
     `Bonjour ${moniteur.prenom} 👋`,
     '',
@@ -43,7 +43,7 @@ export function msgBienvenueMoniteur(moniteur, ecole, identifiants) {
 
 /* identifiants : { nom, identifiant, motDePasse } renvoyés par POST /admin/secretaires */
 export function msgBienvenueSecretaire(identifiants, ecole) {
-  const nom = ecole || ECOLE_DEFAUT
+  const nom = ecole || nomEcole()
   return [
     `Bonjour ${identifiants.nom.split(' ')[0]} 👋`,
     '',
@@ -57,7 +57,7 @@ export function msgBienvenueSecretaire(identifiants, ecole) {
 }
 
 export function msgBienvenueAdmin(identifiants, ecole) {
-  const nom = ecole || ECOLE_DEFAUT
+  const nom = ecole || nomEcole()
   return [
     `Bonjour ${identifiants.nom.split(' ')[0]} 👋`,
     '',
@@ -71,7 +71,7 @@ export function msgBienvenueAdmin(identifiants, ecole) {
 
 /* identifiants : { identifiant, motDePasse } renvoyés par POST /eleves/{id}/identifiants */
 export function msgBienvenue(eleve, ecole, identifiants) {
-  const nom = ecole || ECOLE_DEFAUT
+  const nom = ecole || nomEcole()
   const m = eleve.moniteur
   const lignes = [
     `Bonjour ${eleve.prenom} 👋`,
@@ -102,7 +102,7 @@ export function msgBienvenue(eleve, ecole, identifiants) {
 }
 
 export function msgRappelExamen(examen, ecole) {
-  const nom = ecole || ECOLE_DEFAUT
+  const nom = ecole || nomEcole()
   return [
     `Bonjour ${examen.eleve?.prenom ?? ''},`,
     '',

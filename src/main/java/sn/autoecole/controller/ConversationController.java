@@ -12,6 +12,7 @@ import sn.autoecole.entity.Moniteur;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.exception.BusinessException;
+import sn.autoecole.service.EcoleService;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.ConversationRepository;
 import sn.autoecole.repository.EleveRepository;
@@ -38,6 +39,7 @@ public class ConversationController {
     private final MessagePriveRepository messages;
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
+    private final EcoleService ecoleService;
 
     private record Lecteur(User user, Eleve eleve, Moniteur moniteur) {
         boolean estEleve() { return user.getRole() == RoleUser.ELEVE; }
@@ -73,10 +75,10 @@ public class ConversationController {
                 : messages.countByConversationIdAndCoteAndEnvoyeLeAfter(c.getId(), autre, lu);
     }
 
-    /** Pour l'élève : « Auto-École Khadija » ou le nom du moniteur ; pour l'équipe : le nom de l'élève. */
+    /** Pour l'élève : le nom de l'auto-école ou celui du moniteur ; pour l'équipe : le nom de l'élève. */
     private String interlocuteur(Conversation c, Lecteur l) {
         if (!l.estEleve()) return c.getEleve().getPrenom() + " " + c.getEleve().getNom();
-        if (c.getType() == Conversation.Type.ECOLE) return "Auto-École Khadija";
+        if (c.getType() == Conversation.Type.ECOLE) return ecoleService.nom();
         return moniteurRepository.findById(c.getMoniteurId()).map(m -> "Moniteur · " + m.getPrenom() + " " + m.getNom()).orElse("Votre moniteur");
     }
 
@@ -169,7 +171,7 @@ public class ConversationController {
         if (texte.length() > 2000) throw new BusinessException("Message trop long (2 000 caractères au plus)");
         LocalDateTime maintenant = LocalDateTime.now();
         MessagePrive m = messages.save(MessagePrive.builder().conversationId(c.getId()).cote(l.cote()).auteurId(l.user().getId())
-                .auteurNom(l.user().getRole() == RoleUser.SUPER_ADMIN ? "Auto-École Khadija" : l.user().getNom())   // comme pour les cours publiés
+                .auteurNom(l.user().getRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : l.user().getNom())   // comme pour les cours publiés
                 .texte(texte).envoyeLe(maintenant).build());
         c.setDernierMessageLe(maintenant);
         if (l.estEleve()) c.setEleveLuLe(maintenant); else c.setEquipeLuLe(maintenant);

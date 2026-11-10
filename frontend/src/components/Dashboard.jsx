@@ -7,6 +7,7 @@ import ComptesBloques from './ComptesBloques'
 import DemandesInscription from './DemandesInscription'
 import RepartitionLocalites from './RepartitionLocalites'
 import '../landing.css'
+import { useEcole } from '../ecole'
 
 /* ══════════════════════════════════════════════════════════
    COMPOSANTS PARTAGÉS
@@ -61,6 +62,7 @@ function FinanceCard({ value, label, icon, accent }) {
 ══════════════════════════════════════════════════════════ */
 
 function DashboardMoniteur({ stats, user }) {
+  const ecole = useEcole()
   const [eleves, setEleves] = useState([])
   const [loadingEleves, setLoadingEleves] = useState(true)
   const [photoUrl, setPhotoUrl] = useState(null)
@@ -119,7 +121,7 @@ function DashboardMoniteur({ stats, user }) {
             )}
             <div>
               <div className="text-xl font-extrabold text-white leading-tight">{greeting}, {user?.nom?.split(' ')[0]} 👋</div>
-              <div className="text-sm text-blue-200 mt-0.5">Moniteur — Auto-École Khadija</div>
+              <div className="text-sm text-blue-200 mt-0.5">Moniteur — {ecole.nom}</div>
             </div>
           </div>
 
@@ -290,6 +292,7 @@ function SectionTitle({ gradient, label }) {
 const CLE_MONTANTS_MASQUES = 'dashboard.montantsMasques'
 
 function DashboardAdmin({ stats, user }) {
+  const ecole = useEcole()
   const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const tauxReussite = stats.totalExamens > 0 ? Math.round((stats.examensAdmis / stats.totalExamens) * 100) : null
@@ -337,7 +340,7 @@ function DashboardAdmin({ stats, user }) {
             </div>
             <div>
               <div className="text-xl font-extrabold text-white leading-tight">{greeting}, {user?.nom?.split(' ')[0]} 👋</div>
-              <div className="text-sm text-blue-200 mt-0.5">{user?.role === 'SECRETAIRE' ? 'Secrétariat' : 'Administrateur'} — Auto-École Khadija</div>
+              <div className="text-sm text-blue-200 mt-0.5">{user?.role === 'SECRETAIRE' ? 'Secrétariat' : 'Administrateur'} — {ecole.nom}</div>
             </div>
           </div>
 

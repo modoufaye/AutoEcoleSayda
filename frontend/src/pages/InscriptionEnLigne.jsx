@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ChampTelephone from '../components/ChampTelephone'
 import '../landing.css'
+import { nomEcole } from '../ecole'
 
 /* Appel public, sans jeton : un jeton périmé ne doit pas renvoyer le candidat vers la connexion. */
 async function appelPublic(method, url, body) {
@@ -116,7 +117,7 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
     acompte: acompte > 0,
   }
   const pct = Math.round(Object.values(faits).filter(Boolean).length / 4 * 100)
-  const ecole = infos.nom || 'Auto-École Khadija'
+  const ecole = infos.nom || nomEcole()
 
   const recap = (
     <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.14)' }}>

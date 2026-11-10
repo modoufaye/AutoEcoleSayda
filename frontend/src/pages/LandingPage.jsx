@@ -4,6 +4,7 @@ import '../landing.css'
 import affichePerfAuto from '../assets/perf-boite-automatique.jpeg'
 import affichePerfManuelle from '../assets/perf-boite-manuelle.jpeg'
 import afficheCoursCode from '../assets/cours-code-horaires.jpeg'
+import { useEcole } from '../ecole'
 
 // ── Icônes SVG inline ──────────────────────────────────────────────────────
 const CarIcon = () => (
@@ -150,6 +151,7 @@ export default function LandingPage() {
 
 // ── Navbar ─────────────────────────────────────────────────────────────────
 function Navbar() {
+  const ecole = useEcole()
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -162,7 +164,7 @@ function Navbar() {
               </svg>
             </div>
             <div className="leading-tight">
-              <div className="font-bold text-[#1e3a5f] text-sm sm:text-base">Auto-École Khadija</div>
+              <div className="font-bold text-[#1e3a5f] text-sm sm:text-base">{ecole.nom}</div>
             </div>
           </a>
 
@@ -577,6 +579,7 @@ function Galerie() {
 
 // ── CTA Banner ─────────────────────────────────────────────────────────────
 function CtaBanner() {
+  const ecole = useEcole()
   return (
     <section className="py-20 bg-[#d4a017]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -584,7 +587,7 @@ function CtaBanner() {
           Prêt à obtenir votre permis ?
         </h2>
         <p className="text-amber-100 text-lg mb-8">
-          Rejoignez l'Auto-École Khadija et bénéficiez d'un suivi personnalisé jusqu'à l'obtention de votre permis.
+          Rejoignez {ecole.nom} et bénéficiez d'un suivi personnalisé jusqu'à l'obtention de votre permis.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
@@ -622,9 +625,10 @@ const SITES = [
   { nom: 'Keur Massar', adresse: 'Rond-point Gouye Gui, immeuble CFC, 3e étage', tel: '78 431 35 35' },
 ]
 const itineraire = s => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.geo || `${s.adresse}, ${s.nom}, Dakar, Sénégal`)}`
-const whatsapp = s => `https://wa.me/221${s.tel.replace(/\s/g, '')}?text=${encodeURIComponent(`Bonjour Auto-École Khadija (site de ${s.nom}), je souhaite des informations sur l'inscription au permis.`)}`
+const whatsapp = (s, nom) => `https://wa.me/221${s.tel.replace(/\s/g, '')}?text=${encodeURIComponent(`Bonjour ${nom} (site de ${s.nom}), je souhaite des informations sur l'inscription au permis.`)}`
 
 function Footer() {
+  const ecole = useEcole()
   return (
     <footer id="contact" className="bg-[#142a47] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -638,7 +642,7 @@ function Footer() {
                   <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                 </svg>
               </div>
-              <span className="font-bold text-lg">Auto-École Khadija</span>
+              <span className="font-bold text-lg">{ecole.nom}</span>
             </div>
             <p className="text-blue-200 text-sm leading-relaxed max-w-xs mb-6">
               Votre partenaire de confiance pour l'obtention du permis de conduire à Dakar depuis 2016.
@@ -690,7 +694,7 @@ function Footer() {
                     <PhoneIcon />
                     {s.tel}
                   </a>
-                  <a href={whatsapp(s)} target="_blank" rel="noopener noreferrer" aria-label={`Écrire sur WhatsApp au site de ${s.nom}`}
+                  <a href={whatsapp(s, ecole.nom)} target="_blank" rel="noopener noreferrer" aria-label={`Écrire sur WhatsApp au site de ${s.nom}`}
                     className="flex items-center justify-center gap-2 rounded-full py-2 text-sm font-bold"
                     style={{ background: '#25d366', color: '#fff', textDecoration: 'none' }}>
                     <WhatsappIcon />WhatsApp
@@ -701,10 +705,13 @@ function Footer() {
                 </li>
               ))}
             </ul>
-            <div className="mt-3 flex items-center gap-3 text-blue-200 text-sm">
-              <MailIcon />
-              <a href="mailto:khadija@auto-ecole.sn" style={{ color: '#bfdbfe', textDecoration: 'none' }}>khadija@auto-ecole.sn</a>
-            </div>
+            {/* E-mail de Paramètres ; aucun tant qu'il n'est pas saisi */}
+            {ecole.email && (
+              <div className="mt-3 flex items-center gap-3 text-blue-200 text-sm">
+                <MailIcon />
+                <a href={`mailto:${ecole.email}`} style={{ color: '#bfdbfe', textDecoration: 'none' }}>{ecole.email}</a>
+              </div>
+            )}
             <div className="mt-4 bg-white/10 rounded-xl p-3">
               <div className="text-xs text-blue-300 font-medium mb-1">Horaires d'ouverture</div>
               <div className="text-sm text-white">Lun – Sam : 8h00 – 18h00</div>
@@ -715,7 +722,7 @@ function Footer() {
 
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-blue-300">
-          <span>© 2026 Auto-École Khadija. Tous droits réservés.</span>
+          <span>© {new Date().getFullYear()} {ecole.nom}. Tous droits réservés.</span>
           <span>Agréé par le Ministère des Transports terrestres et aériens</span>
         </div>
       </div>

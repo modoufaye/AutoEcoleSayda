@@ -17,6 +17,7 @@ import sn.autoecole.entity.ProgressionCode;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.ProgressionCodeRepository;
 import sn.autoecole.repository.PublicationSerieRepository;
+import sn.autoecole.service.EcoleService;
 import sn.autoecole.service.SeanceService;
 
 import java.time.LocalDateTime;
@@ -42,6 +43,7 @@ public class PublicationSerieController {
     private final EleveRepository eleveRepository;
     private final SeanceService seanceService;
     private final ProgressionCodeRepository progressionRepository;
+    private final EcoleService ecoleService;
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -157,7 +159,7 @@ public class PublicationSerieController {
     private Map<String, Object> vue(PublicationSerie p, User u) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", p.getId()); m.put("serie", p.getSerie()); m.put("mode", p.getMode()); m.put("creeLe", p.getCreeLe());
-        m.put("auteur", p.getAuteur() == null ? "" : p.getAuteur().getRole() == RoleUser.SUPER_ADMIN ? "Auto-École Khadija" : p.getAuteur().getNom());
+        m.put("auteur", p.getAuteur() == null ? "" : p.getAuteur().getRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : p.getAuteur().getNom());
         Map<Long, ProgressionCode> notes = new HashMap<>();
         progressionRepository.findByChapitre(p.getSerie()).forEach(n -> notes.put(n.getEleveId(), n));
         m.put("eleves", p.getEleves().stream().map(e -> {

@@ -1,9 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+// Nom de l'auto-école installée (fichier .env, ou variables du déploiement de chaque auto-école) :
+// titre de l'onglet et nom de l'application installée sur le téléphone.
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, '.', 'VITE_')
+  return {
   plugins: [
     react(),
     tailwindcss(),
@@ -15,8 +19,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
 
       manifest: {
-        name: 'Auto-École Khadija',
-        short_name: 'Khadija',
+        name: env.VITE_ECOLE_NOM || 'Auto-École',
+        short_name: env.VITE_ECOLE_NOM_COURT || 'Auto-École',
         description: "Gestion de l'auto-école : élèves, leçons, examens et paiements.",
         lang: 'fr',
         dir: 'ltr',
@@ -97,4 +101,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })

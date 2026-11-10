@@ -15,6 +15,7 @@ import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.enums.Site;
 import sn.autoecole.exception.BusinessException;
+import sn.autoecole.service.EcoleService;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.AnnonceLueRepository;
 import sn.autoecole.repository.AnnonceRepository;
@@ -41,6 +42,7 @@ public class AnnonceController {
     private final AnnonceLueRepository lues;
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
+    private final EcoleService ecoleService;
 
     /** Qui lit : son compte, et sa fiche élève ou moniteur (bureau, moniteur de l'élève). */
     private record Lecteur(User user, Eleve eleve, Moniteur moniteur) {}
@@ -77,7 +79,7 @@ public class AnnonceController {
         return repo.findAllByOrderByCreeLeDesc().stream().filter(a -> visible(a, l)).map(a -> {
             Map<String, Object> v = new LinkedHashMap<>();
             v.put("id", a.getId()); v.put("titre", a.getTitre()); v.put("contenu", a.getContenu());
-            v.put("auteur", a.getAuteurRole() == RoleUser.SUPER_ADMIN ? "Auto-École Khadija" : a.getAuteurNom());
+            v.put("auteur", a.getAuteurRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : a.getAuteurNom());
             v.put("date", a.getCreeLe()); v.put("cible", a.getCible()); v.put("valeur", a.getValeur());
             v.put("destinataires", destinataires(a));
             v.put("pourMoi", destinataire(a, l));

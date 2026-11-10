@@ -14,6 +14,7 @@ import { useAudiosWolof, clePanneau } from './audiosWolof'
 import { useAuth } from '../context/AuthContext'
 import { chargerQuiz, ecrireQuiz, effacerQuiz } from './sauvegardeQuiz'
 import { confirmer } from './confirmer'
+import { useEcole } from '../ecole'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -380,6 +381,7 @@ const ENTETE_CODE = { titre: 'Cours de code', decor: ['A14', 'AB4', 'B14'],
 
 /* themes / entete : par défaut les cours de code ; l'onglet Cours Conduite passe ses propres thèmes. */
 export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirChapitre, onFermerChapitre, themes = THEMES_CODE, entete = ENTETE_CODE }) {
+  const ecole = useEcole()
   const [progression, setProgression] = useState({})
   const [ouvertures, setOuvertures] = useState(null)   // élève : ce que ses séances ouvrent (code ou conduite)
   const [ouvertLocal, setOuvertLocal] = useState(null)
@@ -447,7 +449,7 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
   return (
     <div className="space-y-4" style={police}>
       {onRetour && <div>{btnRetour(onRetour, 'Retour')}</div>}
-      <Bandeau surtitre="AUTO-ÉCOLE KHADIJA" titre={entete.titre} decor={entete.decor} texte={entete.texte} />
+      <Bandeau surtitre={ecole.nom.toUpperCase()} titre={entete.titre} decor={entete.decor} texte={entete.texte} />
       {parSeances && themesVisibles.length === 0 && (
         <div className="bg-white rounded-2xl px-6 py-10 text-center" style={carte}>
           <div style={{ fontSize: 44 }}>📚</div>

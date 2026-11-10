@@ -3,10 +3,12 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { ROLE_BASE } from '../utils'
 import '../landing.css'
+import { useEcole, LIEU_INSTALLATION } from '../ecole'
 
 const SAVED_EMAIL_KEY = 'rememberedEmail'
 
 export default function LoginPage() {
+  const ecole = useEcole()
   const { user, login } = useAuth()
   const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY) || ''
   const [form, setForm]       = useState({ email: savedEmail, motDePasse: '' })
@@ -124,10 +126,10 @@ export default function LoginPage() {
               </svg>
             </div>
             <h1 className="text-xl font-extrabold text-white mb-1 tracking-tight">
-              Auto-École Khadija
+              {ecole.nom}
             </h1>
             <p className="text-blue-200 text-xs uppercase tracking-[0.15em] font-medium">
-              Dakar · Sénégal
+              {LIEU_INSTALLATION}
             </p>
           </div>
 
@@ -292,7 +294,7 @@ export default function LoginPage() {
 
         {/* ── Pied de page sous la carte ── */}
         <p className="text-center text-blue-300/60 text-xs mt-6">
-          © 2026 Auto-École Khadija — Agréé par le Ministère des Transports terrestres et aériens
+          © {new Date().getFullYear()} {ecole.nom} — Agréé par le Ministère des Transports terrestres et aériens
         </p>
       </div>
     </div>
