@@ -13,6 +13,7 @@ import sn.autoecole.repository.UserRepository;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.core.annotation.Order(10)   // avant DonneesDemo, qui signe au nom du super admin
 public class AdminSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
