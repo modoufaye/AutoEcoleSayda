@@ -337,7 +337,7 @@ export function ProgrammeEleve({ seance }) {
       {seance.programme.map((p, i) => <PartieEleve key={`${p.chapitre}-${p.de}-${p.a}`} partie={p} rang={i + 1} />)}
 
       {quiz ? (
-        <Quiz key={quiz} sauvegarde={sauvegarde} questions={questions} nouveauTirage={() => questionsSeance(seance.programme)} onFini={fini} texteValide="Séance validée, bravo ! Votre moniteur voit votre résultat." />
+        <Quiz key={quiz} sauvegarde={sauvegarde} questions={questions} nouveauTirage={() => questionsSeance(seance.programme)} onFini={fini} texteValide="Bravo, séance validée ! 🎉 Vous progressez bien. Retrouvez vos prochaines séances dans l’onglet « Mes Séances »." />
       ) : (
         <div className="rounded-2xl p-5 text-white flex flex-col sm:flex-row sm:items-center gap-4" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '5px solid #d4a017' }}>
           <div style={{ fontSize: 40 }}>{resultat?.reussi ? '🏆' : '📝'}</div>
