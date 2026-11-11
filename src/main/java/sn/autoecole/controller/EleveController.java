@@ -50,6 +50,13 @@ public class EleveController {
     private final UserRepository  userRepository;
     private final EleveImportService importService;
     private final SeanceService   seanceService;
+    private final sn.autoecole.repository.ExamenRepository examenRepository;
+
+    /** Élèves admis à l'examen du code (au moins un examen CODE « Admis ») : prêts pour la conduite. */
+    @GetMapping("/admis-code")
+    public List<Long> admisCode() {
+        return examenRepository.eleveIdsParResultat(sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS);
+    }
 
     @GetMapping
     public ResponseEntity<List<Eleve>> listerTous(@RequestParam(defaultValue = "false") boolean archives) {

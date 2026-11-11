@@ -40,6 +40,9 @@ const minutes = h => { const [a, b] = (h || '0:0').split(':').map(Number); retur
 const heure = m => `${String(Math.floor(Math.min(m, 1439) / 60)).padStart(2, '0')}:${String(Math.min(m, 1439) % 60).padStart(2, '0')}`
 
 export default function Lecons({ onBack }) {
+  // Élèves admis à l'examen du code : indiqués dans le choix des élèves d'une leçon
+  const [admisCode, setAdmisCode] = useState(() => new Set())
+  useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
   const bureaux = useBureaux()
   const { user } = useAuth()
   const isEleve = user?.role === 'ELEVE'
@@ -94,7 +97,8 @@ export default function Lecons({ onBack }) {
   }
 
   const pucesEleves = eleves.map(e => ({ id: e.id, titre: `${e.prenom} ${e.nom}`, sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro',
-    badge: e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''}`, mots: [e.prenom, e.nom, e.telephone] }))
+    // Permis : l'indice « code admis » dit si l'élève peut déjà faire la conduite
+    badge: e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''} · ${admisCode.has(e.id) ? 'code admis ✓' : 'code à passer'}`, mots: [e.prenom, e.nom, e.telephone] }))
   const pucesMoniteurs = moniteurs.map(m => ({ id: m.id, titre: `${m.prenom} ${m.nom}`, sous: m.telephone, mots: [m.prenom, m.nom, m.telephone] }))
   const pucesVehicules = vehicules.map(v => ({ id: v.id, titre: `${v.marque} ${v.modele}`, sous: v.immatriculation,
     badge: v.categorie ? `Permis ${v.categorie}` : null, mots: [v.immatriculation, v.marque, v.modele] }))

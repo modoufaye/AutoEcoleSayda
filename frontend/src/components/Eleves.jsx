@@ -978,6 +978,19 @@ const libelleMois = (m) => {
   return t.charAt(0).toUpperCase() + t.slice(1)
 }
 
+/* Indice « code » : un élève du permis admis à l'examen du code peut passer à la conduite.
+   Le perfectionnement (déjà titulaire du permis) n'est pas concerné. */
+function IndiceCode({ eleve, admis, grand = false }) {
+  if (eleve.typeFormation === 'PERFECTIONNEMENT') return null
+  const style = admis ? { background: '#dcfce7', color: '#15803d' } : { background: '#fef3c7', color: '#b45309' }
+  return (
+    <span title={admis ? 'Admis à l\'examen du code : peut faire la conduite' : 'Examen du code pas encore réussi'}
+      className={`${grand ? 'text-xs px-3 py-1' : 'text-[10px] px-1.5 py-0.5'} font-extrabold rounded-full whitespace-nowrap`} style={style}>
+      <i className={`bi bi-${admis ? 'patch-check-fill' : 'hourglass-split'} me-1`} />{admis ? 'Code admis' : 'Code à passer'}
+    </span>
+  )
+}
+
 export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }) {
   const bureaux = useBureaux()
   const { user } = useAuth()
@@ -999,6 +1012,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [formation, setFormation] = useState(memo.formation ?? '')   // '' | PERMIS | PERFECTIONNEMENT
   const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
+  const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
+  // Élèves admis à l'examen du code : prêts pour les cours de conduite
+  const [admisCode, setAdmisCode] = useState(() => new Set())
+  useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(!!memo.archives)
   const loadReq = useRef(0)
@@ -1011,15 +1028,15 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     try {
       sessionStorage.setItem(cleFiltres(user?.id), JSON.stringify({
-        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, archives, page, signatureFiltres, user?.id])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, archives, page, signatureFiltres, user?.id])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1078,6 +1095,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
     if (semaine) r = r.filter(e => inscritCetteSemaine(e.dateInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
+    if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
@@ -1089,7 +1107,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, admisCode, presence, list, signatureFiltres])
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
@@ -1779,6 +1797,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                 </span>
               )}
               {s.site && <PastilleBureau code={s.site} />}
+              <IndiceCode eleve={s} admis={admisCode.has(s.id)} grand />
               {!isMoniteur && s.archive && (
                 <>
                   <button onClick={() => reactiver(s)}
@@ -2042,6 +2061,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
         <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
           Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe).length}
         </FiltreBascule>
+        {/* Admis au code : peuvent commencer (ou poursuivre) la conduite */}
+        <FiltreBascule actif={codeAdmisSeul} onClick={() => setCodeAdmisSeul(x => !x)} icone="patch-check">
+          Code admis · {list.filter(e => admisCode.has(e.id)).length}
+        </FiltreBascule>
         {/* Inscrits des 7 derniers jours : les élèves arrivent au fil de la semaine */}
         <FiltreBascule actif={semaine} onClick={() => setSemaine(x => !x)} icone="calendar-week">
           Nouveaux cette semaine · {list.filter(e => inscritCetteSemaine(e.dateInscription)).length}
@@ -2133,6 +2156,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                       ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
                       : <span title="Leçons de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode}</b> code</span>}
                     <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>
+                    <IndiceCode eleve={e} admis={admisCode.has(e.id)} />
                   </div>
                   <div className="text-slate-400 mt-1">
                     {archives && e.dateArchivage ? <>Archivé le {fmtDate(e.dateArchivage)}</> : <>Inscrit le {fmtDate(e.dateInscription)}</>}
