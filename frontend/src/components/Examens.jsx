@@ -40,6 +40,7 @@ export default function Examens({ onEleveClick, onBack }) {
   const [filterResultat, setFilterResultat] = useState('')
   const [filterTentative, setFilterTentative] = useState('')
   const [page, setPage]                     = useState(1)
+  const [ouverts, setOuverts]               = useState(() => new Set())   // dates d'examen dépliées (personnel)
   const [filterDateDe, setFilterDateDe]     = useState('')
   const [filterDateA, setFilterDateA]       = useState('')
   const [form, setForm]                     = useState(EMPTY)
@@ -150,6 +151,100 @@ export default function Examens({ onEleveClick, onBack }) {
     .filter(e => !filterDateDe    || e.date >= filterDateDe)
     .filter(e => !filterDateA     || e.date <= filterDateA)
 
+
+  /* Une ligne d'examen (élève, épreuve, score, résultat, actions). */
+  const ligne = e => {
+            const resSt  = RES_STYLE[e.resultat] || { bg: '#f1f5f9', color: '#64748b', label: e.resultat }
+            const typeSt = TYPE_STYLE[e.type]    || { bg: '#f1f5f9', color: '#64748b', label: e.type }
+            const j = e.date ? joursAvant(e.date) : null
+            const quand = j == null ? '' : j === 0 ? "Aujourd'hui" : j === 1 ? 'Demain' : j > 1 ? `Dans ${j} jours` : j === -1 ? 'Hier' : `Il y a ${-j} jours`
+            const rappel = !isEleve && lienRappel(e)
+            return (
+              <LigneListe key={e.id}>
+                {/* Élève (ou, côté élève, l'épreuve) */}
+                <div className="flex items-center gap-3 min-w-0">
+                  {isEleve ? (
+                    <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-lg"
+                      style={{ borderRadius: '999px', background: typeSt.bg, color: typeSt.color }}>
+                      <i className={`bi bi-${e.type === 'CODE' ? 'signpost-2-fill' : 'car-front-fill'}`} />
+                    </div>
+                  ) : <AvatarRond photoUrl={e.eleve?.photoUrl} prenom={e.eleve?.prenom} nom={e.eleve?.nom} />}
+                  <div className="min-w-0">
+                    {isEleve ? (
+                      <div className="font-bold text-[#1e3a5f]">Examen de {typeSt.label.toLowerCase()}</div>
+                    ) : e.eleve && onEleveClick ? (
+                      <button onClick={() => onEleveClick(e.eleve.id)}
+                        className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
+                        {e.eleve.prenom} {e.eleve.nom}
+                      </button>
+                    ) : <div className="font-bold text-slate-700 truncate">{e.eleve ? `${e.eleve.prenom} ${e.eleve.nom}` : '—'}</div>}
+                    <div className="text-xs text-slate-500">
+                      {e.eleve?.categoriePermis && <span className="me-2"><i className="bi bi-award me-1" />Permis {e.eleve.categoriePermis}</span>}
+                      <span><i className="bi bi-arrow-repeat me-1" />{e.tentative > 1 ? `${e.tentative}e tentative` : '1re tentative'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Épreuve et date */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 flex flex-col items-center justify-center flex-shrink-0"
+                    style={{ borderRadius: '.8rem', background: typeSt.bg, color: typeSt.color }}>
+                    <i className={`bi bi-${e.type === 'CODE' ? 'signpost-2-fill' : 'car-front-fill'}`} />
+                    <span className="text-[9px] font-extrabold uppercase leading-none mt-0.5">{typeSt.label}</span>
+                  </div>
+                  <div className="min-w-0 text-xs">
+                    <div className="font-bold text-slate-700">{fmtDate(e.date)}</div>
+                    <div className="font-semibold" style={{ color: j != null && j >= 0 && e.resultat === 'EN_ATTENTE' ? '#b45309' : '#94a3b8' }}>{quand}</div>
+                  </div>
+                </div>
+
+                {/* Score */}
+                <div className="min-w-0 text-xs">
+                  {e.score != null ? (
+                    <>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-slate-500">Score</span>
+                        <span><b className="text-sm text-slate-800">{e.score}</b><span className="text-slate-400">/100</span></span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ background: '#eef2f7' }}>
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, e.score)}%`, background: resSt.color }} />
+                      </div>
+                    </>
+                  ) : <span className="text-slate-400">Pas encore de score</span>}
+                  {e.observations && <div className="text-slate-400 mt-1 truncate" title={e.observations}>{e.observations}</div>}
+                </div>
+
+                {/* Résultat et actions */}
+                <div className="flex items-center justify-between md:justify-end gap-2">
+                  <Pastille couleur={resSt.color} fond={resSt.bg}>{resSt.label}</Pastille>
+                  {!isEleve && (
+                    <div className="flex items-center gap-1.5">
+                      {rappel && (
+                        <a href={rappel} target="_blank" rel="noopener noreferrer" title="Rappel WhatsApp"
+                          className="w-8 h-8 flex items-center justify-center no-underline transition-transform hover:scale-110"
+                          style={{ borderRadius: '999px', background: '#dcfce7', color: '#16a34a' }}>
+                          <i className="bi bi-whatsapp" style={{ fontSize: '.85rem' }} />
+                        </a>
+                      )}
+                      <BoutonRond title="Saisir le résultat" icon="pencil-square" couleur="#2563eb" fond="#eff6ff" onClick={() => openResultat(e)} />
+                      <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(e.id)} />
+                    </div>
+                  )}
+                </div>
+              </LigneListe>
+            )
+  }
+
+  /* Personnel : examens regroupés par date. Dates à venir d'abord (la plus proche en haut), puis
+     les passées (la plus récente en haut) ; dans une date, les élèves par ordre alphabétique. */
+  const parDate = {}
+  for (const e of filtered) (parDate[e.date] ||= []).push(e)
+  const aujourdhui = new Date().toISOString().slice(0, 10)
+  const groupes = Object.keys(parDate)
+    .sort((x, y) => (x >= aujourdhui) !== (y >= aujourdhui) ? (x >= aujourdhui ? -1 : 1) : x >= aujourdhui ? x.localeCompare(y) : y.localeCompare(x))
+    .map(date => ({ date, examens: parDate[date].sort((a, b) => `${a.eleve?.nom} ${a.eleve?.prenom}`.localeCompare(`${b.eleve?.nom} ${b.eleve?.prenom}`)) }))
+  const groupesPage = groupes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const basculerDate = d => setOuverts(o => { const n = new Set(o); if (n.has(d)) n.delete(d); else n.add(d); return n })
 
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -266,91 +361,49 @@ export default function Examens({ onEleveClick, onBack }) {
       {/* ── Liste des examens ─────────────────────────────────── */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone="clipboard2-check-fill" titre={isEleve ? 'Mes examens' : 'Examens'}
-          sousTitre={isEleve ? 'Historique de vos passages' : 'Résultats et suivi des passages'} nombre={filtered.length} />
+          sousTitre={isEleve ? 'Historique de vos passages' : 'Par date d\'examen · touchez une date pour voir ses élèves'} nombre={filtered.length} />
         {loading ? <ListeChargement />
           : filtered.length === 0 ? <ListeVide texte="Aucun examen trouvé" icone="clipboard2-check" />
-          : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(e => {
-            const resSt  = RES_STYLE[e.resultat] || { bg: '#f1f5f9', color: '#64748b', label: e.resultat }
-            const typeSt = TYPE_STYLE[e.type]    || { bg: '#f1f5f9', color: '#64748b', label: e.type }
-            const j = e.date ? joursAvant(e.date) : null
-            const quand = j == null ? '' : j === 0 ? "Aujourd'hui" : j === 1 ? 'Demain' : j > 1 ? `Dans ${j} jours` : j === -1 ? 'Hier' : `Il y a ${-j} jours`
-            const rappel = !isEleve && lienRappel(e)
+          : isEleve ? filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(ligne)
+          : groupesPage.map(g => {
+            const ouvert = ouverts.has(g.date) || !!search.trim()
+            const j = joursAvant(g.date)
+            const quand = j === 0 ? "Aujourd'hui" : j === 1 ? 'Demain' : j > 1 ? `Dans ${j} jours` : j === -1 ? 'Hier' : `Il y a ${-j} jours`
+            const n = k => g.examens.filter(e => e.resultat === k).length
+            const types = ['CODE', 'CONDUITE'].filter(t => g.examens.some(e => e.type === t))
             return (
-              <LigneListe key={e.id}>
-                {/* Élève (ou, côté élève, l'épreuve) */}
-                <div className="flex items-center gap-3 min-w-0">
-                  {isEleve ? (
-                    <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-lg"
-                      style={{ borderRadius: '999px', background: typeSt.bg, color: typeSt.color }}>
-                      <i className={`bi bi-${e.type === 'CODE' ? 'signpost-2-fill' : 'car-front-fill'}`} />
-                    </div>
-                  ) : <AvatarRond photoUrl={e.eleve?.photoUrl} prenom={e.eleve?.prenom} nom={e.eleve?.nom} />}
-                  <div className="min-w-0">
-                    {isEleve ? (
-                      <div className="font-bold text-[#1e3a5f]">Examen de {typeSt.label.toLowerCase()}</div>
-                    ) : e.eleve && onEleveClick ? (
-                      <button onClick={() => onEleveClick(e.eleve.id)}
-                        className="block text-left font-bold text-[#1e3a5f] hover:underline bg-transparent border-0 p-0 cursor-pointer truncate max-w-full">
-                        {e.eleve.prenom} {e.eleve.nom}
-                      </button>
-                    ) : <div className="font-bold text-slate-700 truncate">{e.eleve ? `${e.eleve.prenom} ${e.eleve.nom}` : '—'}</div>}
-                    <div className="text-xs text-slate-500">
-                      {e.eleve?.categoriePermis && <span className="me-2"><i className="bi bi-award me-1" />Permis {e.eleve.categoriePermis}</span>}
-                      <span><i className="bi bi-arrow-repeat me-1" />{e.tentative > 1 ? `${e.tentative}e tentative` : '1re tentative'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Épreuve et date */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 flex flex-col items-center justify-center flex-shrink-0"
-                    style={{ borderRadius: '.8rem', background: typeSt.bg, color: typeSt.color }}>
-                    <i className={`bi bi-${e.type === 'CODE' ? 'signpost-2-fill' : 'car-front-fill'}`} />
-                    <span className="text-[9px] font-extrabold uppercase leading-none mt-0.5">{typeSt.label}</span>
-                  </div>
-                  <div className="min-w-0 text-xs">
-                    <div className="font-bold text-slate-700">{fmtDate(e.date)}</div>
-                    <div className="font-semibold" style={{ color: j != null && j >= 0 && e.resultat === 'EN_ATTENTE' ? '#b45309' : '#94a3b8' }}>{quand}</div>
-                  </div>
-                </div>
-
-                {/* Score */}
-                <div className="min-w-0 text-xs">
-                  {e.score != null ? (
-                    <>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-slate-500">Score</span>
-                        <span><b className="text-sm text-slate-800">{e.score}</b><span className="text-slate-400">/100</span></span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden mt-1.5" style={{ background: '#eef2f7' }}>
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, e.score)}%`, background: resSt.color }} />
-                      </div>
-                    </>
-                  ) : <span className="text-slate-400">Pas encore de score</span>}
-                  {e.observations && <div className="text-slate-400 mt-1 truncate" title={e.observations}>{e.observations}</div>}
-                </div>
-
-                {/* Résultat et actions */}
-                <div className="flex items-center justify-between md:justify-end gap-2">
-                  <Pastille couleur={resSt.color} fond={resSt.bg}>{resSt.label}</Pastille>
-                  {!isEleve && (
-                    <div className="flex items-center gap-1.5">
-                      {rappel && (
-                        <a href={rappel} target="_blank" rel="noopener noreferrer" title="Rappel WhatsApp"
-                          className="w-8 h-8 flex items-center justify-center no-underline transition-transform hover:scale-110"
-                          style={{ borderRadius: '999px', background: '#dcfce7', color: '#16a34a' }}>
-                          <i className="bi bi-whatsapp" style={{ fontSize: '.85rem' }} />
-                        </a>
-                      )}
-                      <BoutonRond title="Saisir le résultat" icon="pencil-square" couleur="#2563eb" fond="#eff6ff" onClick={() => openResultat(e)} />
-                      <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => del(e.id)} />
-                    </div>
-                  )}
-                </div>
-              </LigneListe>
+              <div key={g.date} style={{ borderBottom: '1px solid #eef2f7' }}>
+                {/* En-tête de la date : un clic déplie ou replie les élèves de cet examen */}
+                <button type="button" onClick={() => basculerDate(g.date)} aria-expanded={ouvert}
+                  className="w-full flex flex-wrap items-center gap-3 px-4 sm:px-5 py-3.5 text-left border-0 cursor-pointer"
+                  style={{ background: ouvert ? '#f8fafc' : '#fff' }}>
+                  <span className="w-11 h-11 flex flex-col items-center justify-center flex-shrink-0 leading-none"
+                    style={{ borderRadius: '.8rem', background: j >= 0 ? '#fef3c7' : '#eef2f7', color: j >= 0 ? '#b45309' : '#475569' }}>
+                    <span className="text-base font-black">{g.date.slice(8, 10)}</span>
+                    <span className="text-[9px] font-extrabold uppercase">{new Date(g.date + 'T12:00').toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')}</span>
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-extrabold text-[#1e3a5f]">
+                      Examen · {new Date(g.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      <span className="font-semibold" style={{ color: j >= 0 ? '#b45309' : '#94a3b8' }}>{quand}</span>
+                      {' · '}{g.examens.length} élève{g.examens.length > 1 ? 's' : ''}
+                      {types.map(t => ` · ${TYPE_STYLE[t].label} ${g.examens.filter(e => e.type === t).length}`).join('')}
+                    </span>
+                  </span>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    {['ADMIS', 'REFUSE', 'EN_ATTENTE'].filter(k => n(k)).map(k => (
+                      <Pastille key={k} couleur={RES_STYLE[k].color} fond={RES_STYLE[k].bg}>{n(k)} {RES_STYLE[k].label.toLowerCase()}</Pastille>
+                    ))}
+                  </span>
+                  <i className={`bi bi-chevron-${ouvert ? 'up' : 'down'} text-slate-400`} />
+                </button>
+                {ouvert && <div style={{ borderTop: '1px solid #eef2f7' }}>{g.examens.map(ligne)}</div>}
+              </div>
             )
           })}
-        <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
+        <Pagination page={page} setPage={setPage} total={isEleve ? filtered.length : groupes.length} pageSize={PAGE_SIZE} />
       </div>
 
       {/* ── Fenêtre nouvel examen ────────────────────────────── */}
