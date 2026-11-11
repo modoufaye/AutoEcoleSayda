@@ -212,6 +212,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   // Élèves déjà dans la séance ouverte : restent proposés (et cochés) même admis au code
   const [dejaDansSeance, setDejaDansSeance] = useState([])
   const [nouveauxSeuls, setNouveauxSeuls] = useState(false)   // seulement les inscrits des 7 derniers jours
+  const [ordreFige, setOrdreFige] = useState({ cle: '', ids: [], nbTete: 0 })   // ordre de la liste des élèves (voir cleVue)
   const [formationVue, setFormationVue] = useState('')   // '' : tous ; PERMIS ; PERFECTIONNEMENT (conduite seule)
 
   const openCreate = () => {
@@ -377,13 +378,24 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const elevesVisibles = elevesAssignables.filter(e => correspond([e.nom, e.telephone], rechercheEleve)
     && (!nouveauxSeuls || inscritCetteSemaine(e.dateInscription)) && deLaFormation(e, formationVue))
   // Élèves cochés toujours en tête de liste, puis les autres (ordre d'origine conservé dans chaque groupe)
-  const elevesTries = [...elevesVisibles.filter(e => form.eleveIds.includes(e.id)), ...elevesVisibles.filter(e => !form.eleveIds.includes(e.id))]
-  const nbCochesVisibles = elevesTries.filter(e => form.eleveIds.includes(e.id)).length
-  const toutCocher = coche => setForm(f => {
+  /* Ordre de la liste figé pendant qu'on coche : les cochés sont en tête à l'ouverture (ou après un
+     changement de filtre, de recherche ou de séance), puis un élève coché ou décoché reste à sa place.
+     Sinon il remontait en tête à chaque clic et il fallait redescendre chercher le suivant. */
+  const cleVue = `${editId ?? 'nouvelle'}|${elevesVisibles.map(e => e.id).join(',')}`
+  if (ordreFige.cle !== cleVue) {
+    const coches = elevesVisibles.filter(e => form.eleveIds.includes(e.id)).map(e => e.id)
+    setOrdreFige({ cle: cleVue, ids: [...coches, ...elevesVisibles.filter(e => !form.eleveIds.includes(e.id)).map(e => e.id)], nbTete: coches.length })
+  }
+  const parId = Object.fromEntries(elevesVisibles.map(e => [e.id, e]))
+  const elevesTries = ordreFige.cle === cleVue ? ordreFige.ids.map(id => parId[id]).filter(Boolean) : elevesVisibles
+  const nbTete = ordreFige.cle === cleVue ? ordreFige.nbTete : 0
+  // Cocher ou décocher d'un coup : les groupes « déjà cochés / autres » sont recalculés
+  const regrouper = () => setOrdreFige(o => ({ ...o, cle: '' }))
+  const toutCocher = coche => { regrouper(); setForm(f => {
     const ids = new Set(f.eleveIds)
     elevesVisibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
     return { ...f, eleveIds: [...ids] }
-  })
+  }) }
   const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
   const BLOCS = [
     { type: 'TEXTE', label: 'Texte', icon: 'pencil-fill',       color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
@@ -494,9 +506,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                 {/* Séance pour un seul groupe : ne garder cochés que ses élèves */}
                 {formationVue && !lectureSeule && (
                   <button type="button" className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}
-                    onClick={() => setForm(f => ({ ...f, eleveIds: [
+                    onClick={() => { regrouper(); setForm(f => ({ ...f, eleveIds: [
                       ...f.eleveIds.filter(id => elevesAssignables.some(e => e.id === id && deLaFormation(e, formationVue))),
-                    ] }))}>
+                    ] })) }}>
                     <i className="bi bi-funnel-fill" />Ne garder cochés que {formationVue === 'PERFECTIONNEMENT' ? 'le perfectionnement' : 'le permis'}
                   </button>
                 )}
@@ -510,7 +522,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                 {/* Nouvelle séance (tout le monde est coché par défaut) : séance réservée aux nouveaux */}
                 {nouveauxSeuls && !editId && !lectureSeule && (
                   <button type="button" className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}
-                    onClick={() => setForm(f => ({ ...f, eleveIds: elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).map(e => e.id) }))}>
+                    onClick={() => { regrouper(); setForm(f => ({ ...f, eleveIds: elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).map(e => e.id) })) }}>
                     <i className="bi bi-funnel-fill" />Ne cocher que les nouveaux
                   </button>
                 )}
@@ -531,14 +543,16 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                   const checked = form.eleveIds.includes(e.id)
                   const mots = (e.nom || '').split(' '), nom = mots.pop(), prenom = mots.join(' ')   // « Prénom Nom »
                   // Intertitre au début de chaque groupe : « Cochés · N », puis « Non cochés · N »
-                  const intertitre = i === 0 && checked ? `Cochés · ${nbCochesVisibles}`
-                    : i === nbCochesVisibles && !checked ? `Non cochés · ${elevesTries.length - nbCochesVisibles}` : null
+                  // Deux groupes fixes : déjà cochés à l'ouverture, puis les autres (cochés ou non depuis)
+                  const enTete = i < nbTete
+                  const intertitre = i === 0 && nbTete > 0 ? `Déjà cochés · ${nbTete}`
+                    : i === nbTete ? `${nbTete > 0 ? 'Autres élèves' : 'Élèves'} · ${elevesTries.length - nbTete}` : null
                   return (
                     <Fragment key={e.id}>
                     {intertitre && (
                       <div className="px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-wider"
-                        style={{ background: checked ? '#fef3c7' : '#f1f5f9', color: checked ? '#b45309' : '#64748b', position: 'sticky', top: 0, zIndex: 1 }}>
-                        <i className={`bi bi-${checked ? 'check-circle-fill' : 'circle'} me-1`} />{intertitre}
+                        style={{ background: enTete ? '#fef3c7' : '#f1f5f9', color: enTete ? '#b45309' : '#64748b', position: 'sticky', top: 0, zIndex: 1 }}>
+                        <i className={`bi bi-${enTete ? 'check-circle-fill' : 'people'} me-1`} />{intertitre}
                       </div>
                     )}
                     <div
