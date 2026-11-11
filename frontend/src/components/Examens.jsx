@@ -50,6 +50,7 @@ export default function Examens({ onEleveClick, onBack }) {
   const [showResModal, setShowResModal]     = useState(false)
   const [loading, setLoading]               = useState(true)
   const [eleves, setEleves]                 = useState([])
+  const [admisCode, setAdmisCode]           = useState(() => new Set())   // élèves admis au code (examen de conduite)
   const [rechercheEleve, setRechercheEleve] = useState('')
   const [enregistrement, setEnregistrement] = useState(false)
 
@@ -82,9 +83,10 @@ export default function Examens({ onEleveClick, onBack }) {
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const openModal = async () => {
-    const ev = await api('GET', '/eleves')
+    const [ev, admis] = await Promise.all([api('GET', '/eleves'), api('GET', '/eleves/admis-code').catch(() => [])])
     // Perfectionnement : conduite seule, pas d'examen du permis (refusé aussi par le serveur)
-    setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setForm(EMPTY); setRechercheEleve(''); setShowModal(true)
+    setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setAdmisCode(new Set(admis || []))
+    setForm(EMPTY); setRechercheEleve(''); setShowModal(true)
   }
 
   /* Un examen par élève coché, avec la même date et la même épreuve ; l'élève le voit sur son
@@ -93,6 +95,7 @@ export default function Examens({ onEleveClick, onBack }) {
   const save = async () => {
     const { date, eleveIds, type } = form
     if (!date || !eleveIds.length || !type) { toast('Choisissez au moins un élève, la date et le type', 'warning'); return }
+    if (type === 'CONDUITE' && eleveIds.some(id => !admisCode.has(id))) { toast("L'examen de conduite est réservé aux élèves admis au code", 'warning'); return }
     if (enregistrement) return
     setEnregistrement(true)
     const refus = []
@@ -411,7 +414,11 @@ export default function Examens({ onEleveClick, onBack }) {
         const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
         const coches = eleves.filter(e => form.eleveIds.includes(e.id))
         const eleve = coches.length === 1 ? coches[0] : null
-        const visibles = eleves.filter(e => correspond([e.prenom, e.nom, e.telephone], rechercheEleve))
+        // Conduite : seuls les élèves admis au code peuvent la passer
+        const candidats = form.type === 'CONDUITE' ? eleves.filter(e => admisCode.has(e.id)) : eleves
+        const visibles = candidats.filter(e => correspond([e.prenom, e.nom, e.telephone], rechercheEleve))
+        const choisirType = v => setForm(f => ({ ...f, type: v,
+          eleveIds: v === 'CONDUITE' ? f.eleveIds.filter(id => admisCode.has(id)) : f.eleveIds }))
         const basculer = id => set('eleveIds', form.eleveIds.includes(id) ? form.eleveIds.filter(x => x !== id) : [...form.eleveIds, id])
         const toutCocher = coche => {
           const ids = new Set(form.eleveIds)
@@ -429,12 +436,32 @@ export default function Examens({ onEleveClick, onBack }) {
             ]}
             onClose={() => setShowModal(false)} onSave={save}
             libelleSave={enregistrement ? 'Enregistrement…' : coches.length > 1 ? `Enregistrer les ${coches.length} examens` : "Enregistrer l'examen"}>
-            <Etape n={1} icon="people" titre="Candidats">
-              <div className="mb-3" style={{ maxWidth: 260 }}>
+            <Etape n={1} icon="journal-check" titre="Épreuve">
+              <Etiquette requis>Type</Etiquette>
+              <div className="mb-4">
+                <Choix tuiles cols={2} value={form.type} onChange={choisirType} options={[
+                  { v: 'CODE',     label: 'Code',     icon: 'signpost-2-fill', sous: 'Code de la route', color: TYPE_STYLE.CODE.color, bg: TYPE_STYLE.CODE.bg },
+                  { v: 'CONDUITE', label: 'Conduite', icon: 'car-front-fill',  sous: 'Épreuve pratique', color: TYPE_STYLE.CONDUITE.color, bg: TYPE_STYLE.CONDUITE.bg },
+                ]} />
+              </div>
+              <div className="mb-4" style={{ maxWidth: 260 }}>
                 <Etiquette requis>Date de l'examen</Etiquette>
                 <input type="date" className={champCls} value={form.date} onChange={e => set('date', e.target.value)} />
               </div>
-              <Etiquette requis>Élèves · {form.eleveIds.length} coché{form.eleveIds.length > 1 ? 's' : ''} sur {eleves.length}</Etiquette>
+              <Etiquette>Message pour les élèves</Etiquette>
+              <input className={champCls} value={form.observations} placeholder="Facultatif : lieu, heure de convocation, pièces à apporter…"
+                onChange={e => set('observations', e.target.value)} />
+              <div className="text-xs text-slate-400 mt-2">
+                <i className="bi bi-info-circle me-1" />L'examen est programmé « En attente » : les élèves le voient à leur connexion. Le résultat et le score se saisissent après l'épreuve.
+              </div>
+            </Etape>
+            <Etape n={2} icon="people" titre="Candidats">
+              <Etiquette requis>Élèves · {form.eleveIds.length} coché{form.eleveIds.length > 1 ? 's' : ''} sur {candidats.length}</Etiquette>
+              {form.type === 'CONDUITE' && (
+                <div className="text-xs rounded-xl px-3 py-2 mb-2" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                  <i className="bi bi-patch-check-fill me-1" />Examen de conduite : seuls les {candidats.length} élève{candidats.length > 1 ? 's' : ''} admis au code sont proposés.
+                </div>
+              )}
               <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
                 <div className="p-2 flex flex-wrap gap-2 items-center" style={{ borderBottom: '1px solid #eef2f7', background: '#f8fafc' }}>
                   <div className="flex flex-1" style={{ minWidth: 180 }}>
@@ -448,7 +475,7 @@ export default function Examens({ onEleveClick, onBack }) {
                   </button>
                 </div>
                 <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-                  {eleves.length === 0 ? <ListeVide texte="Aucun élève enregistré" icone="people" />
+                  {candidats.length === 0 ? <ListeVide texte={form.type === 'CONDUITE' ? 'Aucun élève admis au code pour le moment' : 'Aucun élève enregistré'} icone="people" />
                     : visibles.length === 0 ? <ListeVide texte="Aucun élève trouvé" icone="search" />
                     : visibles.map(e => {
                       const coche = form.eleveIds.includes(e.id)
@@ -475,21 +502,6 @@ export default function Examens({ onEleveClick, onBack }) {
               </div>
             </Etape>
 
-            <Etape n={2} icon="journal-check" titre="Épreuve">
-              <Etiquette requis>Type</Etiquette>
-              <div className="mb-4">
-                <Choix tuiles cols={2} value={form.type} onChange={v => set('type', v)} options={[
-                  { v: 'CODE',     label: 'Code',     icon: 'signpost-2-fill', sous: 'Code de la route', color: TYPE_STYLE.CODE.color, bg: TYPE_STYLE.CODE.bg },
-                  { v: 'CONDUITE', label: 'Conduite', icon: 'car-front-fill',  sous: 'Épreuve pratique', color: TYPE_STYLE.CONDUITE.color, bg: TYPE_STYLE.CONDUITE.bg },
-                ]} />
-              </div>
-              <Etiquette>Message pour les élèves</Etiquette>
-              <input className={champCls} value={form.observations} placeholder="Facultatif : lieu, heure de convocation, pièces à apporter…"
-                onChange={e => set('observations', e.target.value)} />
-              <div className="text-xs text-slate-400 mt-2">
-                <i className="bi bi-info-circle me-1" />L'examen est programmé « En attente » : les élèves le voient à leur connexion. Le résultat et le score se saisissent après l'épreuve.
-              </div>
-            </Etape>
           </FenetreModerne>
         )
       })()}
