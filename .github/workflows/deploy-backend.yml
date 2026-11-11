@@ -50,6 +50,8 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # CapRover ne fait qu'un déploiement à la fois : une auto-école après l'autre
+      max-parallel: 1
       matrix:
         client: ${{ fromJSON(needs.construire.outputs.liste) }}
     concurrency:
@@ -80,13 +82,19 @@ jobs:
           if [ -z "$CAPROVER_TOKEN" ]; then
             echo "::error::Secret ${{ matrix.client.jetonServeur }} absent (CapRover → app ${{ matrix.client.appServeur }} → Deployment → App Token)"; exit 1
           fi
-          npx --yes caprover@2.4.4 deploy \
-            --caproverUrl https://captain.khadija.auto-ecole.sn \
-            --appToken "$CAPROVER_TOKEN" \
-            --appName ${{ matrix.client.appServeur }} \
-            --tarFile serveur.tar < /dev/null 2>&1 | tee deploy.log
-          grep -qE "Deployed successfully|using app token is in progress" deploy.log \
-            || { echo "::error::CapRover a refusé l'envoi"; exit 1; }
+          # « Another operation still in progress » : CapRover déploie déjà autre chose (l'autre
+          # workflow, site ou serveur) ; on réessaie toutes les 30 s, 10 fois au plus.
+          for essai in $(seq 1 10); do
+            npx --yes caprover@2.4.4 deploy \
+              --caproverUrl https://captain.khadija.auto-ecole.sn \
+              --appToken "$CAPROVER_TOKEN" \
+              --appName ${{ matrix.client.appServeur }} \
+              --tarFile serveur.tar < /dev/null 2>&1 | tee deploy.log
+            grep -qE "Deployed successfully|using app token is in progress" deploy.log && exit 0
+            grep -q "Another operation still in progress" deploy.log || break
+            echo "CapRover est occupé (essai $essai/10) : nouvel essai dans 30 s"; sleep 30
+          done
+          echo "::error::CapRover a refusé l'envoi"; exit 1
 
       # Le serveur n'a pas d'adresse publique : on passe par le site, qui relaie /api.
       - name: Vérifier que le nouveau serveur est en ligne
