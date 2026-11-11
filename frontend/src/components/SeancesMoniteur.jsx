@@ -212,6 +212,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   // Élèves déjà dans la séance ouverte : restent proposés (et cochés) même admis au code
   const [dejaDansSeance, setDejaDansSeance] = useState([])
   const [nouveauxSeuls, setNouveauxSeuls] = useState(false)   // seulement les inscrits des 7 derniers jours
+  const [formationVue, setFormationVue] = useState('')   // '' : tous ; PERMIS ; PERFECTIONNEMENT (conduite seule)
 
   const openCreate = () => {
     setEditId(null)
@@ -371,8 +372,10 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id))
   const admisMasques = eleves.length - elevesAssignables.length
   const nbNouveaux = elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).length
+  const deLaFormation = (e, f) => !f || (f === 'PERFECTIONNEMENT') === !!e.perfectionnement
+  const nbPerf = elevesAssignables.filter(e => e.perfectionnement).length
   const elevesVisibles = elevesAssignables.filter(e => correspond([e.nom, e.telephone], rechercheEleve)
-    && (!nouveauxSeuls || inscritCetteSemaine(e.dateInscription)))
+    && (!nouveauxSeuls || inscritCetteSemaine(e.dateInscription)) && deLaFormation(e, formationVue))
   // Élèves cochés toujours en tête de liste, puis les autres (ordre d'origine conservé dans chaque groupe)
   const elevesTries = [...elevesVisibles.filter(e => form.eleveIds.includes(e.id)), ...elevesVisibles.filter(e => !form.eleveIds.includes(e.id))]
   const nbCochesVisibles = elevesTries.filter(e => form.eleveIds.includes(e.id)).length
@@ -475,6 +478,28 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                     <i className="bi bi-x-lg" />Aucun
                   </button>
                 </div>}
+                {/* Permis et perfectionnement (conduite seule) séparés : « Tous » et « Aucun » n'agissent que sur le groupe affiché */}
+                {nbPerf > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {[['', 'Toutes formations', 'people', elevesAssignables.length], ['PERMIS', 'Permis', 'signpost-2', elevesAssignables.length - nbPerf],
+                      ['PERFECTIONNEMENT', 'Perfectionnement', 'car-front-fill', nbPerf]].map(([v, l, ic, n]) => (
+                      <button key={v || 'tous'} type="button" onClick={() => setFormationVue(v)} aria-pressed={formationVue === v}
+                        className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem',
+                          ...(formationVue === v ? (v === 'PERFECTIONNEMENT' ? { background: '#f5f3ff', borderColor: '#7c3aed', color: '#6d28d9' } : { background: '#eff6ff', borderColor: '#1e3a5f', color: '#1e3a5f' }) : {}) }}>
+                        <i className={`bi bi-${formationVue === v ? 'check-circle-fill' : ic}`} />{l} · {n}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Séance pour un seul groupe : ne garder cochés que ses élèves */}
+                {formationVue && !lectureSeule && (
+                  <button type="button" className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}
+                    onClick={() => setForm(f => ({ ...f, eleveIds: [
+                      ...f.eleveIds.filter(id => elevesAssignables.some(e => e.id === id && deLaFormation(e, formationVue))),
+                    ] }))}>
+                    <i className="bi bi-funnel-fill" />Ne garder cochés que {formationVue === 'PERFECTIONNEMENT' ? 'le perfectionnement' : 'le permis'}
+                  </button>
+                )}
                 {/* Inscrits des 7 derniers jours : « Tous » ne coche alors que ceux-là */}
                 {nbNouveaux > 0 && (
                   <button type="button" onClick={() => setNouveauxSeuls(x => !x)} className="filtre filtre-bouton"
