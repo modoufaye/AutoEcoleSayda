@@ -476,3 +476,7 @@ body {
 .filtre-bouton { font-family: inherit; }
 .filtre-reset { color: #b91c1c; border-color: #fecaca; background: #fff5f5; }
 .filtre-reset > i { color: #b91c1c; }
+
+/* Séance : liste des élèves à cocher (SeancesMoniteur) — plus haute sur téléphone */
+.liste-eleves-seance { max-height: 340px; }
+@media (max-width: 1023px) { .liste-eleves-seance { max-height: 66vh; } }

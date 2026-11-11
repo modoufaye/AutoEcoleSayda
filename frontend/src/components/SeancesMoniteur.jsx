@@ -473,8 +473,10 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        <div className="space-y-5">
+      {/* grid-cols-1 : sur téléphone la colonne garde la largeur de l'écran ; sans elle, le texte le
+          plus long d'un menu déroulant (chapitres) élargissait toute la colonne au-delà du bord droit */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="space-y-5 min-w-0">
           {/* Élèves assignés */}
           <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
             <EnteteListe icone="people-fill" titre={partagee ? 'Mes élèves' : 'Élèves'} sousTitre={partagee ? 'Cochez ceux qui doivent voir cette séance' : 'Qui verra la séance'}
@@ -533,7 +535,8 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                 <i className="bi bi-patch-check-fill me-1" />{admisMasques} élève{admisMasques > 1 ? 's' : ''} admis au code, plus proposé{admisMasques > 1 ? 's' : ''}
               </div>
             )}
-            <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+            {/* Téléphone : liste haute (2/3 de l'écran) pour cocher sans faire défiler sans cesse ; ordinateur : 340 px */}
+            <div className="liste-eleves-seance" style={{ overflowY: 'auto', overscrollBehavior: 'contain' }}>
               {elevesAssignables.length === 0 ? (
                 <ListeVide texte="Aucun élève enregistré" icone="people" />
               ) : elevesVisibles.length === 0 ? (
@@ -584,7 +587,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
         </div>
 
         {/* Cours de code publiés, résultats du quiz, puis contenu libre */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5 min-w-0">
           {/* Secrétariat : tout reste lisible (vidéos et audios compris), rien n'est modifiable */}
           <fieldset disabled={contenuFige} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
             <ChoixProgramme programme={form.programme} onChange={setProgramme}
