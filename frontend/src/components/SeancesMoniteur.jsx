@@ -196,6 +196,20 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, 
 }
 
 /* lectureSeule : secrétariat, qui consulte les séances sans les créer, modifier ni supprimer. */
+/* Type d'une séance d'après ses cours : conduite (chapitres « conduite-… »), code, ou les deux.
+   Sans cours (contenu libre seul) : rangée avec le code, comme dans les statistiques. */
+const genreSeance = s => {
+  const parties = s.programme || []
+  const conduite = parties.some(p => p.chapitre.startsWith('conduite-'))
+  const code = parties.some(p => !p.chapitre.startsWith('conduite-'))
+  return conduite && code ? 'mixte' : conduite ? 'conduite' : 'code'
+}
+const SECTIONS_SEANCES = [
+  { key: 'code', titre: 'Cours de code', sousTitre: 'Séances du code de la route', icone: 'signpost-2-fill' },
+  { key: 'conduite', titre: 'Cours de conduite', sousTitre: 'Séances de conduite · élèves admis au code', icone: 'car-front-fill' },
+  { key: 'mixte', titre: 'Code et conduite', sousTitre: 'Séances qui mêlent les deux', icone: 'signpost-split-fill' },
+]
+
 export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false, onBack, seanceId, onOuvrir, onFermer }) {
   const [seances, setSeances]         = useState([])
   const [recherche, setRecherche]     = useState('')
@@ -657,37 +671,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
     (!statutFiltre || s.statut === statutFiltre)
     && correspond([s.titre, THEME_MAP[s.theme] || s.theme], q))
 
-  return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
 
-      {/* En-tête : comme « Mes élèves », Retour puis directement la recherche avec le bouton d'ajout */}
-      {onBack && (
-        <div style={{ marginBottom: '1rem' }}>
-          <button onClick={onBack} className="btn-retour">
-            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
-            Retour
-          </button>
-        </div>
-      )}
-      <BarreFiltres>
-        <Recherche value={recherche} onChange={setRecherche} placeholder="Titre ou thème de la séance…" />
-        <Filtre icone="flag" value={statutFiltre} onChange={setStatutFiltre}>
-          <option value="">Tous les statuts</option>
-          <option value="PUBLIE">Publié</option>
-          <option value="BROUILLON">Brouillon</option>
-        </Filtre>
-        {!lectureSeule && <BoutonAjout onClick={openCreate}>Séance</BoutonAjout>}
-      </BarreFiltres>
-
-      {/* Liste : bandeau bleu nuit souligné d'or, comme « Véhicules · Flotte de l'auto-école » */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
-        <EnteteListe icone="camera-video-fill" titre="Séances de cours" sousTitre="Contenu partagé avec vos élèves" nombre={visibles.length} />
-
-        {visibles.length === 0 ? (
-          <ListeVide texte={q || statutFiltre ? 'Aucune séance trouvée' : 'Aucune séance créée · cliquez sur « + Séance » pour commencer'} icone="camera-video" />
-        ) : (
-          <div>
-            {visibles.map(s => {
+  /* Une ligne de séance (titre, date, élèves, cours, statut et actions). */
+  const ligneSeance = s => {
               const isPub = s.statut === 'PUBLIE'
               return (
                 <div key={s.id} onClick={() => openEdit(s)} title="Ouvrir la séance"
@@ -746,10 +732,46 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                   </div>
                 </div>
               )
-            })}
+  }
+
+  return (
+    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="space-y-5">
+
+      {/* En-tête : comme « Mes élèves », Retour puis directement la recherche avec le bouton d'ajout */}
+      {onBack && (
+        <div style={{ marginBottom: '1rem' }}>
+          <button onClick={onBack} className="btn-retour">
+            <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
+            Retour
+          </button>
+        </div>
+      )}
+      <BarreFiltres>
+        <Recherche value={recherche} onChange={setRecherche} placeholder="Titre ou thème de la séance…" />
+        <Filtre icone="flag" value={statutFiltre} onChange={setStatutFiltre}>
+          <option value="">Tous les statuts</option>
+          <option value="PUBLIE">Publié</option>
+          <option value="BROUILLON">Brouillon</option>
+        </Filtre>
+        {!lectureSeule && <BoutonAjout onClick={openCreate}>Séance</BoutonAjout>}
+      </BarreFiltres>
+
+      {/* Séances rangées par type : cours de code, cours de conduite (et les deux mélangés) */}
+      {visibles.length === 0 ? (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+          <EnteteListe icone="camera-video-fill" titre="Séances de cours" sousTitre="Contenu partagé avec vos élèves" nombre={0} />
+          <ListeVide texte={q || statutFiltre ? 'Aucune séance trouvée' : 'Aucune séance créée · cliquez sur « + Séance » pour commencer'} icone="camera-video" />
+        </div>
+      ) : SECTIONS_SEANCES.map(sec => {
+        const liste = visibles.filter(s => genreSeance(s) === sec.key)
+        if (!liste.length) return null
+        return (
+          <div key={sec.key} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+            <EnteteListe icone={sec.icone} titre={sec.titre} sousTitre={sec.sousTitre} nombre={liste.length} />
+            <div>{liste.map(ligneSeance)}</div>
           </div>
-        )}
-      </div>
+        )
+      })}
     </div>
   )
 }
