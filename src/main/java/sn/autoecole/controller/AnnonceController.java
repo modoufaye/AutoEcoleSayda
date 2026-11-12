@@ -43,6 +43,16 @@ public class AnnonceController {
     private final MoniteurRepository moniteurRepository;
     private final EcoleService ecoleService;
     private final sn.autoecole.service.BureauService bureauService;
+    private final sn.autoecole.repository.ClasseRepository classeRepository;
+
+    /** Classe visée (auteurId non nul : un moniteur n'écrit qu'à ses propres classes). */
+    private String classeDe(String valeur, Long auteurId) {
+        Long id;
+        try { id = Long.valueOf(String.valueOf(valeur)); } catch (NumberFormatException e) { throw new BusinessException("Choisissez la classe"); }
+        var c = classeRepository.findById(id).orElseThrow(() -> new BusinessException("Classe introuvable"));
+        if (auteurId != null && !auteurId.equals(c.getAuteurId())) throw new BusinessException("Vous n'écrivez qu'à vos propres classes");
+        return String.valueOf(c.getId());
+    }
 
     /** Qui lit : son compte, et sa fiche élève ou moniteur (bureau, moniteur de l'élève). */
     private record Lecteur(User user, Eleve eleve, Moniteur moniteur) {}
@@ -64,6 +74,7 @@ public class AnnonceController {
             case MONITEUR -> (l.eleve() != null && l.eleve().getMoniteur() != null && String.valueOf(l.eleve().getMoniteur().getId()).equals(a.getValeur()))
                     || (l.moniteur() != null && String.valueOf(l.moniteur().getId()).equals(a.getValeur()));
             case PERSONNEL -> r != RoleUser.ELEVE;
+            case CLASSE -> l.eleve() != null && l.eleve().getClasseId() != null && String.valueOf(l.eleve().getClasseId()).equals(a.getValeur());
         };
     }
 
@@ -123,12 +134,15 @@ public class AnnonceController {
         catch (IllegalArgumentException e) { throw new BusinessException("Choisissez à qui s'adresse l'annonce"); }
         String valeur = null;
         if (l.user().getRole() == RoleUser.MONITEUR) {
-            if (cible != Annonce.Cible.MONITEUR && cible != Annonce.Cible.PERSONNEL)
-                throw new BusinessException("Un moniteur écrit à ses élèves ou au personnel");
+            if (cible != Annonce.Cible.MONITEUR && cible != Annonce.Cible.PERSONNEL && cible != Annonce.Cible.CLASSE)
+                throw new BusinessException("Un moniteur écrit à ses élèves, à une de ses classes ou au personnel");
+            if (cible == Annonce.Cible.CLASSE) valeur = classeDe(body.get("valeur"), l.user().getId());
             if (cible == Annonce.Cible.MONITEUR) {
                 if (l.moniteur() == null) throw new BusinessException("Fiche moniteur introuvable pour ce compte");
                 valeur = String.valueOf(l.moniteur().getId());
             }
+        } else if (cible == Annonce.Cible.CLASSE) {
+            valeur = classeDe(body.get("valeur"), null);
         } else if (cible == Annonce.Cible.BUREAU) {
             valeur = String.valueOf(body.get("valeur"));
             if (!bureauService.existe(valeur)) throw new BusinessException("Choisissez le bureau");
@@ -166,6 +180,7 @@ public class AnnonceController {
             case BUREAU -> {
                 yield bureauService.existe(a.getValeur()) ? "Élèves de " + bureauService.libelle(a.getValeur()) : "Élèves d'un bureau";
             }
+            case CLASSE -> classeRepository.findById(Long.valueOf(a.getValeur())).map(c -> "Classe « " + c.getNom() + " »").orElse("Élèves d'une classe");
             case MONITEUR -> moniteurRepository.findById(Long.valueOf(a.getValeur()))
                     .map(m -> "Élèves de " + m.getPrenom() + " " + m.getNom()).orElse("Élèves d'un moniteur");
             case PERSONNEL -> "Le personnel";

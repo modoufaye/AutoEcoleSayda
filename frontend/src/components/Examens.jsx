@@ -11,6 +11,7 @@ import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, L
 import { champCls } from './fenetreStyles'
 import '../landing.css'
 import { afficherTelephone } from '../telephones'
+import BoutonsClasses from './BoutonsClasses'
 
 const PAGE_SIZE = 10
 
@@ -473,6 +474,9 @@ export default function Examens({ onEleveClick, onBack }) {
                   <button type="button" onClick={() => toutCocher(false)} className="filtre filtre-bouton" style={{ minHeight: 34, fontSize: '.8rem' }}>
                     <i className="bi bi-x-lg" />Aucun
                   </button>
+                </div>
+                <div className="px-2 py-2" style={{ borderBottom: '1px solid #eef2f7' }}>
+                  <BoutonsClasses proposes={candidats.map(e => e.id)} onCocher={ids => set('eleveIds', [...new Set([...form.eleveIds, ...ids])])} />
                 </div>
                 <div style={{ maxHeight: 280, overflowY: 'auto' }}>
                   {candidats.length === 0 ? <ListeVide texte={form.type === 'CONDUITE' ? 'Aucun élève admis au code pour le moment' : 'Aucun élève enregistré'} icone="people" />

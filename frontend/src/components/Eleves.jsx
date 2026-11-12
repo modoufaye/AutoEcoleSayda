@@ -24,6 +24,7 @@ import { compterSeances } from '../contenu/programme'
 import { EnteteListe, LigneListe, AvatarRond, BoutonRond, Pastille, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, FiltreBascule, BoutonAjout } from './ListeModerne'
 import { useBureaux, EN_LIGNE } from '../bureaux'
 import PastilleBureau from './PastilleBureau'
+import { useClasses } from '../classes'
 
 const PAGE_SIZE = 10
 
@@ -1013,6 +1014,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
+  const [classeFiltre, setClasseFiltre] = useState(memo.classeFiltre ?? '')   // id de classe ('' : toutes)
+  const classes = useClasses()
+  const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
   // Élèves admis à l'examen du code : prêts pour les cours de conduite
   const [admisCode, setAdmisCode] = useState(() => new Set())
   useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
@@ -1028,15 +1032,15 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     try {
       sessionStorage.setItem(cleFiltres(user?.id), JSON.stringify({
-        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, archives, page, signatureFiltres, user?.id])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, archives, page, signatureFiltres, user?.id])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1096,6 +1100,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
     if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
+    if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre))
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
@@ -1107,7 +1112,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, admisCode, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, admisCode, presence, list, signatureFiltres])
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
@@ -2046,6 +2051,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
           <option value="">Tous les bureaux</option>
           {bureaux.tous.map(b => <option key={b.code} value={b.code}>{b.nom}{!b.actif && ' (fermé)'}</option>)}
         </Filtre>
+        {classes.length > 0 && (
+          <Filtre icone="collection" value={classeFiltre} onChange={setClasseFiltre}>
+            <option value="">Toutes les classes</option>
+            {classes.map(c => <option key={c.id} value={c.id}>{c.nom} · {c.nombre}</option>)}
+          </Filtre>
+        )}
         <Filtre icone="mortarboard" value={formation} onChange={setFormation}>
           <option value="">Toutes les formations</option>
           <option value="PERMIS">Permis</option>
@@ -2120,6 +2131,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
                       {e.site && <span><i className="bi bi-building me-1" />{bureaux.libelle(e.site)}</span>}
+                      {e.classeId && nomClasse[e.classeId] && <span style={{ color: '#6d28d9' }}><i className="bi bi-collection me-1" />{nomClasse[e.classeId]}</span>}
                       {presence && <BadgePresence enLigne={presence.eleves.has(e.id)} />}
                     </div>
                   </div>

@@ -5,6 +5,7 @@ import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import { EnteteListe, ListeVide, ListeChargement, Pastille, BoutonRond, BoutonAjout } from './ListeModerne'
 import { useBureaux } from '../bureaux'
+import { useClasses } from '../classes'
 
 /* Annonces de l'auto-école. Le personnel (super admin, administrateurs, secrétariat, moniteurs)
    écrit à tout le monde, aux élèves (tous, d'un bureau, d'un moniteur) ou au personnel ; un moniteur
@@ -21,13 +22,17 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
   const [envoi, setEnvoi] = useState(false)
   useEffect(() => { if (!moniteur) api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => {}) }, [moniteur])
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
+  // Classes : toutes pour le bureau ; pour un moniteur, celles qu'il a créées
+  const classes = useClasses().filter(c => !moniteur || c.modifiable)
   const cibles = moniteur
-    ? [['MONITEUR', 'Mes élèves'], ['PERSONNEL', 'Le personnel']]
-    : [['TOUS', 'Tout le monde'], ['ELEVES', 'Tous les élèves'], ['BUREAU', "Les élèves d'un bureau"], ['MONITEUR', "Les élèves d'un moniteur"], ['PERSONNEL', 'Le personnel']]
+    ? [['MONITEUR', 'Mes élèves'], ...(classes.length ? [['CLASSE', "Les élèves d'une de mes classes"]] : []), ['PERSONNEL', 'Le personnel']]
+    : [['TOUS', 'Tout le monde'], ['ELEVES', 'Tous les élèves'], ['BUREAU', "Les élèves d'un bureau"], ['MONITEUR', "Les élèves d'un moniteur"],
+       ...(classes.length ? [['CLASSE', "Les élèves d'une classe"]] : []), ['PERSONNEL', 'Le personnel']]
   const valider = async e => {
     e.preventDefault()
     if (!f.titre.trim() || !f.contenu.trim()) return toast('Donnez un titre et un message', 'warning')
     if (!moniteur && (f.cible === 'BUREAU' || f.cible === 'MONITEUR') && !f.valeur) return toast(f.cible === 'BUREAU' ? 'Choisissez le bureau' : 'Choisissez le moniteur', 'warning')
+    if (f.cible === 'CLASSE' && !f.valeur) return toast('Choisissez la classe', 'warning')
     setEnvoi(true)
     try { await api('POST', '/annonces', f); toast('Annonce publiée'); onFini() }
     catch (err) { toast(err.message, 'danger') }
@@ -58,6 +63,15 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
             <select className="form-select" value={f.valeur} onChange={e => set('valeur', e.target.value)}>
               <option value="">Choisir…</option>
               {bureaux.actifs.map(b => <option key={b.code} value={b.code}>{b.nom}</option>)}
+            </select>
+          </div>
+        )}
+        {f.cible === 'CLASSE' && (
+          <div>
+            <label className={etiquette}>Classe *</label>
+            <select className="form-select" value={f.valeur} onChange={e => set('valeur', e.target.value)}>
+              <option value="">Choisir…</option>
+              {classes.map(c => <option key={c.id} value={c.id}>{c.nom} · {c.nombre} élève{c.nombre > 1 ? 's' : ''}</option>)}
             </select>
           </div>
         )}

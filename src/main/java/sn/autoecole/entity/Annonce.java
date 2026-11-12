@@ -15,8 +15,8 @@ import java.time.LocalDateTime;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Annonce {
 
-    /** TOUS : élèves et personnel ; BUREAU : valeur = code du bureau ; MONITEUR : valeur = id du moniteur. */
-    public enum Cible { TOUS, ELEVES, BUREAU, MONITEUR, PERSONNEL }
+    /** TOUS : élèves et personnel ; BUREAU : valeur = code du bureau ; CLASSE : valeur = id de la classe ; MONITEUR : valeur = id du moniteur. */
+    public enum Cible { TOUS, ELEVES, BUREAU, MONITEUR, PERSONNEL, CLASSE }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

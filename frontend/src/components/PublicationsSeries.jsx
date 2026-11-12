@@ -8,6 +8,7 @@ import { EnteteListe, BoutonRond } from './ListeModerne'
 import { inscritCetteSemaine } from '../utils'
 import { afficherTelephone } from '../telephones'
 import { GROUPES, MODES, STATUTS, libelleSerie, serieDe, statutSerie } from '../contenu/seriesPubliees'
+import BoutonsClasses from './BoutonsClasses'
 
 /* Travaux Dirigés : publication des annales et des séries d'examen pour des élèves, en
    entraînement et/ou en examen blanc (une publication par mode). Le super admin et les
@@ -119,6 +120,9 @@ export function FenetrePublication({ genre, edition, prerempli, publications = [
           <button type="button" onClick={() => setEleveIds(items.map(e => String(e.id)))} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>Tout cocher</button>
           <button type="button" onClick={() => setEleveIds(items.filter(e => e.nouveau).map(e => String(e.id)))} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>Nouveaux de la semaine</button>
           <button type="button" onClick={() => setEleveIds([])} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer" style={{ borderRadius: 999, background: '#eef2f7', color: '#64748b' }}>Tout décocher</button>
+        </div>
+        <div className="mb-2">
+          <BoutonsClasses proposes={items.map(e => e.id)} onCocher={ids => setEleveIds(x => [...new Set([...x, ...ids.map(String)])])} />
         </div>
         <ChoixPuces items={items} valeur={eleveIds} onChoisir={setEleveIds} multiple cochesEnTete placeholder="Nom ou téléphone…" hauteur={260} />
       </Etape>

@@ -47,6 +47,10 @@ public class Eleve {
     @Column(name = "lieu_inscription")
     private String lieuInscription;
 
+    /** Classe de l'élève (voir Classe), une seule à la fois ; nulle : sans classe. */
+    @Column(name = "classe_id")
+    private Long classeId;
+
     // Ancien identifiant de connexion, plus saisi : conservé pour les fiches existantes.
     @Email(message = "Format d'email invalide")
     private String email;

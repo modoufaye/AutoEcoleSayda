@@ -28,11 +28,13 @@ import Messages from '../components/Messages'
 import HoteConfirmation from '../components/Confirmation'
 import { useEcole } from '../ecole'
 import { compterSeancesAFaire } from '../seancesAFaire'
+import Classes from '../components/Classes'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
   { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  { key: 'classes',          label: 'Classes',          icon: 'collection-fill',       color: '#c4b5fd', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'cours',            label: 'Cours Code',       icon: 'sign-turn-right-fill',  color: '#fbbf24', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'ELEVE'] },
@@ -441,6 +443,8 @@ export default function AppLayout() {
             : section === 'eleves'
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick}
                 onQuitterFiche={() => navigate(`${base}/eleves`, { replace: true })} />
+            : section === 'classes'
+            ? <Classes key="classes" />
             : section === 'moniteurs'
             ? <Moniteurs key={`moniteurs-${detail ?? 'list'}-${retourListe}`} moniteurId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : <ActiveComponent key={section} />}

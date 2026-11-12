@@ -71,6 +71,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/moniteur/**").hasAnyRole("MONITEUR", "SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/eleve/**").hasRole("ELEVE")
                 // Travaux Dirigés : séries et annales publiées (l'élève lit les siennes, le secrétariat consulte)
+                // Classes d'élèves : bureau et moniteurs (règles fines dans ClasseController)
+                .requestMatchers("/api/classes", "/api/classes/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 .requestMatchers(HttpMethod.GET, "/api/publications-series/mes").hasRole("ELEVE")
                 .requestMatchers(HttpMethod.GET, "/api/publications-series", "/api/publications-series/eleve/*").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
                 .requestMatchers("/api/publications-series", "/api/publications-series/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")

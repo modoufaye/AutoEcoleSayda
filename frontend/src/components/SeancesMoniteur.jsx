@@ -8,6 +8,7 @@ import { correspond, inscritCetteSemaine } from '../utils'
 import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
 import { libellePartie } from '../contenu/programme'
 import { afficherTelephone } from '../telephones'
+import BoutonsClasses from './BoutonsClasses'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -510,6 +511,11 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                       </button>
                     ))}
                   </div>
+                )}
+                {/* Classes : un clic coche tous les élèves proposés de la classe */}
+                {!lectureSeule && (
+                  <BoutonsClasses proposes={elevesAssignables.map(e => e.id)}
+                    onCocher={ids => { regrouper(); setForm(f => ({ ...f, eleveIds: [...new Set([...f.eleveIds, ...ids])] })) }} />
                 )}
                 {/* Séance pour un seul groupe : ne garder cochés que ses élèves */}
                 {formationVue && !lectureSeule && (
