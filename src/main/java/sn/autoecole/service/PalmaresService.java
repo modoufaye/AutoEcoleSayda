@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 
 /**
  * Palmarès des quiz de séance : meilleur score de chaque séance (ex aequo compris).
- * - Tableau d'honneur de l'élève (Mon Espace) : ses séances, résultats arrêtés à 00 h du jour.
  * - Annonce « champions de la semaine » chaque lundi à 00 h (heure de Dakar) pour la semaine écoulée,
  *   à tous les élèves ; une seule fois par semaine, et seulement s'il y a eu des quiz.
  * Noms affichés en entier (« Awa Diop »), lus par tous les élèves.
@@ -104,23 +103,6 @@ public class PalmaresService {
         });
         lignes.sort(Comparator.comparing((Ligne l) -> Optional.ofNullable(seances.get(l.seanceId()).getDateHeure()).orElse(LocalDateTime.MIN)).reversed());
         return lignes;
-    }
-
-    /** Tableau d'honneur de l'élève : ses séances publiées, résultats arrêtés à 00 h. */
-    @Transactional(readOnly = true)
-    public List<Map<String, Object>> pourEleve(String telephone) {
-        Eleve eleve = eleveRepo.findFirstByTelephone(telephone).orElse(null);
-        if (eleve == null) return List.of();
-        Set<Long> mesSeances = seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve).stream()
-                .map(Seance::getId).collect(Collectors.toSet());
-        if (mesSeances.isEmpty()) return List.of();
-        return meilleurs(mesSeances, LocalDateTime.of(2000, 1, 1, 0, 0), minuit()).stream().map(l -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("seanceId", l.seanceId()); m.put("titre", l.titre());
-            m.put("score", l.score()); m.put("total", l.total());
-            m.put("noms", l.noms()); m.put("moi", l.eleveIds().contains(eleve.getId()));
-            return m;
-        }).toList();
     }
 
     /** Chaque lundi à 00 h (Dakar) : annonce des champions de la semaine écoulée. */
