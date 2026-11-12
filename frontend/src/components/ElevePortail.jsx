@@ -6,6 +6,7 @@ import { toast } from './Toast'
 import { EnteteListe } from './ListeModerne'
 import '../landing.css'
 import { useEcole } from '../ecole'
+import { compterSeancesAFaire } from '../seancesAFaire'
 
 const RES_STYLE = {
   ADMIS:      { bg: '#dcfce7', color: '#15803d', dot: '#16a34a', label: 'Admis' },
@@ -92,6 +93,9 @@ function TableLecons({ lecons, empty }) {
 }
 
 export default function ElevePortail({ onGoSection, accesCours = false }) {
+  // Séances publiées dont le quiz reste à valider (carte « Mes Séances »)
+  const [aFaire, setAFaire] = useState(0)
+  useEffect(() => { compterSeancesAFaire().then(setAFaire).catch(() => {}) }, [])
   const ecole = useEcole()
   const { user } = useAuth()
   const [profil, setProfil]   = useState(null)
@@ -335,11 +339,11 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
       {/* Raccourcis (séances, code, examens) : aucun ne concerne le perfectionnement */}
       {!perf && <div className={`grid grid-cols-1 ${accesCours ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 sm:gap-4`}>
         {[
-          { icon: 'play-circle-fill',      label: 'Mes Séances',  sub: 'Cours vidéo',                  color: '#06b6d4', bg: 'linear-gradient(135deg,#ecfeff,#f0fdff)', border: '#a5f3fc', sec: 'seances-eleve' },
+          { icon: 'play-circle-fill',      label: 'Mes Séances',  sub: aFaire > 0 ? `${aFaire} séance${aFaire > 1 ? 's' : ''} à faire` : 'Cours vidéo', compte: aFaire,                  color: '#06b6d4', bg: 'linear-gradient(135deg,#ecfeff,#f0fdff)', border: '#a5f3fc', sec: 'seances-eleve' },
           // Raccourci Cours Code seulement si l'accès est ouvert (fermé aux élèves pour l'instant)
           ...(accesCours ? [{ icon: 'sign-turn-right-fill',  label: 'Cours Code',   sub: 'Théorie du code de la route',  color: '#d4a017', bg: 'linear-gradient(135deg,#fefce8,#fffbeb)', border: '#fde68a', sec: 'cours' }] : []),
           { icon: 'clipboard2-check-fill', label: 'Mes Examens',  sub: `${examens.length} au total`,   color: '#fb923c', bg: 'linear-gradient(135deg,#fff7ed,#fffbf5)', border: '#fed7aa', sec: 'examens' },
-        ].map(({ icon, label, sub, color, bg, border, sec }) => (
+        ].map(({ icon, label, sub, color, bg, border, sec, compte }) => (
           <button key={sec}
             onClick={() => onGoSection?.(sec)}
             className="flex items-center gap-3 p-4 rounded-2xl border text-left w-full cursor-pointer transition-all"
@@ -351,7 +355,9 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
               <i className={`bi bi-${icon}`} style={{ color, fontSize: '1.1rem' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-extrabold text-slate-800 text-sm leading-tight">{label}</div>
+              <div className="font-extrabold text-slate-800 text-sm leading-tight">{label}
+                {compte > 0 && <span className="ms-2 align-middle" style={{ background: '#f0bb2a', color: '#1e3a5f', borderRadius: 999, fontSize: '.7rem', fontWeight: 800, padding: '.05rem .45rem' }}>{compte}</span>}
+              </div>
               <div className="text-xs text-slate-500 mt-0.5 truncate">{sub}</div>
             </div>
             <i className="bi bi-chevron-right flex-shrink-0" style={{ color: '#cbd5e1', fontSize: '.75rem' }} />

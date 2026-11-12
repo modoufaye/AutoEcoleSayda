@@ -27,6 +27,7 @@ import Annonces from '../components/Annonces'
 import Messages from '../components/Messages'
 import HoteConfirmation from '../components/Confirmation'
 import { useEcole } from '../ecole'
+import { compterSeancesAFaire } from '../seancesAFaire'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
@@ -138,12 +139,14 @@ export default function AppLayout() {
   // toutes les 30 secondes (un message peut arriver pendant qu'on est sur une autre page)
   const [nonLues, setNonLues] = useState(0)
   const [messagesNonLus, setMessagesNonLus] = useState(0)
+  const [seancesAFaire, setSeancesAFaire] = useState(0)   // élève : séances dont le quiz reste à valider
   // Dernier nombre de messages non lus connu : null tant que rien n'est chargé (pas de son à la connexion)
   const dernierNonLus = useRef(null)
   useEffect(() => {
     if (!user) return
     const relire = () => {
       api('GET', '/annonces/non-lues').then(r => setNonLues(r?.nombre || 0)).catch(() => {})
+      if (user.role === 'ELEVE') compterSeancesAFaire().then(setSeancesAFaire).catch(() => {})
       api('GET', '/conversations/non-lus').then(r => {
         const n = r?.nombre || 0
         // Connecté (élève ou personnel) : un nouveau message arrive → petit carillon
@@ -159,7 +162,9 @@ export default function AppLayout() {
     window.addEventListener('messages-lus', relire)
     return () => { clearInterval(t); window.removeEventListener('messages-lus', relire) }
   }, [user, section])
-  const pastilles = { annonces: nonLues, eleves: messagesNonLus, messages: messagesNonLus }
+  const pastilles = { annonces: nonLues, eleves: messagesNonLus, messages: messagesNonLus, 'seances-eleve': seancesAFaire }
+  // Téléphone : le menu est replié ; un point sur ☰ signale qu'une rubrique a du nouveau
+  const aDuNouveau = sections.some(s => pastilles[s.key] > 0 && section !== s.key)
   // Élève : « Messages » toujours dans le menu, entre « Mon Espace » et « Cours Code » (pastille des non lus)
   const entreeMessages = user?.role === 'ELEVE' ? sections.find(s => s.key === 'messages') : null
   const sectionsMenu = entreeMessages
@@ -299,7 +304,7 @@ export default function AppLayout() {
                 <i className={`bi bi-${s.icon}`} style={section !== s.key ? { color: s.color } : {}}></i>
                 <span className="nav-text">{s.label}</span>
                 {pastilles[s.key] > 0 && section !== s.key && (
-                  <span className="ms-auto" title={`${pastilles[s.key]} non lu(s)`}
+                  <span className="ms-auto" title={s.key === 'seances-eleve' ? `${pastilles[s.key]} séance(s) à faire` : `${pastilles[s.key]} non lu(s)`}
                     style={{ background: '#f0bb2a', color: '#1e3a5f', borderRadius: 999, fontSize: '.7rem', fontWeight: 800, padding: '.05rem .45rem', lineHeight: 1.4 }}>{pastilles[s.key]}</span>
                 )}
               </button>
@@ -338,11 +343,15 @@ export default function AppLayout() {
         <nav className="top-bar">
           <button
             className="toggle-btn"
-            aria-label={isMobile ? 'Ouvrir le menu' : 'Replier le menu'}
+            style={{ position: 'relative' }}
+            aria-label={isMobile ? (aDuNouveau ? 'Ouvrir le menu (du nouveau)' : 'Ouvrir le menu') : 'Replier le menu'}
             aria-expanded={isMobile ? showDrawer : !collapsed}
             onClick={() => isMobile ? setDrawerOpen(o => !o) : setCollapsed(c => !c)}
           >
             <i className="bi bi-list"></i>
+            {isMobile && aDuNouveau && (
+              <span aria-hidden="true" style={{ position: 'absolute', top: 6, right: 6, width: 9, height: 9, borderRadius: 999, background: '#f0bb2a', boxShadow: '0 0 0 2px #fff' }} />
+            )}
           </button>
 
           <div>
