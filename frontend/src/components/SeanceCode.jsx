@@ -39,7 +39,7 @@ function Apercu({ partie, max = 10 }) {
 }
 
 /* ── Moniteur : choisir les parties de cours (code ou conduite) à publier dans la séance ── */
-export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) {
+export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure, onCours }) {
   const [coursKey, setCoursKey] = useState('code')
   const themes = COURS.find(c => c.key === coursKey).themes
   const [themeKey, setThemeKey] = useState(themes[0].key)
@@ -54,6 +54,7 @@ export function ChoixProgramme({ programme, onChange, dateHeure, onDateHeure }) 
   const choisirCours = k => {
     const th = COURS.find(c => c.key === k).themes[0]
     setCoursKey(k); setThemeKey(th.key); choisirChapitre(th.chapitres[0].id)
+    onCours?.(k)   // la séance sait si l'on prépare du code ou de la conduite (élèves proposés)
   }
   const choisirTheme = k => {
     const th = themes.find(x => x.key === k)

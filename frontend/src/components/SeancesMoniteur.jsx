@@ -213,18 +213,21 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const [dejaDansSeance, setDejaDansSeance] = useState([])
   const [nouveauxSeuls, setNouveauxSeuls] = useState(false)   // seulement les inscrits des 7 derniers jours
   const [ordreFige, setOrdreFige] = useState({ cle: '', ids: [], nbTete: 0 })   // ordre de la liste des élèves (voir cleVue)
+  const [coursChoisi, setCoursChoisi] = useState('code')   // « Cours de code » ou « Cours de conduite » (Cours à publier)
   const [formationVue, setFormationVue] = useState('')   // '' : tous ; PERMIS ; PERFECTIONNEMENT (conduite seule)
 
   const openCreate = () => {
     setEditId(null)
     setDejaDansSeance([])
     setForm({ ...defaultForm(), eleveIds: eleves.filter(e => !e.admisCode).map(e => e.id) })
+    setCoursChoisi('code')
     setErr('')
     setView('editor')
     onOuvrir?.('nouvelle')
   }
 
   const openEdit = (s, dejaDansUrl = false) => {
+    setCoursChoisi('code')   // le choix de Cours à publier repart sur « Cours de code »
     setEditId(s.id)
     setDejaDansSeance(s.eleves.map(e => e.id))
     setForm({
@@ -370,7 +373,10 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   }
   /* Élèves assignables : un élève admis au code n'est plus proposé pour une séance, sauf s'il y
      était déjà (il reste coché quand on ajoute de nouveaux élèves) ; puis filtre de recherche. */
-  const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id))
+  /* Élèves admis au code : plus proposés pour une séance de code, mais bien pour la conduite (séance
+     qui contient un cours de conduite, ou « Cours de conduite » choisi dans Cours à publier). */
+  const seanceConduite = coursChoisi === 'conduite' || form.programme.some(p => p.chapitre.startsWith('conduite-'))
+  const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id) || seanceConduite)
   const admisMasques = eleves.length - elevesAssignables.length
   const nbNouveaux = elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).length
   const deLaFormation = (e, f) => !f || (f === 'PERFECTIONNEMENT') === !!e.perfectionnement
@@ -590,7 +596,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
         <div className="lg:col-span-2 space-y-5 min-w-0">
           {/* Secrétariat : tout reste lisible (vidéos et audios compris), rien n'est modifiable */}
           <fieldset disabled={contenuFige} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <ChoixProgramme programme={form.programme} onChange={setProgramme}
+            <ChoixProgramme programme={form.programme} onChange={setProgramme} onCours={setCoursChoisi}
               dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
           </fieldset>
           {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz key={`${editId}-${partagee}`} seanceId={editId} mesEleves={partagee} />}
