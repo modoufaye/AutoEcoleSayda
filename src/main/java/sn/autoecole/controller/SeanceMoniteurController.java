@@ -81,7 +81,7 @@ public class SeanceMoniteurController {
         List<Eleve> eleves = gestion(user)
                 ? seanceService.findAllEleves()
                 : seanceService.findElevesByMoniteur(user.getUsername());
-        // Admis au code : plus proposés pour une nouvelle séance (gardés s'ils y sont déjà)
+        // Admis au code : proposés pour tous les cours ; seuls eux (et le perfectionnement) le sont pour la conduite
         Set<Long> admisCode = new HashSet<>(examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS));
         // Les élèves en perfectionnement ne verront que les parties de conduite (SeanceService)
         return eleves.stream()

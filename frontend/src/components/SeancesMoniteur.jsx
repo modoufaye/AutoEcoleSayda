@@ -220,7 +220,8 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const openCreate = () => {
     setEditId(null)
     setDejaDansSeance([])
-    setForm({ ...defaultForm(), eleveIds: eleves.filter(e => !e.admisCode).map(e => e.id) })
+    // Nouvelle séance (cours de code par défaut) : tous les élèves cochés, admis au code compris
+    setForm({ ...defaultForm(), eleveIds: eleves.map(e => e.id) })
     setCoursChoisi('code')
     setErr('')
     setView('editor')
@@ -376,9 +377,22 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
      était déjà (il reste coché quand on ajoute de nouveaux élèves) ; puis filtre de recherche. */
   /* Élèves admis au code : plus proposés pour une séance de code, mais bien pour la conduite (séance
      qui contient un cours de conduite, ou « Cours de conduite » choisi dans Cours à publier). */
+  /* Règle de l'auto-école : les cours de code sont pour tous les élèves (admis au code compris) ;
+     les cours de conduite seulement pour les élèves admis au code, et ceux en perfectionnement (déjà
+     titulaires du permis). Séance de conduite : elle contient un cours de conduite, ou « Cours de
+     conduite » est choisi dans Cours à publier. Un élève déjà dans la séance reste affiché. */
   const seanceConduite = coursChoisi === 'conduite' || form.programme.some(p => p.chapitre.startsWith('conduite-'))
-  const elevesAssignables = eleves.filter(e => !e.admisCode || dejaDansSeance.includes(e.id) || seanceConduite)
-  const admisMasques = eleves.length - elevesAssignables.length
+  const peutConduite = e => e.admisCode || e.perfectionnement
+  const elevesAssignables = seanceConduite ? eleves.filter(e => peutConduite(e) || dejaDansSeance.includes(e.id)) : eleves
+  const nonProposes = eleves.length - elevesAssignables.length
+  // Passage à la conduite : les élèves cochés qui n'y ont pas droit sont décochés
+  const choisirCours = k => {
+    setCoursChoisi(k)
+    if (k === 'conduite') {
+      setOrdreFige(o => ({ ...o, cle: '' }))
+      setForm(f => ({ ...f, eleveIds: f.eleveIds.filter(id => dejaDansSeance.includes(id) || eleves.some(e => e.id === id && peutConduite(e))) }))
+    }
+  }
   const nbNouveaux = elevesAssignables.filter(e => inscritCetteSemaine(e.dateInscription)).length
   const deLaFormation = (e, f) => !f || (f === 'PERFECTIONNEMENT') === !!e.perfectionnement
   const nbPerf = elevesAssignables.filter(e => e.perfectionnement).length
@@ -542,9 +556,10 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                 )}
               </div>
             )}
-            {admisMasques > 0 && (
+            {seanceConduite && (
               <div className="px-4 py-2 text-xs font-semibold" style={{ background: '#f0fdf4', color: '#15803d', borderBottom: '1px solid #eef2f7' }}>
-                <i className="bi bi-patch-check-fill me-1" />{admisMasques} élève{admisMasques > 1 ? 's' : ''} admis au code, plus proposé{admisMasques > 1 ? 's' : ''}
+                <i className="bi bi-car-front-fill me-1" />Cours de conduite : seuls les élèves admis au code (et en perfectionnement) sont proposés
+                {nonProposes > 0 && <span className="font-normal text-slate-500"> · {nonProposes} sans code réussi non proposé{nonProposes > 1 ? 's' : ''}</span>}
               </div>
             )}
             {/* Téléphone : liste haute (2/3 de l'écran) pour cocher sans faire défiler sans cesse ; ordinateur : 340 px */}
@@ -602,7 +617,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
         <div className="lg:col-span-2 space-y-5 min-w-0">
           {/* Secrétariat : tout reste lisible (vidéos et audios compris), rien n'est modifiable */}
           <fieldset disabled={contenuFige} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-            <ChoixProgramme programme={form.programme} onChange={setProgramme} onCours={setCoursChoisi}
+            <ChoixProgramme programme={form.programme} onChange={setProgramme} onCours={choisirCours}
               dateHeure={form.dateHeure} onDateHeure={v => setField('dateHeure', v)} />
           </fieldset>
           {editId && (seances.find(x => x.id === editId)?.programme || []).length > 0 && <ResultatsQuiz key={`${editId}-${partagee}`} seanceId={editId} mesEleves={partagee} />}
