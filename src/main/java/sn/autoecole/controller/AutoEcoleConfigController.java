@@ -70,6 +70,7 @@ public class AutoEcoleConfigController {
         // Slogan effacé : on garde « » (et non null), pour ne jamais remettre l'ancien slogan d'office
         if (body.containsKey("slogan"))          cfg.setSlogan(body.get("slogan") == null ? "" : body.get("slogan").toString().trim());
         if (body.containsKey("affiches"))        cfg.setAffiches(affiches(body.get("affiches")));
+        if (body.containsKey("palmaresHebdo"))   cfg.setPalmaresHebdo(!Boolean.FALSE.equals(body.get("palmaresHebdo")));
         if (body.containsKey("lienWave"))        cfg.setLienWave(lienPaiement(body.get("lienWave")));
         if (body.containsKey("lienOrangeMoney")) cfg.setLienOrangeMoney(lienPaiement(body.get("lienOrangeMoney")));
 

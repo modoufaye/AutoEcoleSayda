@@ -379,7 +379,7 @@ export default function Parametres() {
     tarifInscription: '', tarifHeureCode: '', tarifHeureConduite: '',
     lienWave: '', lienOrangeMoney: '', moniteurParDefautId: '',
     ville: '', anneeCreation: '', elevesFormes: '', tauxReussite: '', nombreMoniteurs: '', horaires: '',
-    slogan: '', affiches: [],
+    slogan: '', affiches: [], palmaresHebdo: true,
   })
   const [formules, setFormules] = useState(formulesDepuis([]))
   const [formulesPerf, setFormulesPerf] = useState([])
@@ -413,6 +413,7 @@ export default function Parametres() {
         horaires:          data.horaires          || '',
         slogan:            data.slogan            || '',
         affiches:          data.affiches          || [],
+        palmaresHebdo:     data.palmaresHebdo !== false,
       }) })
       .catch(e => toast(e.message, 'danger'))
       .finally(() => setLoading(false))
@@ -453,6 +454,13 @@ export default function Parametres() {
     setFormules(formulesDepuis(cfg.formules)); setFormulesPerf(cfg.formulesPerfectionnement || [])
     setFormulesPL(formulesDepuis(cfg.formulesPoidsLourd, [FORMULE_POIDS_LOURD])); setFormulesMoto(formulesDepuis(cfg.formulesMoto, [FORMULE_MOTO]))
     toast(`${libelle} enregistrée`)
+  }
+
+  async function publierChampions() {
+    try {
+      const r = await api('POST', '/admin/palmares/publier')
+      toast(r.seances > 0 ? `Annonce publiée : ${r.seances} séance(s) à l'honneur` : "Rien à publier : aucun quiz ces 7 derniers jours, ou annonce déjà publiée aujourd'hui", r.seances > 0 ? 'success' : 'warning')
+    } catch (e) { toast(e.message, 'danger') }
   }
 
   async function handleSave() {
@@ -589,6 +597,19 @@ export default function Parametres() {
                 )}
                 <div className="text-xs text-slate-400 mt-1">Pensez à « Enregistrer » en bas de la page.</div>
               </div>
+            </div>
+
+            {/* Motivation : annonce hebdomadaire des meilleurs scores aux quiz des séances */}
+            <div className="text-sm font-extrabold text-slate-700 mb-1"><i className="bi bi-trophy me-2" />Champions de la semaine</div>
+            <div className="text-xs text-slate-400 mb-3">Chaque lundi à 00 h, une annonce félicite le meilleur score au quiz de chaque séance de la semaine écoulée (prénom et nom), pour tous les élèves.</div>
+            <div className="d-flex flex-wrap align-items-center gap-3 mb-4">
+              <label className="d-flex align-items-center gap-2 text-sm fw-semibold mb-0" style={{ cursor: 'pointer' }}>
+                <input type="checkbox" className="form-check-input m-0" checked={form.palmaresHebdo} onChange={e => set('palmaresHebdo', e.target.checked)} />
+                Publier l'annonce chaque lundi
+              </label>
+              <button type="button" className="btn btn-sm btn-light fw-semibold" style={{ borderRadius: 999 }} onClick={publierChampions}>
+                <i className="bi bi-megaphone me-1" />Publier maintenant (7 derniers jours)
+              </button>
             </div>
 
           </div>

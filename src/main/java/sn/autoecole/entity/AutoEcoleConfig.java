@@ -41,6 +41,9 @@ public class AutoEcoleConfig {
     @Column(columnDefinition = "TEXT")
     private List<Affiche> affiches;
 
+    /** Annonce « champions de la semaine » chaque lundi à 00 h (nul : activée). */
+    private Boolean palmaresHebdo;
+
     /** Liens marchands affichés à l'élève pour payer (Wave Business / Orange Money). */
     @Column(length = 500)
     private String lienWave;

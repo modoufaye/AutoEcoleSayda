@@ -93,6 +93,9 @@ function TableLecons({ lecons, empty }) {
 }
 
 export default function ElevePortail({ onGoSection, accesCours = false }) {
+  // Tableau d'honneur : meilleur score de chaque séance (arrêté à 00 h), ses séances seulement
+  const [palmares, setPalmares] = useState([])
+  useEffect(() => { api('GET', '/eleve/palmares').then(l => setPalmares(l || [])).catch(() => {}) }, [])
   // Séances publiées dont le quiz reste à valider (carte « Mes Séances »)
   const [aFaire, setAFaire] = useState(0)
   useEffect(() => { compterSeancesAFaire().then(setAFaire).catch(() => {}) }, [])
@@ -331,6 +334,32 @@ export default function ElevePortail({ onGoSection, accesCours = false }) {
             <span className="font-bold">Examen {TYPE_STYLE[prochainExamen.type]?.label} {joursAvant <= 0 ? "aujourd'hui" : joursAvant === 1 ? 'demain' : `dans ${joursAvant} jours`}</span>
             <span className="font-normal opacity-80"> — le {fmtDate(prochainExamen.date)}</span>
             {prochainExamen.observations && <div className="font-normal opacity-90 mt-0.5">{prochainExamen.observations}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tableau d'honneur : meilleurs scores aux quiz de ses séances (mis à jour chaque nuit) ── */}
+      {!perf && palmares.length > 0 && (
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)', border: '1px solid #fde68a' }}>
+          <div className="flex items-center gap-3 px-5 py-3" style={{ background: 'linear-gradient(135deg,#fffbeb,#fef3c7)', borderBottom: '1px solid #fde68a' }}>
+            <span style={{ fontSize: '1.4rem' }}>🏆</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-extrabold text-sm" style={{ color: '#92400e' }}>Tableau d'honneur</div>
+              <div className="text-xs" style={{ color: '#a16207' }}>Meilleur score au quiz de chaque séance · mis à jour chaque nuit</div>
+            </div>
+          </div>
+          <div className="divide-y divide-amber-50">
+            {palmares.slice(0, 6).map(l => (
+              <div key={l.seanceId} className="flex items-center gap-3 px-5 py-2.5" style={{ background: l.moi ? '#f0fdf4' : '#fff' }}>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-700 truncate">{l.titre}</div>
+                  <div className="text-xs text-slate-500 truncate">
+                    {l.noms.join(', ')}{l.moi && <span className="font-extrabold" style={{ color: '#15803d' }}> · c'est vous, bravo ! 🎉</span>}
+                  </div>
+                </div>
+                <span className="text-sm font-black flex-shrink-0" style={{ color: '#b45309' }}>{l.score}/{l.total}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
