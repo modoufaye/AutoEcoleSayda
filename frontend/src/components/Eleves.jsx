@@ -1015,6 +1015,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
   const [classeFiltre, setClasseFiltre] = useState(memo.classeFiltre ?? '')   // id de classe ('' : toutes)
+  const [messagesSeuls, setMessagesSeuls] = useState(!!memo.messagesSeuls)   // seulement les élèves qui ont écrit (non lus)
   const classes = useClasses()
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
   // Élèves admis à l'examen du code : prêts pour les cours de conduite
@@ -1032,15 +1033,15 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     try {
       sessionStorage.setItem(cleFiltres(user?.id), JSON.stringify({
-        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, archives, page, signatureFiltres, user?.id])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1101,6 +1102,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
     if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
     if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
     if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre))
+    if (messagesSeuls) r = r.filter(e => messagesNonLus[e.id] > 0)
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
@@ -1112,7 +1114,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, admisCode, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
@@ -2066,6 +2068,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
         {presence && (
           <FiltreBascule actif={enLigneSeul} onClick={() => setEnLigneSeul(x => !x)} icone="broadcast">
             En ligne · {list.filter(e => presence.eleves.has(e.id)).length}
+          </FiltreBascule>
+        )}
+        {/* Élèves qui ont écrit à l'auto-école et dont le message n'est pas encore lu (pastille « Élèves » du menu) */}
+        {(Object.keys(messagesNonLus).length > 0 || messagesSeuls) && (
+          <FiltreBascule actif={messagesSeuls} onClick={() => setMessagesSeuls(x => !x)} icone="chat-dots">
+            Messages non lus · {list.filter(e => messagesNonLus[e.id] > 0).length}
           </FiltreBascule>
         )}
         {/* Élèves qui n'ont pas encore reçu leurs identifiants (message de bienvenue) */}
