@@ -56,6 +56,18 @@ public class PalmaresService {
         return LocalDate.now(DAKAR).atStartOfDay();
     }
 
+    /** Lundi 00 h de la semaine en cours (heure de Dakar) : fin de la semaine passée. */
+    public static LocalDateTime lundiCourant() {
+        return LocalDate.now(DAKAR).with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).atStartOfDay();
+    }
+
+    /** Annonce de la semaine passée, du lundi au dimanche : la même que celle du lundi 00 h. */
+    @Transactional
+    public int publierSemainePassee() {
+        LocalDateTime fin = lundiCourant();
+        return publier(fin.minusWeeks(1), fin);
+    }
+
     /**
      * Meilleurs scores des séances publiées, pour les quiz faits dans [debut, fin).
      * seanceIds nul : toutes les séances. Triées par date de séance (la plus récente d'abord).
@@ -117,8 +129,7 @@ public class PalmaresService {
     public void annonceHebdomadaire() {
         boolean active = configRepo.findAll().stream().findFirst().map(c -> !Boolean.FALSE.equals(c.getPalmaresHebdo())).orElse(true);
         if (!active) return;
-        LocalDateTime fin = minuit();
-        publier(fin.minusDays(7), fin);
+        publierSemainePassee();
     }
 
     /**
@@ -129,11 +140,11 @@ public class PalmaresService {
     public int publier(LocalDateTime debut, LocalDateTime fin) {
         List<Ligne> lignes = meilleurs(null, debut, fin);
         if (lignes.isEmpty()) { log.info("Palmarès : aucun quiz du {} au {}, pas d'annonce", debut, fin); return 0; }
-        LocalDateTime aujourdhui = minuit();
-        boolean deja = annonceRepo.findAll().stream().anyMatch(a -> TITRE_ANNONCE.equals(a.getTitre()) && a.getCreeLe() != null && !a.getCreeLe().isBefore(aujourdhui));
+        // Une seule annonce par semaine : déjà publiée pour cette période (contenu daté), on ne refait rien
+        String periode = "du " + debut.format(JOUR) + " au " + fin.minusDays(1).format(JOUR);
+        boolean deja = annonceRepo.findAll().stream().anyMatch(a -> TITRE_ANNONCE.equals(a.getTitre()) && a.getContenu() != null && a.getContenu().contains(periode + " :"));
         if (deja) return 0;
-        StringBuilder t = new StringBuilder("Bravo aux meilleurs scores aux quiz des séances, du ")
-                .append(debut.format(JOUR)).append(" au ").append(fin.minusDays(1).format(JOUR)).append(" :\n");
+        StringBuilder t = new StringBuilder("Bravo aux meilleurs scores aux quiz des séances, ").append(periode).append(" :\n");
         int n = 0;
         for (Ligne l : lignes) {
             String ligne = "\n• « " + l.titre() + " » : " + String.join(", ", l.noms()) + " (" + l.score() + "/" + l.total() + ")";

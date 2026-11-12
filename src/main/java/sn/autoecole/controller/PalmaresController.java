@@ -22,11 +22,9 @@ public class PalmaresController {
         return service.pourEleve(auth.getName());
     }
 
-    /** Annonce des champions des 7 derniers jours (jusqu'à 00 h), sans attendre lundi. */
+    /** Annonce des champions de la semaine passée (lundi → dimanche), sans attendre lundi. */
     @PostMapping("/api/admin/palmares/publier")
     public Map<String, Object> publierMaintenant() {
-        var fin = PalmaresService.minuit();
-        int n = service.publier(fin.minusDays(7), fin);
-        return Map.of("seances", n);
+        return Map.of("seances", service.publierSemainePassee());
     }
 }

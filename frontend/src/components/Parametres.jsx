@@ -459,7 +459,7 @@ export default function Parametres() {
   async function publierChampions() {
     try {
       const r = await api('POST', '/admin/palmares/publier')
-      toast(r.seances > 0 ? `Annonce publiée : ${r.seances} séance(s) à l'honneur` : "Rien à publier : aucun quiz ces 7 derniers jours, ou annonce déjà publiée aujourd'hui", r.seances > 0 ? 'success' : 'warning')
+      toast(r.seances > 0 ? `Annonce publiée : ${r.seances} séance(s) à l'honneur` : "Rien à publier : aucun quiz la semaine passée, ou son annonce est déjà publiée", r.seances > 0 ? 'success' : 'warning')
     } catch (e) { toast(e.message, 'danger') }
   }
 
@@ -608,7 +608,7 @@ export default function Parametres() {
                 Publier l'annonce chaque lundi
               </label>
               <button type="button" className="btn btn-sm btn-light fw-semibold" style={{ borderRadius: 999 }} onClick={publierChampions}>
-                <i className="bi bi-megaphone me-1" />Publier maintenant (7 derniers jours)
+                <i className="bi bi-megaphone me-1" />Publier la semaine passée maintenant
               </button>
             </div>
 
