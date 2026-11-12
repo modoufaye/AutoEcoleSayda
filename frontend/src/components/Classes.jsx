@@ -10,6 +10,7 @@ import ChoixPuces from './ChoixPuces'
 import { FenetreModerne, Etape, Etiquette } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
 import { EnteteListe, ListeVide, BoutonAjout, BoutonRond } from './ListeModerne'
+import { useBureaux } from '../bureaux'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -17,7 +18,7 @@ const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #
    classe ; le mettre dans une autre l'y déplace. Le bureau gère toutes les classes ; un moniteur crée
    les siennes avec ses élèves. Ensuite, Séances, Travaux Dirigés, Examens et Annonces proposent un
    bouton par classe qui coche tous ses élèves d'un coup. */
-export default function Classes() {
+export default function Classes({ onEleveClick }) {
   const { user } = useAuth()
   const moniteur = user?.role === 'MONITEUR'
   const classes = useClasses()
@@ -25,6 +26,10 @@ export default function Classes() {
   const [edition, setEdition] = useState(null)   // { id?, nom, eleveIds: [string] }
   const [periode, setPeriode] = useState({ du: '', au: '' })
   const [envoi, setEnvoi] = useState(false)
+  const [ouverte, setOuverte] = useState(null)   // classe dépliée (liste de ses élèves)
+  const [admisCode, setAdmisCode] = useState(() => new Set())
+  useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
+  const bureaux = useBureaux()
 
   useEffect(() => {
     api('GET', moniteur ? '/moniteur/mes-eleves' : '/eleves').then(l => setEleves(l || [])).catch(() => {})
@@ -32,6 +37,7 @@ export default function Classes() {
   }, [moniteur])
 
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
+  const parId = Object.fromEntries(eleves.map(e => [e.id, e]))
   const items = [...eleves].sort((a, b) => b.id - a.id).map(e => ({
     id: e.id, titre: `${e.prenom} ${e.nom}`,
     sous: [e.telephone && afficherTelephone(e.telephone), e.dateInscription && `inscrit le ${fmtDate(e.dateInscription)}`].filter(Boolean).join(' · '),
@@ -85,7 +91,12 @@ export default function Classes() {
       <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
         <EnteteListe icone="collection-fill" titre="Classes" sousTitre="Groupes d'élèves" nombre={classes.length} />
         {classes.length === 0 ? <ListeVide texte="Aucune classe : créez-en une avec « + Classe »" icone="collection" /> : classes.map(c => (
-          <div key={c.id} className="flex flex-wrap items-center gap-3 px-4 sm:px-5 py-3.5" style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <div key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+          {/* Un clic sur la classe déplie ses élèves ; Modifier et Supprimer restent à droite */}
+          <div className="flex flex-wrap items-center gap-3 px-4 sm:px-5 py-3.5 cursor-pointer" role="button" tabIndex={0} aria-expanded={ouverte === c.id}
+            onClick={() => setOuverte(o => (o === c.id ? null : c.id))}
+            onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setOuverte(o => (o === c.id ? null : c.id)) } }}
+            style={{ background: ouverte === c.id ? '#faf5ff' : '#fff' }}>
             <span className="w-10 h-10 flex items-center justify-center flex-shrink-0" style={{ borderRadius: '.8rem', background: '#f5f3ff', color: '#6d28d9' }}>
               <i className="bi bi-collection-fill" />
             </span>
@@ -96,11 +107,34 @@ export default function Classes() {
               </div>
             </div>
             {c.modifiable ? (
-              <div className="flex gap-2">
+              <div className="flex gap-2" onClick={ev => ev.stopPropagation()}>
                 <BoutonRond title="Modifier" icon="pencil-fill" couleur="#1d4ed8" fond="#eff6ff" onClick={() => ouvrir(c)} />
                 <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimer(c)} />
               </div>
             ) : <span className="text-xs text-slate-400">Lecture seule</span>}
+            <i className={`bi bi-chevron-${ouverte === c.id ? 'up' : 'down'} text-slate-400`} />
+          </div>
+          {ouverte === c.id && (
+            <div className="px-4 sm:px-5 pb-3" style={{ background: '#faf5ff' }}>
+              {c.eleveIds.length === 0 ? (
+                <div className="text-sm text-slate-500 py-2">Aucun élève dans cette classe{c.modifiable ? ' : ajoutez-en avec « Modifier »' : ''}.</div>
+              ) : [...c.eleveIds].map(id => parId[id]).filter(Boolean)
+                  .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map(e => {
+                const admis = admisCode.has(e.id), perf = e.typeFormation === 'PERFECTIONNEMENT'
+                return (
+                  <button key={e.id} type="button" onClick={() => onEleveClick?.(e.id)} title="Ouvrir la fiche de l'élève"
+                    className="w-full flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-left bg-transparent border-0 cursor-pointer" style={{ borderTop: '1px solid #ede9fe' }}>
+                    <span className="font-bold text-sm text-[#1e3a5f] hover:underline">{e.prenom} {e.nom}</span>
+                    <span className="text-xs text-slate-500">{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}{e.site && ` · ${bureaux.libelle(e.site)}`}</span>
+                    <span className="ms-auto text-[10px] font-extrabold px-2 py-0.5 rounded-full"
+                      style={perf ? { background: '#f5f3ff', color: '#6d28d9' } : admis ? { background: '#dcfce7', color: '#15803d' } : { background: '#fef3c7', color: '#b45309' }}>
+                      {perf ? 'Perfectionnement' : admis ? 'Code admis' : 'Code à passer'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
           </div>
         ))}
       </div>

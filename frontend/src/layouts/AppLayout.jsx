@@ -444,7 +444,7 @@ export default function AppLayout() {
             ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick}
                 onQuitterFiche={() => navigate(`${base}/eleves`, { replace: true })} />
             : section === 'classes'
-            ? <Classes key="classes" />
+            ? <Classes key="classes" onEleveClick={handleEleveClick} />
             : section === 'moniteurs'
             ? <Moniteurs key={`moniteurs-${detail ?? 'list'}-${retourListe}`} moniteurId={detail} onOuvrir={ouvrirDetail} onFermer={fermerDetail} />
             : <ActiveComponent key={section} />}
