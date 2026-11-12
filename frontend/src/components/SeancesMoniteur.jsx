@@ -196,10 +196,11 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, 
 }
 
 /* lectureSeule : secrétariat, qui consulte les séances sans les créer, modifier ni supprimer. */
-/* Type d'une séance d'après ses cours : conduite (chapitres « conduite-… »), code, ou les deux.
-   Sans cours (contenu libre seul) : rangée avec le code, comme dans les statistiques. */
+/* Type d'une séance d'après ses cours : code, conduite (chapitres « conduite-… »), les deux, ou
+   aucun cours : seulement des contenus pédagogiques (texte, audio, vidéo). */
 const genreSeance = s => {
   const parties = s.programme || []
+  if (!parties.length) return 'contenu'
   const conduite = parties.some(p => p.chapitre.startsWith('conduite-'))
   const code = parties.some(p => !p.chapitre.startsWith('conduite-'))
   return conduite && code ? 'mixte' : conduite ? 'conduite' : 'code'
@@ -208,6 +209,7 @@ const SECTIONS_SEANCES = [
   { key: 'code', titre: 'Cours de code', sousTitre: 'Séances du code de la route', icone: 'signpost-2-fill' },
   { key: 'conduite', titre: 'Cours de conduite', sousTitre: 'Séances de conduite · élèves admis au code', icone: 'car-front-fill' },
   { key: 'mixte', titre: 'Code et conduite', sousTitre: 'Séances qui mêlent les deux', icone: 'signpost-split-fill' },
+  { key: 'contenu', titre: 'Contenus pédagogiques', sousTitre: 'Texte, audio, vidéo · sans cours de code ni de conduite', icone: 'collection-play-fill' },
 ]
 
 export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false, onBack, seanceId, onOuvrir, onFermer }) {

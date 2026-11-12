@@ -42,6 +42,7 @@ export default function Examens({ onEleveClick, onBack }) {
   const [filterTentative, setFilterTentative] = useState('')
   const [page, setPage]                     = useState(1)
   const [ouverts, setOuverts]               = useState(() => new Set())   // dates d'examen dépliées (personnel)
+  const [rappelsOuverts, setRappelsOuverts] = useState(false)   // « Rappels à envoyer » repliés par défaut
   const [filterDateDe, setFilterDateDe]     = useState('')
   const [filterDateA, setFilterDateA]       = useState('')
   const [form, setForm]                     = useState(EMPTY)
@@ -318,19 +319,23 @@ export default function Examens({ onEleveClick, onBack }) {
       {/* ── Rappels à envoyer : examens des 7 prochains jours (admin) ── */}
       {!isEleve && aRappeler.length > 0 && (
         <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(0,0,0,.07)' }}>
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100">
+          {/* Repliée par défaut : un clic sur l'en-tête affiche les rappels */}
+          <button type="button" onClick={() => setRappelsOuverts(o => !o)} aria-expanded={rappelsOuverts}
+            className="w-full flex items-center gap-3 px-5 py-3 text-left bg-white border-0 cursor-pointer"
+            style={{ borderBottom: rappelsOuverts ? '1px solid #f1f5f9' : 'none' }}>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: '#dcfce7' }}>
               <i className="bi bi-whatsapp" style={{ color: '#16a34a', fontSize: '.95rem' }} />
             </div>
             <div className="flex-1">
               <div className="font-bold text-sm text-slate-800">Rappels à envoyer</div>
-              <div className="text-xs text-slate-400">Examens des 7 prochains jours</div>
+              <div className="text-xs text-slate-400">Examens des 7 prochains jours{!rappelsOuverts && ' · touchez pour afficher'}</div>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#dcfce7', color: '#15803d' }}>
               {aRappeler.length}
             </span>
-          </div>
-          <div className="divide-y divide-slate-50">
+            <i className={`bi bi-chevron-${rappelsOuverts ? 'up' : 'down'} text-slate-400`} />
+          </button>
+          {rappelsOuverts && <div className="divide-y divide-slate-50">
             {aRappeler.map(e => {
               const lien = lienRappel(e)
               const j = joursAvant(e.date)
@@ -357,7 +362,7 @@ export default function Examens({ onEleveClick, onBack }) {
                 </div>
               )
             })}
-          </div>
+          </div>}
         </div>
       )}
 
