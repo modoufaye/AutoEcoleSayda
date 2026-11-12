@@ -221,6 +221,23 @@ const ordreTitre = (a, b) => (a.titre || '').localeCompare(b.titre || '', 'fr', 
 function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait }) {
   const [envoi, setEnvoi] = useState(false)
   const choisis = eleves.filter(e => etat.eleveIds.includes(String(e.id)))
+  // Quiz des élèves choisis : « Réussie », « Quiz fait », « Pas encore faite » sur chaque séance
+  const [quiz, setQuiz] = useState([])
+  const cleChoix = [...etat.eleveIds].sort().join(',')
+  useEffect(() => {
+    if (!cleChoix) { setQuiz([]); return }
+    api('GET', `/moniteur/seances/quiz-eleves?ids=${cleChoix}`).then(l => setQuiz(l || [])).catch(() => setQuiz([]))
+  }, [cleChoix])
+  const etatQuiz = (s, dedans) => {
+    if (!choisis.length || !(s.programme || []).length) return null
+    const r = quiz.filter(q => q.seanceId === s.id)
+    if (choisis.length === 1) {
+      const q = r[0]
+      return q?.reussi ? { t: `Réussie ${q.score}/${q.total}`, c: '#15803d' } : q ? { t: `Quiz fait ${q.score}/${q.total}, pas encore réussi`, c: '#b45309' } : dedans ? { t: 'Pas encore faite', c: '#64748b' } : null
+    }
+    const n = r.filter(q => q.reussi).length
+    return { t: `Réussie par ${n}/${choisis.length}`, c: n === choisis.length ? '#15803d' : '#64748b' }
+  }
   const items = eleves.map(e => ({ id: e.id, titre: e.nom, mots: [e.nom, e.telephone],
     sous: [e.telephone && afficherTelephone(e.telephone), e.perfectionnement ? 'Perfectionnement' : e.admisCode ? 'Admis au code' : null].filter(Boolean).join(' · ') }))
   const conduiteSeule = s => genreSeance(s) === 'conduite'
@@ -259,13 +276,14 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
                   const refuses = conduiteSeule(s) ? choisis.filter(e => !e.admisCode && !e.perfectionnement) : []
                   const coche = etat.seanceIds.includes(s.id)
                   return (
-                    <label key={s.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: dedans ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : '#fff', opacity: dedans ? .55 : 1 }}>
+                    <label key={s.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: dedans ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : dedans ? '#f8fafc' : '#fff' }}>
                       <input type="checkbox" className="form-check-input m-0" style={{ flexShrink: 0, float: 'none' }} disabled={dedans} checked={coche && !dedans} onChange={() => basculer(s.id)} />
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span className="block text-sm font-bold text-slate-700 truncate">{s.titre}</span>
+                        <span className="block text-sm font-bold truncate" style={{ color: dedans ? '#94a3b8' : '#334155' }}>{s.titre}</span>
                         <span className="block text-xs text-slate-500">
                           {s.eleves.length} élève(s) · {s.statut === 'PUBLIE' ? 'Publiée' : 'Brouillon'}
-                          {dedans && <b style={{ color: '#15803d' }}> · déjà dedans</b>}
+                          {dedans && <b style={{ color: '#475569' }}> · déjà dedans</b>}
+                          {etatQuiz(s, dedans) && <b style={{ color: etatQuiz(s, dedans).c }}> · {etatQuiz(s, dedans).t}</b>}
                           {refuses.length > 0 && <b style={{ color: '#b45309' }}> · {refuses.length === choisis.length ? 'non admis au code' : `${refuses.length} non admis au code, ignoré(s)`}</b>}
                         </span>
                       </span>

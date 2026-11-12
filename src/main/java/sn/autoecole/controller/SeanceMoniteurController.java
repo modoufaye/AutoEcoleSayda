@@ -26,6 +26,7 @@ public class SeanceMoniteurController {
 
     private final SeanceService seanceService;
     private final ExamenRepository examenRepository;
+    private final sn.autoecole.repository.ResultatQuizSeanceRepository resultatRepository;
 
     @GetMapping
     public List<SeanceResponse> list(@AuthenticationPrincipal UserDetails user,
@@ -50,6 +51,18 @@ public class SeanceMoniteurController {
     @PatchMapping("/{id}/eleves")
     public SeanceResponse mesEleves(@PathVariable Long id, @RequestBody Map<String, List<Long>> body, @AuthenticationPrincipal UserDetails user) {
         return seanceService.ajouterMesEleves(id, body.get("eleveIds"), user.getUsername());
+    }
+
+    /** Quiz de séance des élèves choisis (fenêtre « Ajouter à plusieurs séances ») : séances réussies
+        ou commencées. Un moniteur ne voit que ses élèves. Paramètre : ids=1,2,3. */
+    @GetMapping("/quiz-eleves")
+    public List<Map<String, Object>> quizEleves(@RequestParam List<Long> ids, @AuthenticationPrincipal UserDetails user) {
+        Set<Long> permis = gestion(user) ? null : seanceService.findElevesByMoniteur(user.getUsername()).stream().map(Eleve::getId).collect(java.util.stream.Collectors.toSet());
+        return ids.stream().distinct().limit(200).filter(id -> permis == null || permis.contains(id))
+                .flatMap(id -> resultatRepository.findByEleveId(id).stream())
+                .map(r -> Map.<String, Object>of("seanceId", r.getSeanceId(), "eleveId", r.getEleveId(),
+                        "score", r.getMeilleurScore(), "total", r.getMeilleurTotal(), "reussi", r.isReussi()))
+                .toList();
     }
 
     /** Un ou plusieurs élèves ajoutés à plusieurs séances d'un coup. Corps : { eleveIds, seanceIds }. */
