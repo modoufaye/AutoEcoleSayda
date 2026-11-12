@@ -92,6 +92,35 @@ public class SeanceService {
         return toResponse(seanceRepo.save(s));
     }
 
+    /**
+     * Ajoute des élèves à plusieurs séances en une fois (ex. thème 1 validé : séances 2.1, 2.2, 2.3 et
+     * révision du thème 2). N'en retire jamais. L'administration ajoute partout ; un moniteur, seulement
+     * ses élèves, dans ses séances et celles publiées par l'administration. Séances de conduite seule :
+     * seulement les admis au code et le perfectionnement. Renvoie { ajouts, seances } (séances changées).
+     */
+    public Map<String, Integer> ajouterAPlusieurs(List<Long> seanceIds, List<Long> eleveIds, String email, boolean gestion, Set<Long> admisCode) {
+        if (seanceIds == null || seanceIds.isEmpty() || eleveIds == null || eleveIds.isEmpty())
+            throw new BusinessException("Choisissez au moins un élève et une séance");
+        Set<Long> autorises = gestion ? null : findElevesByMoniteur(email).stream().map(Eleve::getId).collect(Collectors.toSet());
+        List<Eleve> eleves = eleveRepo.findAllById(new HashSet<>(eleveIds)).stream()
+                .filter(e -> autorises == null || autorises.contains(e.getId())).toList();
+        int ajouts = 0, changees = 0;
+        for (Seance s : seanceRepo.findAllById(new HashSet<>(seanceIds))) {
+            boolean permise = gestion || s.getMoniteur().getEmail().equals(email)
+                    || (s.getStatut() == StatutSeance.PUBLIE && ADMINISTRATION.contains(s.getMoniteur().getRole()));
+            if (!permise) continue;
+            boolean conduiteSeule = !s.getProgramme().isEmpty() && s.getProgramme().stream().allMatch(SeanceService::conduite);
+            Set<Long> deja = s.getEleves().stream().map(Eleve::getId).collect(Collectors.toSet());
+            List<Eleve> nouveaux = eleves.stream().filter(e -> !deja.contains(e.getId()))
+                    .filter(e -> !conduiteSeule || admisCode.contains(e.getId()) || e.estPerfectionnement()).toList();
+            if (nouveaux.isEmpty()) continue;
+            s.getEleves().addAll(nouveaux);
+            seanceRepo.save(s);
+            ajouts += nouveaux.size(); changees++;
+        }
+        return Map.of("ajouts", ajouts, "seances", changees);
+    }
+
     @Transactional(readOnly = true)
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)

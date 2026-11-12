@@ -9,6 +9,8 @@ import { ChoixProgramme, ResultatsQuiz } from './SeanceCode'
 import { libellePartie } from '../contenu/programme'
 import { afficherTelephone } from '../telephones'
 import BoutonsClasses from './BoutonsClasses'
+import ChoixPuces from './ChoixPuces'
+import { FenetreModerne, Etape } from './FenetreModerne'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -212,6 +214,73 @@ const SECTIONS_SEANCES = [
   { key: 'contenu', titre: 'Contenus pédagogiques', sousTitre: 'Texte, audio, vidéo · sans cours de code ni de conduite', icone: 'collection-play-fill' },
 ]
 
+/* Ajouter un ou plusieurs élèves à plusieurs séances d'un coup (ex. thème 1 validé : 2.1, 2.2, 2.3 et la
+   révision du thème 2). N'en retire jamais personne. Un moniteur ne voit que ses séances et celles de
+   l'administration ; une séance de conduite seule n'accepte que les admis au code et le perfectionnement. */
+const ordreTitre = (a, b) => (a.titre || '').localeCompare(b.titre || '', 'fr', { numeric: true })
+function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait }) {
+  const [envoi, setEnvoi] = useState(false)
+  const choisis = eleves.filter(e => etat.eleveIds.includes(String(e.id)))
+  const items = eleves.map(e => ({ id: e.id, titre: e.nom, mots: [e.nom, e.telephone],
+    sous: [e.telephone && afficherTelephone(e.telephone), e.perfectionnement ? 'Perfectionnement' : e.admisCode ? 'Admis au code' : null].filter(Boolean).join(' · ') }))
+  const conduiteSeule = s => genreSeance(s) === 'conduite'
+  const proposees = seances.filter(s => isAdmin || !s.parAdministration || s.statut === 'PUBLIE')
+  const basculer = id => setEtat(x => ({ ...x, seanceIds: x.seanceIds.includes(id) ? x.seanceIds.filter(i => i !== id) : [...x.seanceIds, id] }))
+  const valider = async () => {
+    if (!etat.eleveIds.length) return toast('Choisissez au moins un élève', 'warning')
+    if (!etat.seanceIds.length) return toast('Cochez au moins une séance', 'warning')
+    setEnvoi(true)
+    try {
+      const r = await api('POST', '/moniteur/seances/ajouter-eleves', { eleveIds: etat.eleveIds.map(Number), seanceIds: etat.seanceIds })
+      toast(r.ajouts > 0 ? `${r.ajouts} ajout(s) dans ${r.seances} séance(s)` : 'Rien à ajouter : déjà présents, ou non admis au code pour une séance de conduite', r.ajouts > 0 ? 'success' : 'warning')
+      if (r.ajouts > 0) onFait()
+    } catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+  return (
+    <FenetreModerne surTitre="Séances de cours" titre="Ajouter à plusieurs séances" icone="person-plus-fill"
+      details={[['people', `${etat.eleveIds.length} élève(s)`], ['camera-video', `${etat.seanceIds.length} séance(s)`]]}
+      onClose={() => setEtat(null)} onSave={valider} libelleSave={envoi ? 'Ajout…' : 'Ajouter aux séances cochées'}
+      piedGauche="Les élèves sont seulement ajoutés : personne n'est retiré des séances.">
+      <Etape n={1} icon="person" titre="Élève(s)">
+        <ChoixPuces items={items} valeur={etat.eleveIds} onChoisir={ids => setEtat(x => ({ ...x, eleveIds: ids }))}
+          multiple cochesEnTete placeholder="Nom, prénom ou téléphone…" hauteur={220} />
+      </Etape>
+      <Etape n={2} icon="camera-video" titre="Séances">
+        {SECTIONS_SEANCES.map(sec => {
+          const liste = proposees.filter(s => genreSeance(s) === sec.key).sort(ordreTitre)
+          if (!liste.length) return null
+          return (
+            <div key={sec.key} className="mb-3">
+              <div className="text-xs font-extrabold text-slate-500 mb-1"><i className={`bi bi-${sec.icone} me-1`} />{sec.titre}</div>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
+                {liste.map(s => {
+                  const dedans = choisis.length > 0 && choisis.every(e => s.eleves.some(x => x.id === e.id))
+                  const refuses = conduiteSeule(s) ? choisis.filter(e => !e.admisCode && !e.perfectionnement) : []
+                  const coche = etat.seanceIds.includes(s.id)
+                  return (
+                    <label key={s.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: dedans ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : '#fff', opacity: dedans ? .55 : 1 }}>
+                      <input type="checkbox" className="form-check-input m-0" style={{ flexShrink: 0, float: 'none' }} disabled={dedans} checked={coche && !dedans} onChange={() => basculer(s.id)} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span className="block text-sm font-bold text-slate-700 truncate">{s.titre}</span>
+                        <span className="block text-xs text-slate-500">
+                          {s.eleves.length} élève(s) · {s.statut === 'PUBLIE' ? 'Publiée' : 'Brouillon'}
+                          {dedans && <b style={{ color: '#15803d' }}> · déjà dedans</b>}
+                          {refuses.length > 0 && <b style={{ color: '#b45309' }}> · {refuses.length === choisis.length ? 'non admis au code' : `${refuses.length} non admis au code, ignoré(s)`}</b>}
+                        </span>
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </Etape>
+    </FenetreModerne>
+  )
+}
+
 export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false, onBack, seanceId, onOuvrir, onFermer }) {
   const [seances, setSeances]         = useState([])
   const [recherche, setRecherche]     = useState('')
@@ -232,6 +301,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const [ordreFige, setOrdreFige] = useState({ cle: '', ids: [], nbTete: 0 })   // ordre de la liste des élèves (voir cleVue)
   const [coursChoisi, setCoursChoisi] = useState('code')   // « Cours de code » ou « Cours de conduite » (Cours à publier)
   const [formationVue, setFormationVue] = useState('')   // '' : tous ; PERMIS ; PERFECTIONNEMENT (conduite seule)
+  const [ajoutMulti, setAjoutMulti] = useState(null)   // { eleveIds: [string], seanceIds: [id] } : un élève dans plusieurs séances d'un coup
 
   const openCreate = () => {
     setEditId(null)
@@ -755,8 +825,16 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
           <option value="PUBLIE">Publié</option>
           <option value="BROUILLON">Brouillon</option>
         </Filtre>
+        {!lectureSeule && (
+          <button type="button" className="filtre filtre-bouton" onClick={() => setAjoutMulti({ eleveIds: [], seanceIds: [] })}
+            title="Ajouter un ou plusieurs élèves à plusieurs séances en une fois">
+            <i className="bi bi-person-plus" />Ajouter à plusieurs séances
+          </button>
+        )}
         {!lectureSeule && <BoutonAjout onClick={openCreate}>Séance</BoutonAjout>}
       </BarreFiltres>
+      {ajoutMulti && <AjoutPlusieursSeances etat={ajoutMulti} setEtat={setAjoutMulti} eleves={eleves} seances={seances} isAdmin={isAdmin}
+        onFait={() => { setAjoutMulti(null); load() }} />}
 
       {/* Séances rangées par type : cours de code, cours de conduite (et les deux mélangés) */}
       {visibles.length === 0 ? (

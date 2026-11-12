@@ -52,6 +52,13 @@ public class SeanceMoniteurController {
         return seanceService.ajouterMesEleves(id, body.get("eleveIds"), user.getUsername());
     }
 
+    /** Un ou plusieurs élèves ajoutés à plusieurs séances d'un coup. Corps : { eleveIds, seanceIds }. */
+    @PostMapping("/ajouter-eleves")
+    public Map<String, Integer> ajouterAPlusieurs(@RequestBody Map<String, List<Long>> body, @AuthenticationPrincipal UserDetails user) {
+        Set<Long> admisCode = new HashSet<>(examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS));
+        return seanceService.ajouterAPlusieurs(body.get("seanceIds"), body.get("eleveIds"), user.getUsername(), administration(user), admisCode);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails user) {
