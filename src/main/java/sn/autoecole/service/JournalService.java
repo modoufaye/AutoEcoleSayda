@@ -110,6 +110,7 @@ public class JournalService {
             {"DELETE /api/moniteur/exercices-td/questions/{id}", "Suppression d'une question de travail dirigé"},
             {"POST /api/moniteur/seances/ajouter-eleves", "Ajout d'élèves à plusieurs séances de cours"},
             {"POST /api/moniteur/seances", "Ajout d'une séance de cours"},
+            {"POST /api/publications-series/ajouter", "Ajout d'élèves à plusieurs séries en Travaux Dirigés"},
             {"POST /api/publications-series", "Publication d'une série en Travaux Dirigés"},
             {"PUT /api/publications-series/{id}", "Modification des élèves d'une série publiée"},
             {"DELETE /api/publications-series/{id}", "Retrait d'une série publiée"},

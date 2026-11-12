@@ -167,7 +167,9 @@ function ResultatsEleves({ p, publications, onAjouterMode }) {
               <i className="bi bi-plus-lg" />Ajouter {autre.key === 'EXAMEN' ? "l’examen blanc" : 'l’entraînement'} pour {manquants.length === p.eleves.length ? 'ces élèves' : `les ${manquants.length} élève${manquants.length > 1 ? 's' : ''} qui ne l’ont pas`}
             </button>
           ) : (
-            <span className="text-xs font-bold" style={{ color: autre.couleur }}><i className={`bi bi-${autre.icone} me-1`} />{autre.libelle} déjà publié pour tous ces élèves</span>
+            <span className="text-xs font-bold" style={{ color: autre.couleur }}>
+              <i className="bi bi-check-circle-fill me-1" />{p.eleves.length > 1 ? 'Ces élèves ont' : 'Cet élève a'} aussi {autre.key === 'EXAMEN' ? "l’examen blanc" : 'l’entraînement'} de cette série
+            </span>
           )}
         </div>
       )}
@@ -224,5 +226,85 @@ export function ListePublications({ genre, publications, onModifier, onAjouterMo
         )
       })}
     </div>
+  )
+}
+
+/* Ajouter un ou plusieurs élèves à plusieurs séries d'examen et catalogues d'annales d'un coup, en
+   entraînement, en examen blanc ou les deux. N'en retire personne ; une série déjà publiée pour tous
+   les élèves choisis, dans tous les modes choisis, est grisée « déjà publiée ». */
+export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
+  const [eleves, setEleves] = useState([])
+  const [eleveIds, setEleveIds] = useState([])
+  const [series, setSeries] = useState([])
+  const [modes, setModes] = useState(['ENTRAINEMENT', 'EXAMEN'])
+  const [envoi, setEnvoi] = useState(false)
+  useEffect(() => { api('GET', '/moniteur/seances/eleves').then(l => setEleves(l || [])).catch(e => toast(e.message, 'danger')) }, [])
+  const items = eleves.map(e => ({ id: e.id, titre: e.nom, mots: [e.nom, e.telephone],
+    sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro', badge: e.admisCode ? 'Admis au code' : inscritCetteSemaine(e.dateInscription) ? 'NOUVEAU' : null }))
+  // Modes déjà reçus par l'élève pour une série (toutes publications confondues)
+  const recu = (serie, eleveId, mode) => publications.some(p => p.serie === serie && p.mode === mode && p.eleves.some(e => String(e.id) === String(eleveId)))
+  const dejaTout = serie => eleveIds.length > 0 && modes.length > 0 && eleveIds.every(id => modes.every(m => recu(serie, id, m)))
+  const modesRecus = serie => eleveIds.length === 1 ? MODES.filter(m => recu(serie, eleveIds[0], m.key)).map(m => m.libelle) : []
+  const basculer = id => setSeries(x => x.includes(id) ? x.filter(y => y !== id) : [...x, id])
+  const basculerMode = m => setModes(x => x.includes(m) ? x.filter(y => y !== m) : [...x, m])
+  const valider = async () => {
+    if (!eleveIds.length) return toast('Choisissez au moins un élève', 'warning')
+    const choisies = series.filter(id => !dejaTout(id))
+    if (!choisies.length) return toast('Cochez au moins une série', 'warning')
+    if (!modes.length) return toast('Choisissez entraînement, examen blanc, ou les deux', 'warning')
+    setEnvoi(true)
+    try {
+      const r = await api('POST', '/publications-series/ajouter', { series: choisies, modes, eleveIds: eleveIds.map(Number) })
+      toast(r.ajouts > 0 ? `Publié : ${r.ajouts} ajout(s) dans ${r.publications} publication(s)` : 'Rien à ajouter : déjà publié pour ces élèves', r.ajouts > 0 ? 'success' : 'warning')
+      if (r.ajouts > 0) onFini()
+    } catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(false) }
+  }
+  return (
+    <FenetreModerne surTitre="Travaux Dirigés" titre="Ajouter à plusieurs séries" icone="person-plus-fill"
+      details={[['people', `${eleveIds.length} élève(s)`], ['journal-bookmark', `${series.length} série(s)`], ['check2-square', modes.map(m => MODES.find(x => x.key === m).libelle).join(' + ') || 'Mode à choisir']]}
+      onClose={onClose} onSave={envoi ? () => {} : valider} libelleSave={envoi ? 'Publication…' : 'Publier pour les séries cochées'}
+      piedGauche="Les élèves sont seulement ajoutés : personne n'est retiré.">
+      <Etape n={1} icon="person" titre="Élève(s)">
+        <ChoixPuces items={items} valeur={eleveIds} onChoisir={setEleveIds} multiple cochesEnTete placeholder="Nom ou téléphone…" hauteur={220} />
+      </Etape>
+      <Etape n={2} icon="ui-checks" titre="Mode · un seul ou les deux">
+        <div className="grid grid-cols-2 gap-2">
+          {MODES.map(m => {
+            const on = modes.includes(m.key)
+            return (
+              <button key={m.key} type="button" onClick={() => basculerMode(m.key)} aria-pressed={on}
+                className="flex flex-col items-center gap-1 py-3 px-2 cursor-pointer" style={{ borderRadius: 14, border: `2px solid ${on ? m.couleur : '#e2e8f0'}`, background: on ? m.fond : '#fff', color: on ? m.couleur : '#64748b' }}>
+                <i className={`bi bi-${on ? 'check-circle-fill' : m.icone}`} style={{ fontSize: '1.3rem' }} />
+                <span className="text-sm font-extrabold">{m.libelle}</span>
+              </button>
+            )
+          })}
+        </div>
+      </Etape>
+      <Etape n={3} icon="journal-bookmark" titre="Séries et annales">
+        {GROUPES.map(g => (
+          <div key={g.key} className="mb-3">
+            <div className="text-xs font-extrabold text-slate-500 mb-1">{g.titre}</div>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
+              {g.series.map(x => {
+                const deja = dejaTout(x.id), coche = series.includes(x.id) && !deja, recus = modesRecus(x.id)
+                return (
+                  <label key={x.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: deja ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : '#fff', opacity: deja ? .55 : 1 }}>
+                    <input type="checkbox" className="form-check-input m-0" style={{ flexShrink: 0, float: 'none' }} disabled={deja} checked={coche} onChange={() => basculer(x.id)} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className="block text-sm font-bold text-slate-700 truncate">{x.titre}</span>
+                      <span className="block text-xs text-slate-500 truncate">
+                        {deja ? <b style={{ color: '#15803d' }}>Déjà publiée</b> : recus.length ? <b style={{ color: '#0f766e' }}>Déjà : {recus.join(' + ')}</b> : x.sousTitre}
+                      </span>
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </Etape>
+    </FenetreModerne>
   )
 }

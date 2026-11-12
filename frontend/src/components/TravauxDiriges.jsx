@@ -3,7 +3,7 @@ import { api } from '../api'
 import { seriesOuvertes } from '../contenu/seriesPubliees'
 import { ListeChargement } from './ListeModerne'
 import { useAuth } from '../context/AuthContext'
-import { FenetrePublication, ListePublications } from './PublicationsSeries'
+import { FenetrePublication, ListePublications, AjoutPlusieursSeries } from './PublicationsSeries'
 import SeriesExamen from './SeriesExamen'
 import { ANNALES } from '../contenu/annales'
 
@@ -28,6 +28,7 @@ export default function TravauxDiriges({ eleve = false, vue: serieOuverte, onOuv
   const [ouvertes, setOuvertes] = useState(eleve ? null : undefined)
   const [publications, setPublications] = useState([])
   const [fenetre, setFenetre] = useState(null)      // { genre, edition, prerempli }
+  const [ajoutMulti, setAjoutMulti] = useState(false)   // un élève dans plusieurs séries d'un coup
   const chargerPublications = () => api('GET', '/publications-series').then(setPublications).catch(() => {})
   useEffect(() => {
     if (eleve) api('GET', '/publications-series/mes').then(l => setOuvertes(seriesOuvertes(l))).catch(() => setOuvertes({}))
@@ -60,7 +61,15 @@ export default function TravauxDiriges({ eleve = false, vue: serieOuverte, onOuv
           ))}
         </div>
       )}
+      {publie && (
+        <button type="button" onClick={() => setAjoutMulti(true)} title="Ajouter un ou plusieurs élèves à plusieurs séries et annales en une fois"
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 text-sm font-bold px-4 cursor-pointer whitespace-nowrap"
+          style={{ minHeight: 40, borderRadius: 999, color: '#1e3a5f', background: '#fff', border: '1.5px solid #cbd5e1' }}>
+          <i className="bi bi-person-plus" />Ajouter à plusieurs séries
+        </button>
+      )}
       </div>
+      {ajoutMulti && <AjoutPlusieursSeries publications={publications} onClose={() => setAjoutMulti(false)} onFini={() => { setAjoutMulti(false); chargerPublications() }} />}
       {fenetre && <FenetrePublication key={`fenetre-${fenetre.edition?.id || fenetre.genre}`} genre={fenetre.genre} edition={fenetre.edition} prerempli={fenetre.prerempli} publications={publications}
         onClose={() => setFenetre(null)} onFini={() => { setFenetre(null); chargerPublications() }} />}
       {ouvertes === null ? <ListeChargement />

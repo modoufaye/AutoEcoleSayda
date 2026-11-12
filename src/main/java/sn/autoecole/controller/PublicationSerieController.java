@@ -106,6 +106,33 @@ public class PublicationSerieController {
         return crees;
     }
 
+    /** Un ou plusieurs élèves ajoutés à plusieurs séries et catalogues d'un coup, dans un mode ou les
+        deux. Corps : { series, modes, eleveIds }. N'en retire jamais ; ajoute aux publications du même
+        auteur (série + mode) ou les crée. Renvoie { ajouts, publications } (publications changées). */
+    @PostMapping("/ajouter")
+    @Transactional
+    public Map<String, Integer> ajouterAPlusieurs(@RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
+        User u = (User) auth.getPrincipal();
+        List<String> series = body.get("series") instanceof List<?> l ? l.stream().map(String::valueOf).distinct().map(PublicationSerieController::serie).toList() : List.of();
+        if (series.isEmpty()) throw new BusinessException("Cochez au moins une série");
+        List<String> modes = body.get("modes") instanceof List<?> l ? l.stream().map(String::valueOf).distinct().toList() : List.of();
+        if (modes.isEmpty()) throw new BusinessException("Choisissez entraînement, examen blanc, ou les deux");
+        if (!MODES.containsAll(modes)) throw new BusinessException("Mode inconnu");
+        List<Eleve> eleves = eleves(body.get("eleveIds"), u);
+        int ajouts = 0, changees = 0;
+        for (String serie : series) for (String m : modes) {
+            PublicationSerie p = repo.findFirstByAuteurAndSerieAndMode(u, serie, m).orElseGet(() -> PublicationSerie.builder()
+                    .serie(serie).mode(m).auteur(u).creeLe(LocalDateTime.now()).build());
+            List<Eleve> nouveaux = eleves.stream().filter(e -> !p.getEleves().contains(e)).toList();
+            if (nouveaux.isEmpty()) continue;
+            p.getEleves().addAll(nouveaux);
+            repo.save(p);
+            ajouts += nouveaux.size(); changees++;
+        }
+        http.setAttribute(JournalInterceptor.CIBLE_PRECISE, String.join(", ", series) + " · " + String.join(" et ", modes) + " · " + eleves.size() + " élève(s)");
+        return Map.of("ajouts", ajouts, "publications", changees);
+    }
+
     /** Corps : { eleveIds } : les élèves qui voient la série. */
     @PutMapping("/{id}")
     @Transactional
