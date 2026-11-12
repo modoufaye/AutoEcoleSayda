@@ -106,6 +106,22 @@ public class PublicationSerieController {
         return crees;
     }
 
+    /** Notes d'examen blanc des élèves choisis aux séries et annales (fenêtre « Ajouter à plusieurs
+        séries »). Un moniteur ne voit que ses élèves. Paramètre : ids=1,2,3. */
+    @GetMapping("/notes")
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> notes(@RequestParam List<Long> ids, Authentication auth) {
+        User u = (User) auth.getPrincipal();
+        Set<Long> permis = u.getRole() == RoleUser.MONITEUR
+                ? seanceService.findElevesByMoniteur(u.getEmail()).stream().map(Eleve::getId).collect(Collectors.toSet()) : null;
+        return ids.stream().distinct().limit(200).filter(id -> permis == null || permis.contains(id))
+                .flatMap(id -> progressionRepository.findByEleveId(id).stream())
+                .filter(n -> n.getChapitre() != null && (n.getChapitre().startsWith("serie-") || n.getChapitre().startsWith("annale-")) && n.getTotal() > 0)
+                .map(n -> Map.<String, Object>of("serie", n.getChapitre(), "eleveId", n.getEleveId(),
+                        "meilleurScore", n.getMeilleurScore(), "total", n.getTotal(), "tentatives", n.getTentatives()))
+                .toList();
+    }
+
     /** Un ou plusieurs élèves ajoutés à plusieurs séries et catalogues d'un coup, dans un mode ou les
         deux. Corps : { series, modes, eleveIds }. N'en retire jamais ; ajoute aux publications du même
         auteur (série + mode) ou les crée. Renvoie { ajouts, publications } (publications changées). */

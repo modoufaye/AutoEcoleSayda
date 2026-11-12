@@ -239,10 +239,29 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
   const [modes, setModes] = useState(['ENTRAINEMENT', 'EXAMEN'])
   const [envoi, setEnvoi] = useState(false)
   useEffect(() => { api('GET', '/moniteur/seances/eleves').then(l => setEleves(l || [])).catch(e => toast(e.message, 'danger')) }, [])
+  // Notes d'examen blanc des élèves choisis : « Assimilé 22/25 », « À revoir 15/25 »…
+  const [notes, setNotes] = useState([])
+  const cleChoix = [...eleveIds].map(String).sort().join(',')
+  useEffect(() => {
+    if (!cleChoix) { setNotes([]); return }
+    api('GET', `/publications-series/notes?ids=${cleChoix}`).then(l => setNotes(l || [])).catch(() => setNotes([]))
+  }, [cleChoix])
   const items = eleves.map(e => ({ id: e.id, titre: e.nom, mots: [e.nom, e.telephone],
     sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro', badge: e.admisCode ? 'Admis au code' : inscritCetteSemaine(e.dateInscription) ? 'NOUVEAU' : null }))
   // Modes déjà reçus par l'élève pour une série (toutes publications confondues)
   const recu = (serie, eleveId, mode) => publications.some(p => p.serie === serie && p.mode === mode && p.eleves.some(e => String(e.id) === String(eleveId)))
+  const noteDe = serie => {
+    if (!eleveIds.length) return null
+    const r = notes.filter(n => n.serie === serie)
+    if (eleveIds.length === 1) {
+      const n = r[0]
+      if (!n) return recu(serie, eleveIds[0], 'EXAMEN') ? { t: 'Examen blanc pas encore passé', c: '#64748b' } : null
+      const st = STATUTS[statutSerie(n)]
+      return { t: `Examen blanc : ${st.libelle} ${n.meilleurScore}/${n.total}`, c: st.couleur }
+    }
+    const ok = r.filter(n => statutSerie(n) === 'assimile').length
+    return r.length ? { t: `Assimilé par ${ok}/${eleveIds.length}`, c: ok === eleveIds.length ? '#15803d' : '#64748b' } : null
+  }
   const dejaTout = serie => eleveIds.length > 0 && modes.length > 0 && eleveIds.every(id => modes.every(m => recu(serie, id, m)))
   const modesRecus = serie => eleveIds.length === 1 ? MODES.filter(m => recu(serie, eleveIds[0], m.key)).map(m => m.libelle) : []
   const basculer = id => setSeries(x => x.includes(id) ? x.filter(y => y !== id) : [...x, id])
@@ -288,15 +307,16 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
             <div className="text-xs font-extrabold text-slate-500 mb-1">{g.titre}</div>
             <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
               {g.series.map(x => {
-                const deja = dejaTout(x.id), coche = series.includes(x.id) && !deja, recus = modesRecus(x.id)
+                const deja = dejaTout(x.id), coche = series.includes(x.id) && !deja, recus = modesRecus(x.id), note = noteDe(x.id)
                 return (
-                  <label key={x.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: deja ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : '#fff', opacity: deja ? .55 : 1 }}>
+                  <label key={x.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: deja ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : deja ? '#f8fafc' : '#fff' }}>
                     <input type="checkbox" className="form-check-input m-0" style={{ flexShrink: 0, float: 'none' }} disabled={deja} checked={coche} onChange={() => basculer(x.id)} />
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span className="block text-sm font-bold text-slate-700 truncate">{x.titre}</span>
+                      <span className="block text-sm font-bold truncate" style={{ color: deja ? '#94a3b8' : '#334155' }}>{x.titre}</span>
                       <span className="block text-xs text-slate-500 truncate">
-                        {deja ? <b style={{ color: '#15803d' }}>Déjà publiée</b> : recus.length ? <b style={{ color: '#0f766e' }}>Déjà : {recus.join(' + ')}</b> : x.sousTitre}
+                        {deja ? <b style={{ color: '#475569' }}>Déjà publiée</b> : recus.length ? <b style={{ color: '#0f766e' }}>Déjà : {recus.join(' + ')}</b> : x.sousTitre}
                       </span>
+                      {note && <span className="block text-xs font-bold" style={{ color: note.c }}>{note.t}</span>}
                     </span>
                   </label>
                 )
