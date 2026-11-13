@@ -221,7 +221,8 @@ public class JournalService {
     /** Nom lisible d'un élément (entité renvoyée ou trouvée par son identifiant). */
     public static String decrire(Object o) {
         if (o == null) return null;
-        if (o instanceof Eleve e) return nomComplet(e.getPrenom(), e.getNom());
+        // Homonymes fréquents (même prénom et nom) : le numéro distingue les élèves
+        if (o instanceof Eleve e) return avecTelephone(nomComplet(e.getPrenom(), e.getNom()), e.getTelephone());
         if (o instanceof Paiement p) return montant(p.getMontant()) + (p.getEleve() != null ? " · " + decrire(p.getEleve()) : "");
         if (o instanceof Moniteur m) return nomComplet(m.getPrenom(), m.getNom());
         if (o instanceof Vehicule v) return String.join(" ", Objects.toString(v.getMarque(), ""), Objects.toString(v.getModele(), ""),
@@ -236,11 +237,19 @@ public class JournalService {
         if (o instanceof QuestionTD q) return q.getExercice() != null ? "question du travail dirigé « " + q.getExercice().getTitre() + " »" : null;
         if (o instanceof ProgressionCode pc) return "chapitre « " + pc.getChapitre().replace('-', ' ') + " » · meilleure note "
                 + pc.getMeilleurScore() + "/" + pc.getTotal() + (pc.isReussi() ? " · validé" : "");
-        if (o instanceof DemandeInscription d) return nomComplet(d.getPrenom(), d.getNom());
+        if (o instanceof DemandeInscription d) return avecTelephone(nomComplet(d.getPrenom(), d.getNom()), d.getTelephone());
         if (o instanceof User u) return u.getNom() + " (" + u.getEmail() + ")";
         if (o instanceof Map<?, ?> m && m.get("nom") != null)
             return m.get("nom") + (m.get("identifiant") != null ? " (" + m.get("identifiant") + ")" : "");
         return null;
+    }
+
+    /** « Awa Diop · 771234567 » : numéro écrit comme dans le reste de l'appli (sans +221 pour le Sénégal). */
+    public static String avecTelephone(String nom, String telephone) {
+        if (telephone == null || telephone.isBlank()) return nom;
+        String t = telephone.replaceAll("[\\s.-]+", "");
+        if (t.matches("\\+?221\\d{9}")) t = t.substring(t.length() - 9);
+        return nom + " · " + t;
     }
 
     private static String nomComplet(String prenom, String nom) {

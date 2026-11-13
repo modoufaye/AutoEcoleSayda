@@ -54,8 +54,10 @@ public class JournalController {
             if (q != null && !q.isBlank())
                 for (String mot : q.trim().toLowerCase().split("\\s+")) {
                     String m = "%" + mot + "%";
+                    // Un numéro se cherche avec ou sans espaces (« 771234567 » ou « 77 123 45 67 »)
                     p.add(cb.or(cb.like(cb.lower(r.get("action")), m), cb.like(cb.lower(cb.coalesce(r.get("cible"), "")), m),
-                            cb.like(cb.lower(r.get("nom")), m)));
+                            cb.like(cb.function("replace", String.class, cb.coalesce(r.get("cible"), ""), cb.literal(" "), cb.literal("")), m),
+                            cb.like(cb.lower(r.get("nom")), m), cb.like(cb.lower(cb.coalesce(r.get("identifiant"), "")), m)));
                 }
             return cb.and(p.toArray(new Predicate[0]));
         };
@@ -72,8 +74,10 @@ public class JournalController {
         Map<Long, Map<String, Object>> parId = new LinkedHashMap<>();
         for (Object[] x : journalRepository.personnes()) {
             Long id = (Long) x[0]; RoleUser role = (RoleUser) x[2];
+            // Élèves et moniteurs se connectent avec leur numéro : il distingue les homonymes
+            String identifiant = x[3] == null || String.valueOf(x[3]).contains("@") ? "" : String.valueOf(x[3]);
             if (moi.getRole() != RoleUser.SUPER_ADMIN && !Objects.equals(id, moi.getId()) && !VUS_PAR_ADMIN.contains(role)) continue;
-            parId.putIfAbsent(id, Map.of("id", id, "nom", x[1], "role", role));   // dernier nom connu suffit
+            parId.putIfAbsent(id, Map.of("id", id, "nom", x[1], "role", role, "telephone", identifiant));   // dernier nom connu suffit
         }
         return parId.values().stream().sorted(Comparator.comparing(m -> String.valueOf(m.get("nom")))).toList();
     }

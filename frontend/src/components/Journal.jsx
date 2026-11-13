@@ -3,6 +3,7 @@ import { api } from '../api'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import Pagination from './Pagination'
+import { afficherTelephone } from '../telephones'
 import JournalVisites from './JournalVisites'
 import { EnteteListe, BarreFiltres, Recherche, Filtre, FiltreDate, Reinitialiser, ListeVide, ListeChargement } from './ListeModerne'
 
@@ -98,10 +99,10 @@ function JournalActions() {
   return (
     <div className="space-y-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <BarreFiltres>
-        <Recherche value={filtres.q} onChange={v => changer('q', v)} placeholder="Action, élève, personne…" />
+        <Recherche value={filtres.q} onChange={v => changer('q', v)} placeholder="Action, élève, personne, numéro…" />
         <Filtre icone="person" value={filtres.utilisateur} onChange={v => changer('utilisateur', v)}>
           <option value="">Toutes les personnes</option>
-          {personnes.map(x => <option key={x.id} value={x.id}>{x.nom} · {ROLES[x.role]?.label || x.role}</option>)}
+          {personnes.map(x => <option key={x.id} value={x.id}>{x.nom}{x.telephone ? ` (${afficherTelephone(x.telephone)})` : ''} · {ROLES[x.role]?.label || x.role}</option>)}
         </Filtre>
         <Filtre icone="shield" value={filtres.role} onChange={v => changer('role', v)}>
           <option value="">Tous les rôles</option>
@@ -137,6 +138,7 @@ function JournalActions() {
                       {e.cible && <div className="text-sm text-slate-600 break-words">{e.cible}</div>}
                       <div className="text-xs text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-semibold text-slate-600">{e.nom}</span>
+                        {e.identifiant && !e.identifiant.includes('@') && <span title="Numéro de connexion"><i className="bi bi-telephone me-1" />{afficherTelephone(e.identifiant)}</span>}
                         <span className="px-2 py-0.5 rounded-full font-bold" style={{ background: ro.fond, color: ro.couleur, fontSize: '.68rem' }}>{ro.label}</span>
                         {e.ip && <span title="Adresse IP de connexion"><i className="bi bi-globe2 me-1" />{e.ip}</span>}
                       </div>
