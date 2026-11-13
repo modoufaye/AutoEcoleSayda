@@ -30,9 +30,10 @@ const PAGE_SIZE = 10
 
 /* Filtres de la liste retenus le temps de l'onglet : ouvrir une fiche puis revenir recrée la liste,
    qui retrouve ainsi ses filtres et sa page. Stockage indisponible (navigation privée…) : on repart à zéro. */
-const cleFiltres = userId => `eleves.filtres.${userId ?? ''}`
-function lireFiltres(userId) {
-  try { return JSON.parse(sessionStorage.getItem(cleFiltres(userId))) || {} } catch { return {} }
+// Une mémoire par onglet du menu (« Élèves » : permis, « Perfectionnement »)
+const cleFiltres = (userId, formationFixe) => `eleves.filtres.${formationFixe ? formationFixe + '.' : ''}${userId ?? ''}`
+function lireFiltres(userId, formationFixe) {
+  try { return JSON.parse(sessionStorage.getItem(cleFiltres(userId, formationFixe))) || {} } catch { return {} }
 }
 
 const DOCS = [
@@ -992,7 +993,10 @@ function IndiceCode({ eleve, admis, grand = false }) {
   )
 }
 
-export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }) {
+/* formationFixe : « PERMIS » (onglet Élèves) ou « PERFECTIONNEMENT » (onglet Perfectionnement) ;
+   la liste ne montre alors que cette formation. Sans elle : toutes les formations. */
+export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, formationFixe }) {
+  const perfSeul = formationFixe === 'PERFECTIONNEMENT'
   const bureaux = useBureaux()
   const { user } = useAuth()
   const isMoniteur = user?.role === 'MONITEUR'
@@ -1000,7 +1004,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const isAdmin = estAdmin(user?.role)
   const presence = usePresence(isAdmin)   // élèves connectés en ce moment (administration)
 
-  const [memo] = useState(() => lireFiltres(user?.id))   // filtres retenus (retour depuis une fiche)
+  const [memo] = useState(() => lireFiltres(user?.id, formationFixe))   // filtres retenus (retour depuis une fiche)
   const [list, setList]           = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [filtered, setFiltered]   = useState([])
@@ -1037,11 +1041,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     try {
-      sessionStorage.setItem(cleFiltres(user?.id), JSON.stringify({
+      sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
         search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id])
+  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1072,7 +1076,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
     try {
       const data = isMoniteur ? await api('GET', '/moniteur/mes-eleves') : await api('GET', `/eleves${archives ? '?archives=true' : ''}`)
       if (req !== loadReq.current) return
-      setList(data); setFiltered(data)
+      const liste = formationFixe ? data.filter(e => (e.typeFormation || 'PERMIS') === formationFixe) : data
+      setList(liste); setFiltered(liste)
     } catch { toast('Erreur chargement élèves', 'danger') }
     finally { if (req === loadReq.current) setLoading(false) }
     if (!isMoniteur) {
@@ -2059,11 +2064,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
             {classes.map(c => <option key={c.id} value={c.id}>{c.nom} · {c.nombre}</option>)}
           </Filtre>
         )}
-        <Filtre icone="mortarboard" value={formation} onChange={setFormation}>
-          <option value="">Toutes les formations</option>
-          <option value="PERMIS">Permis</option>
-          <option value="PERFECTIONNEMENT">Perfectionnement</option>
-        </Filtre>
+        {/* Formation fixée par l'onglet du menu : pas de filtre */}
+        {!formationFixe && (
+          <Filtre icone="mortarboard" value={formation} onChange={setFormation}>
+            <option value="">Toutes les formations</option>
+            <option value="PERMIS">Permis</option>
+            <option value="PERFECTIONNEMENT">Perfectionnement</option>
+          </Filtre>
+        )}
         {/* Administration : élèves connectés en ce moment */}
         {presence && (
           <FiltreBascule actif={enLigneSeul} onClick={() => setEnLigneSeul(x => !x)} icone="broadcast">
@@ -2080,10 +2088,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
         <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
           Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe).length}
         </FiltreBascule>
-        {/* Admis au code : peuvent commencer (ou poursuivre) la conduite */}
-        <FiltreBascule actif={codeAdmisSeul} onClick={() => setCodeAdmisSeul(x => !x)} icone="patch-check">
-          Code admis · {list.filter(e => admisCode.has(e.id)).length}
-        </FiltreBascule>
+        {/* Admis au code : peuvent commencer (ou poursuivre) la conduite. Le perfectionnement n'a pas de code. */}
+        {!perfSeul && (
+          <FiltreBascule actif={codeAdmisSeul} onClick={() => setCodeAdmisSeul(x => !x)} icone="patch-check">
+            Code admis · {list.filter(e => admisCode.has(e.id)).length}
+          </FiltreBascule>
+        )}
         {/* Inscrits des 7 derniers jours : les élèves arrivent au fil de la semaine */}
         <FiltreBascule actif={semaine} onClick={() => setSemaine(x => !x)} icone="calendar-week">
           Nouveaux cette semaine · {list.filter(e => inscritCetteSemaine(e.dateInscription)).length}
@@ -2107,11 +2117,13 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
               </div>
             )}
             <BoutonAjout vert icone="file-earmark-spreadsheet-fill" onClick={() => setShowImport(true)}>Importer</BoutonAjout>
-            <BoutonAjout onClick={() => openModal()}>Élève</BoutonAjout>
-            {/* Perfectionnement : conduite seule, inscription simplifiée */}
-            <div className="col-span-2 sm:col-span-1 grid">
-              <BoutonAjout or icone="speedometer2" onClick={() => openModal(null, 'PERFECTIONNEMENT')}>Perfectionnement</BoutonAjout>
-            </div>
+            {!perfSeul && <BoutonAjout onClick={() => openModal()}>Élève</BoutonAjout>}
+            {/* Perfectionnement : conduite seule, inscription simplifiée (dans son propre onglet) */}
+            {formationFixe !== 'PERMIS' && (
+              <div className={`${perfSeul ? '' : 'col-span-2 '}sm:col-span-1 grid`}>
+                <BoutonAjout or icone="speedometer2" onClick={() => openModal(null, 'PERFECTIONNEMENT')}>Perfectionnement</BoutonAjout>
+              </div>
+            )}
           </div>
         )}
       </BarreFiltres>
@@ -2119,11 +2131,13 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche }
       {/* Liste des élèves */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone={archives ? 'archive-fill' : 'people-fill'}
-          titre={isMoniteur ? 'Mes élèves' : archives ? 'Élèves archivés' : 'Liste des élèves'}
+          titre={perfSeul
+            ? (isMoniteur ? 'Mes élèves en perfectionnement' : archives ? 'Perfectionnement archivés' : 'Élèves en perfectionnement')
+            : (isMoniteur ? 'Mes élèves' : archives ? 'Élèves archivés' : 'Liste des élèves')}
           sousTitre={`${filtered.length} élève${filtered.length > 1 ? 's' : ''} · suivi de formation`}
           nombre={filtered.length} />
         {loading ? <ListeChargement />
-          : filtered.length === 0 ? <ListeVide texte={archives ? 'Aucun élève archivé' : 'Aucun élève enregistré'} />
+          : filtered.length === 0 ? <ListeVide texte={archives ? 'Aucun élève archivé' : perfSeul ? 'Aucun élève en perfectionnement' : 'Aucun élève enregistré'} />
           : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(e => {
             const st = STATUT_STYLE[e.statut] || { bg: '#f1f5f9', color: '#64748b', label: e.statut }
             return (

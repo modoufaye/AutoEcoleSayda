@@ -34,6 +34,8 @@ const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
   { key: 'dashboard',        label: 'Tableau de bord',  icon: 'speedometer2',          color: '#818cf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'eleves',           label: 'Élèves',           icon: 'people-fill',           color: '#38bdf8', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
+  // Perfectionnement (conduite seule) : liste à part, hors de « Élèves » (permis)
+  { key: 'perfectionnement', label: 'Perfectionnement', icon: 'speedometer',           color: '#fcd34d', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'classes',          label: 'Classes',          icon: 'collection-fill',       color: '#c4b5fd', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'moniteurs',        label: 'Moniteurs',        icon: 'person-badge-fill',     color: '#a78bfa', roles: ['SUPER_ADMIN', 'ADMIN'] },
   { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
@@ -173,7 +175,7 @@ export default function AppLayout() {
     ? sectionsMenuBase.flatMap(s => s.key === 'mon-espace' ? [s, entreeMessages] : [s])
     : sectionsMenuBase
   const detail = rawDetail ? decodeURIComponent(rawDetail) : null
-  const navigateToEleve = section === 'eleves' ? detail : null
+  const navigateToEleve = section === 'eleves' || section === 'perfectionnement' ? detail : null
 
   /* URL absente ou section inconnue → on réécrit l'URL sans polluer l'historique. */
   useEffect(() => {
@@ -243,7 +245,8 @@ export default function AppLayout() {
   // onglet : onglet de la fiche à ouvrir (ex. « paiements » juste après une inscription).
   const handleEleveClick = (eleveId, onglet) => {
     setDrawerOpen(false)
-    navigate(`${base}/eleves/${eleveId}`, onglet ? { state: { onglet } } : undefined)
+    // Depuis l'onglet Perfectionnement, la fiche s'ouvre dans ce même onglet
+    navigate(`${base}/${section === 'perfectionnement' ? 'perfectionnement' : 'eleves'}/${eleveId}`, onglet ? { state: { onglet } } : undefined)
   }
   const ouvrirDetail = (id, options) => { setDrawerOpen(false); navigate(`${base}/${section}/${encodeURIComponent(id)}`, options) }
   /* Un profil élève ou moniteur ouvert depuis la liste ne change pas l'URL : recliquer sur
@@ -392,7 +395,7 @@ export default function AppLayout() {
               fiche d'un élève (les Véhicules ont le leur). Fiche ouverte : Retour même sans historique
               (rafraîchissement, lien direct), fermerDetail rejoint alors la liste. */}
           {((gestion && (canGoBack || detail) && section !== 'seances-moniteur' && section !== 'dashboard' && !(detail && AVEC_RETOUR_PROPRE.includes(section)))
-            || (user?.role === 'MONITEUR' && section === 'eleves' && (detail || canGoBack))) && (
+            || (user?.role === 'MONITEUR' && (section === 'eleves' || section === 'perfectionnement') && (detail || canGoBack))) && (
             <div style={{ marginBottom: '1rem' }}>
               <button onClick={detail ? fermerDetail : handleBack} className="btn-retour">
                 <span className="btn-retour-icone"><i className="bi bi-arrow-left" /></span>
@@ -440,9 +443,10 @@ export default function AppLayout() {
             ? <TravauxDiriges key="td-moniteur" vue={detail} onOuvrirVue={ouvrirDetail} onFermerVue={fermerDetail} />
             : section === 'td-eleve'
             ? <TravauxDiriges key="td-eleve" eleve vue={detail} onOuvrirVue={ouvrirDetail} onFermerVue={fermerDetail} />
-            : section === 'eleves'
-            ? <Eleves key={`eleves-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick}
-                onQuitterFiche={() => navigate(`${base}/eleves`, { replace: true })} />
+            : section === 'eleves' || section === 'perfectionnement'
+            ? <Eleves key={`${section}-${navigateToEleve ?? 'list'}-${retourListe}`} initialEleveId={navigateToEleve} onOuvrirEleve={handleEleveClick}
+                formationFixe={section === 'perfectionnement' ? 'PERFECTIONNEMENT' : 'PERMIS'}
+                onQuitterFiche={() => navigate(`${base}/${section}`, { replace: true })} />
             : section === 'classes'
             ? <Classes key="classes" onEleveClick={handleEleveClick} />
             : section === 'moniteurs'
