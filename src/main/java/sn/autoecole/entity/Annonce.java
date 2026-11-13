@@ -47,4 +47,11 @@ public class Annonce {
 
     @Column(name = "cree_le", nullable = false)
     private LocalDateTime creeLe;
+
+    /** Audio joint (enregistré au micro ou fichier) : nom dans uploads/annonces-audio, servi après contrôle. */
+    @Column(length = 80)
+    private String audio;
+
+    /** Durée de l'audio, en secondes (si connue). */
+    private Integer audioDuree;
 }

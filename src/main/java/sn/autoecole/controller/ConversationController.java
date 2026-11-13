@@ -1,7 +1,11 @@
 package sn.autoecole.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,7 @@ import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.MessagePriveRepository;
 import sn.autoecole.repository.MoniteurRepository;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -40,6 +45,9 @@ public class ConversationController {
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
     private final EcoleService ecoleService;
+
+    private final sn.autoecole.service.VocalService vocalService;
+    private static final long VOCAL_MAX_OCTETS = 15L * 1024 * 1024;   // ~5 min en opus, largement
 
     private record Lecteur(User user, Eleve eleve, Moniteur moniteur) {
         boolean estEleve() { return user.getRole() == RoleUser.ELEVE; }
@@ -96,7 +104,8 @@ public class ConversationController {
                     v.put("telephone", l.estEleve() ? null : c.getEleve().getTelephone());
                     v.put("dernierLe", c.getDernierMessageLe());
                     messages.findFirstByConversationIdOrderByEnvoyeLeDescIdDesc(c.getId()).ifPresent(m ->
-                            v.put("apercu", (m.getCote() == l.cote() ? "Vous : " : "") + (m.getTexte().length() > 80 ? m.getTexte().substring(0, 80) + "…" : m.getTexte())));
+                            v.put("apercu", (m.getCote() == l.cote() ? "Vous : " : "") + (m.getAudio() != null ? "🎤 Message vocal" + duree(m.getAudioDuree())
+                                    : m.getTexte().length() > 80 ? m.getTexte().substring(0, 80) + "…" : m.getTexte())));
                     v.put("nonLus", nonLus(c, l));
                     return v;
                 }).toList();
@@ -153,6 +162,7 @@ public class ConversationController {
             Map<String, Object> v = new LinkedHashMap<>();
             v.put("id", m.getId()); v.put("texte", m.getTexte()); v.put("envoyeLe", m.getEnvoyeLe());
             v.put("deMoi", m.getCote() == l.cote());
+            if (m.getAudio() != null) { v.put("audio", true); v.put("audioDuree", m.getAudioDuree()); }
             v.put("auteur", m.getCote() == MessagePrive.Cote.ELEVE ? c.getEleve().getPrenom() + " " + c.getEleve().getNom() : m.getAuteurNom());
             return v;
         }).toList();
@@ -177,6 +187,40 @@ public class ConversationController {
         if (l.estEleve()) c.setEleveLuLe(maintenant); else c.setEquipeLuLe(maintenant);
         conversations.save(c);
         return Map.of("id", m.getId());
+    }
+
+    /** Message vocal : fichier audio enregistré dans le navigateur (multipart file + duree en secondes). */
+    @PostMapping(value = "/{id}/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public Map<String, Object> envoyerAudio(@PathVariable Long id, @RequestParam("file") MultipartFile file,
+                                            @RequestParam(value = "duree", required = false) Integer duree, Authentication auth) throws IOException {
+        Lecteur l = lecteur(auth);
+        Conversation c = trouver(id, l);
+        String nom = vocalService.enregistrer(file, sn.autoecole.service.VocalService.MESSAGES, VOCAL_MAX_OCTETS);
+        LocalDateTime maintenant = LocalDateTime.now();
+        MessagePrive m = messages.save(MessagePrive.builder().conversationId(c.getId()).cote(l.cote()).auteurId(l.user().getId())
+                .auteurNom(l.user().getRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : l.user().getNom())
+                .texte("").audio(nom).audioDuree(duree == null ? null : Math.max(0, Math.min(duree, 3600)))
+                .envoyeLe(maintenant).build());
+        c.setDernierMessageLe(maintenant);
+        if (l.estEleve()) c.setEleveLuLe(maintenant); else c.setEquipeLuLe(maintenant);
+        conversations.save(c);
+        return Map.of("id", m.getId());
+    }
+
+    /** Écoute d'un message vocal : seulement pour les participants de la conversation. */
+    @GetMapping("/{id}/messages/{messageId}/audio")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> ecouter(@PathVariable Long id, @PathVariable Long messageId, Authentication auth) {
+        Conversation c = trouver(id, lecteur(auth));
+        MessagePrive m = messages.findById(messageId).filter(x -> x.getConversationId().equals(c.getId()) && x.getAudio() != null)
+                .orElseThrow(() -> new ResourceNotFoundException("Message vocal introuvable"));
+        return vocalService.lire(sn.autoecole.service.VocalService.MESSAGES, m.getAudio());
+    }
+
+    private static String duree(Integer s) {
+        return s == null ? "" : String.format(" (%d:%02d)", s / 60, s % 60);
     }
 
     /**

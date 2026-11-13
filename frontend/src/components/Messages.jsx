@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api'
+import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { useAuth } from '../context/AuthContext'
 import { correspond } from '../utils'
 import { afficherTelephone } from '../telephones'
 import { EnteteListe, ListeVide, ListeChargement, Recherche, BoutonAjout } from './ListeModerne'
+import { useEnregistreur, BarreEnregistrement, LecteurVocal } from './Vocal'
 
 /* Conversations privées : l'élève avec l'auto-école (boîte partagée du super admin, des
    administrateurs et du secrétariat) ou avec son moniteur. La liste et la conversation ouverte se
@@ -14,7 +15,7 @@ const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #
 const heure = d => new Date(d).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 /* Fil de messages en bulles (les siens à droite, en doré). */
-function Bulles({ messages, maxHeight = '55vh' }) {
+function Bulles({ messages, convId, maxHeight = '55vh' }) {
   const bas = useRef(null)
   useEffect(() => { bas.current?.scrollIntoView({ block: 'nearest' }) }, [messages.length])
   return (
@@ -25,7 +26,7 @@ function Bulles({ messages, maxHeight = '55vh' }) {
           <div className="max-w-[80%] px-3 py-2 text-sm" style={{ borderRadius: m.deMoi ? '1rem 1rem .25rem 1rem' : '1rem 1rem 1rem .25rem',
             background: m.deMoi ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff', color: m.deMoi ? '#1e3a5f' : '#334155', border: m.deMoi ? 'none' : '1px solid #e2e8f0' }}>
             {!m.deMoi && <div className="text-[11px] font-bold mb-0.5" style={{ color: '#1d4ed8' }}>{m.auteur}</div>}
-            <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>
+            {m.audio ? <LecteurVocal chemin={`/conversations/${convId}/messages/${m.id}/audio`} duree={m.audioDuree} /> : <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>}
             <div className="text-[10px] mt-1 text-right" style={{ opacity: .65 }}>{heure(m.envoyeLe)}</div>
           </div>
         </div>
@@ -35,10 +36,18 @@ function Bulles({ messages, maxHeight = '55vh' }) {
   )
 }
 
-/* Zone de saisie : Entrée envoie, Maj + Entrée passe à la ligne. onEnvoyer(texte) renvoie une promesse. */
-function Saisie({ onEnvoyer }) {
+/* Zone de saisie : Entrée envoie, Maj + Entrée passe à la ligne. onEnvoyer(texte) renvoie une promesse.
+   Texte vide : le bouton micro enregistre un message vocal (onEnvoyerAudio(fichier, duree)), comme
+   sur WhatsApp ; 🗑️ le jette, ➤ l'envoie. */
+function Saisie({ onEnvoyer, onEnvoyerAudio }) {
   const [texte, setTexte] = useState('')
   const [envoi, setEnvoi] = useState(false)
+  const enreg = useEnregistreur(async (fichier, duree) => {
+    setEnvoi(true)
+    try { await onEnvoyerAudio(fichier, duree) }
+    catch (e) { toast(e.message, 'danger') }
+    finally { setEnvoi(false) }
+  })
   const envoyer = async () => {
     if (!texte.trim() || envoi) return
     setEnvoi(true)
@@ -46,16 +55,25 @@ function Saisie({ onEnvoyer }) {
     catch (e) { toast(e.message, 'danger') }
     finally { setEnvoi(false) }
   }
+  const rond = 'w-11 h-11 rounded-full border-0 flex items-center justify-center cursor-pointer flex-shrink-0'
+  if (enreg.enCours) return <div className="p-3" style={{ borderTop: '1px solid #eef2f7' }}><BarreEnregistrement enreg={enreg} /></div>
+  const vocal = onEnvoyerAudio && !texte.trim()
   return (
     <div className="p-3 flex gap-2 items-end" style={{ borderTop: '1px solid #eef2f7' }}>
-      <textarea className="form-control" rows={2} maxLength={2000} value={texte} placeholder="Votre message… (Entrée pour envoyer)"
+      <textarea className="form-control" rows={2} maxLength={2000} value={texte} placeholder={onEnvoyerAudio ? 'Votre message… ou 🎤 pour un vocal' : 'Votre message… (Entrée pour envoyer)'}
         onChange={e => setTexte(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoyer() } }} style={{ resize: 'none' }} />
-      <button type="button" onClick={envoyer} disabled={envoi || !texte.trim()} aria-label="Envoyer"
-        className="w-11 h-11 rounded-full border-0 flex items-center justify-center cursor-pointer flex-shrink-0"
-        style={{ background: texte.trim() ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#e2e8f0', color: '#1e3a5f' }}>
-        {envoi ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-send-fill" />}
-      </button>
+      {vocal ? (
+        <button type="button" onClick={enreg.demarrer} disabled={envoi} aria-label="Enregistrer un message vocal" title="Enregistrer un message vocal"
+          className={rond} style={{ background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f' }}>
+          {envoi ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-mic-fill" />}
+        </button>
+      ) : (
+        <button type="button" onClick={envoyer} disabled={envoi || !texte.trim()} aria-label="Envoyer"
+          className={rond} style={{ background: texte.trim() ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#e2e8f0', color: '#1e3a5f' }}>
+          {envoi ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-send-fill" />}
+        </button>
+      )}
     </div>
   )
 }
@@ -74,11 +92,16 @@ export function ConversationEleve({ eleveId, onLu }) {
     await api('POST', `/conversations/${id}/messages`, { texte })
     await charger()
   }
+  const envoyerAudio = async (fichier, duree) => {
+    const id = conv?.id || (await api('POST', '/conversations', { eleveId })).id
+    await uploadFile(`/conversations/${id}/audio`, fichier, { duree })
+    await charger()
+  }
   if (!conv) return <div className="py-10 flex justify-center"><span className="spinner-border spinner-border-sm text-secondary" /></div>
   return (
     <div className="flex flex-col">
-      <Bulles messages={conv.messages} maxHeight="380px" />
-      <Saisie onEnvoyer={envoyer} />
+      <Bulles messages={conv.messages} convId={conv.id} maxHeight="380px" />
+      <Saisie onEnvoyer={envoyer} onEnvoyerAudio={envoyerAudio} />
     </div>
   )
 }
@@ -182,8 +205,9 @@ export default function Messages({ onLus, conversationId, onOuvrir, onFermer }) 
       <div className="flex items-center gap-3 px-4 py-3" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '3px solid #d4a017' }}>
         <div className="font-extrabold text-white truncate">{ouverte.titre}</div>
       </div>
-      <Bulles messages={ouverte.messages} />
-      <Saisie onEnvoyer={async texte => { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); await charger(ouverte.id) }} />
+      <Bulles messages={ouverte.messages} convId={ouverte.id} />
+      <Saisie onEnvoyer={async texte => { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); await charger(ouverte.id) }}
+        onEnvoyerAudio={async (fichier, duree) => { await uploadFile(`/conversations/${ouverte.id}/audio`, fichier, { duree }); await charger(ouverte.id) }} />
     </div>
     </div>
   ) : (

@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
-import { api } from '../api'
+import { useEffect, useRef, useState } from 'react'
+import { api, uploadFile } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
 import { EnteteListe, ListeVide, ListeChargement, Pastille, BoutonRond, BoutonAjout } from './ListeModerne'
 import { useBureaux } from '../bureaux'
 import { useClasses } from '../classes'
+import { useEnregistreur, BarreEnregistrement, LecteurVocal, minSec } from './Vocal'
 
 /* Annonces de l'auto-école. Le personnel (super admin, administrateurs, secrétariat, moniteurs)
    écrit à tout le monde, aux élèves (tous, d'un bureau, d'un moniteur) ou au personnel ; un moniteur
@@ -20,6 +21,21 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
   const [f, setF] = useState({ titre: '', contenu: '', cible: moniteur ? 'MONITEUR' : 'ELEVES', valeur: '' })
   const [moniteurs, setMoniteurs] = useState([])
   const [envoi, setEnvoi] = useState(false)
+  /* Audio joint (facultatif) : enregistré au micro ou fichier choisi ; { fichier, duree, url } */
+  const [audio, setAudio] = useState(null)
+  const joindre = (fichier, duree) => setAudio(a => { if (a) URL.revokeObjectURL(a.url); return { fichier, duree, url: URL.createObjectURL(fichier) } })
+  const enreg = useEnregistreur(joindre)
+  const fichierAudio = useRef(null)
+  const choisirFichier = e => {
+    const fichier = e.target.files?.[0]; e.target.value = ''
+    if (!fichier) return
+    if (fichier.size > 25 * 1024 * 1024) return toast('Audio trop lourd (25 Mo au plus)', 'warning')
+    // Durée lue dans le fichier (si le navigateur la connaît)
+    const a = new Audio(URL.createObjectURL(fichier))
+    a.onloadedmetadata = () => { joindre(fichier, Number.isFinite(a.duration) ? Math.round(a.duration) : null); URL.revokeObjectURL(a.src) }
+    a.onerror = () => joindre(fichier, null)
+  }
+  useEffect(() => () => { if (audio) URL.revokeObjectURL(audio.url) }, [audio])
   useEffect(() => { if (!moniteur) api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => {}) }, [moniteur])
   const set = (k, v) => setF(x => ({ ...x, [k]: v }))
   // Classes : toutes pour le bureau ; pour un moniteur, celles qu'il a créées
@@ -30,11 +46,17 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
        ...(classes.length ? [['CLASSE', "Les élèves d'une classe"]] : []), ['PERSONNEL', 'Le personnel']]
   const valider = async e => {
     e.preventDefault()
-    if (!f.titre.trim() || !f.contenu.trim()) return toast('Donnez un titre et un message', 'warning')
+    if (enreg.enCours) return toast("Terminez d'abord l'enregistrement (➤ pour le garder)", 'warning')
+    if (!f.titre.trim()) return toast('Donnez un titre', 'warning')
+    if (!f.contenu.trim() && !audio) return toast('Écrivez un message ou joignez un audio', 'warning')
     if (!moniteur && (f.cible === 'BUREAU' || f.cible === 'MONITEUR') && !f.valeur) return toast(f.cible === 'BUREAU' ? 'Choisissez le bureau' : 'Choisissez le moniteur', 'warning')
     if (f.cible === 'CLASSE' && !f.valeur) return toast('Choisissez la classe', 'warning')
     setEnvoi(true)
-    try { await api('POST', '/annonces', f); toast('Annonce publiée'); onFini() }
+    try {
+      if (audio) await uploadFile('/annonces/audio', audio.fichier, { ...f, duree: audio.duree })
+      else await api('POST', '/annonces', f)
+      toast('Annonce publiée'); onFini()
+    }
     catch (err) { toast(err.message, 'danger') }
     finally { setEnvoi(false) }
   }
@@ -47,9 +69,34 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
           <input className="form-control" maxLength={150} value={f.titre} onChange={e => set('titre', e.target.value)} placeholder="Ex. Pas de cours samedi" />
         </div>
         <div className="sm:col-span-2">
-          <label className={etiquette}>Message *</label>
+          <label className={etiquette}>Message {audio ? '(facultatif avec un audio)' : '*'}</label>
           <textarea className="form-control" rows={4} maxLength={2000} value={f.contenu} onChange={e => set('contenu', e.target.value)}
             placeholder="Ex. Les cours de samedi 15 sont reportés à lundi 17, même heure." />
+        </div>
+        {/* Audio facultatif : enregistré au micro (consigne en wolof…) ou fichier déjà prêt */}
+        <div className="sm:col-span-2">
+          <label className={etiquette}>Audio (facultatif)</label>
+          {enreg.enCours ? <BarreEnregistrement enreg={enreg} libelleGarder="Joindre l'enregistrement" iconeGarder="check-lg" />
+            : audio ? (
+              <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div className="flex-1 min-w-[220px]"><LecteurVocal src={audio.url} duree={audio.duree} libelle="Audio joint" /></div>
+                <button type="button" onClick={() => setAudio(null)} className="px-3 py-1.5 text-xs font-bold cursor-pointer"
+                  style={{ borderRadius: 999, border: '1.5px solid #fecaca', background: '#fff', color: '#b91c1c' }}><i className="bi bi-x-lg me-1" />Retirer</button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={enreg.demarrer} className="flex items-center gap-2 px-4 text-sm font-bold cursor-pointer"
+                  style={{ borderRadius: 999, minHeight: 40, border: '1.5px solid #e2e8f0', background: '#fff', color: '#1e3a5f' }}>
+                  <i className="bi bi-mic-fill" style={{ color: '#b45309' }} />Enregistrer au micro
+                </button>
+                <button type="button" onClick={() => fichierAudio.current?.click()} className="flex items-center gap-2 px-4 text-sm font-bold cursor-pointer"
+                  style={{ borderRadius: 999, minHeight: 40, border: '1.5px solid #e2e8f0', background: '#fff', color: '#1e3a5f' }}>
+                  <i className="bi bi-paperclip" style={{ color: '#b45309' }} />Joindre un fichier audio
+                </button>
+                <input ref={fichierAudio} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac,.webm" className="d-none" onChange={choisirFichier} />
+              </div>
+            )}
+          <div className="text-xs text-slate-400 mt-1">Les destinataires l'écoutent sous le message · {minSec(300)} au micro, 25 Mo par fichier.</div>
         </div>
         <div>
           <label className={etiquette}>Destinataires *</label>
@@ -136,7 +183,10 @@ export default function Annonces({ onLues }) {
                     <span className="font-extrabold" style={{ color: '#1e3a5f' }}>{a.titre}</span>
                     {!a.lue && <Pastille couleur="#b45309" fond="#fef3c7">Nouveau</Pastille>}
                   </div>
-                  <div className="text-sm text-slate-700 mt-1" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{a.contenu}</div>
+                  {a.contenu && <div className="text-sm text-slate-700 mt-1" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{a.contenu}</div>}
+                  {a.audio && <div className="mt-2 p-2 rounded-xl inline-block" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+                    <LecteurVocal chemin={`/annonces/${a.id}/audio`} duree={a.audioDuree} libelle="Audio" />
+                  </div>}
                   <div className="text-xs text-slate-400 mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     <span><i className="bi bi-person me-1" />{a.auteur}</span>
                     <span><i className="bi bi-calendar3 me-1" />{new Date(a.date).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>

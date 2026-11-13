@@ -53,6 +53,8 @@ public class SecurityConfig {
                 // vers /error, et le frontend déconnecte l'utilisateur à tort.
                 .requestMatchers("/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Messages vocaux privés : jamais servis directement, seulement par /api/conversations/…/audio
+                .requestMatchers("/uploads/messages-vocaux/**", "/uploads/annonces-audio/**").denyAll()
                 // Fichiers uploadés — publics (UUID dans l'URL, pas de données sensibles)
                 .requestMatchers("/uploads/**").permitAll()
 
@@ -110,7 +112,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/comptes-bloques/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Annonces : tous les comptes lisent et marquent lues ; le personnel publie et supprime
                 .requestMatchers(HttpMethod.POST, "/api/annonces/lues").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/annonces").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
+                .requestMatchers(HttpMethod.POST, "/api/annonces", "/api/annonces/audio").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 .requestMatchers(HttpMethod.DELETE, "/api/annonces/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 // Médiathèque (vidéos et audios français / wolof) : personnel ; les élèves passent par /api/eleve/medias
                 .requestMatchers("/api/medias", "/api/medias/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")

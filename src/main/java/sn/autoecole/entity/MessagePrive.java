@@ -35,4 +35,11 @@ public class MessagePrive {
 
     @Column(name = "envoye_le", nullable = false)
     private LocalDateTime envoyeLe;
+
+    /** Message vocal : nom du fichier dans uploads/messages-vocaux (privé, servi après contrôle d'accès). */
+    @Column(length = 80)
+    private String audio;
+
+    /** Durée du message vocal, en secondes. */
+    private Integer audioDuree;
 }

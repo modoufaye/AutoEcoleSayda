@@ -44,7 +44,9 @@ public class JournalService {
             {"POST /api/eleves/{id}/bienvenue-envoyee", "Envoi du message de bienvenue (identifiants) sur WhatsApp"},
             {"POST /api/conversations", null},
             {"POST /api/conversations/{id}/messages", null},   // messages privés : pas de trace de leur contenu
+            {"POST /api/conversations/{id}/audio", null},
             {"POST /api/presence/depart", null},               // déconnexion (présence en ligne)
+            {"POST /api/annonces/audio", "Publication d'une annonce avec audio"},
             {"POST /api/annonces", "Publication d'une annonce"},
             {"DELETE /api/annonces/{id}", "Suppression d'une annonce"},
             {"POST /api/annonces/lues", null},

@@ -2,7 +2,12 @@ package sn.autoecole.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
+import sn.autoecole.service.VocalService;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +26,7 @@ import sn.autoecole.repository.AnnonceRepository;
 import sn.autoecole.repository.EleveRepository;
 import sn.autoecole.repository.MoniteurRepository;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -41,6 +47,8 @@ public class AnnonceController {
     private final AnnonceLueRepository lues;
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
+    private final VocalService vocalService;
+    private static final long AUDIO_MAX_OCTETS = 25L * 1024 * 1024;
     private final EcoleService ecoleService;
     private final sn.autoecole.service.BureauService bureauService;
     private final sn.autoecole.repository.ClasseRepository classeRepository;
@@ -96,6 +104,7 @@ public class AnnonceController {
             v.put("pourMoi", destinataire(a, l));
             v.put("lue", !destinataire(a, l) || dejaLues.contains(a.getId()) || Objects.equals(a.getAuteurId(), l.user().getId()));
             v.put("supprimable", supprimable(a, l.user()));
+            if (a.getAudio() != null) { v.put("audio", true); v.put("audioDuree", a.getAudioDuree()); }
             return v;
         }).toList();
     }
@@ -125,10 +134,34 @@ public class AnnonceController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
-    public Map<String, Object> publier(@RequestBody Map<String, String> body, Authentication auth, HttpServletRequest http) {
-        Lecteur l = lecteur(auth);
+    public Map<String, Object> publier(@RequestBody Map<String, String> body, Authentication auth, HttpServletRequest http) throws IOException {
+        return creer(body, null, null, lecteur(auth), http);
+    }
+
+    /** Annonce avec un audio (micro ou fichier) : multipart titre, contenu (facultatif), cible, valeur, file, duree. */
+    @PostMapping(value = "/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public Map<String, Object> publierAvecAudio(@RequestParam Map<String, String> body, @RequestParam("file") MultipartFile file,
+                                                @RequestParam(value = "duree", required = false) Integer duree,
+                                                Authentication auth, HttpServletRequest http) throws IOException {
+        return creer(body, file, duree, lecteur(auth), http);
+    }
+
+    /** Écoute de l'audio d'une annonce : ses destinataires, son auteur et l'administration. */
+    @GetMapping("/{id}/audio")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> ecouter(@PathVariable Long id, Authentication auth) {
+        Annonce a = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
+        if (a.getAudio() == null || !visible(a, lecteur(auth))) throw new ResourceNotFoundException("Audio introuvable");
+        return vocalService.lire(VocalService.ANNONCES, a.getAudio());
+    }
+
+    private Map<String, Object> creer(Map<String, String> body, MultipartFile file, Integer duree, Lecteur l, HttpServletRequest http) throws IOException {
         String titre = texte(body.get("titre"), 150, "Donnez un titre à l'annonce");
-        String contenu = texte(body.get("contenu"), 2000, "Écrivez le message de l'annonce");
+        // Avec un audio, le texte est facultatif
+        String contenu = file != null && (body.get("contenu") == null || body.get("contenu").isBlank()) ? ""
+                : texte(body.get("contenu"), 2000, "Écrivez le message de l'annonce");
         Annonce.Cible cible;
         try { cible = Annonce.Cible.valueOf(String.valueOf(body.get("cible"))); }
         catch (IllegalArgumentException e) { throw new BusinessException("Choisissez à qui s'adresse l'annonce"); }
@@ -151,8 +184,10 @@ public class AnnonceController {
             try { id = Long.valueOf(String.valueOf(body.get("valeur"))); } catch (NumberFormatException e) { throw new BusinessException("Choisissez le moniteur"); }
             valeur = String.valueOf(moniteurRepository.findById(id).orElseThrow(() -> new BusinessException("Moniteur introuvable")).getId());
         }
+        String audio = file == null ? null : vocalService.enregistrer(file, VocalService.ANNONCES, AUDIO_MAX_OCTETS);
         Annonce a = repo.save(Annonce.builder().titre(titre).contenu(contenu).cible(cible).valeur(valeur)
-                .auteurId(l.user().getId()).auteurNom(l.user().getNom()).auteurRole(l.user().getRole()).creeLe(LocalDateTime.now()).build());
+                .auteurId(l.user().getId()).auteurNom(l.user().getNom()).auteurRole(l.user().getRole()).creeLe(LocalDateTime.now())
+                .audio(audio).audioDuree(audio == null || duree == null ? null : Math.max(0, Math.min(duree, 3600))).build());
         http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "« " + a.getTitre() + " » · " + destinataires(a));
         return Map.of("id", a.getId());
     }
@@ -166,6 +201,7 @@ public class AnnonceController {
         if (!supprimable(a, u)) throw new BusinessException("Seul l'auteur de l'annonce, ou l'administration, peut la supprimer");
         lues.supprimerPourAnnonce(a.getId());
         repo.delete(a);
+        vocalService.supprimer(VocalService.ANNONCES, a.getAudio());
         http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "« " + a.getTitre() + " »");
     }
 
