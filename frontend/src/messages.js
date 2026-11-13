@@ -81,13 +81,19 @@ export function msgBienvenue(eleve, ecole, identifiants) {
       : `Bienvenue à ${nom} ! Votre inscription${CATEGORIE[eleve.categoriePermis] ? ` au permis ${CATEGORIE[eleve.categoriePermis]}` : ''} est bien enregistrée.`,
   ]
   if (m) lignes.push(`Votre moniteur est ${m.prenom} ${m.nom}${m.telephone ? ` (${m.telephone})` : ''}.`)
-  lignes.push(
-    '',
-    `Suivez vos cours, examens et paiements dans votre espace élève : ${window.location.origin}`,
-  )
-  // Permis : les séries d'examen et les quiz des cours (le perfectionnement n'a que la conduite)
-  if (eleve.typeFormation !== 'PERFECTIONNEMENT')
-    lignes.push("📝 Vous y trouverez aussi des entraînements et des examens blancs corrigés pour bien préparer l'examen du code.")
+  // Perfectionnement : conduite seule, sans code ni examen ; le permis : cours, examens et séries
+  if (eleve.typeFormation === 'PERFECTIONNEMENT')
+    lignes.push(
+      '',
+      '🚗 Vos cours de conduite vous aideront à gagner en aisance et en assurance au volant.',
+      `Suivez vos cours, vos séances de conduite et vos paiements dans votre espace élève : ${window.location.origin}`,
+    )
+  else
+    lignes.push(
+      '',
+      `Suivez vos cours, examens et paiements dans votre espace élève : ${window.location.origin}`,
+      "📝 Vous y trouverez aussi des entraînements et des examens blancs corrigés pour bien préparer l'examen du code.",
+    )
   if (identifiants) {
     lignes.push(
       '',
