@@ -236,7 +236,7 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
   const [eleves, setEleves] = useState([])
   const [eleveIds, setEleveIds] = useState([])
   const [series, setSeries] = useState([])
-  const [modes, setModes] = useState(['ENTRAINEMENT', 'EXAMEN'])
+  const [modes, setModes] = useState(['ENTRAINEMENT'])   // la liste montre le statut du ou des modes choisis
   const [envoi, setEnvoi] = useState(false)
   useEffect(() => { api('GET', '/moniteur/seances/eleves').then(l => setEleves(l || [])).catch(e => toast(e.message, 'danger')) }, [])
   // Notes d'examen blanc des élèves choisis : « Assimilé 22/25 », « À revoir 15/25 »…
@@ -250,20 +250,27 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
     sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro', badge: e.admisCode ? 'Admis au code' : inscritCetteSemaine(e.dateInscription) ? 'NOUVEAU' : null }))
   // Modes déjà reçus par l'élève pour une série (toutes publications confondues)
   const recu = (serie, eleveId, mode) => publications.some(p => p.serie === serie && p.mode === mode && p.eleves.some(e => String(e.id) === String(eleveId)))
-  const noteDe = serie => {
-    if (!eleveIds.length) return null
-    const r = notes.filter(n => n.serie === serie)
-    if (eleveIds.length === 1) {
-      const n = r[0]
-      if (!n) return recu(serie, eleveIds[0], 'EXAMEN') ? { t: 'Examen blanc pas encore passé', c: '#64748b' } : null
-      const st = STATUTS[statutSerie(n)]
-      return { t: `Examen blanc : ${st.libelle} ${n.meilleurScore}/${n.total}`, c: st.couleur }
-    }
-    const ok = r.filter(n => statutSerie(n) === 'assimile').length
-    return r.length ? { t: `Assimilé par ${ok}/${eleveIds.length}`, c: ok === eleveIds.length ? '#15803d' : '#64748b' } : null
+  /* Statut de chaque série pour le ou les modes choisis seulement : Entraînement → publié ou non ;
+     Examen blanc → note (Assimilé, À revoir), publié mais pas passé, ou pas publié. */
+  const statutsModes = serie => {
+    if (!eleveIds.length) return []
+    const N = eleveIds.length, r = notes.filter(n => n.serie === serie)
+    return MODES.filter(m => modes.includes(m.key)).map(m => {
+      const publies = eleveIds.filter(id => recu(serie, id, m.key)).length
+      if (m.key === 'ENTRAINEMENT') {
+        if (N === 1) return publies ? { t: 'Entraînement : déjà publié', c: '#0f766e' } : { t: 'Entraînement : pas encore publié', c: '#64748b' }
+        return { t: `Entraînement : publié pour ${publies}/${N}`, c: publies === N ? '#0f766e' : '#64748b' }
+      }
+      if (N === 1) {
+        const n = r[0]
+        if (n) { const st = STATUTS[statutSerie(n)]; return { t: `Examen blanc : ${st.libelle} ${n.meilleurScore}/${n.total}`, c: st.couleur } }
+        return publies ? { t: 'Examen blanc : publié, pas encore passé', c: '#a16207' } : { t: 'Examen blanc : pas encore publié', c: '#64748b' }
+      }
+      const ok = r.filter(n => statutSerie(n) === 'assimile').length
+      return { t: `Examen blanc : publié pour ${publies}/${N}${r.length ? ` · assimilé par ${ok}/${N}` : ''}`, c: ok === N ? '#15803d' : '#64748b' }
+    })
   }
   const dejaTout = serie => eleveIds.length > 0 && modes.length > 0 && eleveIds.every(id => modes.every(m => recu(serie, id, m)))
-  const modesRecus = serie => eleveIds.length === 1 ? MODES.filter(m => recu(serie, eleveIds[0], m.key)).map(m => m.libelle) : []
   const basculer = id => setSeries(x => x.includes(id) ? x.filter(y => y !== id) : [...x, id])
   const basculerMode = m => setModes(x => x.includes(m) ? x.filter(y => y !== m) : [...x, m])
   const valider = async () => {
@@ -307,16 +314,16 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
             <div className="text-xs font-extrabold text-slate-500 mb-1">{g.titre}</div>
             <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
               {g.series.map(x => {
-                const deja = dejaTout(x.id), coche = series.includes(x.id) && !deja, recus = modesRecus(x.id), note = noteDe(x.id)
+                const deja = dejaTout(x.id), coche = series.includes(x.id) && !deja, statuts = statutsModes(x.id)
                 return (
                   <label key={x.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: deja ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : deja ? '#f8fafc' : '#fff' }}>
                     <input type="checkbox" className="form-check-input m-0" style={{ flexShrink: 0, float: 'none' }} disabled={deja} checked={coche} onChange={() => basculer(x.id)} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span className="block text-sm font-bold truncate" style={{ color: deja ? '#94a3b8' : '#334155' }}>{x.titre}</span>
                       <span className="block text-xs text-slate-500 truncate">
-                        {deja ? <b style={{ color: '#475569' }}>Déjà publiée</b> : recus.length ? <b style={{ color: '#0f766e' }}>Déjà : {recus.join(' + ')}</b> : x.sousTitre}
+                        {x.sousTitre}
                       </span>
-                      {note && <span className="block text-xs font-bold" style={{ color: note.c }}>{note.t}</span>}
+                      {statuts.map(st => <span key={st.t} className="block text-xs font-bold" style={{ color: st.c }}>{st.t}</span>)}
                     </span>
                   </label>
                 )
