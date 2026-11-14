@@ -26,6 +26,10 @@ public interface LeconRepository extends JpaRepository<Lecon, Long> {
 
     List<Lecon> findByDateBetween(LocalDate debut, LocalDate fin);
 
+    List<Lecon> findByMoniteurIdAndDateBetween(Long moniteurId, LocalDate debut, LocalDate fin);
+
+    List<Lecon> findByEleveIdAndDateBetween(Long eleveId, LocalDate debut, LocalDate fin);
+
     List<Lecon> findByStatut(StatutLecon statut);
 
     List<Lecon> findByEleveIdAndType(Long eleveId, TypeLecon type);

@@ -19,6 +19,7 @@ import java.util.List;
 public class VehiculeService {
 
     private final VehiculeRepository vehiculeRepository;
+    private final sn.autoecole.repository.MoniteurRepository moniteurRepository;
 
     public List<Vehicule> listerTous() {
         return vehiculeRepository.findAll();
@@ -98,6 +99,8 @@ public class VehiculeService {
         if (!vehiculeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Véhicule", id);
         }
+        // Les moniteurs qui l'avaient comme véhicule attitré n'en ont plus
+        moniteurRepository.findByVehiculeId(id).forEach(m -> { m.setVehicule(null); moniteurRepository.save(m); });
         vehiculeRepository.deleteById(id);
     }
 }

@@ -26,7 +26,7 @@ const CATS = [
   { value: 'D', label: 'D', bg: '#d1fae5', color: '#065f46' },
 ]
 const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
-const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true, accesCoursCode: false }
+const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true, accesCoursCode: false, vehiculeId: '' }
 
 /* ── Statut élève styles ──────────────────────────────────── */
 const STATUT_ELEVE = {
@@ -189,6 +189,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
   const [elevesCount, setElevesCount] = useState({})
   const [page, setPage]               = useState(1)
   const [pageEleves, setPageEleves]   = useState(1)
+  const [vehicules, setVehicules]     = useState([])   // choix du véhicule attitré
 
   useEffect(() => {
     if (!showModal) return
@@ -255,11 +256,13 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
       setForm({
         nom: m.nom, prenom: m.prenom, telephone: m.telephone,
         numeroCni: m.numeroCni || '', numeroPermis: m.numeroPermis || '',
-        dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif, accesCoursCode: !!m.accesCoursCode
+        dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif, accesCoursCode: !!m.accesCoursCode,
+        vehiculeId: m.vehicule?.id ? String(m.vehicule.id) : ''
       })
     } else {
       setEditId(null); setForm(EMPTY)
     }
+    api('GET', '/vehicules').then(v => setVehicules(v || [])).catch(() => setVehicules([]))
     setShowModal(true)
   }
 
@@ -280,7 +283,8 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
       ...form,
       numeroCni: form.numeroCni || null,
       numeroPermis: form.numeroPermis || null, dateEmbauche: form.dateEmbauche || null,
-      photoUrl: form.photoUrl || null
+      photoUrl: form.photoUrl || null,
+      vehiculeId: form.vehiculeId ? Number(form.vehiculeId) : null
     }
     try {
       if (editId) { await api('PUT', `/moniteurs/${editId}`, data); toast('Moniteur modifié') }
@@ -378,6 +382,17 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
             <div className="col-md-6">
               <Etiquette>Date d'embauche</Etiquette>
               <input type="date" className={champCls} value={form.dateEmbauche} onChange={e => set('dateEmbauche', e.target.value)} />
+            </div>
+            <div className="col-12">
+              {/* Ses élèves réservent leurs créneaux de conduite avec ce moniteur et ce véhicule */}
+              <Etiquette>Véhicule attitré</Etiquette>
+              <select className={champCls} value={form.vehiculeId} onChange={e => set('vehiculeId', e.target.value)}>
+                <option value="">Aucun véhicule</option>
+                {vehicules.map(v => <option key={v.id} value={v.id}>{[v.marque, v.modele].filter(Boolean).join(' ')} · {v.immatriculation}</option>)}
+              </select>
+              <div className="text-xs text-slate-400 mt-1">
+                <i className="bi bi-info-circle me-1" />Ses élèves réservent leurs leçons de conduite avec ce véhicule (3 élèves par heure).
+              </div>
             </div>
             <div className="col-12">
               <Etiquette>Statut</Etiquette>
@@ -514,6 +529,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
               { icon: 'credit-card',  label: 'Numéro CNI',      value: selected.numeroCni,                           iconBg: '#f0fdf4', iconColor: '#15803d' },
               { icon: 'card-checklist', label: 'N° Permis',     value: selected.numeroPermis,                        iconBg: '#eef2ff', iconColor: '#4f46e5' },
               { icon: 'calendar-event', label: "Date d'embauche", value: selected.dateEmbauche ? fmtDate(selected.dateEmbauche) : null, iconBg: '#fdf4ff', iconColor: '#9333ea' },
+              { icon: 'car-front', label: 'Véhicule', value: selected.vehicule ? `${[selected.vehicule.marque, selected.vehicule.modele].filter(Boolean).join(' ')} · ${selected.vehicule.immatriculation}` : null, iconBg: '#ecfeff', iconColor: '#0e7490' },
               { icon: 'sign-turn-right', label: 'Cours de code', value: selected.accesCoursCode ? 'Visibles' : 'Masqués',  iconBg: '#eff6ff', iconColor: '#1d4ed8' },
             ].filter(r => r.value).map(({ icon, label, value, iconBg, iconColor }, i, arr) => (
               <div key={label} className={`flex items-center gap-3 py-3 ${i < arr.length - 1 ? 'border-b border-slate-50' : ''}`}>

@@ -35,4 +35,7 @@ public class MoniteurRequest {
     private Boolean actif;
 
     private Boolean accesCoursCode;
+
+    // Véhicule attitré (null : aucun)
+    private Long vehiculeId;
 }

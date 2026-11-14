@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import sn.autoecole.dto.MoniteurRequest;
 import sn.autoecole.entity.Moniteur;
 import sn.autoecole.entity.User;
+import sn.autoecole.entity.Vehicule;
 import sn.autoecole.enums.RoleUser;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
@@ -31,6 +32,7 @@ import java.util.Optional;
 public class MoniteurService {
 
     private final MoniteurRepository moniteurRepository;
+    private final sn.autoecole.repository.VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
     private final LeconRepository leconRepository;
     private final SeanceRepository seanceRepository;
@@ -69,6 +71,7 @@ public class MoniteurService {
                         ? request.getCategoriesAutorisees() : new HashSet<>())
                 .actif(request.getActif() != null ? request.getActif() : true)
                 .accesCoursCode(Boolean.TRUE.equals(request.getAccesCoursCode()))
+                .vehicule(vehicule(request.getVehiculeId()))
                 .build();
         return moniteurRepository.save(moniteur);
     }
@@ -96,7 +99,13 @@ public class MoniteurService {
         if (request.getAccesCoursCode() != null) {
             moniteur.setAccesCoursCode(request.getAccesCoursCode());
         }
+        moniteur.setVehicule(vehicule(request.getVehiculeId()));
         return moniteurRepository.save(moniteur);
+    }
+
+    private Vehicule vehicule(Long id) {
+        return id == null ? null : vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule", id));
     }
 
     /**

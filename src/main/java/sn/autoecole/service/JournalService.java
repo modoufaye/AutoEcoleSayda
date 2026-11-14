@@ -80,6 +80,8 @@ public class JournalService {
             {"PUT /api/eleve/profil", "Modification de son profil"},
             {"POST /api/eleve/paiements/declarer", "Déclaration d'un paiement Wave ou Orange Money"},
             {"POST /api/eleve/code/progression", "Quiz de code terminé"},
+            {"POST /api/eleve/creneaux", "Réservation d'un créneau de conduite"},
+            {"DELETE /api/eleve/creneaux/{id}", "Annulation d'un créneau de conduite"},
             {"POST /api/eleve/seances/{id}/quiz", "Quiz de séance de code terminé"},
             {"POST /api/eleve/exercices-td/questions/{id}/repondre", "Réponse à une question de travail dirigé"},
             {"DELETE /api/eleve/exercices-td/{id}/mes-reponses", "Reprise d'un travail dirigé (réponses effacées)"},
@@ -206,7 +208,7 @@ public class JournalService {
                 case "moniteurs" -> moniteurRepository::findById;
                 case "vehicules" -> vehiculeRepository::findById;
                 case "examens" -> examenRepository::findById;
-                case "lecons" -> leconRepository::findById;
+                case "lecons", "eleve/creneaux" -> leconRepository::findById;
                 case "cours" -> coursRepository::findById;
                 case "demandes-inscription" -> demandeRepository::findById;
                 case "moniteur/seances" -> seanceRepository::findById;

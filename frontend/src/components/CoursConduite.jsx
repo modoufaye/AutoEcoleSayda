@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Lecons from './Lecons'
+import CreneauxConduite from './CreneauxConduite'
 import CoursCode from './CoursCode'
 import { THEMES_CONDUITE } from '../contenu/conduite'
 
@@ -15,6 +16,7 @@ export default function CoursConduite({ onBack, chapitre, onOuvrirChapitre, onFe
   /* Thème ou chapitre dans l'adresse (…/lecons/<clé>) quand la mise en page le gère : le Retour
      d'Android ou du navigateur revient au thème, puis à la liste, au lieu de quitter la page. */
   const [onglet, setOnglet] = useState('lecons')
+  const [maj, setMaj] = useState(0)   // élève : liste des leçons relue après une réservation
   const vue = chapitre ? 'apprendre' : onglet
   const setVue = v => { setOnglet(v); if (chapitre && v !== 'apprendre') onFermerChapitre?.() }
   // Admin et secrétariat voient le planning de tous les élèves, pas « leurs » leçons
@@ -36,7 +38,11 @@ export default function CoursConduite({ onBack, chapitre, onOuvrirChapitre, onFe
         ))}
       </div>
       {vue === 'lecons'
-        ? <Lecons />
+        ? <>
+            {/* Élève : réservation de ses créneaux, au-dessus de la liste de ses leçons */}
+            {user?.role === 'ELEVE' && <CreneauxConduite onChange={() => setMaj(n => n + 1)} />}
+            <Lecons key={maj} />
+          </>
         : <CoursCode themes={THEMES_CONDUITE} entete={ENTETE} eleve={user?.role === 'ELEVE'}
             chapitre={chapitre} onOuvrirChapitre={onOuvrirChapitre} onFermerChapitre={onFermerChapitre} />}
     </div>

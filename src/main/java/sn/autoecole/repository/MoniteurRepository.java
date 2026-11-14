@@ -19,4 +19,6 @@ public interface MoniteurRepository extends JpaRepository<Moniteur, Long> {
     java.util.Optional<Moniteur> findFirstByTelephone(String telephone);
 
     java.util.Optional<Moniteur> findFirstByTelephoneAndIdNot(String telephone, Long id);
+
+    List<Moniteur> findByVehiculeId(Long vehiculeId);
 }

@@ -35,6 +35,7 @@ public class ElevePortailController {
     private final ExamenService      examenService;
     private final LeconService       leconService;
     private final PaiementService    paiementService;
+    private final sn.autoecole.service.CreneauxConduiteService creneauxService;
 
     private Eleve eleveConnecte(Authentication auth) {
         return eleveRepository.findFirstByTelephone(auth.getName())
@@ -66,6 +67,32 @@ public class ElevePortailController {
     @GetMapping("/mes-lecons")
     public List<Lecon> getMesLecons(Authentication auth) {
         return leconService.listerParEleve(eleveConnecte(auth).getId());
+    }
+
+    /* Créneaux de conduite (CreneauxConduiteService) : planning de la semaine, réservation, annulation */
+    @GetMapping("/creneaux")
+    public Map<String, Object> creneaux(Authentication auth,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate semaine) {
+        return creneauxService.planning(eleveConnecte(auth), semaine);
+    }
+
+    @PostMapping("/creneaux")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Lecon reserverCreneau(Authentication auth, @RequestBody Map<String, String> body) {
+        java.time.LocalDate date; java.time.LocalTime heure;
+        try {
+            date = java.time.LocalDate.parse(body.get("date"));
+            heure = java.time.LocalTime.parse(body.get("heure"));
+        } catch (Exception ex) {
+            throw new sn.autoecole.exception.BusinessException("Choisissez un jour et une heure");
+        }
+        return creneauxService.reserver(eleveConnecte(auth), date, heure);
+    }
+
+    @DeleteMapping("/creneaux/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void annulerCreneau(Authentication auth, @PathVariable Long id) {
+        creneauxService.annuler(eleveConnecte(auth), id);
     }
 
     @GetMapping("/mes-paiements")

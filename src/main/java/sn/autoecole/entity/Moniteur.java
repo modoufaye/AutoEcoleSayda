@@ -64,6 +64,11 @@ public class Moniteur {
     @Column(name = "acces_cours_code")
     private Boolean accesCoursCode;
 
+    // Véhicule attitré : ses élèves réservent leurs créneaux de conduite avec ce moniteur et ce véhicule
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "vehicule_id")
+    private Vehicule vehicule;
+
     @PrePersist
     private void prePersist() {
         if (dateEmbauche == null) {
