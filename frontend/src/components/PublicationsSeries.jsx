@@ -292,6 +292,10 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
       onClose={onClose} onSave={envoi ? () => {} : valider} libelleSave={envoi ? 'Publication…' : 'Publier pour les séries cochées'}
       piedGauche="Les élèves sont seulement ajoutés : personne n'est retiré.">
       <Etape n={1} icon="person" titre="Élève(s)">
+        {/* Un clic sur une classe coche tous ses élèves */}
+        <div className="mb-2">
+          <BoutonsClasses proposes={items.map(e => e.id)} onCocher={ids => setEleveIds(x => [...new Set([...x, ...ids.map(String)])])} />
+        </div>
         <ChoixPuces items={items} valeur={eleveIds} onChoisir={setEleveIds} multiple cochesEnTete placeholder="Nom ou téléphone…" hauteur={220} />
       </Etape>
       <Etape n={2} icon="ui-checks" titre="Mode · un seul ou les deux">

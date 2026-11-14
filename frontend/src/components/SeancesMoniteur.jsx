@@ -260,6 +260,11 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
       onClose={() => setEtat(null)} onSave={valider} libelleSave={envoi ? 'Ajout…' : 'Ajouter aux séances cochées'}
       piedGauche="Les élèves sont seulement ajoutés : personne n'est retiré des séances.">
       <Etape n={1} icon="person" titre="Élève(s)">
+        {/* Un clic sur une classe coche tous ses élèves (parmi ceux proposés ici) */}
+        <div className="mb-2">
+          <BoutonsClasses proposes={eleves.map(e => e.id)}
+            onCocher={ids => setEtat(x => ({ ...x, eleveIds: [...new Set([...x.eleveIds, ...ids.map(String)])] }))} />
+        </div>
         <ChoixPuces items={items} valeur={etat.eleveIds} onChoisir={ids => setEtat(x => ({ ...x, eleveIds: ids }))}
           multiple cochesEnTete placeholder="Nom, prénom ou téléphone…" hauteur={220} />
       </Etape>
