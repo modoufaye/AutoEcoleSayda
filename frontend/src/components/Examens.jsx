@@ -84,18 +84,21 @@ export default function Examens({ onEleveClick, onBack }) {
     .filter(e => e.resultat === 'EN_ATTENTE' && joursAvant(e.date) >= 0 && joursAvant(e.date) <= 7)
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const openModal = async () => {
+  /* preset : date, épreuve et message d'un examen déjà programmé (« Ajouter des élèves » sous une date) */
+  const openModal = async (preset) => {
     const [ev, admis] = await Promise.all([api('GET', '/eleves'), api('GET', '/eleves/admis-code').catch(() => [])])
     // Perfectionnement : conduite seule, pas d'examen du permis (refusé aussi par le serveur)
     setEleves(ev.filter(e => e.typeFormation !== 'PERFECTIONNEMENT')); setAdmisCode(new Set(admis || []))
-    setForm(EMPTY); setRechercheEleve(''); setShowModal(true)
+    setForm({ ...EMPTY, date: today(), ...(preset?.date ? preset : {}) }); setRechercheEleve(''); setShowModal(true)
   }
 
   /* Un examen par élève coché, avec la même date et la même épreuve ; l'élève le voit sur son
      tableau de bord dès sa connexion. Les élèves refusés par le
      serveur restent cochés pour pouvoir corriger et réessayer. */
   const save = async () => {
-    const { date, eleveIds, type } = form
+    const { date, type } = form
+    // Date ou épreuve changée après coup : on écarte les élèves déjà inscrits (pas de doublon)
+    const eleveIds = form.eleveIds.filter(id => !list.some(x => x.date === date && x.type === type && x.eleve?.id === id))
     if (!date || !eleveIds.length || !type) { toast('Choisissez au moins un élève, la date et le type', 'warning'); return }
     if (type === 'CONDUITE' && eleveIds.some(id => !admisCode.has(id))) { toast("L'examen de conduite est réservé aux élèves admis au code", 'warning'); return }
     if (enregistrement) return
@@ -311,7 +314,7 @@ export default function Examens({ onEleveClick, onBack }) {
           )}
           {/* Calé à droite comme les boutons de la page Élèves (pleine largeur sur téléphone) */}
           <div className="grid grid-cols-1 sm:flex w-full sm:w-auto sm:ms-auto">
-            <BoutonAjout onClick={openModal}>Examen</BoutonAjout>
+            <BoutonAjout onClick={() => openModal()}>Examen</BoutonAjout>
           </div>
         </BarreFiltres>
       )}
@@ -408,7 +411,20 @@ export default function Examens({ onEleveClick, onBack }) {
                   </span>
                   <i className={`bi bi-chevron-${ouvert ? 'up' : 'down'} text-slate-400`} />
                 </button>
-                {ouvert && <div style={{ borderTop: '1px solid #eef2f7' }}>{g.examens.map(ligne)}</div>}
+                {ouvert && <div style={{ borderTop: '1px solid #eef2f7' }}>
+                  {g.examens.map(ligne)}
+                  {/* Date déjà fixée : on y ajoute d'autres candidats (même date, même épreuve, même message) */}
+                  <div className="px-4 sm:px-5 py-3" style={{ background: '#f8fafc' }}>
+                    <button type="button" className="filtre filtre-bouton" style={{ minHeight: 36, fontSize: '.82rem', fontWeight: 700, color: '#1e3a5f' }}
+                      onClick={() => openModal({
+                        date: g.date,
+                        type: types.length === 1 ? types[0] : '',
+                        observations: g.examens.find(e => e.observations)?.observations || '',
+                      })}>
+                      <i className="bi bi-person-plus-fill" />Ajouter des élèves à cet examen
+                    </button>
+                  </div>
+                </div>}
               </div>
             )
           })}
@@ -423,12 +439,15 @@ export default function Examens({ onEleveClick, onBack }) {
         // Conduite : seuls les élèves admis au code peuvent la passer
         const candidats = form.type === 'CONDUITE' ? eleves.filter(e => admisCode.has(e.id)) : eleves
         const visibles = candidats.filter(e => correspond([e.prenom, e.nom, e.telephone], rechercheEleve))
+        // Déjà inscrits à cette date pour cette épreuve : affichés, mais pas cochables (pas de doublon)
+        const inscrits = new Set(list.filter(x => x.date === form.date && x.type === form.type && x.eleve).map(x => x.eleve.id))
+        const cochables = ids => ids.filter(id => !inscrits.has(id))
         const choisirType = v => setForm(f => ({ ...f, type: v,
           eleveIds: v === 'CONDUITE' ? f.eleveIds.filter(id => admisCode.has(id)) : f.eleveIds }))
-        const basculer = id => set('eleveIds', form.eleveIds.includes(id) ? form.eleveIds.filter(x => x !== id) : [...form.eleveIds, id])
+        const basculer = id => !inscrits.has(id) && set('eleveIds', form.eleveIds.includes(id) ? form.eleveIds.filter(x => x !== id) : [...form.eleveIds, id])
         const toutCocher = coche => {
           const ids = new Set(form.eleveIds)
-          visibles.forEach(e => coche ? ids.add(e.id) : ids.delete(e.id))
+          visibles.forEach(e => coche && !inscrits.has(e.id) ? ids.add(e.id) : ids.delete(e.id))
           set('eleveIds', [...ids])
         }
         return (
@@ -481,17 +500,18 @@ export default function Examens({ onEleveClick, onBack }) {
                   </button>
                 </div>
                 <div className="px-2 py-2" style={{ borderBottom: '1px solid #eef2f7' }}>
-                  <BoutonsClasses proposes={candidats.map(e => e.id)} onCocher={ids => set('eleveIds', [...new Set([...form.eleveIds, ...ids])])} />
+                  <BoutonsClasses proposes={candidats.map(e => e.id)} onCocher={ids => set('eleveIds', [...new Set([...form.eleveIds, ...cochables(ids)])])} />
                 </div>
                 <div style={{ maxHeight: 280, overflowY: 'auto' }}>
                   {candidats.length === 0 ? <ListeVide texte={form.type === 'CONDUITE' ? 'Aucun élève admis au code pour le moment' : 'Aucun élève enregistré'} icone="people" />
                     : visibles.length === 0 ? <ListeVide texte="Aucun élève trouvé" icone="search" />
                     : visibles.map(e => {
-                      const coche = form.eleveIds.includes(e.id)
+                      const deja = inscrits.has(e.id)
+                      const coche = !deja && form.eleveIds.includes(e.id)
                       return (
-                        <div key={e.id} role="checkbox" aria-checked={coche} aria-label={`${e.prenom} ${e.nom}`} tabIndex={0}
-                          className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-50"
-                          style={{ background: coche ? '#fffbeb' : '#fff', borderBottom: '1px solid #f1f5f9' }}
+                        <div key={e.id} role="checkbox" aria-checked={coche} aria-disabled={deja} aria-label={`${e.prenom} ${e.nom}`} tabIndex={0}
+                          className={`flex items-center gap-3 px-3 py-2 ${deja ? '' : 'cursor-pointer hover:bg-slate-50'}`}
+                          style={{ background: coche ? '#fffbeb' : '#fff', borderBottom: '1px solid #f1f5f9', opacity: deja ? .6 : 1 }}
                           onClick={() => basculer(e.id)}
                           onKeyDown={ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); basculer(e.id) } }}>
                           <AvatarRond photoUrl={e.photoUrl} prenom={e.prenom} nom={e.nom} taille={32} />
@@ -500,10 +520,14 @@ export default function Examens({ onEleveClick, onBack }) {
                             {(e.telephone || e.categoriePermis) && <div className="text-xs font-semibold text-slate-500 truncate">
                               {[e.telephone && afficherTelephone(e.telephone), e.categoriePermis && `Permis ${e.categoriePermis}`].filter(Boolean).join(' · ')}</div>}
                           </div>
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                          {deja ? (
+                            <span className="text-xs font-bold flex-shrink-0 rounded-full px-2 py-1" style={{ background: '#dcfce7', color: '#15803d' }}>
+                              <i className="bi bi-check2-circle me-1" />Déjà inscrit
+                            </span>
+                          ) : <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                             style={{ border: `2px solid ${coche ? '#d4a017' : '#cbd5e1'}`, background: coche ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff' }}>
                             {coche && <i className="bi bi-check-lg" style={{ color: '#1e3a5f', fontSize: '.75rem' }} />}
-                          </div>
+                          </div>}
                         </div>
                       )
                     })}
