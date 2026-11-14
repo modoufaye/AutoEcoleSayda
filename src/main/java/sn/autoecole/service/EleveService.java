@@ -271,6 +271,16 @@ public class EleveService {
         }
     }
 
+    /** Même moniteur pour plusieurs élèves (null : on le leur retire). Renvoie le nombre d'élèves modifiés. */
+    public int attribuerMoniteur(List<Long> eleveIds, Long moniteurId) {
+        Moniteur m = resolveMoniteur(moniteurId);
+        if (m != null && !m.isActif()) throw new BusinessException("Ce moniteur n'est pas actif");
+        List<Eleve> eleves = eleveRepository.findAllById(eleveIds);
+        eleves.forEach(e -> e.setMoniteur(m));
+        eleveRepository.saveAll(eleves);
+        return eleves.size();
+    }
+
     private Moniteur resolveMoniteur(Long moniteurId) {
         if (moniteurId == null) return null;
         return moniteurRepository.findById(moniteurId)

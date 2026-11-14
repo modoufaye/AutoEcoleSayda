@@ -92,6 +92,7 @@ public class JournalService {
             {"PATCH /api/eleves/{id}/archiver", "Archivage d'un élève"},
             {"PATCH /api/eleves/{id}/reactiver", "Réactivation d'un élève"},
             {"PATCH /api/eleves/{id}/statut", "Changement de statut d'un élève"},
+            {"PATCH /api/eleves/moniteur", "Attribution d'un moniteur à des élèves"},
             {"PATCH /api/eleves/{id}/documents-remis", "Mise à jour des documents d'un élève"},
             {"POST /api/eleves/{id}/creer-compte", "Création du compte de l'élève"},
             {"POST /api/eleves/{id}/identifiants", "Nouveaux identifiants pour l'élève"},

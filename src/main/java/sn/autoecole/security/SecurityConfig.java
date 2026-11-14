@@ -92,6 +92,7 @@ public class SecurityConfig {
                 // Archiver / réactiver un élève : admin uniquement.
                 .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/archiver", "/api/eleves/*/reactiver").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers(HttpMethod.PATCH, "/api/eleves/*/documents-remis").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
+                .requestMatchers(HttpMethod.PATCH, "/api/eleves/moniteur").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Supprimer un élève (et son compte de connexion) : admin uniquement.
                 .requestMatchers(HttpMethod.DELETE, "/api/eleves/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                 // Gestion des élèves (liste, fiches, comptes) : jamais pour un élève,

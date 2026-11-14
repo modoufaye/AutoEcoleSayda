@@ -15,6 +15,7 @@ import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
 import EnvoiGroupeIdentifiants from './EnvoiGroupeIdentifiants'
+import AttribuerMoniteur from './AttribuerMoniteur'
 import { ConversationEleve } from './Messages'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
@@ -1032,6 +1033,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [editId, setEditId]       = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [attribution, setAttribution] = useState(false)   // « Attribuer un moniteur » à plusieurs élèves
   const [envoiGroupe, setEnvoiGroupe] = useState(false)   // file d'envoi des identifiants (WhatsApp)
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
@@ -1214,7 +1216,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       // Moniteur des cours de code (Paramètres), pré-sélectionné s'il est actif.
       const defaut = moniteurs.some(m => m.actif && String(m.id) === String(moniteurDefaut)) ? String(moniteurDefaut) : ''
       setEditId(null)
-      setForm({ ...EMPTY, typeFormation, dateInscription: today(), moniteurId: typeFormation === 'PERMIS' ? defaut : '' })
+      setForm({ ...EMPTY, typeFormation, dateInscription: today(), moniteurId: defaut })
     }
     setPiecesAttente([])
     setShowModal(true)
@@ -1694,6 +1696,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     </button>
                   ))}
                 </div>
+                {/* Moniteur : l'élève réserve ses créneaux de conduite avec lui et son véhicule */}
+                <div className="mt-4">
+                  <label className={labelCls}>Moniteur</label>
+                  <select className={inputCls} value={form.moniteurId} onChange={e => set('moniteurId', e.target.value)}>
+                    <option value="">— Aucun moniteur —</option>
+                    {moniteurs.filter(m => m.actif || String(m.id) === String(form.moniteurId)).map(m => <option key={m.id} value={m.id}>{m.prenom} {m.nom}</option>)}
+                  </select>
+                </div>
                 {editId && (
                   <div className="mt-4">
                     <label className={labelCls}>Statut</label>
@@ -2124,6 +2134,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                 <BoutonAjout or icone="speedometer2" onClick={() => openModal(null, 'PERFECTIONNEMENT')}>Perfectionnement</BoutonAjout>
               </div>
             )}
+            {/* Même moniteur pour plusieurs élèves (réservation des créneaux de conduite) */}
+            {!archives && (
+              <div className="col-span-2 sm:col-span-1 grid">
+                <BoutonAjout icone="person-badge-fill" onClick={() => setAttribution(true)}>Attribuer un moniteur</BoutonAjout>
+              </div>
+            )}
           </div>
         )}
       </BarreFiltres>
@@ -2236,6 +2252,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       </div>
 
       {showImport && <ImportEleves onClose={() => setShowImport(false)} onDone={load} />}
+      {attribution && <AttribuerMoniteur eleves={filtered.filter(e => !e.archive)} moniteurs={moniteurs} admisCode={admisCode}
+        onClose={() => setAttribution(false)} onFait={() => { setAttribution(false); load() }} />}
       {envoiGroupe && (
         <EnvoiGroupeIdentifiants eleves={aEnvoyerAffiches} ecole={ecole}
           onEnvoye={(id, le) => setList(l => l.map(e => e.id === id ? { ...e, bienvenueEnvoyeeLe: le } : e))}

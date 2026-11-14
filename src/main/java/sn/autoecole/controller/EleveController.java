@@ -98,6 +98,16 @@ public class EleveController {
         return ResponseEntity.ok(eleveService.modifier(id, request));
     }
 
+    /** Corps : { eleveIds: [..], moniteurId: id | null } ; le même moniteur pour tous ces élèves. */
+    @PatchMapping("/moniteur")
+    public Map<String, Object> attribuerMoniteur(@RequestBody Map<String, Object> body) {
+        Object brut = body.get("eleveIds");
+        if (!(brut instanceof List<?> l) || l.isEmpty()) throw new sn.autoecole.exception.BusinessException("Choisissez au moins un élève");
+        List<Long> ids = l.stream().map(x -> ((Number) x).longValue()).toList();
+        Long moniteurId = body.get("moniteurId") instanceof Number n ? n.longValue() : null;
+        return Map.of("modifies", eleveService.attribuerMoniteur(ids, moniteurId));
+    }
+
     @PatchMapping("/{id}/statut")
     public ResponseEntity<Eleve> changerStatut(@PathVariable Long id, @RequestBody Map<String, String> body) {
         StatutEleve statut = StatutEleve.valueOf(body.get("statut"));
