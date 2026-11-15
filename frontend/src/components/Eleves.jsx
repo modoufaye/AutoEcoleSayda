@@ -48,9 +48,9 @@ const DOCS = [
   { key: 'docDelivrance',     label: 'Délivrance', type: 'DELIVRANCE' },
 ]
 
-/* Dossier complet (liste des élèves) : les 5 premières pièces ; le timbre, l'enrôlement et la délivrance n'entrent pas en compte */
-const DOCS_DOSSIER = DOCS.slice(0, 5)
-const COURT_DOSSIER = { docCertResidence: 'Résidence', docCniLegalisee: 'CNI', docGroupeSanguin: 'Groupe sanguin', docVisiteMedicale: 'Visite médicale', docPhotos: 'Photos' }
+/* Dossier complet (liste des élèves) : les 6 premières pièces, timbre compris ; l'enrôlement et la délivrance n'entrent pas en compte */
+const DOCS_DOSSIER = DOCS.slice(0, 6)
+const COURT_DOSSIER = { docCertResidence: 'Résidence', docCniLegalisee: 'CNI', docGroupeSanguin: 'Groupe sanguin', docVisiteMedicale: 'Visite médicale', docPhotos: 'Photos', docTimbre: 'Timbre' }
 
 const TYPES_PIECE = [
   { value: 'DOSSIER', label: "Dossier de l'élève (Service des Mines)" },
