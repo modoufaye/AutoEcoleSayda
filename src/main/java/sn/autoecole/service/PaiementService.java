@@ -145,6 +145,13 @@ public class PaiementService {
         return total != null ? total : BigDecimal.ZERO;
     }
 
+    /** Total encaissé de chaque élève (élève id -> somme), pour le reliquat de la liste des élèves. */
+    public java.util.Map<Long, BigDecimal> totauxEncaissesParEleve() {
+        java.util.Map<Long, BigDecimal> m = new java.util.HashMap<>();
+        for (Object[] r : paiementRepository.totauxPayesParEleve()) m.put((Long) r[0], (BigDecimal) r[1]);
+        return m;
+    }
+
     public BigDecimal totalEncaisseParEleve(Long eleveId) {
         BigDecimal total = paiementRepository.sumMontantPayeByEleve(eleveId);
         return total != null ? total : BigDecimal.ZERO;

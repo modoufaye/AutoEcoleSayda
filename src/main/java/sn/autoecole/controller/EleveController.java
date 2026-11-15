@@ -164,6 +164,12 @@ public class EleveController {
         return ResponseEntity.ok(paiementService.listerParEleve(id));
     }
 
+    /** Total payé par élève (id -> somme) : reliquat affiché dans la liste. Gestion seulement (SecurityConfig). */
+    @GetMapping("/totaux-payes")
+    public Map<Long, BigDecimal> totauxPayes() {
+        return paiementService.totauxEncaissesParEleve();
+    }
+
     @GetMapping("/{id}/total-paye")
     public ResponseEntity<Map<String, BigDecimal>> totalPaye(@PathVariable Long id) {
         return ResponseEntity.ok(Map.of("totalPaye", paiementService.totalEncaisseParEleve(id)));

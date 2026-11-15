@@ -34,6 +34,10 @@ public interface PaiementRepository extends JpaRepository<Paiement, Long> {
     @Query("SELECT SUM(p.montant) FROM Paiement p WHERE p.eleve.id = :eleveId AND p.statut = 'PAYE'")
     BigDecimal sumMontantPayeByEleve(@Param("eleveId") Long eleveId);
 
+    /** Total payé par élève : paires (élève id, somme). */
+    @Query("SELECT p.eleve.id, SUM(p.montant) FROM Paiement p WHERE p.statut = 'PAYE' GROUP BY p.eleve.id")
+    List<Object[]> totauxPayesParEleve();
+
     @Query("SELECT SUM(p.montant) FROM Paiement p WHERE p.statut = 'PAYE' AND p.date >= :debut AND p.date <= :fin")
     BigDecimal sumMontantPayeEntreDates(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
 

@@ -1032,6 +1032,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
   // Séances de code publiées par élève : les cours de code passent par les séances, pas par les leçons
   const [seancesCode, setSeancesCode] = useState({})
+  // Total payé par élève (gestion seulement) : reliquat ou « Tout payé » dans la liste
+  const [totauxPayes, setTotauxPayes] = useState(null)
   useEffect(() => { api('GET', '/eleves/seances-code').then(m => setSeancesCode(m || {})).catch(() => {}) }, [])
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(!!memo.archives)
@@ -1091,6 +1093,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     finally { if (req === loadReq.current) setLoading(false) }
     if (!isMoniteur) {
       try { setMoniteurs(await api('GET', '/moniteurs')) } catch { /* optionnel */ }
+      api('GET', '/eleves/totaux-payes').then(m => setTotauxPayes(m || {})).catch(() => {})
     }
   }
 
@@ -2197,6 +2200,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       borderBottom: '3px solid #d4a017', boxShadow: '0 2px 6px rgba(15,34,64,.18)' }}>
                     {e.categoriePermis}
                   </div>}
+                  <div className="min-w-0 flex flex-col gap-1">
                   {e.typeFormation !== 'PERFECTIONNEMENT' && (() => {
                     const manque = DOCS_DOSSIER.filter(d => !e[d.key])
                     return (
@@ -2211,6 +2215,16 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       </div>
                     )
                   })()}
+                  {/* Paiement (gestion) : reliquat, ou « Tout payé » ; rien si le prix n'est pas fixé */}
+                  {totauxPayes && e.montantTotal != null && (() => {
+                    const reste = Number(e.montantTotal) - Number(totauxPayes[e.id] || 0)
+                    return (
+                      <div className="text-xs font-bold whitespace-nowrap" style={{ color: reste <= 0 ? '#15803d' : '#b91c1c' }}>
+                        <i className={`bi bi-${reste <= 0 ? 'check-circle-fill' : 'cash-coin'} me-1`} />{reste <= 0 ? 'Tout payé' : `Reste ${fmtMontant(reste)}`}
+                      </div>
+                    )
+                  })()}
+                  </div>
                 </div>
 
                 {/* Suivi */}
@@ -2229,12 +2243,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       <i className="bi bi-chat-dots-fill me-1" />{messagesNonLus[e.id]} message{messagesNonLus[e.id] > 1 ? 's' : ''} non lu{messagesNonLus[e.id] > 1 ? 's' : ''}
                     </button>
                   )}
-                  {/* Message de bienvenue : l'élève a-t-il reçu ses identifiants ? */}
-                  {e.bienvenueEnvoyeeLe
-                    ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-whatsapp me-1" />Identifiants envoyés le {fmtDate(e.bienvenueEnvoyeeLe.slice(0, 10))}</div>
-                    : e.premiereConnexionLe
+                  {/* Identifiants : déjà connecté, ou encore à envoyer (une fois envoyés, rien ne s'affiche) */}
+                  {e.premiereConnexionLe
                     ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-person-check-fill me-1" />Déjà connecté</div>
-                    : <div className="mt-1 font-semibold" style={{ color: '#b45309' }}><i className="bi bi-whatsapp me-1" />Identifiants à envoyer</div>}
+                    : !e.bienvenueEnvoyeeLe && <div className="mt-1 font-semibold" style={{ color: '#b45309' }}><i className="bi bi-whatsapp me-1" />Identifiants à envoyer</div>}
                 </div>
 
                 {/* Statut et actions */}
