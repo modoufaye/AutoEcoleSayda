@@ -379,14 +379,8 @@ function DashboardAdmin({ stats, user }) {
       {/* ══ ÉLÈVES ════════════════════════════════════════════ */}
       <div>
         <SectionTitle gradient="linear-gradient(#1e3a5f,#2a4f7c)" label="Élèves" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total élèves" value={stats.totalEleves}        icon="people-fill"       accent="#1e3a5f" />
-          <StatCard title="En formation" value={stats.elevesEnCours}      icon="person-check-fill" accent="#3b82f6" />
-          <StatCard title="Diplômés"     value={stats.elevesDiplomes}     icon="award-fill"        accent="#10b981" />
-          <StatCard title="Suspendus"    value={stats.elevesSuspendus}    icon="person-x-fill"     accent="#f59e0b" />
-        </div>
-        {/* Nouveaux inscrits, puis perfectionnements en cours par boîte de vitesses */}
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Nouveaux inscrits, élèves au permis, puis perfectionnements en cours par boîte de vitesses */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3">
           <StatCard
             title="Nouveaux ce mois"
             value={stats.elevesNouveauxMois}
@@ -394,6 +388,8 @@ function DashboardAdmin({ stats, user }) {
             accent="#8b5cf6"
             sub={new Date().toLocaleDateString('fr-SN', { month: 'long', year: 'numeric' })}
           />
+          <StatCard title="Permis" value={stats.permisEnCours ?? 0}
+            icon="card-heading" accent="#2a78d6" sub="Formation en cours" />
           <StatCard title="Boîte manuelle" value={stats.perfectionnementManuelle ?? 0}
             icon="gear-wide-connected" accent="#d4a017" sub="Perfectionnement en cours" />
           <StatCard title="Boîte automatique" value={stats.perfectionnementAutomatique ?? 0}
@@ -407,28 +403,32 @@ function DashboardAdmin({ stats, user }) {
               <span className="text-xs font-bold text-slate-500">Répartition des élèves</span>
               <span className="text-xs text-slate-400">{stats.totalEleves} au total</span>
             </div>
-            <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
-              {[
-                { val: stats.elevesEnCours,   color: '#3b82f6' },
-                { val: stats.elevesDiplomes,  color: '#10b981' },
-                { val: stats.elevesSuspendus, color: '#f59e0b' },
-              ].map(({ val, color }, i) => val > 0 && (
-                <div key={i} className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full"
-                  style={{ width: `${val / stats.totalEleves * 100}%`, background: color }} />
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-              {[
-                { label: 'En formation', color: '#3b82f6', val: stats.elevesEnCours },
-                { label: 'Diplômés',     color: '#10b981', val: stats.elevesDiplomes },
-                { label: 'Suspendus',    color: '#f59e0b', val: stats.elevesSuspendus },
-              ].map(({ label, color, val }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="text-xs text-slate-400">{label} ({val})</span>
+            {/* En formation, séparée en permis et perfectionnement (mêmes couleurs que la courbe) */}
+            {(() => {
+              const perf = Math.max(0, stats.elevesEnCours - (stats.permisEnCours ?? 0))
+              const parts = [
+                { label: 'Permis en formation',     color: '#2a78d6', val: stats.elevesEnCours - perf },
+                { label: 'Perfectionnement en cours', color: '#eb6834', val: perf },
+                { label: 'Diplômés',                color: '#10b981', val: stats.elevesDiplomes },
+                { label: 'Suspendus',               color: '#94a3b8', val: stats.elevesSuspendus },
+              ]
+              return <>
+                <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
+                  {parts.map(({ label, val, color }) => val > 0 && (
+                    <div key={label} title={`${label} : ${val}`} className="h-full transition-all duration-700 first:rounded-l-full last:rounded-r-full"
+                      style={{ width: `${val / stats.totalEleves * 100}%`, background: color }} />
+                  ))}
                 </div>
-              ))}
-            </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                  {parts.map(({ label, color, val }) => (
+                    <div key={label} className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                      <span className="text-xs text-slate-500">{label} <b className="text-slate-700">{val}</b> · {Math.round(100 * val / stats.totalEleves)} %</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            })()}
           </div>
         )}
 

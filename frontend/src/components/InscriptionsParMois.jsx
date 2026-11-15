@@ -34,6 +34,8 @@ export default function InscriptionsParMois() {
   if (!d) return null
 
   const maintenant = new Date()
+  // Années proposées, de la plus ancienne à la plus récente (l'année en cours toujours présente)
+  const annees = [...new Set([String(maintenant.getFullYear()), ...d.annees.map(String)])].sort()
   const enCours = Number(annee) === maintenant.getFullYear()
   const nbMois = enCours ? maintenant.getMonth() + 1 : 12          // l'année en cours s'arrête à ce mois
   const points = d.mois.slice(0, nbMois).map(m => ({ ...m, total: m.permis + m.perfectionnement }))
@@ -74,14 +76,26 @@ export default function InscriptionsParMois() {
             </span>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-0">
-          <i className="bi bi-calendar3" />Année
-          <select value={annee} onChange={e => { setAnnee(e.target.value); setSurvol(null) }} aria-label="Année d'inscription"
-            className="text-xs font-bold rounded-full px-3 py-1.5 outline-none cursor-pointer"
-            style={{ width: 'auto', background: '#f8fafc', color: '#1e3a5f', border: '1.5px solid #e2e8f0' }}>
-            {[...new Set([String(maintenant.getFullYear()), ...d.annees.map(String)])].map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </label>
+        {/* Année : ‹ 2026 › — les flèches passent à l'année précédente ou suivante qui a des inscrits */}
+        <div className="inline-flex items-center gap-1 p-1 rounded-full" role="group" aria-label="Année"
+          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
+          {[[-1, 'chevron-left', 'Année précédente'], [1, 'chevron-right', 'Année suivante']].map(([sens, icone, libelle], k) => {
+            const cible = annees[annees.indexOf(annee) + sens]
+            const bouton = (
+              <button key={icone} type="button" disabled={!cible} aria-label={libelle} title={cible ? `${libelle} : ${cible}` : libelle}
+                onClick={() => { setAnnee(cible); setSurvol(null) }}
+                className="w-8 h-8 rounded-full flex items-center justify-center border-0 transition-colors"
+                style={{ borderRadius: 999, padding: 0, background: cible ? 'rgba(255,255,255,.14)' : 'transparent', color: cible ? '#fff' : 'rgba(255,255,255,.3)', cursor: cible ? 'pointer' : 'default' }}>
+                <i className={`bi bi-${icone}`} style={{ fontSize: '.8rem' }} />
+              </button>
+            )
+            return k === 0 ? [bouton, (
+              <span key="annee" className="px-3 text-sm font-black tabular-nums" style={{ color: '#f0bb2a', letterSpacing: '.04em' }} aria-live="polite">
+                <i className="bi bi-calendar3 me-1.5" style={{ color: 'rgba(255,255,255,.6)', fontSize: '.75rem' }} />{annee}
+              </span>
+            )] : bouton
+          })}
+        </div>
       </div>
 
       {total === 0 ? (
@@ -96,7 +110,8 @@ export default function InscriptionsParMois() {
                 <text x={M.l - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{v}</text>
               </g>
             ))}
-            {points.map((p, i) => (etroit && i % 2 && i !== points.length - 1) ? null : (
+            {/* Téléphone : un mois sur deux, en partant du dernier pour qu'il ne chevauche pas son voisin */}
+            {points.map((p, i) => (etroit && (points.length - 1 - i) % 2) ? null : (
               <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="11" fill="#94a3b8">{COURT[p.mois - 1]}</text>
             ))}
             {s && <line x1={x(survol)} x2={x(survol)} y1={M.t} y2={H - M.b} stroke="#94a3b8" strokeDasharray="3 3" />}
@@ -130,16 +145,37 @@ export default function InscriptionsParMois() {
             </div>
           )}
         </div>
-        <div className="px-5 pb-5 pt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Chiffres de l'année : total en tête (sur toute la largeur au téléphone), puis moyenne,
+            meilleur mois, permis et perfectionnement (avec leur part du total) */}
+        <div className="px-5 pb-5 pt-3 grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
-            [total, `inscrit${total > 1 ? 's' : ''} en ${annee}`],
-            [moyenne, `par mois en moyenne${partiel >= 0 ? ' (mois finis)' : ''}`],
-            [points[iMax].total, `en ${MOIS[points[iMax].mois - 1]}, meilleur mois`],
-            [perf, 'en perfectionnement'],
-          ].map(([v, l]) => (
-            <div key={l} className="rounded-xl px-3 py-2.5" style={{ background: '#f8fafc' }}>
-              <div className="text-xl font-black text-[#1e3a5f]">{v}</div>
-              <div className="text-xs text-slate-500">{l}</div>
+            { v: total, l: `Inscrit${total > 1 ? 's' : ''} en ${annee}`, icone: 'people-fill', c: '#1e3a5f', fond: '#e8eef6', tete: true },
+            { v: moyenne, l: 'Par mois en moyenne', sous: partiel >= 0 ? 'mois terminés' : null, icone: 'calendar3-range', c: '#0f766e', fond: '#e6f6f3' },
+            { v: points[iMax].total, l: 'Meilleur mois', sous: maj(MOIS[points[iMax].mois - 1]), icone: 'trophy-fill', c: '#b7791f', fond: '#fdf3dc' },
+            { v: total - perf, l: 'Permis', part: total ? Math.round(100 * (total - perf) / total) : 0, icone: 'card-heading', c: '#2a78d6', fond: '#e8f1fc' },
+            { v: perf, l: 'Perfectionnement', part: total ? Math.round(100 * perf / total) : 0, icone: 'speedometer2', c: '#eb6834', fond: '#fdeee7' },
+          ].map(t => (
+            <div key={t.l} className={`relative overflow-hidden rounded-2xl p-3.5 flex flex-col gap-2.5 ${t.tete ? 'col-span-2 lg:col-span-1' : ''}`}
+              style={{ background: '#fff', border: '1px solid #eef2f7', boxShadow: '0 1px 4px rgba(15,34,64,.05)' }}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: t.fond, color: t.c }}>
+                  <i className={`bi bi-${t.icone}`} />
+                </span>
+                {t.part != null && (
+                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full" style={{ background: t.fond, color: t.c }}>{t.part} %</span>
+                )}
+              </div>
+              <div>
+                <div className="text-2xl font-black leading-none tabular-nums" style={{ color: '#1e3a5f' }}>{t.v}</div>
+                <div className="text-xs font-semibold text-slate-500 mt-1">{t.l}</div>
+                {t.sous && <div className="text-[11px] font-bold mt-0.5" style={{ color: t.c }}>{t.sous}</div>}
+              </div>
+              {/* Part du total : petite jauge aux couleurs de la courbe */}
+              {t.part != null && (
+                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#eef2f7' }}>
+                  <div className="h-full rounded-full" style={{ width: `${t.part}%`, background: t.c }} />
+                </div>
+              )}
             </div>
           ))}
         </div>

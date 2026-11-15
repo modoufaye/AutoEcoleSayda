@@ -16,6 +16,7 @@ public class DashboardStats {
     private long diplomesTotal;
     private long elevesNouveauxMois;
     // Perfectionnement en cours, par boîte de vitesses
+    private long permisEnCours;
     private long perfectionnementManuelle;
     private long perfectionnementAutomatique;
 

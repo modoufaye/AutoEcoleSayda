@@ -64,6 +64,11 @@ public interface EleveRepository extends JpaRepository<Eleve, Long> {
          + "AND e.boiteVitesse = :boite AND e.statut = sn.autoecole.enums.StatutEleve.EN_COURS AND e.archive = false")
     long countPerfectionnementEnCours(@Param("boite") BoiteVitesse boite);
 
+    /** Élèves en formation au permis (tout ce qui n'est pas du perfectionnement), non archivés. */
+    @Query("SELECT COUNT(e) FROM Eleve e WHERE (e.typeFormation IS NULL OR e.typeFormation <> sn.autoecole.enums.TypeFormation.PERFECTIONNEMENT) "
+         + "AND e.statut = sn.autoecole.enums.StatutEleve.EN_COURS AND e.archive = false")
+    long countPermisEnCours();
+
     @Query("SELECT COUNT(e) FROM Eleve e WHERE e.dateInscription >= :debut AND e.dateInscription <= :fin")
     long countByDateInscriptionBetween(@Param("debut") LocalDate debut, @Param("fin") LocalDate fin);
 }
