@@ -2168,7 +2168,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     </button>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
-                      {e.site && <span><i className="bi bi-building me-1" />{bureaux.libelle(e.site)}</span>}
                       {e.classeId && nomClasse[e.classeId] && <span style={{ color: '#6d28d9' }}><i className="bi bi-collection me-1" />{nomClasse[e.classeId]}</span>}
                       {presence && <BadgePresence enLigne={presence.eleves.has(e.id)} />}
                     </div>
@@ -2191,12 +2190,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       borderBottom: '3px solid #d4a017', boxShadow: '0 2px 6px rgba(15,34,64,.18)' }}>
                     {e.categoriePermis}
                   </div>}
-                  <div className="min-w-0 text-xs">
-                    <div className="text-slate-400 uppercase tracking-wider font-bold text-[10px]">Moniteur</div>
-                    <div className="font-semibold text-slate-700 truncate">
-                      {e.moniteur ? `${e.moniteur.prenom} ${e.moniteur.nom}` : <span className="text-slate-400">Aucun</span>}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Suivi */}
@@ -2208,12 +2201,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>
                     <IndiceCode eleve={e} admis={admisCode.has(e.id)} />
                   </div>
-                  <div className="text-slate-400 mt-1">
-                    {archives && e.dateArchivage ? <>Archivé le {fmtDate(e.dateArchivage)}</> : <>Inscrit le {fmtDate(e.dateInscription)}</>}
-                    {!archives && inscritCetteSemaine(e.dateInscription) && (
-                      <span className="ms-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full" style={{ background: '#fef3c7', color: '#b45309' }}>NOUVEAU</span>
-                    )}
-                  </div>
+                  {archives && e.dateArchivage && <div className="text-slate-400 mt-1">Archivé le {fmtDate(e.dateArchivage)}</div>}
                   {messagesNonLus[e.id] > 0 && (
                     <button type="button" onClick={() => onOuvrirEleve ? onOuvrirEleve(e.id, 'messages') : openProfile(e, 'messages')}
                       className="mt-1 font-bold bg-transparent border-0 p-0 cursor-pointer" style={{ color: '#1d4ed8' }}>
