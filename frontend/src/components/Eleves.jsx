@@ -1014,7 +1014,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [moniteurs, setMoniteurs] = useState([])
   const [filtered, setFiltered]   = useState([])
   const [search, setSearch]       = useState(memo.search ?? '')
-  const [statut, setStatut]       = useState(memo.statut ?? '')
+  // Perfectionnement : pas de filtre statut ni classe (un ancien choix retenu ne doit pas filtrer en cachette)
+  const [statut, setStatut]       = useState(perfSeul ? '' : memo.statut ?? '')
   const [site, setSite]           = useState(memo.site ?? '')
   // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
   const [moisInscription, setMoisInscription] = useState(memo.moisInscription ?? '')
@@ -1023,7 +1024,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
-  const [classeFiltre, setClasseFiltre] = useState(memo.classeFiltre ?? '')   // id de classe ('' : toutes)
+  const [classeFiltre, setClasseFiltre] = useState(perfSeul ? '' : memo.classeFiltre ?? '')   // id de classe ('' : toutes)
   const [messagesSeuls, setMessagesSeuls] = useState(!!memo.messagesSeuls)   // seulement les élèves qui ont écrit (non lus)
   const classes = useClasses()
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
@@ -2073,15 +2074,17 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       {/* Filtres */}
       <BarreFiltres>
         <Recherche value={search} onChange={setSearch} placeholder="Nom, prénom, téléphone…" />
-        <Filtre icone="flag" value={statut} onChange={setStatut}>
-          <option value="">Tous les statuts</option>
-          {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </Filtre>
+        {!perfSeul && (
+          <Filtre icone="flag" value={statut} onChange={setStatut}>
+            <option value="">Tous les statuts</option>
+            {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          </Filtre>
+        )}
         <Filtre icone="building" value={site} onChange={setSite}>
           <option value="">Tous les bureaux</option>
           {bureaux.tous.map(b => <option key={b.code} value={b.code}>{b.nom}{!b.actif && ' (fermé)'}</option>)}
         </Filtre>
-        {classes.length > 0 && (
+        {classes.length > 0 && !perfSeul && (
           <Filtre icone="collection" value={classeFiltre} onChange={setClasseFiltre}>
             <option value="">Toutes les classes</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.nom} · {c.nombre}</option>)}

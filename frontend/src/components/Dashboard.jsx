@@ -14,17 +14,18 @@ import { useEcole } from '../ecole'
    COMPOSANTS PARTAGÉS
 ══════════════════════════════════════════════════════════ */
 
-function StatCard({ title, value, icon, accent, sub, cardStyle }) {
+/* compact : quatre cartes sur une ligne (marges et icône réduites, titre sur deux lignes au besoin) */
+function StatCard({ title, value, icon, accent, sub, cardStyle, compact }) {
   return (
-    <div className="bg-white rounded-2xl px-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-200"
-      style={{ borderLeft: `4px solid ${accent}`, boxShadow: '0 1px 6px rgba(0,0,0,.06)', paddingTop: 20, paddingBottom: 20, ...cardStyle }}>
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+    <div className={`bg-white rounded-2xl flex items-center hover:shadow-md transition-shadow duration-200 ${compact ? 'px-4 gap-3' : 'px-5 gap-4'}`}
+      style={{ borderLeft: `4px solid ${accent}`, boxShadow: '0 1px 6px rgba(0,0,0,.06)', paddingTop: compact ? 16 : 20, paddingBottom: compact ? 16 : 20, ...cardStyle }}>
+      <div className={`${compact ? 'w-10 h-10' : 'w-12 h-12'} rounded-xl flex items-center justify-center flex-shrink-0`}
         style={{ background: `${accent}18` }}>
-        <i className={`bi bi-${icon}`} style={{ fontSize: '1.3rem', color: accent }} />
+        <i className={`bi bi-${icon}`} style={{ fontSize: compact ? '1.1rem' : '1.3rem', color: accent }} />
       </div>
       <div className="min-w-0">
         <div className="text-2xl font-extrabold text-slate-800 leading-tight">{value}</div>
-        <div className="text-xs font-medium text-slate-400 mt-0.5 truncate">{title}</div>
+        <div className={`text-xs font-medium text-slate-400 mt-0.5 ${compact ? 'leading-snug' : 'truncate'}`}>{title}</div>
         {sub && <div className="text-xs text-slate-300 mt-0.5">{sub}</div>}
       </div>
     </div>
@@ -380,19 +381,20 @@ function DashboardAdmin({ stats, user }) {
       <div>
         <SectionTitle gradient="linear-gradient(#1e3a5f,#2a4f7c)" label="Élèves" />
         {/* Nouveaux inscrits, élèves au permis, puis perfectionnements en cours par boîte de vitesses */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3">
-          <StatCard
+        {/* Une seule ligne sur ordinateur ; deux par deux sur tablette, une par ligne sur téléphone */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard compact
             title="Nouveaux ce mois"
             value={stats.elevesNouveauxMois}
             icon="person-plus-fill"
             accent="#8b5cf6"
             sub={new Date().toLocaleDateString('fr-SN', { month: 'long', year: 'numeric' })}
           />
-          <StatCard title="Permis" value={stats.permisEnCours ?? 0}
+          <StatCard compact title="Permis" value={stats.permisEnCours ?? 0}
             icon="card-heading" accent="#2a78d6" sub="Formation en cours" />
-          <StatCard title="Boîte manuelle" value={stats.perfectionnementManuelle ?? 0}
+          <StatCard compact title="Boîte manuelle" value={stats.perfectionnementManuelle ?? 0}
             icon="gear-wide-connected" accent="#d4a017" sub="Perfectionnement en cours" />
-          <StatCard title="Boîte automatique" value={stats.perfectionnementAutomatique ?? 0}
+          <StatCard compact title="Boîte automatique" value={stats.perfectionnementAutomatique ?? 0}
             icon="lightning-charge-fill" accent="#0ea5e9" sub="Perfectionnement en cours" />
         </div>
 
