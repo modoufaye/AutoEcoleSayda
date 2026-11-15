@@ -51,11 +51,26 @@ public class EleveController {
     private final EleveImportService importService;
     private final SeanceService   seanceService;
     private final sn.autoecole.repository.ExamenRepository examenRepository;
+    private final sn.autoecole.repository.ProgressionCodeRepository progressionRepository;
 
     /** Élèves admis à l'examen du code (au moins un examen CODE « Admis ») : prêts pour la conduite. */
     @GetMapping("/admis-code")
     public List<Long> admisCode() {
         return examenRepository.eleveIdsParResultat(sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS);
+    }
+
+    /** Séries d'examen et annales faites par élève (au moins une tentative) : id -> {series, annales}. */
+    @GetMapping("/series-faites")
+    public Map<Long, Map<String, Long>> seriesFaites() {
+        Map<Long, Map<String, Long>> r = new java.util.HashMap<>();
+        for (var p : progressionRepository.findAll()) {
+            String ch = p.getChapitre();
+            if (p.getTentatives() <= 0 || ch == null) continue;
+            String cle = ch.startsWith("serie-") ? "series" : ch.startsWith("annale-") ? "annales" : null;
+            if (cle == null) continue;
+            r.computeIfAbsent(p.getEleveId(), k -> new java.util.HashMap<>(Map.of("series", 0L, "annales", 0L))).merge(cle, 1L, Long::sum);
+        }
+        return r;
     }
 
     /** Séances de code publiées par élève (id -> nombre) : le compteur « code » de la liste. */

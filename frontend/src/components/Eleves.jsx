@@ -1035,6 +1035,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   // Total payé par élève (gestion seulement) : reliquat ou « Tout payé » dans la liste
   const [totauxPayes, setTotauxPayes] = useState(null)
   useEffect(() => { api('GET', '/eleves/seances-code').then(m => setSeancesCode(m || {})).catch(() => {}) }, [])
+  // Séries d'examen et annales faites par élève (Travaux Dirigés)
+  const [seriesFaites, setSeriesFaites] = useState({})
+  useEffect(() => { api('GET', '/eleves/series-faites').then(m => setSeriesFaites(m || {})).catch(() => {}) }, [])
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(!!memo.archives)
   const loadReq = useRef(0)
@@ -2229,11 +2232,17 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
 
                 {/* Suivi */}
                 <div className="text-xs min-w-0">
-                  <div className="flex items-center gap-3 text-slate-600">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600">
                     {e.typeFormation === 'PERFECTIONNEMENT'
                       ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
                       : <span title="Séances de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode + (seancesCode[e.id] || 0)}</b> code</span>}
-                    <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>
+                    {/* Permis : séries d'examen et annales faites ; la conduite n'apparaît qu'après l'admission au code */}
+                    {e.typeFormation !== 'PERFECTIONNEMENT' && <>
+                      <span title="Séries d'examen faites"><i className="bi bi-journal-check me-1" style={{ color: '#7c3aed' }} /><b>{seriesFaites[e.id]?.series || 0}</b> série{(seriesFaites[e.id]?.series || 0) > 1 ? 's' : ''}</span>
+                      <span title="Annales faites"><i className="bi bi-journal-bookmark me-1" style={{ color: '#c2410c' }} /><b>{seriesFaites[e.id]?.annales || 0}</b> annale{(seriesFaites[e.id]?.annales || 0) > 1 ? 's' : ''}</span>
+                    </>}
+                    {(e.typeFormation === 'PERFECTIONNEMENT' || admisCode.has(e.id)) &&
+                      <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>}
                     <IndiceCode eleve={e} admis={admisCode.has(e.id)} />
                   </div>
                   {archives && e.dateArchivage && <div className="text-slate-400 mt-1">Archivé le {fmtDate(e.dateArchivage)}</div>}
