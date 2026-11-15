@@ -49,6 +49,7 @@ export default function Paiements({ onEleveClick }) {
   const [periode, setPeriode]         = useState('')   // '' | 'jour' | 'semaine' | 'mois'
   const [vue, setVue]                 = useState('versements')   // 'versements' | 'soldes'
   const [rechSolde, setRechSolde]     = useState('')
+  const [pageSolde, setPageSolde]     = useState(1)
   const [rechVers, setRechVers]       = useState('')   // recherche dans les versements, toutes dates
 
   const load = async () => {
@@ -257,7 +258,7 @@ export default function Paiements({ onEleveClick }) {
               </div>
               <span className="text-xs font-extrabold px-3 py-1 rounded-full flex-shrink-0" style={{ background: '#f0bb2a', color: '#1e3a5f' }}>{visibles.length}</span>
             </div>
-            {soldes.length > 0 && <div className="px-5 py-3" style={{ borderBottom: '1.5px solid #eef2f7' }}><Recherche value={rechSolde} onChange={setRechSolde} placeholder="Prénom, nom ou téléphone…" /></div>}
+            {soldes.length > 0 && <div className="px-5 py-3" style={{ borderBottom: '1.5px solid #eef2f7' }}><Recherche value={rechSolde} onChange={v => { setRechSolde(v); setPageSolde(1) }} placeholder="Prénom, nom ou téléphone…" /></div>}
             {loading ? (
               <div className="py-16 flex flex-col items-center gap-3">
                 <div className="w-8 h-8 border-4 border-slate-100 border-t-[#d4a017] rounded-full animate-spin" />
@@ -267,7 +268,7 @@ export default function Paiements({ onEleveClick }) {
               <div className="py-16 text-center text-sm font-medium text-slate-400">
                 {q ? 'Aucun élève soldé ne correspond à la recherche' : 'Aucun élève n\'a encore versé le montant total de sa formation'}
               </div>
-            ) : visibles.map(x => {
+            ) : visibles.slice((pageSolde - 1) * PAGE_SIZE, pageSolde * PAGE_SIZE).map(x => {
               const e = x.eleve, nom = `${e.prenom} ${e.nom}`
               const ini = ((e.prenom || '')[0] || '') + ((e.nom || '')[0] || '')
               return (
@@ -299,6 +300,7 @@ export default function Paiements({ onEleveClick }) {
                 </div>
               )
             })}
+            <Pagination page={pageSolde} setPage={setPageSolde} total={visibles.length} pageSize={PAGE_SIZE} />
           </div>
         )
       })()}
