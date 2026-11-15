@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import ComptesBloques from './ComptesBloques'
 import DemandesInscription from './DemandesInscription'
 import RepartitionLocalites from './RepartitionLocalites'
+import InscriptionsParMois from './InscriptionsParMois'
 import '../landing.css'
 import { useEcole } from '../ecole'
 
@@ -430,6 +431,9 @@ function DashboardAdmin({ stats, user }) {
             </div>
           </div>
         )}
+
+        {/* Nouveaux élèves par mois (courbe) */}
+        <InscriptionsParMois />
 
         {/* Élèves par lieu d'inscription et par quartier */}
         <RepartitionLocalites />

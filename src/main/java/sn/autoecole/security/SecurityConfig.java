@@ -127,6 +127,7 @@ public class SecurityConfig {
                 // Journal des actions : super admin (tout) et administrateurs (leurs actions et celles du secrétariat)
                 .requestMatchers("/api/journal", "/api/journal/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                 // Statistiques globales (dont le total encaissé) : pas pour les élèves.
+                .requestMatchers("/api/dashboard/inscriptions").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
                 // Toutes les autres routes nécessitent une authentification

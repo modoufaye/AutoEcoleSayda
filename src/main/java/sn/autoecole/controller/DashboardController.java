@@ -21,6 +21,12 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getStats());
     }
 
+    /** Nouveaux élèves par mois (permis / perfectionnement) ; annee absente : l'année en cours. */
+    @GetMapping("/inscriptions")
+    public Map<String, Object> inscriptions(@RequestParam(required = false) Integer annee) {
+        return dashboardService.inscriptionsParMois(annee != null ? annee : java.time.LocalDate.now(sn.autoecole.service.PalmaresService.DAKAR).getYear());
+    }
+
     /** Répartition des élèves par lieu d'inscription et par quartier ; annee absente : toutes. */
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {

@@ -136,4 +136,20 @@ public class DashboardService {
                 "sansAdresse", sansAdresse,
                 "annees", annees);
     }
+
+    /** Nouveaux élèves par mois d'une année (date d'inscription, archivés compris), permis et perfectionnement. */
+    public Map<String, Object> inscriptionsParMois(int annee) {
+        long[] permis = new long[12], perf = new long[12];
+        List<Eleve> tous = eleveRepository.findAll();
+        for (Eleve e : tous) {
+            LocalDate d = e.getDateInscription();
+            if (d == null || d.getYear() != annee) continue;
+            if (e.estPerfectionnement()) perf[d.getMonthValue() - 1]++; else permis[d.getMonthValue() - 1]++;
+        }
+        List<Map<String, Object>> mois = new java.util.ArrayList<>();
+        for (int m = 0; m < 12; m++) mois.add(Map.of("mois", m + 1, "permis", permis[m], "perfectionnement", perf[m]));
+        List<Integer> annees = tous.stream().map(Eleve::getDateInscription).filter(Objects::nonNull)
+                .map(LocalDate::getYear).distinct().sorted(Comparator.reverseOrder()).toList();
+        return Map.of("annee", annee, "mois", mois, "annees", annees);
+    }
 }
