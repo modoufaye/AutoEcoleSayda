@@ -58,6 +58,12 @@ public class EleveController {
         return examenRepository.eleveIdsParResultat(sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS);
     }
 
+    /** Séances de code publiées par élève (id -> nombre) : le compteur « code » de la liste. */
+    @GetMapping("/seances-code")
+    public Map<Long, Long> seancesCode() {
+        return seanceService.seancesCodeParEleve();
+    }
+
     @GetMapping
     public ResponseEntity<List<Eleve>> listerTous(@RequestParam(defaultValue = "false") boolean archives) {
         return ResponseEntity.ok(archives ? eleveService.listerArchives() : eleveService.listerTous());

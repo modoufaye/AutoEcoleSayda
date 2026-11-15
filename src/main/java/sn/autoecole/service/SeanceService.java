@@ -121,6 +121,21 @@ public class SeanceService {
         return Map.of("ajouts", ajouts, "seances", changees);
     }
 
+    /**
+     * Séances de code publiées par élève (élève id -> nombre), pour la liste des élèves.
+     * Même règle que la fiche (compterSeances) : une séance compte pour le code si son
+     * programme est vide ou contient au moins une partie hors conduite.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, Long> seancesCodeParEleve() {
+        Set<Long> code = seanceRepo.findByStatut(StatutSeance.PUBLIE).stream()
+                .filter(s -> s.getProgramme().isEmpty() || s.getProgramme().stream().anyMatch(p -> !conduite(p)))
+                .map(Seance::getId).collect(Collectors.toSet());
+        return seanceRepo.seanceEleveIds(StatutSeance.PUBLIE).stream()
+                .filter(r -> code.contains((Long) r[0]))
+                .collect(Collectors.groupingBy(r -> (Long) r[1], Collectors.counting()));
+    }
+
     @Transactional(readOnly = true)
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)

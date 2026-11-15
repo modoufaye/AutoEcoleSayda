@@ -1,6 +1,7 @@
 package sn.autoecole.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.Seance;
 import sn.autoecole.entity.User;
@@ -18,4 +19,9 @@ public interface SeanceRepository extends JpaRepository<Seance, Long> {
     List<Seance> findByStatutAndMoniteur_RoleInOrderByCreatedAtDesc(StatutSeance statut, Collection<RoleUser> roles);
     List<Seance> findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance statut, Eleve eleve);
     long countByStatut(StatutSeance statut);
+    List<Seance> findByStatut(StatutSeance statut);
+
+    /** Paires (séance, élève) des séances d'un statut, sans charger les élèves. */
+    @Query("select s.id, e.id from Seance s join s.eleves e where s.statut = :statut")
+    List<Object[]> seanceEleveIds(StatutSeance statut);
 }

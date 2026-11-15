@@ -1026,6 +1026,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   // Élèves admis à l'examen du code : prêts pour les cours de conduite
   const [admisCode, setAdmisCode] = useState(() => new Set())
   useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
+  // Séances de code publiées par élève : les cours de code passent par les séances, pas par les leçons
+  const [seancesCode, setSeancesCode] = useState({})
+  useEffect(() => { api('GET', '/eleves/seances-code').then(m => setSeancesCode(m || {})).catch(() => {}) }, [])
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(!!memo.archives)
   const loadReq = useRef(0)
@@ -2197,7 +2200,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                   <div className="flex items-center gap-3 text-slate-600">
                     {e.typeFormation === 'PERFECTIONNEMENT'
                       ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
-                      : <span title="Leçons de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode}</b> code</span>}
+                      : <span title="Séances de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode + (seancesCode[e.id] || 0)}</b> code</span>}
                     <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>
                     <IndiceCode eleve={e} admis={admisCode.has(e.id)} />
                   </div>
