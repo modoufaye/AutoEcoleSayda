@@ -2260,10 +2260,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       <i className="bi bi-chat-dots-fill me-1" />{messagesNonLus[e.id]} message{messagesNonLus[e.id] > 1 ? 's' : ''} non lu{messagesNonLus[e.id] > 1 ? 's' : ''}
                     </button>
                   )}
-                  {/* Identifiants : déjà connecté, ou encore à envoyer (une fois envoyés, rien ne s'affiche) */}
-                  {e.premiereConnexionLe
-                    ? <div className="mt-1 font-semibold" style={{ color: '#15803d' }}><i className="bi bi-person-check-fill me-1" />Déjà connecté</div>
-                    : !e.bienvenueEnvoyeeLe && <div className="mt-1 font-semibold" style={{ color: '#b45309' }}><i className="bi bi-whatsapp me-1" />Identifiants à envoyer</div>}
+                  {/* Identifiants encore à envoyer (ni envoyés, ni déjà connecté) ; sinon rien */}
+                  {!e.premiereConnexionLe && !e.bienvenueEnvoyeeLe && <div className="mt-1 font-semibold" style={{ color: '#b45309' }}><i className="bi bi-whatsapp me-1" />Identifiants à envoyer</div>}
                 </div>
 
                 {/* Statut et actions */}

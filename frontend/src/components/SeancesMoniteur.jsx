@@ -277,7 +277,8 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
               <div className="text-xs font-extrabold text-slate-500 mb-1"><i className={`bi bi-${sec.icone} me-1`} />{sec.titre}</div>
               <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
                 {liste.map(s => {
-                  const dedans = choisis.length > 0 && choisis.every(e => s.eleves.some(x => x.id === e.id))
+                  const recus = choisis.filter(e => s.eleves.some(x => x.id === e.id)).length   // élèves choisis déjà dans la séance
+                  const dedans = choisis.length > 0 && recus === choisis.length
                   const refuses = conduiteSeule(s) ? choisis.filter(e => !e.admisCode && !e.perfectionnement) : []
                   const coche = etat.seanceIds.includes(s.id)
                   return (
@@ -287,7 +288,8 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
                         <span className="block text-sm font-bold truncate" style={{ color: dedans ? '#94a3b8' : '#334155' }}>{s.titre}</span>
                         <span className="block text-xs text-slate-500">
                           {s.eleves.length} élève(s) · {s.statut === 'PUBLIE' ? 'Publiée' : 'Brouillon'}
-                          {dedans && <b style={{ color: '#475569' }}> · déjà dedans</b>}
+                          {dedans && <b style={{ color: '#475569' }}> · déjà dedans{choisis.length > 1 ? ` (${recus}/${choisis.length})` : ''}</b>}
+                          {!dedans && choisis.length > 1 && <b style={{ color: recus ? '#0f766e' : '#64748b' }}> · déjà envoyée à {recus}/{choisis.length}</b>}
                           {etatQuiz(s, dedans) && <b style={{ color: etatQuiz(s, dedans).c }}> · {etatQuiz(s, dedans).t}</b>}
                           {refuses.length > 0 && <b style={{ color: '#b45309' }}> · {refuses.length === choisis.length ? 'non admis au code' : `${refuses.length} non admis au code, ignoré(s)`}</b>}
                         </span>
