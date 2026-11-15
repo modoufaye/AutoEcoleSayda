@@ -2237,10 +2237,18 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
                       : <span title="Séances de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode + (seancesCode[e.id] || 0)}</b> code</span>}
                     {/* Permis : séries d'examen et annales faites ; la conduite n'apparaît qu'après l'admission au code */}
-                    {e.typeFormation !== 'PERFECTIONNEMENT' && <>
-                      <span title="Séries d'examen faites"><i className="bi bi-journal-check me-1" style={{ color: '#7c3aed' }} /><b>{seriesFaites[e.id]?.series || 0}</b> série{(seriesFaites[e.id]?.series || 0) > 1 ? 's' : ''}</span>
-                      <span title="Annales faites"><i className="bi bi-journal-bookmark me-1" style={{ color: '#c2410c' }} /><b>{seriesFaites[e.id]?.annales || 0}</b> annale{(seriesFaites[e.id]?.annales || 0) > 1 ? 's' : ''}</span>
-                    </>}
+                    {e.typeFormation !== 'PERFECTIONNEMENT' && (() => {
+                      const sf = seriesFaites[e.id] || {}
+                      const ligne = (icone, couleur, nom, entr, blanc) => (
+                        <span className="basis-full whitespace-nowrap" title={`${nom} faites : ${entr} en entraînement, ${blanc} en examen blanc`}>
+                          <i className={`bi bi-${icone} me-1`} style={{ color: couleur }} />{nom} : <b>{entr}</b> entr. · <b>{blanc}</b> blanc
+                        </span>
+                      )
+                      return <>
+                        {ligne('journal-check', '#7c3aed', 'Séries', sf.seriesEntrainement || 0, sf.series || 0)}
+                        {ligne('journal-bookmark', '#c2410c', 'Annales', sf.annalesEntrainement || 0, sf.annales || 0)}
+                      </>
+                    })()}
                     {(e.typeFormation === 'PERFECTIONNEMENT' || admisCode.has(e.id)) &&
                       <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>}
                     <IndiceCode eleve={e} admis={admisCode.has(e.id)} />

@@ -60,7 +60,12 @@ public class ProgressionCodeController {
                 .filter(p -> !e.estPerfectionnement() || estConduite(p.getChapitre())).toList();
     }
 
-    /** Corps : { chapitre, score, total } ; garde la meilleure note et le nombre de tentatives. */
+    /** Préfixe des entraînements aux séries d'examen et annales (« entrainement:serie-b1 ») : l'examen blanc
+        garde le chapitre seul, donc ses notes (fiche, Travaux Dirigés) ne changent pas. */
+    public static final String ENTRAINEMENT = "entrainement:";
+
+    /** Corps : { chapitre, score, total, mode? } ; garde la meilleure note et le nombre de tentatives.
+        mode « entrainement » (séries et annales seulement) : enregistré à part de l'examen blanc. */
     @PostMapping("/api/eleve/code/progression")
     public ProgressionCode enregistrer(@RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
         Eleve e = eleve(auth);
@@ -69,10 +74,16 @@ public class ProgressionCodeController {
         int total = ((Number) body.getOrDefault("total", 0)).intValue();
         if (!CHAPITRES.contains(chapitre) || total <= 0 || total > 60 || score < 0 || score > total)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Résultat invalide");
+        if ("entrainement".equals(body.get("mode"))) {
+            if (!chapitre.startsWith("serie-") && !chapitre.startsWith("annale-"))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Résultat invalide");
+            chapitre = ENTRAINEMENT + chapitre;
+        }
+        final String cle = chapitre;
         if (e.estPerfectionnement() && !estConduite(chapitre))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cours de code non disponibles en perfectionnement");
         ProgressionCode p = progressionRepository.findByEleveIdAndChapitre(e.getId(), chapitre)
-                .orElseGet(() -> ProgressionCode.builder().eleveId(e.getId()).chapitre(chapitre).build());
+                .orElseGet(() -> ProgressionCode.builder().eleveId(e.getId()).chapitre(cle).build());
         if (p.getTentatives() == 0 || score * (double) p.getTotal() >= p.getMeilleurScore() * (double) total) {
             p.setMeilleurScore(score);
             p.setTotal(total);
@@ -82,7 +93,8 @@ public class ProgressionCodeController {
         p.setDerniereTentative(LocalDateTime.now());
         ProgressionCode saved = progressionRepository.save(p);
         // Journal : la note de cet essai, en plus de la meilleure
-        http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "chapitre « " + chapitre.replace('-', ' ') + " » · " + score + "/" + total
+        String libelle = cle.startsWith(ENTRAINEMENT) ? cle.substring(ENTRAINEMENT.length()).replace('-', ' ') + " » (entraînement)" : cle.replace('-', ' ') + " »";
+        http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "chapitre « " + libelle + " · " + score + "/" + total
                 + (saved.getMeilleurScore() * total != score * saved.getTotal() ? " (meilleure note " + saved.getMeilleurScore() + "/" + saved.getTotal() + ")" : "")
                 + (saved.isReussi() ? " · validé" : ""));
         return saved;

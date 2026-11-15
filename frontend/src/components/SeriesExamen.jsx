@@ -306,8 +306,13 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
   const terminer = async (reponses) => {
     setFin({ vue, reponses })
     const { serie, mode } = partie
-    if (!eleve || mode !== 'examen') return
+    if (!eleve) return
     const score = serie.questions.filter((q, k) => juste(q, reponses[k] || [])).length
+    // Entraînement : enregistré à part (« entrainement:<série> ») pour le suivi ; la note affichée reste celle de l'examen blanc
+    if (mode !== 'examen') {
+      api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length, mode: 'entrainement' }).catch(() => {})
+      return
+    }
     try { const p = await api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length }); setNotes(n => ({ ...n, [serie.id]: p })) }
     catch { toast('Note non enregistrée : vérifiez votre connexion', 'warning') }
   }
