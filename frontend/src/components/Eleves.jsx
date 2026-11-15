@@ -48,6 +48,10 @@ const DOCS = [
   { key: 'docDelivrance',     label: 'Délivrance', type: 'DELIVRANCE' },
 ]
 
+/* Dossier complet (liste des élèves) : les 5 premières pièces ; le timbre, l'enrôlement et la délivrance n'entrent pas en compte */
+const DOCS_DOSSIER = DOCS.slice(0, 5)
+const COURT_DOSSIER = { docCertResidence: 'Résidence', docCniLegalisee: 'CNI', docGroupeSanguin: 'Groupe sanguin', docVisiteMedicale: 'Visite médicale', docPhotos: 'Photos' }
+
 const TYPES_PIECE = [
   { value: 'DOSSIER', label: "Dossier de l'élève (Service des Mines)" },
   ...DOCS.map(d => ({ value: d.type, label: d.label })),
@@ -2193,6 +2197,20 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       borderBottom: '3px solid #d4a017', boxShadow: '0 2px 6px rgba(15,34,64,.18)' }}>
                     {e.categoriePermis}
                   </div>}
+                  {e.typeFormation !== 'PERFECTIONNEMENT' && (() => {
+                    const manque = DOCS_DOSSIER.filter(d => !e[d.key])
+                    return (
+                      <div className="min-w-0 text-xs" title={manque.length ? `Manque : ${manque.map(d => d.label).join(', ')}` : 'Toutes les pièces sont remises'}>
+                        <div className="text-slate-400 uppercase tracking-wider font-bold text-[10px]">Dossier</div>
+                        {manque.length === 0
+                          ? <div className="font-bold" style={{ color: '#15803d' }}><i className="bi bi-check-circle-fill me-1" />Complet</div>
+                          : <>
+                              <div className="font-bold" style={{ color: '#b45309' }}><i className="bi bi-exclamation-circle-fill me-1" />Incomplet · {DOCS_DOSSIER.length - manque.length}/{DOCS_DOSSIER.length}</div>
+                              <div className="text-slate-500 truncate">Manque : {manque.map(d => COURT_DOSSIER[d.key]).join(', ')}</div>
+                            </>}
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Suivi */}
