@@ -444,56 +444,56 @@ function DashboardAdmin({ stats, user }) {
       {/* ══ PERSONNEL & FLOTTE ════════════════════════════════ */}
       <div>
         <SectionTitle gradient="linear-gradient(#8b5cf6,#a78bfa)" label="Personnel & Flotte" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Moniteurs */}
-          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+          <div className="bg-white rounded-2xl" style={{ padding: '12px 16px', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg,#8b5cf6,#a78bfa)' }}>
-                <i className="bi bi-person-badge-fill text-white" style={{ fontSize: '1rem' }} />
+                <i className="bi bi-person-badge-fill text-white" style={{ fontSize: '.85rem' }} />
               </div>
               <div>
                 <div className="font-extrabold text-slate-800 text-sm">Moniteurs</div>
                 <div className="text-xs text-slate-400">{stats.moniteursActifs} actifs / {stats.totalMoniteurs} total</div>
               </div>
             </div>
-            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
               <div className="h-full rounded-full" style={{ width: stats.totalMoniteurs > 0 ? `${stats.moniteursActifs / stats.totalMoniteurs * 100}%` : '0%', background: 'linear-gradient(90deg,#8b5cf6,#a78bfa)' }} />
             </div>
-            <div className="text-right text-xs font-bold mt-1.5" style={{ color: '#8b5cf6' }}>
+            <div className="text-right text-xs font-bold mt-1" style={{ color: '#8b5cf6' }}>
               {stats.totalMoniteurs > 0 ? Math.round(stats.moniteursActifs / stats.totalMoniteurs * 100) : 0}% actifs
             </div>
           </div>
 
           {/* Véhicules disponibles */}
-          <div className="bg-white rounded-2xl p-5" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+          <div className="bg-white rounded-2xl" style={{ padding: '12px 16px', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg,#10b981,#34d399)' }}>
-                <i className="bi bi-car-front-fill text-white" style={{ fontSize: '1rem' }} />
+                <i className="bi bi-car-front-fill text-white" style={{ fontSize: '.85rem' }} />
               </div>
               <div>
                 <div className="font-extrabold text-slate-800 text-sm">Véhicules</div>
                 <div className="text-xs text-slate-400">{stats.vehiculesDisponibles} dispos / {stats.totalVehicules} total</div>
               </div>
             </div>
-            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
               <div className="h-full rounded-full" style={{ width: stats.totalVehicules > 0 ? `${stats.vehiculesDisponibles / stats.totalVehicules * 100}%` : '0%', background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
             </div>
-            <div className="text-right text-xs font-bold mt-1.5" style={{ color: '#10b981' }}>
+            <div className="text-right text-xs font-bold mt-1" style={{ color: '#10b981' }}>
               {stats.totalVehicules > 0 ? Math.round(stats.vehiculesDisponibles / stats.totalVehicules * 100) : 0}% disponibles
             </div>
           </div>
 
           {/* En maintenance */}
-          <div className="bg-white rounded-2xl p-5 flex items-center gap-4"
-            style={{ borderLeft: '4px solid #f59e0b', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+          <div className="bg-white rounded-2xl flex items-center gap-3"
+            style={{ padding: '12px 16px', borderLeft: '4px solid #f59e0b', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: '#fef9c3' }}>
-              <i className="bi bi-tools" style={{ fontSize: '1.2rem', color: '#d97706' }} />
+              <i className="bi bi-tools" style={{ fontSize: '1rem', color: '#d97706' }} />
             </div>
             <div>
-              <div className="text-3xl font-extrabold text-slate-800">{stats.vehiculesEnMaintenance}</div>
+              <div className="text-2xl font-extrabold text-slate-800 leading-tight">{stats.vehiculesEnMaintenance}</div>
               <div className="text-xs font-medium text-slate-400 mt-0.5">En maintenance</div>
             </div>
           </div>

@@ -1000,7 +1000,9 @@ function IndiceCode({ eleve, admis, grand = false }) {
 
 /* formationFixe : « PERMIS » (onglet Élèves) ou « PERFECTIONNEMENT » (onglet Perfectionnement) ;
    la liste ne montre alors que cette formation. Sans elle : toutes les formations. */
-export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, formationFixe }) {
+/* classeFixe : liste embarquée dans la page Classes (élèves d'une classe) — même liste, sans onglets
+   Actifs/Archivés, sans filtres ni boutons d'action, et sans toucher aux filtres retenus de l'onglet Élèves. */
+export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, formationFixe, classeFixe }) {
   const perfSeul = formationFixe === 'PERFECTIONNEMENT'
   const bureaux = useBureaux()
   const { user } = useAuth()
@@ -1009,7 +1011,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const isAdmin = estAdmin(user?.role)
   const presence = usePresence(isAdmin)   // élèves connectés en ce moment (administration)
 
-  const [memo] = useState(() => lireFiltres(user?.id, formationFixe))   // filtres retenus (retour depuis une fiche)
+  const [memo] = useState(() => classeFixe ? {} : lireFiltres(user?.id, formationFixe))   // filtres retenus (retour depuis une fiche)
   const [list, setList]           = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [filtered, setFiltered]   = useState([])
@@ -1024,7 +1026,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
-  const [classeFiltre, setClasseFiltre] = useState(perfSeul ? '' : memo.classeFiltre ?? '')   // id de classe ('' : toutes)
+  const [classeFiltre, setClasseFiltre] = useState(classeFixe ?? (perfSeul ? '' : memo.classeFiltre ?? ''))   // id de classe ('' : toutes)
   const [messagesSeuls, setMessagesSeuls] = useState(!!memo.messagesSeuls)   // seulement les élèves qui ont écrit (non lus)
   const classes = useClasses()
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
@@ -1055,6 +1057,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
+    if (classeFixe) return
     try {
       sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
         search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
@@ -2054,7 +2057,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
 
       {/* Actifs / Archivés : deux onglets explicites (un simple bouton bascule ne montrait pas clairement
           dans quelle liste on se trouvait, ni comment en sortir). Les filtres s'appliquent à la liste affichée. */}
-      {!isMoniteur && (
+      {!isMoniteur && !classeFixe && (
         <div className="flex gap-1 p-1 rounded-xl bg-slate-200/70 w-full sm:w-fit">
           {[
             { val: false, icon: 'people-fill', label: 'Élèves actifs' },
@@ -2072,7 +2075,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       )}
 
       {/* Filtres */}
-      <BarreFiltres>
+      {!classeFixe && <BarreFiltres>
         <Recherche value={search} onChange={setSearch} placeholder="Nom, prénom, téléphone…" />
         {!perfSeul && (
           <Filtre icone="flag" value={statut} onChange={setStatut}>
@@ -2158,18 +2161,18 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
             )}
           </div>
         )}
-      </BarreFiltres>
+      </BarreFiltres>}
 
       {/* Liste des élèves */}
       <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
-        <EnteteListe icone={archives ? 'archive-fill' : 'people-fill'}
+        {!classeFixe && <EnteteListe icone={archives ? 'archive-fill' : 'people-fill'}
           titre={perfSeul
             ? (isMoniteur ? 'Mes élèves en perfectionnement' : archives ? 'Perfectionnement archivés' : 'Élèves en perfectionnement')
             : (isMoniteur ? 'Mes élèves' : archives ? 'Élèves archivés' : 'Liste des élèves')}
           sousTitre={`${filtered.length} élève${filtered.length > 1 ? 's' : ''} · suivi de formation`}
-          nombre={filtered.length} />
+          nombre={filtered.length} />}
         {loading ? <ListeChargement />
-          : filtered.length === 0 ? <ListeVide texte={archives ? 'Aucun élève archivé' : perfSeul ? 'Aucun élève en perfectionnement' : 'Aucun élève enregistré'} />
+          : filtered.length === 0 ? <ListeVide texte={classeFixe ? 'Aucun élève dans cette classe' : archives ? 'Aucun élève archivé' : perfSeul ? 'Aucun élève en perfectionnement' : 'Aucun élève enregistré'} />
           : filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE).map(e => {
             const st = STATUT_STYLE[e.statut] || { bg: '#f1f5f9', color: '#64748b', label: e.statut }
             return (
@@ -2184,7 +2187,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     </button>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
-                      {e.classeId && nomClasse[e.classeId] && <span style={{ color: '#6d28d9' }}><i className="bi bi-collection me-1" />{nomClasse[e.classeId]}</span>}
+                      {!classeFixe && e.classeId && nomClasse[e.classeId] && <span style={{ color: '#6d28d9' }}><i className="bi bi-collection me-1" />{nomClasse[e.classeId]}</span>}
                       {presence && <BadgePresence enLigne={presence.eleves.has(e.id)} />}
                     </div>
                   </div>

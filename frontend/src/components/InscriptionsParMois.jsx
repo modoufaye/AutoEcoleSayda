@@ -31,6 +31,13 @@ export default function InscriptionsParMois() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [d])
+  // Téléphone : le détail reste affiché après le toucher ; il se ferme quand on touche ailleurs
+  useEffect(() => {
+    if (survol == null) return
+    const fermer = ev => { if (!boite.current?.contains(ev.target)) setSurvol(null) }
+    document.addEventListener('pointerdown', fermer)
+    return () => document.removeEventListener('pointerdown', fermer)
+  }, [survol])
   if (!d) return null
 
   const maintenant = new Date()
@@ -101,9 +108,12 @@ export default function InscriptionsParMois() {
       {total === 0 ? (
         <div className="text-center text-sm text-slate-400 py-12">Aucun élève inscrit en {annee}</div>
       ) : <>
-        <div ref={boite} className="relative px-3 sm:px-5 pt-2">
+        {/* Pas de sélection de texte ni de menu à l'appui long (téléphone) */}
+        <div ref={boite} className="relative px-3 sm:px-5 pt-2 select-none"
+          style={{ WebkitUserSelect: 'none', userSelect: 'none', WebkitTouchCallout: 'none' }}
+          onContextMenu={e => e.preventDefault()}>
           <svg viewBox={`0 0 ${W} ${H}`} className="block w-full h-auto" role="img" aria-label={`Nouveaux élèves par mois en ${annee}`}
-            onPointerLeave={() => setSurvol(null)}>
+            onPointerLeave={e => { if (e.pointerType === 'mouse') setSurvol(null) }}>
             {graduations.map(v => (
               <g key={v}>
                 <line x1={M.l} x2={W - M.r} y1={y(v)} y2={y(v)} stroke={v === 0 ? '#e2e8f0' : '#f1f5f9'} />

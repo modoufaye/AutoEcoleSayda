@@ -10,7 +10,7 @@ import ChoixPuces from './ChoixPuces'
 import { FenetreModerne, Etape, Etiquette } from './FenetreModerne'
 import { champCls } from './fenetreStyles'
 import { EnteteListe, ListeVide, BoutonAjout, BoutonRond } from './ListeModerne'
-import { useBureaux } from '../bureaux'
+import Eleves from './Eleves'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -27,9 +27,6 @@ export default function Classes({ onEleveClick }) {
   const [periode, setPeriode] = useState({ du: '', au: '' })
   const [envoi, setEnvoi] = useState(false)
   const [ouverte, setOuverte] = useState(null)   // classe dépliée (liste de ses élèves)
-  const [admisCode, setAdmisCode] = useState(() => new Set())
-  useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
-  const bureaux = useBureaux()
 
   useEffect(() => {
     api('GET', moniteur ? '/moniteur/mes-eleves' : '/eleves').then(l => setEleves(l || [])).catch(() => {})
@@ -37,7 +34,6 @@ export default function Classes({ onEleveClick }) {
   }, [moniteur])
 
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
-  const parId = Object.fromEntries(eleves.map(e => [e.id, e]))
   const items = [...eleves].sort((a, b) => b.id - a.id).map(e => ({
     id: e.id, titre: `${e.prenom} ${e.nom}`,
     sous: [e.telephone && afficherTelephone(e.telephone), e.dateInscription && `inscrit le ${fmtDate(e.dateInscription)}`].filter(Boolean).join(' · '),
@@ -114,25 +110,10 @@ export default function Classes({ onEleveClick }) {
             ) : <span className="text-xs text-slate-400">Lecture seule</span>}
             <i className={`bi bi-chevron-${ouverte === c.id ? 'up' : 'down'} text-slate-400`} />
           </div>
+          {/* Élèves de la classe : la même liste que l'onglet Élèves (fiche, modification, archivage…) */}
           {ouverte === c.id && (
-            <div className="px-4 sm:px-5 pb-3" style={{ background: '#faf5ff' }}>
-              {c.eleveIds.length === 0 ? (
-                <div className="text-sm text-slate-500 py-2">Aucun élève dans cette classe{c.modifiable ? ' : ajoutez-en avec « Modifier »' : ''}.</div>
-              ) : [...c.eleveIds].map(id => parId[id]).filter(Boolean)
-                  .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`)).map(e => {
-                const admis = admisCode.has(e.id), perf = e.typeFormation === 'PERFECTIONNEMENT'
-                return (
-                  <button key={e.id} type="button" onClick={() => onEleveClick?.(e.id)} title="Ouvrir la fiche de l'élève"
-                    className="w-full flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-left bg-transparent border-0 cursor-pointer" style={{ borderTop: '1px solid #ede9fe' }}>
-                    <span className="font-bold text-sm text-[#1e3a5f] hover:underline">{e.prenom} {e.nom}</span>
-                    <span className="text-xs text-slate-500">{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}{e.site && ` · ${bureaux.libelle(e.site)}`}</span>
-                    <span className="ms-auto text-[10px] font-extrabold px-2 py-0.5 rounded-full"
-                      style={perf ? { background: '#f5f3ff', color: '#6d28d9' } : admis ? { background: '#dcfce7', color: '#15803d' } : { background: '#fef3c7', color: '#b45309' }}>
-                      {perf ? 'Perfectionnement' : admis ? 'Code admis' : 'Code à passer'}
-                    </span>
-                  </button>
-                )
-              })}
+            <div className="px-2 sm:px-4 pb-4 pt-1" style={{ background: '#faf5ff' }}>
+              <Eleves key={`${c.id}-${c.nombre}`} classeFixe={c.id} onOuvrirEleve={onEleveClick} />
             </div>
           )}
           </div>
