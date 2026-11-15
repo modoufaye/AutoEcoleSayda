@@ -144,11 +144,40 @@ function Formulaire({ moniteur, onFini, onAnnuler }) {
   )
 }
 
+/* Modification d'une annonce publiée : titre et texte (destinataires et audio inchangés). */
+function EditionAnnonce({ a, onFini, onAnnuler }) {
+  const [titre, setTitre] = useState(a.titre)
+  const [contenu, setContenu] = useState(a.contenu || '')
+  const [envoi, setEnvoi] = useState(false)
+  const enregistrer = async () => {
+    if (!titre.trim()) return toast("Donnez un titre à l'annonce", 'warning')
+    if (!a.audio && !contenu.trim()) return toast("Écrivez le message de l'annonce", 'warning')
+    if (envoi) return
+    setEnvoi(true)
+    try { await api('PUT', `/annonces/${a.id}`, { titre: titre.trim(), contenu: contenu.trim() }); toast('Annonce modifiée'); onFini() }
+    catch (e) { toast(e.message, 'danger'); setEnvoi(false) }
+  }
+  return (
+    <div className="space-y-2">
+      <input className="form-control fw-bold" maxLength={150} value={titre} aria-label="Titre de l'annonce" onChange={e => setTitre(e.target.value)} />
+      <textarea className="form-control" rows={4} maxLength={2000} value={contenu} aria-label="Texte de l'annonce" style={{ resize: 'vertical' }}
+        placeholder={a.audio ? 'Texte facultatif (annonce avec audio)' : "Message de l'annonce"} onChange={e => setContenu(e.target.value)} />
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onAnnuler} className="btn btn-light btn-sm fw-bold rounded-pill px-3">Annuler</button>
+        <button type="button" onClick={enregistrer} disabled={envoi} className="btn btn-sm fw-bold rounded-pill px-3" style={{ background: '#1e3a5f', color: '#fff' }}>
+          {envoi ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Annonces({ onLues }) {
   const { user } = useAuth()
   const eleve = user?.role === 'ELEVE'
   const [annonces, setAnnonces] = useState(null)
   const [ecrire, setEcrire] = useState(false)
+  const [edition, setEdition] = useState(null)   // id de l'annonce en cours de modification
 
   // Chargées puis marquées lues : les « Nouveau » restent visibles le temps de la visite
   const charger = () => api('GET', '/annonces')
@@ -179,21 +208,29 @@ export default function Annonces({ onLues }) {
                   <i className="bi bi-megaphone-fill" />
                 </div>
                 <div className="flex-1 min-w-0">
+                  {edition === a.id ? <EditionAnnonce a={a} onAnnuler={() => setEdition(null)} onFini={() => { setEdition(null); charger() }} /> : <>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-extrabold" style={{ color: '#1e3a5f' }}>{a.titre}</span>
                     {!a.lue && <Pastille couleur="#b45309" fond="#fef3c7">Nouveau</Pastille>}
                   </div>
                   {a.contenu && <div className="text-sm text-slate-700 mt-1" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{a.contenu}</div>}
+                  </>}
                   {a.audio && <div className="mt-2 p-2 rounded-xl inline-block" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
                     <LecteurVocal chemin={`/annonces/${a.id}/audio`} duree={a.audioDuree} libelle="Audio" />
                   </div>}
                   <div className="text-xs text-slate-400 mt-2 flex flex-wrap gap-x-3 gap-y-1">
                     <span><i className="bi bi-person me-1" />{a.auteur}</span>
                     <span><i className="bi bi-calendar3 me-1" />{new Date(a.date).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
+                    {a.modifieLe && <span className="italic"><i className="bi bi-pencil me-1" />modifiée le {new Date(a.modifieLe).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>}
                     {!eleve && <span><i className="bi bi-people me-1" />{a.destinataires}</span>}
                   </div>
                 </div>
-                {a.supprimable && <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimer(a)} />}
+                {edition !== a.id && (a.modifiable || a.supprimable) && (
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    {a.modifiable && <BoutonRond title="Modifier" icon="pencil-fill" couleur="#1d4ed8" fond="#dbeafe" onClick={() => setEdition(a.id)} />}
+                    {a.supprimable && <BoutonRond title="Supprimer" icon="trash-fill" couleur="#b91c1c" fond="#fee2e2" onClick={() => supprimer(a)} />}
+                  </div>
+                )}
               </div>
             </div>
           ))}

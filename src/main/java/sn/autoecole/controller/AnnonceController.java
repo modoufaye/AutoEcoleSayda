@@ -104,6 +104,8 @@ public class AnnonceController {
             v.put("pourMoi", destinataire(a, l));
             v.put("lue", !destinataire(a, l) || dejaLues.contains(a.getId()) || Objects.equals(a.getAuteurId(), l.user().getId()));
             v.put("supprimable", supprimable(a, l.user()));
+            v.put("modifiable", supprimable(a, l.user()));   // mêmes personnes : l'auteur ou l'administration
+            if (a.getModifieLe() != null) v.put("modifieLe", a.getModifieLe());
             if (a.getAudio() != null) { v.put("audio", true); v.put("audioDuree", a.getAudioDuree()); }
             return v;
         }).toList();
@@ -189,6 +191,24 @@ public class AnnonceController {
                 .auteurId(l.user().getId()).auteurNom(l.user().getNom()).auteurRole(l.user().getRole()).creeLe(LocalDateTime.now())
                 .audio(audio).audioDuree(audio == null || duree == null ? null : Math.max(0, Math.min(duree, 3600))).build());
         http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "« " + a.getTitre() + " » · " + destinataires(a));
+        return Map.of("id", a.getId());
+    }
+
+    /** Corps : { titre, contenu } ; les destinataires et l'audio ne changent pas. Texte facultatif avec un audio. */
+    @PutMapping("/{id}")
+    @Transactional
+    public Map<String, Object> modifier(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth, HttpServletRequest http) {
+        User u = (User) auth.getPrincipal();
+        Annonce a = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
+        if (!supprimable(a, u)) throw new BusinessException("Seul l'auteur de l'annonce, ou l'administration, peut la modifier");
+        String titre = texte(body.get("titre"), 150, "Donnez un titre à l'annonce");
+        String contenu = a.getAudio() != null && (body.get("contenu") == null || body.get("contenu").isBlank()) ? ""
+                : texte(body.get("contenu"), 2000, "Écrivez le message de l'annonce");
+        if (!titre.equals(a.getTitre()) || !contenu.equals(a.getContenu())) {
+            a.setTitre(titre); a.setContenu(contenu); a.setModifieLe(LocalDateTime.now());
+            repo.save(a);
+        }
+        http.setAttribute(JournalInterceptor.CIBLE_PRECISE, "« " + a.getTitre() + " »");
         return Map.of("id", a.getId());
     }
 

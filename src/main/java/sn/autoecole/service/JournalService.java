@@ -45,10 +45,12 @@ public class JournalService {
             {"POST /api/conversations", null},
             {"POST /api/conversations/{id}/messages", null},   // messages privés : pas de trace de leur contenu
             {"POST /api/conversations/{id}/audio", null},
+            {"PUT /api/conversations/{id}/messages/{id}", null},
             {"POST /api/presence/depart", null},               // déconnexion (présence en ligne)
             {"POST /api/annonces/audio", "Publication d'une annonce avec audio"},
             {"POST /api/annonces", "Publication d'une annonce"},
             {"DELETE /api/annonces/{id}", "Suppression d'une annonce"},
+            {"PUT /api/annonces/{id}", "Modification d'une annonce"},
             {"POST /api/annonces/lues", null},
             {"POST /api/medias", "Ajout à la médiathèque"},
             {"PUT /api/medias/{id}", "Modification d'un média de la médiathèque"},

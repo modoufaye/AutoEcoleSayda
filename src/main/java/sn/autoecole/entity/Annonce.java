@@ -54,4 +54,8 @@ public class Annonce {
 
     /** Durée de l'audio, en secondes (si connue). */
     private Integer audioDuree;
+
+    /** Dernière modification du titre ou du texte (null : jamais modifiée). */
+    @Column(name = "modifie_le")
+    private LocalDateTime modifieLe;
 }

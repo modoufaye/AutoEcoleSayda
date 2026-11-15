@@ -163,6 +163,9 @@ public class ConversationController {
             v.put("id", m.getId()); v.put("texte", m.getTexte()); v.put("envoyeLe", m.getEnvoyeLe());
             v.put("deMoi", m.getCote() == l.cote());
             if (m.getAudio() != null) { v.put("audio", true); v.put("audioDuree", m.getAudioDuree()); }
+            if (m.getModifieLe() != null) v.put("modifieLe", m.getModifieLe());
+            // Seul l'auteur modifie son message écrit (pas un vocal)
+            v.put("modifiable", m.getAudio() == null && l.user().getId().equals(m.getAuteurId()));
             v.put("auteur", m.getCote() == MessagePrive.Cote.ELEVE ? c.getEleve().getPrenom() + " " + c.getEleve().getNom() : m.getAuteurNom());
             return v;
         }).toList();
@@ -186,6 +189,28 @@ public class ConversationController {
         c.setDernierMessageLe(maintenant);
         if (l.estEleve()) c.setEleveLuLe(maintenant); else c.setEquipeLuLe(maintenant);
         conversations.save(c);
+        return Map.of("id", m.getId());
+    }
+
+    /** Corps : { texte }. Seul l'auteur modifie son message écrit ; « modifié » s'affiche ensuite. */
+    @PutMapping("/{id}/messages/{messageId}")
+    @Transactional
+    public Map<String, Object> modifier(@PathVariable Long id, @PathVariable Long messageId,
+                                        @RequestBody Map<String, String> body, Authentication auth) {
+        Lecteur l = lecteur(auth);
+        Conversation c = trouver(id, l);
+        MessagePrive m = messages.findById(messageId).filter(x -> x.getConversationId().equals(c.getId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Message introuvable"));
+        if (!l.user().getId().equals(m.getAuteurId())) throw new BusinessException("Vous ne pouvez modifier que vos propres messages");
+        if (m.getAudio() != null) throw new BusinessException("Un message vocal ne peut pas être modifié");
+        String texte = body.get("texte") == null ? "" : body.get("texte").trim();
+        if (texte.isEmpty()) throw new BusinessException("Écrivez votre message");
+        if (texte.length() > 2000) throw new BusinessException("Message trop long (2 000 caractères au plus)");
+        if (!texte.equals(m.getTexte())) {
+            m.setTexte(texte);
+            m.setModifieLe(LocalDateTime.now());
+            messages.save(m);
+        }
         return Map.of("id", m.getId());
     }
 

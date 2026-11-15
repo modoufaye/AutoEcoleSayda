@@ -42,4 +42,8 @@ public class MessagePrive {
 
     /** Durée du message vocal, en secondes. */
     private Integer audioDuree;
+
+    /** Dernière modification du texte par son auteur (null : jamais modifié). */
+    @Column(name = "modifie_le")
+    private LocalDateTime modifieLe;
 }

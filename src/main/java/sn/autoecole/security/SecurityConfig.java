@@ -115,6 +115,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/annonces/lues").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/annonces", "/api/annonces/audio").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 .requestMatchers(HttpMethod.DELETE, "/api/annonces/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
+                .requestMatchers(HttpMethod.PUT, "/api/annonces/*").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 // Médiathèque (vidéos et audios français / wolof) : personnel ; les élèves passent par /api/eleve/medias
                 .requestMatchers("/api/medias", "/api/medias/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR")
                 // Explications en wolof : déposées par l'administration et les moniteurs, écoutées par tous

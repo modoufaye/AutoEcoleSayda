@@ -15,9 +15,46 @@ const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #
 const heure = d => new Date(d).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 /* Fil de messages en bulles (les siens à droite, en doré). */
-function Bulles({ messages, convId, maxHeight = '55vh' }) {
+/* Édition d'un message déjà envoyé (son auteur seulement, pas un vocal) : la bulle devient un champ.
+   Entrée enregistre, Échap annule. */
+function EditionBulle({ texte, onEnregistrer, onAnnuler }) {
+  const [v, setV] = useState(texte)
+  const [envoi, setEnvoi] = useState(false)
+  const enregistrer = async () => {
+    if (!v.trim() || envoi) return
+    if (v.trim() === texte.trim()) return onAnnuler()
+    setEnvoi(true)
+    try { await onEnregistrer(v.trim()) }
+    catch (e) { toast(e.message, 'danger'); setEnvoi(false) }
+  }
+  return (
+    <div className="flex flex-col gap-2" style={{ minWidth: 220 }}>
+      <textarea className="form-control form-control-sm" rows={3} maxLength={2000} value={v} autoFocus aria-label="Modifier le message"
+        onChange={e => setV(e.target.value)} style={{ resize: 'none' }}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enregistrer() }
+          if (e.key === 'Escape') onAnnuler()
+        }} />
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onAnnuler} className="border-0 rounded-full px-3 py-1 text-xs font-bold cursor-pointer" style={{ background: 'rgba(255,255,255,.7)', color: '#475569' }}>Annuler</button>
+        <button type="button" onClick={enregistrer} disabled={envoi || !v.trim()} className="border-0 rounded-full px-3 py-1 text-xs font-bold cursor-pointer" style={{ background: '#1e3a5f', color: '#fff' }}>
+          {envoi ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Bulles({ messages, convId, maxHeight = '55vh', onModifie }) {
   const bas = useRef(null)
+  const [edition, setEdition] = useState(null)   // id du message en cours de modification
   useEffect(() => { bas.current?.scrollIntoView({ block: 'nearest' }) }, [messages.length])
+  const enregistrer = async (m, texte) => {
+    await api('PUT', `/conversations/${convId}/messages/${m.id}`, { texte })
+    setEdition(null)
+    toast('Message modifié')
+    await onModifie?.()
+  }
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" style={{ background: '#f8fafc', maxHeight }}>
       {messages.length === 0 && <div className="text-sm text-slate-400 text-center py-6">Écrivez le premier message</div>}
@@ -26,8 +63,20 @@ function Bulles({ messages, convId, maxHeight = '55vh' }) {
           <div className="max-w-[80%] px-3 py-2 text-sm" style={{ borderRadius: m.deMoi ? '1rem 1rem .25rem 1rem' : '1rem 1rem 1rem .25rem',
             background: m.deMoi ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff', color: m.deMoi ? '#1e3a5f' : '#334155', border: m.deMoi ? 'none' : '1px solid #e2e8f0' }}>
             {!m.deMoi && <div className="text-[11px] font-bold mb-0.5" style={{ color: '#1d4ed8' }}>{m.auteur}</div>}
-            {m.audio ? <LecteurVocal chemin={`/conversations/${convId}/messages/${m.id}/audio`} duree={m.audioDuree} /> : <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>}
-            <div className="text-[10px] mt-1 text-right" style={{ opacity: .65 }}>{heure(m.envoyeLe)}</div>
+            {m.audio ? <LecteurVocal chemin={`/conversations/${convId}/messages/${m.id}/audio`} duree={m.audioDuree} />
+              : edition === m.id ? <EditionBulle texte={m.texte} onEnregistrer={t => enregistrer(m, t)} onAnnuler={() => setEdition(null)} />
+              : <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>}
+            {edition !== m.id && (
+              <div className="flex items-center justify-end gap-2 text-[10px] mt-1">
+                {m.modifiable && onModifie && (
+                  <button type="button" onClick={() => setEdition(m.id)} aria-label="Modifier ce message"
+                    className="border-0 bg-transparent p-0 cursor-pointer font-bold" style={{ color: 'inherit', opacity: .75 }}>
+                    <i className="bi bi-pencil me-1" />Modifier
+                  </button>
+                )}
+                <span style={{ opacity: .65 }}>{m.modifieLe && <span className="italic me-1">modifié ·</span>}{heure(m.envoyeLe)}</span>
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -100,7 +149,7 @@ export function ConversationEleve({ eleveId, onLu }) {
   if (!conv) return <div className="py-10 flex justify-center"><span className="spinner-border spinner-border-sm text-secondary" /></div>
   return (
     <div className="flex flex-col">
-      <Bulles messages={conv.messages} convId={conv.id} maxHeight="380px" />
+      <Bulles messages={conv.messages} convId={conv.id} maxHeight="380px" onModifie={charger} />
       <Saisie onEnvoyer={envoyer} onEnvoyerAudio={envoyerAudio} />
     </div>
   )
@@ -205,7 +254,7 @@ export default function Messages({ onLus, conversationId, onOuvrir, onFermer }) 
       <div className="flex items-center gap-3 px-4 py-3" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '3px solid #d4a017' }}>
         <div className="font-extrabold text-white truncate">{ouverte.titre}</div>
       </div>
-      <Bulles messages={ouverte.messages} convId={ouverte.id} />
+      <Bulles messages={ouverte.messages} convId={ouverte.id} onModifie={() => charger(ouverte.id)} />
       <Saisie onEnvoyer={async texte => { await api('POST', `/conversations/${ouverte.id}/messages`, { texte }); await charger(ouverte.id) }}
         onEnvoyerAudio={async (fichier, duree) => { await uploadFile(`/conversations/${ouverte.id}/audio`, fichier, { duree }); await charger(ouverte.id) }} />
     </div>
