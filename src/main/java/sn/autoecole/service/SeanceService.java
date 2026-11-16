@@ -32,6 +32,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -134,6 +135,29 @@ public class SeanceService {
         return seanceRepo.seanceEleveIds(StatutSeance.PUBLIE).stream()
                 .filter(r -> code.contains((Long) r[0]))
                 .collect(Collectors.groupingBy(r -> (Long) r[1], Collectors.counting()));
+    }
+
+    /**
+     * Quiz des séances de code, par élève : {reçues, quiz faits, assimilées}. Seules comptent les
+     * séances publiées qui ont un quiz (au moins un cours de code au programme) : une séance sans
+     * programme ne peut pas être assimilée.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, long[]> quizCodeParEleve() {
+        Set<Long> avecQuiz = seanceRepo.findByStatut(StatutSeance.PUBLIE).stream()
+                .filter(s -> !s.getProgramme().isEmpty() && s.getProgramme().stream().anyMatch(p -> !conduite(p)))
+                .map(Seance::getId).collect(Collectors.toSet());
+        Map<Long, long[]> r = new HashMap<>();
+        for (Object[] x : seanceRepo.seanceEleveIds(StatutSeance.PUBLIE))
+            if (avecQuiz.contains((Long) x[0])) r.computeIfAbsent((Long) x[1], k -> new long[3])[0]++;
+        for (ResultatQuizSeance q : resultatRepo.findAll()) {
+            if (!avecQuiz.contains(q.getSeanceId()) || q.getTentatives() <= 0) continue;
+            long[] c = r.computeIfAbsent(q.getEleveId(), k -> new long[3]);
+            c[1]++;
+            if (q.isReussi()) c[2]++;
+        }
+        r.values().forEach(c -> c[0] = Math.max(c[0], c[1]));   // un quiz fait vient d'une séance reçue
+        return r;
     }
 
     /** Séances de code assimilées par élève (quiz réussi au moins une fois, 70 % ou plus) : id -> nombre. */

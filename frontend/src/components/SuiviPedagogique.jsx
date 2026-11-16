@@ -15,7 +15,7 @@ const CATEGORIES = [
   { cle: 'avances', nom: 'Avancés', aide: '80 % ou plus assimilé', icone: 'rocket-takeoff-fill', couleur: '#10b981', fond: '#ecfdf5' },
   { cle: 'enBonneVoie', nom: 'En bonne voie', aide: '50 à 79 %', icone: 'graph-up-arrow', couleur: '#0ea5e9', fond: '#f0f9ff' },
   { cle: 'aAccompagner', nom: 'À accompagner', aide: 'moins de 50 %', icone: 'life-preserver', couleur: '#f97316', fond: '#fff7ed' },
-  { cle: 'pasCommence', nom: 'Pas commencé', aide: 'rien reçu ni fait', icone: 'hourglass', couleur: '#94a3b8', fond: '#f1f5f9' },
+  { cle: 'pasCommence', nom: 'Pas commencé', aide: 'aucun quiz, série ni annale', icone: 'hourglass', couleur: '#94a3b8', fond: '#f1f5f9' },
 ]
 const pc = (n, t) => (t ? Math.round(100 * n / t) : 0)
 
@@ -50,16 +50,31 @@ export default function SuiviPedagogique() {
                   <span className="text-sm font-bold text-slate-700 truncate"><i className={`bi bi-${s.icone} me-1.5`} style={{ color: s.couleur }} />{s.nom}</span>
                   <span className="whitespace-nowrap">
                     <b className="text-base font-black" style={{ color: ENCRE }}>{a.faites ? `${t} %` : '—'}</b>
-                    <span className="text-xs text-slate-500 ms-1.5">{a.assimilees}/{a.faites}</span>
+                    {s.cle !== 'code' && <span className="text-xs text-slate-500 ms-1.5">{a.assimilees}/{a.faites}</span>}
                   </span>
                 </div>
-                <div className="h-2 rounded-full mt-1 overflow-hidden" style={{ background: '#eef2f7' }}>
-                  <div className="h-full rounded-full" style={{ width: trace ? `${t}%` : 0, background: s.couleur, transition: `width .9s cubic-bezier(.2,.8,.2,1) ${i * 90}ms` }} />
-                </div>
+                {s.cle === 'code' ? (
+                  <>
+                    {/* Reçues → quiz faits (clair) → assimilés (plein) */}
+                    <div className="relative h-2 rounded-full mt-1 overflow-hidden" style={{ background: '#eef2f7' }}>
+                      <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: trace ? `${pc(a.quizFaits, a.faites)}%` : 0, background: '#bfdbfe', transition: 'width .9s cubic-bezier(.2,.8,.2,1)' }} />
+                      <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: trace ? `${t}%` : 0, background: s.couleur, transition: 'width .9s cubic-bezier(.2,.8,.2,1) 90ms' }} />
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-slate-500">
+                      <span><b className="text-slate-700">{a.faites.toLocaleString('fr-FR')}</b> reçues</span>
+                      <span><span className="inline-block w-2 h-2 rounded-sm me-1 align-middle" style={{ background: '#bfdbfe' }} /><b className="text-slate-700">{a.quizFaits.toLocaleString('fr-FR')}</b> quiz faits ({pc(a.quizFaits, a.faites)} %)</span>
+                      <span><span className="inline-block w-2 h-2 rounded-sm me-1 align-middle" style={{ background: s.couleur }} /><b className="text-slate-700">{a.assimilees.toLocaleString('fr-FR')}</b> assimilés</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-2 rounded-full mt-1 overflow-hidden" style={{ background: '#eef2f7' }}>
+                    <div className="h-full rounded-full" style={{ width: trace ? `${t}%` : 0, background: s.couleur, transition: `width .9s cubic-bezier(.2,.8,.2,1) ${i * 90}ms` }} />
+                  </div>
+                )}
               </div>
             )
           })}
-          <div className="text-[11px] text-slate-400"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances : sur celles reçues ; séries et annales : sur celles faites.</div>
+          <div className="text-[11px] text-slate-400"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances : seulement celles qui ont un quiz, sur celles reçues ; séries et annales : sur celles faites.</div>
         </div>
 
         {/* Élèves par niveau */}
