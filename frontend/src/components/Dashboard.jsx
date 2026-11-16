@@ -8,6 +8,7 @@ import DemandesInscription from './DemandesInscription'
 import RepartitionLocalites from './RepartitionLocalites'
 import ReussiteExamens from './ReussiteExamens'
 import ArgentEcole from './ArgentEcole'
+import ParcoursEleves from './ParcoursEleves'
 
 // Bloc « Réussite aux examens » prêt mais masqué : les résultats d'examens ne sont pas encore tous saisis.
 const AFFICHER_REUSSITE_EXAMENS = false
@@ -446,6 +447,9 @@ function DashboardAdmin({ stats, user }) {
 
         {/* Nouveaux élèves par mois (courbe) */}
         <InscriptionsParMois />
+
+        {/* Parcours des élèves du permis, de l'inscription au permis (entonnoir) */}
+        <ParcoursEleves />
 
         {/* Réussite aux examens du code et de la conduite : masquée tant que les résultats ne sont
             pas tous saisis (AFFICHER_REUSSITE_EXAMENS) */}

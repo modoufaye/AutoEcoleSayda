@@ -40,6 +40,12 @@ public class DashboardController {
         return dashboardService.finances(annee);
     }
 
+    /** Parcours des élèves du permis : combien atteignent chaque étape, de l'inscription au permis. */
+    @GetMapping("/parcours")
+    public Map<String, Object> parcours(@RequestParam(required = false) Integer annee) {
+        return dashboardService.parcours(annee);
+    }
+
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {
         return dashboardService.localites(annee);

@@ -32,6 +32,7 @@ public class DashboardService {
     private final SeanceRepository seanceRepository;
     private final ResultatQuizSeanceRepository resultatQuizSeanceRepository;
     private final BureauService bureauService;
+    private final SeanceService seanceService;
 
     public DashboardStats getStats() {
         LocalDate debutMois = LocalDate.now().withDayOfMonth(1);
@@ -282,6 +283,63 @@ public class DashboardService {
         r.put("elevesQuiDoivent", doivent.size());
         r.put("sansPrix", sansPrix);
         r.put("aRelancer", doivent.subList(0, Math.min(8, doivent.size())));
+        return r;
+    }
+
+    /** Étapes du parcours d'un élève du permis, dans l'ordre. */
+    private static final String[] ETAPES = { "inscrits", "coursCode", "presentesCode", "codeObtenu", "conduite", "permis" };
+
+    /**
+     * Parcours des élèves du permis inscrits une année (ou depuis le début), archivés compris :
+     * combien atteignent chaque étape. Un élève qui a atteint une étape compte aussi pour les
+     * précédentes (code obtenu sans cours enregistré dans l'appli = cours suivis). Les sortis
+     * (abandon, suspension, archivé sans permis) sont comptés à l'étape où ils se sont arrêtés.
+     */
+    public Map<String, Object> parcours(Integer annee) {
+        List<Eleve> tous = eleveRepository.findAll().stream().filter(e -> !e.estPerfectionnement()).toList();
+        List<Integer> annees = tous.stream().map(Eleve::getDateInscription).filter(Objects::nonNull)
+                .map(LocalDate::getYear).distinct().sorted(Comparator.reverseOrder()).toList();
+        List<Eleve> cohorte = tous.stream().filter(e -> annee == null
+                || (e.getDateInscription() != null && e.getDateInscription().getYear() == annee)).toList();
+
+        Map<Long, Long> seancesCode = seanceService.seancesCodeParEleve();
+        Set<Long> leconCode = new HashSet<>(), leconConduite = new HashSet<>();
+        for (var l : leconRepository.findAll()) {
+            if (l.getEleve() == null || l.getStatut() != StatutLecon.TERMINEE) continue;
+            (l.getType() == TypeLecon.CODE ? leconCode : leconConduite).add(l.getEleve().getId());
+        }
+        Set<Long> presCode = new HashSet<>(), admisCode = new HashSet<>(), presConduite = new HashSet<>(), admisConduite = new HashSet<>();
+        for (Examen x : examenRepository.findAll()) {
+            if (x.getEleve() == null) continue;
+            Long id = x.getEleve().getId();
+            boolean admis = x.getResultat() == ResultatExamen.ADMIS;
+            if (x.getType() == TypeExamen.CODE) { presCode.add(id); if (admis) admisCode.add(id); }
+            else { presConduite.add(id); if (admis) admisConduite.add(id); }
+        }
+
+        long[] atteint = new long[ETAPES.length], sortis = new long[ETAPES.length];
+        long enFormation = 0;
+        for (Eleve e : cohorte) {
+            Long id = e.getId();
+            int etape = 0;
+            if (seancesCode.getOrDefault(id, 0L) > 0 || leconCode.contains(id)) etape = 1;
+            if (presCode.contains(id)) etape = 2;
+            if (admisCode.contains(id)) etape = 3;
+            if (leconConduite.contains(id) || presConduite.contains(id)) etape = Math.max(etape, 4);
+            if (admisConduite.contains(id) || e.getStatut() == StatutEleve.DIPLOME) etape = 5;
+            for (int k = 0; k <= etape; k++) atteint[k]++;
+            boolean sorti = etape < 5 && (e.isArchive() || e.getStatut() == StatutEleve.ABANDONNE || e.getStatut() == StatutEleve.SUSPENDU);
+            if (sorti) sortis[etape]++;
+            else if (etape < 5) enFormation++;
+        }
+        List<Map<String, Object>> etapes = new ArrayList<>();
+        for (int k = 0; k < ETAPES.length; k++) etapes.add(Map.of("cle", ETAPES[k], "nombre", atteint[k], "sortis", sortis[k]));
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("annee", annee);
+        r.put("annees", annees);
+        r.put("etapes", etapes);
+        r.put("enFormation", enFormation);
+        r.put("sortis", Arrays.stream(sortis).sum());
         return r;
     }
 }
