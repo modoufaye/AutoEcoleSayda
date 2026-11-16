@@ -18,6 +18,10 @@ const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #
    classe ; le mettre dans une autre l'y déplace. Le bureau gère toutes les classes ; un moniteur crée
    les siennes avec ses élèves. Ensuite, Séances, Travaux Dirigés, Examens et Annonces proposent un
    bouton par classe qui coche tous ses élèves d'un coup. */
+// Seuls les élèves du permis entrent dans une classe (le perfectionnement n'en a pas)
+const elevesDuPermis = moniteur => api('GET', moniteur ? '/moniteur/mes-eleves' : '/eleves')
+  .then(l => (l || []).filter(e => e.typeFormation !== 'PERFECTIONNEMENT')).catch(() => [])
+
 export default function Classes({ onEleveClick }) {
   const { user } = useAuth()
   const moniteur = user?.role === 'MONITEUR'
@@ -29,7 +33,7 @@ export default function Classes({ onEleveClick }) {
   const [ouverte, setOuverte] = useState(null)   // classe dépliée (liste de ses élèves)
 
   useEffect(() => {
-    api('GET', moniteur ? '/moniteur/mes-eleves' : '/eleves').then(l => setEleves(l || [])).catch(() => {})
+    elevesDuPermis(moniteur).then(setEleves)
     rechargerClasses()
   }, [moniteur])
 
@@ -39,7 +43,7 @@ export default function Classes({ onEleveClick }) {
     sous: [e.telephone && afficherTelephone(e.telephone), e.dateInscription && `inscrit le ${fmtDate(e.dateInscription)}`].filter(Boolean).join(' · '),
     mots: [e.prenom, e.nom, e.telephone],
     // Déjà dans une autre classe : le cocher l'y déplace
-    badge: e.classeId && e.classeId !== edition?.id ? `Classe « ${nomClasse[e.classeId] || '?'} »` : (e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : null),
+    badge: e.classeId && e.classeId !== edition?.id ? `Classe « ${nomClasse[e.classeId] || '?'} »` : null,
   }))
 
   const ouvrir = c => { setPeriode({ du: '', au: '' }); setEdition(c ? { id: c.id, nom: c.nom, eleveIds: c.eleveIds.map(String) } : { nom: '', eleveIds: [] }) }
@@ -60,7 +64,7 @@ export default function Classes({ onEleveClick }) {
       if (edition.id) await api('PUT', `/classes/${edition.id}`, corps)
       else await api('POST', '/classes', corps)
       await rechargerClasses()
-      api('GET', moniteur ? '/moniteur/mes-eleves' : '/eleves').then(l => setEleves(l || [])).catch(() => {})
+      elevesDuPermis(moniteur).then(setEleves)
       toast(edition.id ? 'Classe enregistrée' : 'Classe créée')
       setEdition(null)
     } catch (e) { toast(e.message, 'danger') }

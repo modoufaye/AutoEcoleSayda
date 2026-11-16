@@ -257,6 +257,7 @@ public class EleveService {
                 : eleve.getTypeFormation() != null ? eleve.getTypeFormation() : TypeFormation.PERMIS;
         eleve.setTypeFormation(type);
         if (type == TypeFormation.PERFECTIONNEMENT) {
+            eleve.setClasseId(null);   // les classes ne regroupent que des élèves du permis
             if (request.getBoiteVitesse() == null)
                 throw new BusinessException("Choisissez la boîte de vitesses (manuelle ou automatique)");
             eleve.setBoiteVitesse(request.getBoiteVitesse());

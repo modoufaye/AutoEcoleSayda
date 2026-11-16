@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useBureaux } from '../bureaux'
 import { EnteteListe } from './ListeModerne'
+import SelecteurAnnee from './SelecteurAnnee'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -53,15 +54,7 @@ export default function RepartitionLocalites() {
   const periode = annee ? `inscrits en ${annee}` : 'inscrits depuis le début'
   const qmax = Math.max(1, ...d.quartiers.map(q => q.nombre))
   const choixAnnee = (
-    <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-0">
-      <i className="bi bi-calendar3" />Année
-      <select value={annee} onChange={e => setAnnee(e.target.value)} aria-label="Année d'inscription"
-        className="text-xs font-bold rounded-full px-3 py-1.5 outline-none cursor-pointer"
-        style={{ width: 'auto', background: '#f8fafc', color: '#1e3a5f', border: '1.5px solid #e2e8f0' }}>
-        {[...new Set([String(new Date().getFullYear()), ...d.annees.map(String)])].map(a => <option key={a} value={a}>{a}</option>)}
-        <option value="">Toutes les années</option>
-      </select>
-    </label>
+    <SelecteurAnnee annees={[String(new Date().getFullYear()), ...d.annees.map(String)]} valeur={annee} onChange={setAnnee} avecToutes />
   )
 
   return (

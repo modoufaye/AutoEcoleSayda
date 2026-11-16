@@ -9,6 +9,7 @@ import sn.autoecole.entity.Classe;
 import sn.autoecole.entity.Eleve;
 import sn.autoecole.entity.User;
 import sn.autoecole.enums.RoleUser;
+import sn.autoecole.enums.TypeFormation;
 import sn.autoecole.exception.BusinessException;
 import sn.autoecole.exception.ResourceNotFoundException;
 import sn.autoecole.repository.ClasseRepository;
@@ -21,7 +22,8 @@ import java.util.stream.Collectors;
 /**
  * Classes d'élèves (voir {@link Classe}). Administration et secrétariat : toutes les classes et tous
  * les élèves. Moniteur : il voit les classes avec ses seuls élèves, crée les siennes et ne les
- * remplit qu'avec ses élèves ; celles des autres restent en lecture.
+ * remplit qu'avec ses élèves ; celles des autres restent en lecture. Seuls les élèves du permis y entrent :
+ * le perfectionnement (conduite seule) n'a pas de classe.
  */
 @RestController
 @RequestMapping("/api/classes")
@@ -40,7 +42,7 @@ public class ClasseController {
         User u = (User) auth.getPrincipal();
         Set<Long> miens = miens(u);
         Map<Long, List<Long>> membres = eleveRepository.findAll().stream()
-                .filter(e -> e.getClasseId() != null && !e.isArchive() && (miens == null || miens.contains(e.getId())))
+                .filter(e -> e.getClasseId() != null && !e.isArchive() && permis(e) && (miens == null || miens.contains(e.getId())))
                 .collect(Collectors.groupingBy(Eleve::getClasseId, Collectors.mapping(Eleve::getId, Collectors.toList())));
         return repo.findAllByOrderByCreeLeDesc().stream().map(c -> vue(c, membres.getOrDefault(c.getId(), List.of()), u)).toList();
     }
@@ -96,9 +98,12 @@ public class ClasseController {
     private List<Long> remplir(Classe c, Set<Long> voulus, User u) {
         Set<Long> miens = miens(u);
         if (miens != null && !miens.containsAll(voulus)) throw new BusinessException("Vous ne mettez dans une classe que vos élèves");
-        for (Eleve e : eleveRepository.findAll()) {
+        List<Eleve> tous = eleveRepository.findAll();
+        if (tous.stream().anyMatch(e -> voulus.contains(e.getId()) && !permis(e)))
+            throw new BusinessException("Les classes ne regroupent que des élèves du permis (pas de perfectionnement)");
+        for (Eleve e : tous) {
             if (miens != null && !miens.contains(e.getId())) continue;
-            boolean dedans = c.getId().equals(e.getClasseId()), voulu = voulus.contains(e.getId());
+            boolean dedans = c.getId().equals(e.getClasseId()), voulu = voulus.contains(e.getId()) && permis(e);
             if (voulu && !dedans) { e.setClasseId(c.getId()); eleveRepository.save(e); }
             if (!voulu && dedans) { e.setClasseId(null); eleveRepository.save(e); }
         }
@@ -107,7 +112,7 @@ public class ClasseController {
 
     private List<Long> membres(Classe c, Set<Long> miens) {
         return eleveRepository.findAll().stream()
-                .filter(e -> c.getId().equals(e.getClasseId()) && !e.isArchive() && (miens == null || miens.contains(e.getId())))
+                .filter(e -> c.getId().equals(e.getClasseId()) && !e.isArchive() && permis(e) && (miens == null || miens.contains(e.getId())))
                 .map(Eleve::getId).toList();
     }
 
@@ -118,6 +123,11 @@ public class ClasseController {
         m.put("eleveIds", membres); m.put("nombre", membres.size());
         m.put("modifiable", GESTION.contains(u.getRole()) || Objects.equals(c.getAuteurId(), u.getId()));
         return m;
+    }
+
+    /** Élève du permis (le perfectionnement n'entre dans aucune classe). */
+    static boolean permis(Eleve e) {
+        return e.getTypeFormation() != TypeFormation.PERFECTIONNEMENT;
     }
 
     private static String nom(Object o) {

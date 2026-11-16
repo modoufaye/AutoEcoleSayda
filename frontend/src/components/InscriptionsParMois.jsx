@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { EnteteListe } from './ListeModerne'
+import SelecteurAnnee from './SelecteurAnnee'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
@@ -41,8 +42,8 @@ export default function InscriptionsParMois() {
   if (!d) return null
 
   const maintenant = new Date()
-  // Années proposées, de la plus ancienne à la plus récente (l'année en cours toujours présente)
-  const annees = [...new Set([String(maintenant.getFullYear()), ...d.annees.map(String)])].sort()
+  // Années proposées (l'année en cours toujours présente)
+  const annees = [String(maintenant.getFullYear()), ...d.annees.map(String)]
   const enCours = Number(annee) === maintenant.getFullYear()
   const nbMois = enCours ? maintenant.getMonth() + 1 : 12          // l'année en cours s'arrête à ce mois
   const points = d.mois.slice(0, nbMois).map(m => ({ ...m, total: m.permis + m.perfectionnement }))
@@ -83,26 +84,7 @@ export default function InscriptionsParMois() {
             </span>
           ))}
         </div>
-        {/* Année : ‹ 2026 › — les flèches passent à l'année précédente ou suivante qui a des inscrits */}
-        <div className="inline-flex items-center gap-1 p-1 rounded-full" role="group" aria-label="Année"
-          style={{ background: 'linear-gradient(135deg,#1e3a5f,#2a4f7c)', boxShadow: '0 4px 12px rgba(30,58,95,.25)' }}>
-          {[[-1, 'chevron-left', 'Année précédente'], [1, 'chevron-right', 'Année suivante']].map(([sens, icone, libelle], k) => {
-            const cible = annees[annees.indexOf(annee) + sens]
-            const bouton = (
-              <button key={icone} type="button" disabled={!cible} aria-label={libelle} title={cible ? `${libelle} : ${cible}` : libelle}
-                onClick={() => { setAnnee(cible); setSurvol(null) }}
-                className="w-8 h-8 rounded-full flex items-center justify-center border-0 transition-colors"
-                style={{ borderRadius: 999, padding: 0, background: cible ? 'rgba(255,255,255,.14)' : 'transparent', color: cible ? '#fff' : 'rgba(255,255,255,.3)', cursor: cible ? 'pointer' : 'default' }}>
-                <i className={`bi bi-${icone}`} style={{ fontSize: '.8rem' }} />
-              </button>
-            )
-            return k === 0 ? [bouton, (
-              <span key="annee" className="px-3 text-sm font-black tabular-nums" style={{ color: '#f0bb2a', letterSpacing: '.04em' }} aria-live="polite">
-                <i className="bi bi-calendar3 me-1.5" style={{ color: 'rgba(255,255,255,.6)', fontSize: '.75rem' }} />{annee}
-              </span>
-            )] : bouton
-          })}
-        </div>
+        <SelecteurAnnee annees={annees} valeur={annee} onChange={a => { setAnnee(a); setSurvol(null) }} />
       </div>
 
       {total === 0 ? (

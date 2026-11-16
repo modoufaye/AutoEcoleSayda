@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, waLink, correspond, estAdmin, inscritCetteSemaine } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, waLink, correspond, estAdmin } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -978,12 +978,6 @@ const MOIS_COURANT = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
-// « 2026-10 » → « Octobre 2026 »
-const libelleMois = (m) => {
-  const [a, mo] = m.split('-').map(Number)
-  const t = new Date(a, mo - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-  return t.charAt(0).toUpperCase() + t.slice(1)
-}
 
 /* Indice « code » : un élève du permis admis à l'examen du code peut passer à la conduite.
    Le perfectionnement (déjà titulaire du permis) n'est pas concerné. */
@@ -1019,14 +1013,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   // Perfectionnement : pas de filtre statut ni classe (un ancien choix retenu ne doit pas filtrer en cachette)
   const [statut, setStatut]       = useState(perfSeul ? '' : memo.statut ?? '')
   const [site, setSite]           = useState(memo.site ?? '')
-  // Mois d'inscription filtré, au format « AAAA-MM » ('' = tous les mois)
-  const [moisInscription, setMoisInscription] = useState(memo.moisInscription ?? '')
-  const [semaine, setSemaine] = useState(!!memo.semaine)   // seulement les inscrits des 7 derniers jours
+  // Moniteur : « Nouveaux ce mois » (AAAA-MM, '' = tous). L'administration n'a plus ce filtre (les classes le remplacent) :
+  // un ancien mois retenu ne doit pas filtrer en cachette.
+  const [moisInscription, setMoisInscription] = useState(isMoniteur ? memo.moisInscription ?? '' : '')
   const [formation, setFormation] = useState(memo.formation ?? '')   // '' | PERMIS | PERFECTIONNEMENT
   const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
-  const [classeFiltre, setClasseFiltre] = useState(classeFixe ?? (perfSeul ? '' : memo.classeFiltre ?? ''))   // id de classe ('' : toutes)
+  const classeFiltre = classeFixe ?? ''   // classe affichée (page Classes) ; plus de filtre de classe dans l'onglet Élèves
   const [messagesSeuls, setMessagesSeuls] = useState(!!memo.messagesSeuls)   // seulement les élèves qui ont écrit (non lus)
   const classes = useClasses()
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
@@ -1054,16 +1048,16 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     if (classeFixe) return
     try {
       sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
-        search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
+  }, [search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1121,11 +1115,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (statut) r = r.filter(e => e.statut === statut)
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
-    if (semaine) r = r.filter(e => inscritCetteSemaine(e.dateInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
     if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
-    if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre))
+    if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre) && e.typeFormation !== 'PERFECTIONNEMENT')
     if (messagesSeuls) r = r.filter(e => messagesNonLus[e.id] > 0)
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
@@ -1138,17 +1131,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, semaine, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
-
-  // Mois où des élèves se sont inscrits, du plus récent au plus ancien, avec leur nombre
-  const moisDisponibles = Object.entries(list.reduce((acc, e) => {
-    const m = e.dateInscription?.substring(0, 7)
-    if (m) acc[m] = (acc[m] || 0) + 1
-    return acc
-  }, {})).sort((a, b) => b[0].localeCompare(a[0]))
 
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
@@ -2087,12 +2073,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
           <option value="">Tous les bureaux</option>
           {bureaux.tous.map(b => <option key={b.code} value={b.code}>{b.nom}{!b.actif && ' (fermé)'}</option>)}
         </Filtre>
-        {classes.length > 0 && !perfSeul && (
-          <Filtre icone="collection" value={classeFiltre} onChange={setClasseFiltre}>
-            <option value="">Toutes les classes</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.nom} · {c.nombre}</option>)}
-          </Filtre>
-        )}
         {/* Formation fixée par l'onglet du menu : pas de filtre */}
         {!formationFixe && (
           <Filtre icone="mortarboard" value={formation} onChange={setFormation}>
@@ -2123,23 +2103,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
             Code admis · {list.filter(e => admisCode.has(e.id)).length}
           </FiltreBascule>
         )}
-        {/* Inscrits des 7 derniers jours : les élèves arrivent au fil de la semaine */}
-        <FiltreBascule actif={semaine} onClick={() => setSemaine(x => !x)} icone="calendar-week">
-          Nouveaux cette semaine · {list.filter(e => inscritCetteSemaine(e.dateInscription)).length}
-        </FiltreBascule>
-        {/* Admin : n'importe quel mois d'inscription ; moniteur : bascule sur le mois en cours */}
-        {isMoniteur
-          ? <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
-          : <Filtre icone="calendar-month" value={moisInscription} onChange={setMoisInscription}>
-              <option value="">Tous les mois</option>
-              {moisDisponibles.map(([m, n]) => (
-                <option key={m} value={m}>{libelleMois(m)} · {n}</option>
-              ))}
-            </Filtre>}
+        {/* Moniteur : bascule sur le mois en cours (l'administration s'appuie sur les classes) */}
+        {isMoniteur && (
+          <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
+        )}
         {/* Admin : import Excel et inscription (le moniteur ne fait que consulter ses élèves) */}
         {!isMoniteur && (
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
-            {/* Identifiants à envoyer, parmi les élèves affichés (filtres compris : bureau, semaine…) */}
+            {/* Identifiants à envoyer, parmi les élèves affichés (filtres compris : bureau, statut…) */}
             {aEnvoyerAffiches.length > 0 && (
               <div className="col-span-2 sm:col-span-1 grid">
                 <BoutonAjout vert icone="whatsapp" onClick={() => setEnvoiGroupe(true)}>Envoi groupé · {aEnvoyerAffiches.length}</BoutonAjout>
@@ -2187,7 +2158,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     </button>
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                       <span><i className="bi bi-telephone me-1" />{e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro'}</span>
-                      {!classeFixe && e.classeId && nomClasse[e.classeId] && <span style={{ color: '#6d28d9' }}><i className="bi bi-collection me-1" />{nomClasse[e.classeId]}</span>}
+                      {!classeFixe && e.classeId && e.typeFormation !== 'PERFECTIONNEMENT' && nomClasse[e.classeId] && <span style={{ color: '#6d28d9' }}><i className="bi bi-collection me-1" />{nomClasse[e.classeId]}</span>}
                       {presence && <BadgePresence enLigne={presence.eleves.has(e.id)} />}
                     </div>
                   </div>

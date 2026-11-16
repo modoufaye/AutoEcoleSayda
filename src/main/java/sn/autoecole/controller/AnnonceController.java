@@ -82,7 +82,7 @@ public class AnnonceController {
             case MONITEUR -> (l.eleve() != null && l.eleve().getMoniteur() != null && String.valueOf(l.eleve().getMoniteur().getId()).equals(a.getValeur()))
                     || (l.moniteur() != null && String.valueOf(l.moniteur().getId()).equals(a.getValeur()));
             case PERSONNEL -> r != RoleUser.ELEVE;
-            case CLASSE -> l.eleve() != null && l.eleve().getClasseId() != null && String.valueOf(l.eleve().getClasseId()).equals(a.getValeur());
+            case CLASSE -> l.eleve() != null && ClasseController.permis(l.eleve()) && l.eleve().getClasseId() != null && String.valueOf(l.eleve().getClasseId()).equals(a.getValeur());
         };
     }
 
