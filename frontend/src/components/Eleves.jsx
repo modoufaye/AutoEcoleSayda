@@ -1017,7 +1017,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   // un ancien mois retenu ne doit pas filtrer en cachette.
   const [moisInscription, setMoisInscription] = useState(isMoniteur ? memo.moisInscription ?? '' : '')
   const [formation, setFormation] = useState(memo.formation ?? '')   // '' | PERMIS | PERFECTIONNEMENT
-  const [aEnvoyer, setAEnvoyer]   = useState(!!memo.aEnvoyer)   // seulement les élèves sans message de bienvenue
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
   const classeFiltre = classeFixe ?? ''   // classe affichée (page Classes) ; plus de filtre de classe dans l'onglet Élèves
@@ -1032,6 +1031,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   // Total payé par élève (gestion seulement) : reliquat ou « Tout payé » dans la liste
   const [totauxPayes, setTotauxPayes] = useState(null)
   useEffect(() => { api('GET', '/eleves/seances-code').then(m => setSeancesCode(m || {})).catch(() => {}) }, [])
+  // Séances de code assimilées (quiz réussi au moins une fois, 70 % ou plus)
+  const [codeAssimile, setCodeAssimile] = useState({})
+  useEffect(() => { api('GET', '/eleves/seances-code-assimilees').then(m => setCodeAssimile(m || {})).catch(() => {}) }, [])
   // Séries d'examen et annales faites par élève (Travaux Dirigés)
   const [seriesFaites, setSeriesFaites] = useState({})
   useEffect(() => { api('GET', '/eleves/series-faites').then(m => setSeriesFaites(m || {})).catch(() => {}) }, [])
@@ -1048,16 +1050,16 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     if (classeFixe) return
     try {
       sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
-        search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1116,7 +1118,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (site) r = r.filter(e => e.site === site)
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
-    if (aEnvoyer) r = r.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe)
     if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
     if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre) && e.typeFormation !== 'PERFECTIONNEMENT')
     if (messagesSeuls) r = r.filter(e => messagesNonLus[e.id] > 0)
@@ -1131,7 +1132,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, formation, aEnvoyer, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
@@ -2093,10 +2094,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
             Messages non lus · {list.filter(e => messagesNonLus[e.id] > 0).length}
           </FiltreBascule>
         )}
-        {/* Élèves qui n'ont pas encore reçu leurs identifiants (message de bienvenue) */}
-        <FiltreBascule actif={aEnvoyer} onClick={() => setAEnvoyer(x => !x)} icone="whatsapp">
-          Identifiants à envoyer · {list.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe).length}
-        </FiltreBascule>
         {/* Admis au code : peuvent commencer (ou poursuivre) la conduite. Le perfectionnement n'a pas de code. */}
         {!perfSeul && (
           <FiltreBascule actif={codeAdmisSeul} onClick={() => setCodeAdmisSeul(x => !x)} icone="patch-check">
@@ -2212,18 +2209,31 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600">
                     {e.typeFormation === 'PERFECTIONNEMENT'
                       ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
-                      : <span title="Séances de code"><i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} /><b>{e.nombreLeconsCode + (seancesCode[e.id] || 0)}</b> code</span>}
+                      : (() => {
+                          const ok = codeAssimile[e.id] || 0, faites = Math.max(ok, e.nombreLeconsCode + (seancesCode[e.id] || 0))   // jamais « 2/1 »
+                          return (
+                            <span className="whitespace-nowrap" title={`Séances de code : ${ok} assimilée(s) (quiz réussi à 70 % ou plus) sur ${faites}`}>
+                              <i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} />Code : <b>{ok}</b>/{faites} assimilée{ok > 1 ? 's' : ''}
+                            </span>
+                          )
+                        })()}
                     {/* Permis : séries d'examen et annales faites ; la conduite n'apparaît qu'après l'admission au code */}
                     {e.typeFormation !== 'PERFECTIONNEMENT' && (() => {
                       const sf = seriesFaites[e.id] || {}
-                      const ligne = (icone, couleur, nom, entr, blanc) => (
-                        <span className="basis-full whitespace-nowrap" title={`${nom} faites : ${entr} en entraînement, ${blanc} en examen blanc`}>
-                          <i className={`bi bi-${icone} me-1`} style={{ color: couleur }} />{nom} : <b>{entr}</b> entr. · <b>{blanc}</b> blanc
-                        </span>
-                      )
+                      // Assimilées (70 % ou plus au moins une fois) / faites, en entraînement et en examen blanc
+                      const ligne = (icone, couleur, nom, cle) => {
+                        const entr = sf[`${cle}Entrainement`] || 0, entrOk = sf[`${cle}EntrainementAssimilees`] || 0
+                        const blanc = sf[cle] || 0, blancOk = sf[`${cle}Assimilees`] || 0
+                        return (
+                          <span className="basis-full whitespace-nowrap"
+                            title={`${nom} assimilées (70 % ou plus) : ${entrOk} sur ${entr} en entraînement, ${blancOk} sur ${blanc} en examen blanc`}>
+                            <i className={`bi bi-${icone} me-1`} style={{ color: couleur }} />{nom} : <b>{entrOk}</b>/{entr} entr. · <b>{blancOk}</b>/{blanc} blanc
+                          </span>
+                        )
+                      }
                       return <>
-                        {ligne('journal-check', '#7c3aed', 'Séries', sf.seriesEntrainement || 0, sf.series || 0)}
-                        {ligne('journal-bookmark', '#c2410c', 'Annales', sf.annalesEntrainement || 0, sf.annales || 0)}
+                        {ligne('journal-check', '#7c3aed', 'Séries', 'series')}
+                        {ligne('journal-bookmark', '#c2410c', 'Annales', 'annales')}
                       </>
                     })()}
                     {(e.typeFormation === 'PERFECTIONNEMENT' || admisCode.has(e.id)) &&

@@ -60,7 +60,8 @@ public class EleveController {
     }
 
     /** Séries d'examen et annales faites par élève (au moins une tentative), par mode :
-        id -> {series, annales} (examens blancs) et {seriesEntrainement, annalesEntrainement}. */
+        id -> {series, annales} (examens blancs) et {seriesEntrainement, annalesEntrainement},
+        plus les mêmes clés suffixées « Assimilees » (réussies au moins une fois). */
     @GetMapping("/series-faites")
     public Map<Long, Map<String, Long>> seriesFaites() {
         Map<Long, Map<String, Long>> r = new java.util.HashMap<>();
@@ -71,7 +72,10 @@ public class EleveController {
             if (ch.startsWith(ProgressionCodeController.ENTRAINEMENT)) { ch = ch.substring(ProgressionCodeController.ENTRAINEMENT.length()); suffixe = "Entrainement"; }
             String cle = ch.startsWith("serie-") ? "series" : ch.startsWith("annale-") ? "annales" : null;
             if (cle == null) continue;
-            r.computeIfAbsent(p.getEleveId(), k -> new java.util.HashMap<>()).merge(cle + suffixe, 1L, Long::sum);
+            var parCle = r.computeIfAbsent(p.getEleveId(), k -> new java.util.HashMap<>());
+            parCle.merge(cle + suffixe, 1L, Long::sum);
+            // Assimilée : au moins 70 % obtenus une fois (même règle que les quiz de séance)
+            if (p.isReussi()) parCle.merge(cle + suffixe + "Assimilees", 1L, Long::sum);
         }
         return r;
     }
@@ -80,6 +84,12 @@ public class EleveController {
     @GetMapping("/seances-code")
     public Map<Long, Long> seancesCode() {
         return seanceService.seancesCodeParEleve();
+    }
+
+    /** Séances de code assimilées par élève (id -> nombre) : quiz de la séance réussi au moins une fois. */
+    @GetMapping("/seances-code-assimilees")
+    public Map<Long, Long> seancesCodeAssimilees() {
+        return seanceService.seancesCodeAssimileesParEleve();
     }
 
     @GetMapping
