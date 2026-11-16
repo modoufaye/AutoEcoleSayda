@@ -48,10 +48,7 @@ export default function SuiviPedagogique() {
               <div key={s.cle}>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm font-bold text-slate-700 truncate"><i className={`bi bi-${s.icone} me-1.5`} style={{ color: s.couleur }} />{s.nom}</span>
-                  <span className="whitespace-nowrap">
-                    <b className="text-base font-black" style={{ color: ENCRE }}>{a.faites ? `${t} %` : '—'}</b>
-                    {s.cle !== 'code' && <span className="text-xs text-slate-500 ms-1.5">{a.assimilees}/{a.faites}</span>}
-                  </span>
+                  {s.cle === 'code' && <b className="text-base font-black whitespace-nowrap" style={{ color: ENCRE }}>{a.faites ? `${t} %` : '—'}</b>}
                 </div>
                 {s.cle === 'code' ? (
                   <>
@@ -67,8 +64,25 @@ export default function SuiviPedagogique() {
                     </div>
                   </>
                 ) : (
-                  <div className="h-2 rounded-full mt-1 overflow-hidden" style={{ background: '#eef2f7' }}>
-                    <div className="h-full rounded-full" style={{ width: trace ? `${t}%` : 0, background: s.couleur, transition: `width .9s cubic-bezier(.2,.8,.2,1) ${i * 90}ms` }} />
+                  /* Séries et annales : entraînement et examen blanc séparés */
+                  <div className="flex flex-col gap-1.5 mt-1 ps-5">
+                    {[['entrainement', 'Entraînement', 0.45], ['blanc', 'Examen blanc', 1]].map(([mode, nom, opacite], k) => {
+                      const m = a[mode] || { faites: 0, assimilees: 0 }, tm = pc(m.assimilees, m.faites)
+                      return (
+                        <div key={mode}>
+                          <div className="flex items-baseline justify-between gap-2 text-xs">
+                            <span className="text-slate-600">{nom}</span>
+                            <span className="whitespace-nowrap">
+                              <b className="text-sm font-black" style={{ color: ENCRE }}>{m.faites ? `${tm} %` : '—'}</b>
+                              <span className="text-[11px] text-slate-500 ms-1.5">{m.assimilees}/{m.faites}</span>
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full mt-0.5 overflow-hidden" style={{ background: '#eef2f7' }}>
+                            <div className="h-full rounded-full" style={{ width: trace ? `${tm}%` : 0, background: s.couleur, opacity: opacite, transition: `width .9s cubic-bezier(.2,.8,.2,1) ${(i * 2 + k) * 80}ms` }} />
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

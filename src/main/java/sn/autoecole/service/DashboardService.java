@@ -355,19 +355,21 @@ public class DashboardService {
         List<Eleve> cohorte = eleveRepository.findByStatutAndArchiveFalse(StatutEleve.EN_COURS).stream()
                 .filter(e -> !e.estPerfectionnement() && !admisCode.contains(e.getId())).toList();
         Map<Long, long[]> quizCode = seanceService.quizCodeParEleve();   // {reçues, quiz faits, assimilées}
-        // Séries et annales (entraînement et examen blanc) : faites et assimilées par élève
+        // Séries et annales : faites et assimilées par élève, {entraînement faites, assimilées, blanc faites, assimilées}
         Map<Long, long[]> series = new HashMap<>(), annales = new HashMap<>();
         for (var p : progressionCodeRepository.findAll()) {
             String ch = p.getChapitre();
             if (ch == null || p.getTentatives() <= 0) continue;
-            if (ch.startsWith(sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT))
-                ch = ch.substring(sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT.length());
+            boolean entr = ch.startsWith(sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT);
+            if (entr) ch = ch.substring(sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT.length());
             Map<Long, long[]> cible = ch.startsWith("serie-") ? series : ch.startsWith("annale-") ? annales : null;
             if (cible == null) continue;
-            long[] c = cible.computeIfAbsent(p.getEleveId(), k -> new long[2]);
-            c[0]++;
-            if (p.isReussi()) c[1]++;
+            long[] c = cible.computeIfAbsent(p.getEleveId(), k -> new long[4]);
+            int o = entr ? 0 : 2;
+            c[o]++;
+            if (p.isReussi()) c[o + 1]++;
         }
+        long[][] modes = new long[2][4];           // séries, annales : {entr. faites, entr. assimilées, blanc faites, blanc assimilées}
         long[][] totaux = new long[3][2];          // code (reçues), séries, annales (faites) : {faites, assimilées}
         long quizFaits = 0;
         long[] categories = new long[4];           // pas commencé, à accompagner, en bonne voie, avancés
@@ -377,7 +379,9 @@ public class DashboardService {
             long[] qc = quizCode.getOrDefault(id, new long[3]);
             long fCode = qc[0], okCode = qc[2];
             quizFaits += qc[1];
-            long[] se = series.getOrDefault(id, new long[2]), an = annales.getOrDefault(id, new long[2]);
+            long[] se4 = series.getOrDefault(id, new long[4]), an4 = annales.getOrDefault(id, new long[4]);
+            for (int k = 0; k < 4; k++) { modes[0][k] += se4[k]; modes[1][k] += an4[k]; }
+            long[] se = { se4[0] + se4[2], se4[1] + se4[3] }, an = { an4[0] + an4[2], an4[1] + an4[3] };
             totaux[0][0] += fCode; totaux[0][1] += okCode;
             totaux[1][0] += se[0]; totaux[1][1] += se[1];
             totaux[2][0] += an[0]; totaux[2][1] += an[1];
@@ -400,6 +404,10 @@ public class DashboardService {
         String[] noms = { "code", "series", "annales" };
         Map<String, Object> assimilation = new LinkedHashMap<>();
         for (int k = 0; k < 3; k++) assimilation.put(noms[k], Map.of("faites", totaux[k][0], "assimilees", totaux[k][1]));
+        // Séries et annales, séparées par mode : entraînement et examen blanc
+        for (int k = 1; k < 3; k++) assimilation.put(noms[k], Map.of("faites", totaux[k][0], "assimilees", totaux[k][1],
+                "entrainement", Map.of("faites", modes[k - 1][0], "assimilees", modes[k - 1][1]),
+                "blanc", Map.of("faites", modes[k - 1][2], "assimilees", modes[k - 1][3])));
         // Séances de code : reçues (avec quiz), quiz faits, assimilées
         assimilation.put("code", Map.of("faites", totaux[0][0], "quizFaits", quizFaits, "assimilees", totaux[0][1]));
         Map<String, Object> r = new LinkedHashMap<>();
