@@ -16,6 +16,13 @@ import { useEcole } from '../ecole'
 ══════════════════════════════════════════════════════════ */
 
 /* compact : quatre cartes sur une ligne (marges et icône réduites, titre sur deux lignes au besoin) */
+/* Taux de réussite sur les résultats connus (admis / (admis + refusés)) : un examen en attente
+   n'est ni une réussite ni un échec. Même calcul que le bloc « Réussite aux examens ». */
+const tauxConnus = s => {
+  const connus = (s.examensAdmis || 0) + (s.examensRefuses || 0)
+  return connus > 0 ? Math.round(100 * s.examensAdmis / connus) : null
+}
+
 function StatCard({ title, value, icon, accent, sub, cardStyle, compact }) {
   return (
     <div className={`bg-white rounded-2xl flex items-center hover:shadow-md transition-shadow duration-200 ${compact ? 'px-4 gap-3' : 'px-5 gap-4'}`}
@@ -87,9 +94,7 @@ function DashboardMoniteur({ stats, user }) {
   const enCours   = eleves.filter(e => e.statut === 'EN_COURS').length
   const diplomes  = eleves.filter(e => e.statut === 'DIPLOME').length
   const suspendus = eleves.filter(e => e.statut === 'SUSPENDU').length
-  const tauxReussite = stats.totalExamens > 0
-    ? Math.round((stats.examensAdmis / stats.totalExamens) * 100)
-    : null
+  const tauxReussite = tauxConnus(stats)
 
   const kpis = [
     { label: 'Mes élèves', value: eleves.length,          icon: 'people-fill',          color: '#60a5fa' },
@@ -136,7 +141,7 @@ function DashboardMoniteur({ stats, user }) {
               <div className="text-3xl font-extrabold" style={{ color: tauxReussite >= 70 ? '#4ade80' : tauxReussite >= 50 ? '#fbbf24' : '#f87171' }}>
                 {tauxReussite}%
               </div>
-              <div className="text-xs text-blue-300 mt-0.5">{stats.examensAdmis} / {stats.totalExamens} examens</div>
+              <div className="text-xs text-blue-300 mt-0.5">{stats.examensAdmis} admis sur {stats.examensAdmis + stats.examensRefuses}</div>
             </div>
           )}
         </div>
@@ -298,7 +303,7 @@ function DashboardAdmin({ stats, user }) {
   const ecole = useEcole()
   const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
-  const tauxReussite = stats.totalExamens > 0 ? Math.round((stats.examensAdmis / stats.totalExamens) * 100) : null
+  const tauxReussite = tauxConnus(stats)
 
   /* Montants masquables (ex. présentation en partage d'écran) ; choix retenu sur ce navigateur */
   const [montantsMasques, setMontantsMasques] = useState(() => {
