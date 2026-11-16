@@ -20,7 +20,7 @@ export const CHAPITRES = [
     panneaux: [
       p('A1a', 'Virage à droite', 'Un virage serré vers la droite arrive.', 'Ralentissez avant le virage et gardez bien votre droite ; ne freinez pas en plein virage.'),
       p('A1b', 'Virage à gauche', 'Un virage serré vers la gauche arrive.', 'Réduisez votre vitesse avant d\'entrer dans le virage et restez dans votre voie.'),
-      p('A1c', 'Succession de virages', 'Plusieurs virages s\'enchaînent, le premier vers la droite.', 'Gardez une vitesse modérée tout le long, sans réaccélérer entre deux virages.'),
+      p('A1c', 'Succession de virages (premier à droite)', 'Plusieurs virages s\'enchaînent, le premier vers la droite.', 'Gardez une vitesse modérée tout le long, sans réaccélérer entre deux virages.'),
       p('A2a', 'Cassis ou dos-d\'âne', 'La chaussée présente un creux ou une bosse.', 'Passez très lentement pour ne perdre ni le contrôle ni votre suspension.'),
       p('A2b', 'Ralentisseur (dos-d\'âne)', 'Un ralentisseur surélevé est installé sur la route.', 'Abordez-le au pas, surtout près des écoles et des marchés.'),
       p('A3', 'Chaussée rétrécie', 'La route devient plus étroite.', 'Serrez à droite et soyez prêt à laisser passer le véhicule d\'en face.'),
@@ -36,6 +36,20 @@ export const CHAPITRES = [
       p('AB1', 'Intersection avec priorité à droite', 'Un carrefour arrive où les véhicules venant de droite passent en premier.', 'Ralentissez et cédez le passage à ceux qui arrivent de votre droite.'),
       p('AB2', 'Intersection où vous êtes prioritaire', 'Au prochain carrefour, vous êtes prioritaire sur les routes qui débouchent.', 'Gardez une vitesse prudente : un conducteur peut ne pas respecter votre priorité.'),
       p('A14', 'Autres dangers', 'Un danger que ne décrit aucun autre panneau.', 'Ralentissez et lisez le panonceau qui précise le danger.'),
+      // Ajoutés à la suite (n° 19 à 30) pour ne pas décaler les numéros des parties déjà ouvertes aux élèves
+      p('A1d', 'Succession de virages (premier à gauche)', 'Plusieurs virages s\'enchaînent, le premier vers la gauche.', 'Gardez une vitesse modérée tout le long et restez bien dans votre voie.'),
+      p('A3a', 'Chaussée rétrécie par la droite', 'La route se rétrécit du côté droit.', 'Ralentissez et décalez-vous vers la gauche sans gêner les véhicules d\'en face.'),
+      p('A3b', 'Chaussée rétrécie par la gauche', 'La route se rétrécit du côté gauche.', 'Ralentissez et serrez bien à droite.'),
+      p('A18', 'Circulation dans les deux sens', 'Après une portion à sens unique, les véhicules circulent de nouveau dans les deux sens.', 'Restez bien à droite : des véhicules arrivent en face.'),
+      p('A6', 'Pont mobile', 'Un pont qui peut se lever ou pivoter arrive.', 'Ralentissez et arrêtez-vous si le pont est ouvert ou si les feux l\'indiquent.'),
+      p('A20', 'Quai ou berge', 'La route débouche sur un quai ou une berge : risque de tomber à l\'eau.', 'Ralentissez fortement et soyez prêt à vous arrêter.'),
+      p('A19', 'Chute de pierres', 'Des pierres peuvent tomber ou se trouver sur la chaussée.', 'Ralentissez, surveillez la chaussée et ne vous arrêtez pas au pied de la paroi.'),
+      p('A15b', 'Animaux sauvages', 'Des animaux sauvages peuvent traverser.', 'Ralentissez, surtout la nuit, et évitez tout écart brusque.'),
+      { id: 'caleches', image: '/panneaux/caleches.png', nom: 'Véhicules à traction animale', sens: 'Des charrettes et calèches tirées par des chevaux ou des ânes circulent souvent.', action: 'Ralentissez et dépassez-les avec un large écart, sans klaxonner pour ne pas effrayer l\'animal.' },
+      p('A21', 'Débouché de cyclistes', 'Des cyclistes passent souvent ou débouchent sur la route.', 'Ralentissez et laissez-leur un large écart pour les dépasser.'),
+      p('AB25', 'Carrefour à sens giratoire', 'Un rond-point arrive.', 'Ralentissez et cédez le passage aux véhicules déjà engagés dans l\'anneau.'),
+      // Pas un panneau : l'illustration de la manche à air qui accompagne le vent latéral (hors quiz)
+      { id: 'manche-air', image: '/panneaux/manche-air.png', nom: 'Manche à air', sens: 'Elle montre la force du vent de côté : pendante, vent nul ; inclinée, vent faible ; horizontale, vent fort.', action: 'Plus elle est horizontale, plus vous ralentissez et tenez fermement le volant.', quiz: false },
     ],
     questions: [
       { q: 'Que vous demande un panneau de danger ?', ok: 'Ralentir et anticiper', non: ['Vous arrêter', 'Klaxonner'] },
