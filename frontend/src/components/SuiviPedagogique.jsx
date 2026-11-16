@@ -39,7 +39,7 @@ export default function SuiviPedagogique() {
   return (
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
       <EnteteListe icone="mortarboard-fill" titre="Suivi pédagogique" sousTitre={`${d.eleves} élève${d.eleves > 1 ? 's' : ''} du permis en préparation du code`} />
-      <div className="p-5">
+      <div className="p-5 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5">
         {/* Part assimilée par support */}
         <div className="flex flex-col gap-3">
           {SUPPORTS.map((s, i) => {
@@ -91,9 +91,11 @@ export default function SuiviPedagogique() {
           <div className="text-[11px] text-slate-400"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances : seulement celles qui ont un quiz, sur celles reçues ; séries et annales : sur celles faites.</div>
         </div>
 
+        {/* Colonne de droite : élèves par niveau, puis à accompagner */}
+        <div>
         {/* Élèves par niveau */}
         {d.eleves > 0 && (
-          <div className="mt-5">
+          <div>
             <div className="text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Élèves par niveau</div>
             <div className="flex h-3 rounded-full overflow-hidden gap-[2px]" role="img" aria-label="Élèves par niveau d'assimilation">
               {cats.filter(c => c.nombre > 0).map(c => (
@@ -140,6 +142,7 @@ export default function SuiviPedagogique() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )
