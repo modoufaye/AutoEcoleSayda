@@ -1,5 +1,8 @@
 package sn.autoecole.service;
 
+import sn.autoecole.entity.Examen;
+import sn.autoecole.enums.TypeExamen;
+import sn.autoecole.enums.ResultatExamen;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -152,5 +155,58 @@ public class DashboardService {
         List<Integer> annees = tous.stream().map(Eleve::getDateInscription).filter(Objects::nonNull)
                 .map(LocalDate::getYear).distinct().sorted(Comparator.reverseOrder()).toList();
         return Map.of("annee", annee, "mois", mois, "annees", annees);
+    }
+
+    /**
+     * Réussite aux examens (code et conduite) d'une année, ou de toutes (annee null). Le taux ne
+     * compte que les résultats connus (admis / (admis + refusés)) : un examen en attente n'est ni
+     * un succès ni un échec. « Premier coup » : candidats admis dès leur première tentative.
+     * Détail par mois pour une année, par année sinon.
+     */
+    public Map<String, Object> reussite(Integer annee) {
+        List<Examen> tous = examenRepository.findAll();
+        List<Examen> choisis = tous.stream().filter(x -> x.getDate() != null && (annee == null || x.getDate().getYear() == annee)).toList();
+        List<Integer> annees = tous.stream().map(Examen::getDate).filter(Objects::nonNull).map(LocalDate::getYear)
+                .distinct().sorted(Comparator.reverseOrder()).toList();
+
+        List<Integer> cles = annee != null
+                ? java.util.stream.IntStream.rangeClosed(1, 12).boxed().toList()
+                : annees.stream().sorted().toList();
+        List<Map<String, Object>> periodes = new java.util.ArrayList<>();
+        for (Integer cle : cles) {
+            List<Examen> ici = choisis.stream().filter(x -> (annee != null ? x.getDate().getMonthValue() : x.getDate().getYear()) == cle).toList();
+            periodes.add(Map.of("cle", cle, "code", bilan(ici, TypeExamen.CODE, false), "conduite", bilan(ici, TypeExamen.CONDUITE, false)));
+        }
+        Map<String, Object> r = new java.util.LinkedHashMap<>();
+        r.put("annee", annee);
+        r.put("annees", annees);
+        r.put("code", bilan(choisis, TypeExamen.CODE, true));
+        r.put("conduite", bilan(choisis, TypeExamen.CONDUITE, true));
+        r.put("periodes", periodes);
+        return r;
+    }
+
+    private static Map<String, Object> bilan(List<Examen> examens, TypeExamen type, boolean detail) {
+        long admis = 0, refuses = 0, attente = 0, admis1 = 0, decides1 = 0;
+        for (Examen x : examens) {
+            if (x.getType() != type) continue;
+            ResultatExamen res = x.getResultat();
+            if (res == ResultatExamen.ADMIS) admis++;
+            else if (res == ResultatExamen.REFUSE) refuses++;
+            else attente++;
+            if (x.getTentative() <= 1 && res != ResultatExamen.EN_ATTENTE) {
+                decides1++;
+                if (res == ResultatExamen.ADMIS) admis1++;
+            }
+        }
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("admis", admis);
+        m.put("refuses", refuses);
+        if (detail) {
+            m.put("enAttente", attente);
+            m.put("premierCoupAdmis", admis1);
+            m.put("premierCoupPasses", decides1);
+        }
+        return m;
     }
 }

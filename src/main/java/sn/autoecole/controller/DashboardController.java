@@ -28,6 +28,12 @@ public class DashboardController {
     }
 
     /** Répartition des élèves par lieu d'inscription et par quartier ; annee absente : toutes. */
+    /** Réussite aux examens : une année (détail par mois) ou toutes (annee absente, détail par année). */
+    @GetMapping("/reussite")
+    public Map<String, Object> reussite(@RequestParam(required = false) Integer annee) {
+        return dashboardService.reussite(annee);
+    }
+
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {
         return dashboardService.localites(annee);
