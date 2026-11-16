@@ -131,6 +131,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/reussite").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/finances").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/parcours").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
+                .requestMatchers("/api/dashboard/pedagogie").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
                 // Toutes les autres routes nécessitent une authentification

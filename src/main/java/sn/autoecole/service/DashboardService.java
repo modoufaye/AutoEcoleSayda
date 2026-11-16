@@ -33,6 +33,7 @@ public class DashboardService {
     private final ResultatQuizSeanceRepository resultatQuizSeanceRepository;
     private final BureauService bureauService;
     private final SeanceService seanceService;
+    private final ProgressionCodeRepository progressionCodeRepository;
 
     public DashboardStats getStats() {
         LocalDate debutMois = LocalDate.now().withDayOfMonth(1);
@@ -340,6 +341,68 @@ public class DashboardService {
         r.put("etapes", etapes);
         r.put("enFormation", enFormation);
         r.put("sortis", Arrays.stream(sortis).sum());
+        return r;
+    }
+
+    /**
+     * Suivi pédagogique des élèves du permis en préparation du code (en cours, non archivés, pas
+     * encore admis au code) : séances de code, séries et annales assimilées (70 % ou plus au moins
+     * une fois) sur reçues/faites, répartition des élèves selon leur taux d'assimilation, et ceux
+     * à accompagner en premier (le plus faible taux, au moins 3 éléments faits).
+     */
+    public Map<String, Object> pedagogie() {
+        Set<Long> admisCode = new HashSet<>(examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS));
+        List<Eleve> cohorte = eleveRepository.findByStatutAndArchiveFalse(StatutEleve.EN_COURS).stream()
+                .filter(e -> !e.estPerfectionnement() && !admisCode.contains(e.getId())).toList();
+        Map<Long, Long> codeRecues = seanceService.seancesCodeParEleve();
+        Map<Long, Long> codeOk = seanceService.seancesCodeAssimileesParEleve();
+        // Séries et annales (entraînement et examen blanc) : faites et assimilées par élève
+        Map<Long, long[]> series = new HashMap<>(), annales = new HashMap<>();
+        for (var p : progressionCodeRepository.findAll()) {
+            String ch = p.getChapitre();
+            if (ch == null || p.getTentatives() <= 0) continue;
+            if (ch.startsWith(sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT))
+                ch = ch.substring(sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT.length());
+            Map<Long, long[]> cible = ch.startsWith("serie-") ? series : ch.startsWith("annale-") ? annales : null;
+            if (cible == null) continue;
+            long[] c = cible.computeIfAbsent(p.getEleveId(), k -> new long[2]);
+            c[0]++;
+            if (p.isReussi()) c[1]++;
+        }
+        long[][] totaux = new long[3][2];          // code, séries, annales : {faites, assimilées}
+        long[] categories = new long[4];           // pas commencé, à accompagner, en bonne voie, avancés
+        List<Map<String, Object>> faibles = new ArrayList<>();
+        for (Eleve e : cohorte) {
+            Long id = e.getId();
+            long okCode = codeOk.getOrDefault(id, 0L), fCode = Math.max(okCode, codeRecues.getOrDefault(id, 0L));
+            long[] se = series.getOrDefault(id, new long[2]), an = annales.getOrDefault(id, new long[2]);
+            totaux[0][0] += fCode; totaux[0][1] += okCode;
+            totaux[1][0] += se[0]; totaux[1][1] += se[1];
+            totaux[2][0] += an[0]; totaux[2][1] += an[1];
+            long faites = fCode + se[0] + an[0], ok = okCode + se[1] + an[1];
+            if (faites == 0) { categories[0]++; continue; }
+            double t = (double) ok / faites;
+            categories[t < 0.5 ? 1 : t < 0.8 ? 2 : 3]++;
+            if (faites >= 3 && t < 0.5) {
+                Map<String, Object> f = new LinkedHashMap<>();
+                f.put("id", id);
+                f.put("nom", ((e.getPrenom() == null ? "" : e.getPrenom()) + " " + (e.getNom() == null ? "" : e.getNom())).trim());
+                f.put("telephone", e.getTelephone());
+                f.put("assimilees", ok);
+                f.put("faites", faites);
+                faibles.add(f);
+            }
+        }
+        faibles.sort(Comparator.<Map<String, Object>>comparingDouble(f -> (double) (long) f.get("assimilees") / (long) f.get("faites"))
+                .thenComparing(f -> -(long) f.get("faites")));
+        String[] noms = { "code", "series", "annales" };
+        Map<String, Object> assimilation = new LinkedHashMap<>();
+        for (int k = 0; k < 3; k++) assimilation.put(noms[k], Map.of("faites", totaux[k][0], "assimilees", totaux[k][1]));
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("eleves", cohorte.size());
+        r.put("assimilation", assimilation);
+        r.put("categories", Map.of("pasCommence", categories[0], "aAccompagner", categories[1], "enBonneVoie", categories[2], "avances", categories[3]));
+        r.put("aAccompagner", faibles.subList(0, Math.min(6, faibles.size())));
         return r;
     }
 }

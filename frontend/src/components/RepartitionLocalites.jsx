@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useBureaux, EN_LIGNE } from '../bureaux'
 import { EnteteListe } from './ListeModerne'
 import SelecteurAnnee from './SelecteurAnnee'
+import SuiviPedagogique from './SuiviPedagogique'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -78,7 +79,7 @@ function Evolution({ maintenant, avant, reference }) {
 }
 
 /* Tableau de bord (admin, secrétariat) : élèves par lieu d'inscription — phrase-clé, anneau et
-   classement des lieux avec leur évolution sur un an — puis quartiers les plus représentés. */
+   classement des lieux avec leur évolution sur un an — et, à côté, le suivi pédagogique. */
 export default function RepartitionLocalites() {
   const bureaux = useBureaux()
   const anneeCourante = new Date().getFullYear()
@@ -96,7 +97,6 @@ export default function RepartitionLocalites() {
   if (!d) return null
 
   const periode = annee ? `inscrits en ${annee}` : 'inscrits depuis le début'
-  const qmax = Math.max(1, ...d.quartiers.map(q => q.nombre))
   const choixAnnee = (
     <SelecteurAnnee annees={[String(anneeCourante), ...d.annees.map(String)]} valeur={annee}
       onChange={a => { setAnnee(a); setActif(null) }} avecToutes />
@@ -192,28 +192,8 @@ export default function RepartitionLocalites() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
-        <EnteteListe icone="houses-fill" titre="Quartiers les plus représentés" sousTitre="D'après l'adresse des élèves" />
-        <div className="p-5 flex flex-col gap-2.5">
-          {d.quartiers.length === 0 && <div className="text-center text-sm text-slate-400 py-6">Aucune adresse renseignée</div>}
-          {d.quartiers.map(q => (
-            <div key={q.nom} className="flex items-center gap-3">
-              <span className="w-32 sm:w-36 text-sm font-bold text-slate-700 truncate" title={q.nom}>{q.nom}</span>
-              <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ background: '#eef2f7' }}>
-                <div className="h-full rounded-full" style={{ width: `${100 * q.nombre / qmax}%`, background: 'linear-gradient(90deg,#1e3a5f,#2a4f7c)', transition: 'width .6s' }} />
-              </div>
-              <span className="w-8 text-right text-sm font-extrabold" style={{ color: '#1e3a5f' }}>{q.nombre}</span>
-            </div>
-          ))}
-          {(d.autresQuartiers > 0 || d.sansAdresse > 0) && (
-            <div className="text-xs text-slate-500 mt-1">
-              {d.autresQuartiers > 0 && <>+ {d.autresQuartiers} élève{d.autresQuartiers > 1 ? 's' : ''} dans {d.nbAutresQuartiers} autre{d.nbAutresQuartiers > 1 ? 's' : ''} quartier{d.nbAutresQuartiers > 1 ? 's' : ''}</>}
-              {d.autresQuartiers > 0 && d.sansAdresse > 0 && ' · '}
-              {d.sansAdresse > 0 && <>{d.sansAdresse} sans adresse</>}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Suivi pédagogique (à la place des quartiers) */}
+      <SuiviPedagogique />
     </div>
   )
 }

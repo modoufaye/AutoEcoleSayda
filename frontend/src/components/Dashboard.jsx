@@ -457,7 +457,7 @@ function DashboardAdmin({ stats, user }) {
             pas tous saisis (AFFICHER_REUSSITE_EXAMENS) */}
         {AFFICHER_REUSSITE_EXAMENS && <ReussiteExamens />}
 
-        {/* Élèves par lieu d'inscription et par quartier */}
+        {/* Élèves par lieu d'inscription, et suivi pédagogique à côté */}
         <RepartitionLocalites />
       </div>
 

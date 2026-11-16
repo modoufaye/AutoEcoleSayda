@@ -46,6 +46,12 @@ public class DashboardController {
         return dashboardService.parcours(annee);
     }
 
+    /** Suivi pédagogique des élèves en préparation du code : assimilation et élèves à accompagner. */
+    @GetMapping("/pedagogie")
+    public Map<String, Object> pedagogie() {
+        return dashboardService.pedagogie();
+    }
+
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {
         return dashboardService.localites(annee);
