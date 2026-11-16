@@ -116,7 +116,7 @@ export default function RepartitionLocalites() {
   const max = Math.max(1, ...d.lieux.map(l => l.nombre))
 
   return (
-    <div className="mt-3 grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-4">
+    <div className="mt-3 grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-4 items-start">
       <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
         <EnteteListe icone="geo-alt-fill" titre="Élèves par lieu d'inscription" sousTitre={`${eleves(d.total)} ${periode}`} />
         {/* Choix de l'année sous le bandeau : dans le bandeau, il chevauchait le titre sur téléphone */}
