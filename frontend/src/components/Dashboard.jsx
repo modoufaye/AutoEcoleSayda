@@ -12,6 +12,8 @@ import ParcoursEleves from './ParcoursEleves'
 
 // Bloc « Réussite aux examens » prêt mais masqué : les résultats d'examens ne sont pas encore tous saisis.
 const AFFICHER_REUSSITE_EXAMENS = false
+// Bloc « Parcours des élèves » prêt mais masqué à la demande de l'auto-école.
+const AFFICHER_PARCOURS_ELEVES = false
 import InscriptionsParMois from './InscriptionsParMois'
 import '../landing.css'
 import { useEcole } from '../ecole'
@@ -448,8 +450,8 @@ function DashboardAdmin({ stats, user }) {
         {/* Nouveaux élèves par mois (courbe) */}
         <InscriptionsParMois />
 
-        {/* Parcours des élèves du permis, de l'inscription au permis (entonnoir) */}
-        <ParcoursEleves />
+        {/* Parcours des élèves du permis, de l'inscription au permis (entonnoir) : masqué pour le moment */}
+        {AFFICHER_PARCOURS_ELEVES && <ParcoursEleves />}
 
         {/* Réussite aux examens du code et de la conduite : masquée tant que les résultats ne sont
             pas tous saisis (AFFICHER_REUSSITE_EXAMENS) */}
