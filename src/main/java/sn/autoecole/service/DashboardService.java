@@ -209,4 +209,79 @@ public class DashboardService {
         }
         return m;
     }
+
+    /** Seuils des reliquats (FCFA) : « moins de 50 000 », « 50 000 à 100 000 », « plus de 100 000 ». */
+    private static final java.math.BigDecimal SEUIL_BAS = java.math.BigDecimal.valueOf(50_000), SEUIL_HAUT = java.math.BigDecimal.valueOf(100_000);
+
+    /**
+     * Argent : encaissements (paiements « payé ») d'une année par mois, ou de toutes par année ;
+     * et reliquats des élèves non archivés dont le prix est fixé (prix − payé), répartis par
+     * montant restant, avec les plus gros reliquats à relancer en premier. Les reliquats sont
+     * ceux d'aujourd'hui, quelle que soit l'année choisie.
+     */
+    public Map<String, Object> finances(Integer annee) {
+        List<sn.autoecole.entity.Paiement> payes = paiementRepository.findAll().stream()
+                .filter(p -> p.getStatut() == StatutPaiement.PAYE && p.getDate() != null && p.getMontant() != null).toList();
+        List<Integer> annees = payes.stream().map(p -> p.getDate().getYear()).distinct().sorted(Comparator.reverseOrder()).toList();
+        List<Integer> cles = annee != null
+                ? java.util.stream.IntStream.rangeClosed(1, 12).boxed().toList()
+                : annees.stream().sorted().toList();
+        List<Map<String, Object>> periodes = new ArrayList<>();
+        java.math.BigDecimal totalPeriode = java.math.BigDecimal.ZERO;
+        for (Integer cle : cles) {
+            java.math.BigDecimal montant = java.math.BigDecimal.ZERO;
+            long nombre = 0;
+            for (var p : payes) {
+                if (annee != null && (p.getDate().getYear() != annee || p.getDate().getMonthValue() != cle)) continue;
+                if (annee == null && p.getDate().getYear() != cle) continue;
+                montant = montant.add(p.getMontant());
+                nombre++;
+            }
+            totalPeriode = totalPeriode.add(montant);
+            periodes.add(Map.of("cle", cle, "montant", montant, "nombre", nombre));
+        }
+
+        Map<Long, java.math.BigDecimal> payeParEleve = new HashMap<>();
+        for (Object[] r : paiementRepository.totauxPayesParEleve()) payeParEleve.put((Long) r[0], (java.math.BigDecimal) r[1]);
+        long[] nb = new long[4];
+        java.math.BigDecimal[] somme = { java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO };
+        long sansPrix = 0;
+        java.math.BigDecimal totalReste = java.math.BigDecimal.ZERO;
+        List<Map<String, Object>> doivent = new ArrayList<>();
+        for (Eleve e : eleveRepository.findByArchiveFalse()) {
+            if (e.getMontantTotal() == null || e.getMontantTotal().signum() <= 0) { sansPrix++; continue; }
+            java.math.BigDecimal paye = payeParEleve.getOrDefault(e.getId(), java.math.BigDecimal.ZERO);
+            java.math.BigDecimal reste = e.getMontantTotal().subtract(paye);
+            int t = reste.signum() <= 0 ? 0 : reste.compareTo(SEUIL_BAS) < 0 ? 1 : reste.compareTo(SEUIL_HAUT) <= 0 ? 2 : 3;
+            nb[t]++;
+            if (t > 0) {
+                somme[t] = somme[t].add(reste);
+                totalReste = totalReste.add(reste);
+                Map<String, Object> d = new LinkedHashMap<>();
+                d.put("id", e.getId());
+                d.put("nom", ((e.getPrenom() == null ? "" : e.getPrenom()) + " " + (e.getNom() == null ? "" : e.getNom())).trim());
+                d.put("telephone", e.getTelephone());
+                d.put("reste", reste);
+                d.put("paye", paye);
+                d.put("total", e.getMontantTotal());
+                doivent.add(d);
+            }
+        }
+        doivent.sort((a, b) -> ((java.math.BigDecimal) b.get("reste")).compareTo((java.math.BigDecimal) a.get("reste")));
+        String[] noms = { "solde", "moins50", "de50a100", "plus100" };
+        List<Map<String, Object>> tranches = new ArrayList<>();
+        for (int t = 0; t < 4; t++) tranches.add(Map.of("cle", noms[t], "nombre", nb[t], "montant", somme[t]));
+
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("annee", annee);
+        r.put("annees", annees);
+        r.put("periodes", periodes);
+        r.put("totalPeriode", totalPeriode);
+        r.put("tranches", tranches);
+        r.put("totalReste", totalReste);
+        r.put("elevesQuiDoivent", doivent.size());
+        r.put("sansPrix", sansPrix);
+        r.put("aRelancer", doivent.subList(0, Math.min(8, doivent.size())));
+        return r;
+    }
 }

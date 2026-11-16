@@ -7,6 +7,7 @@ import ComptesBloques from './ComptesBloques'
 import DemandesInscription from './DemandesInscription'
 import RepartitionLocalites from './RepartitionLocalites'
 import ReussiteExamens from './ReussiteExamens'
+import ArgentEcole from './ArgentEcole'
 
 // Bloc « Réussite aux examens » prêt mais masqué : les résultats d'examens ne sont pas encore tous saisis.
 const AFFICHER_REUSSITE_EXAMENS = false
@@ -650,6 +651,9 @@ function DashboardAdmin({ stats, user }) {
             <FinanceCard value={montant(stats.revenusMois)}   label={`Revenus ${new Date().toLocaleDateString('fr-SN', { month: 'long' })}`} icon="graph-up-arrow" accent="#8b5cf6" />
           </div>
         </div>
+
+        {/* Encaissements par mois et reliquats à relancer */}
+        <ArgentEcole masquer={montantsMasques} />
       </div>
 
     </div>

@@ -34,6 +34,12 @@ public class DashboardController {
         return dashboardService.reussite(annee);
     }
 
+    /** Encaissements par mois (ou par année) et reliquats des élèves à relancer. */
+    @GetMapping("/finances")
+    public Map<String, Object> finances(@RequestParam(required = false) Integer annee) {
+        return dashboardService.finances(annee);
+    }
+
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {
         return dashboardService.localites(annee);
