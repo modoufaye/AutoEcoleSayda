@@ -47,7 +47,10 @@ export async function api(method, url, body = null) {
     window.location.href = '/login'
     return
   }
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || (data.erreurs ? JSON.stringify(data.erreurs) : 'Erreur serveur'))
+  // Réponse vide (action sans résultat, ex. suppression d'un audio wolof) : pas de JSON à lire
+  const texte = await res.text()
+  let data
+  try { data = texte ? JSON.parse(texte) : null } catch { data = null }
+  if (!res.ok) throw new Error(data?.message || (data?.erreurs ? JSON.stringify(data.erreurs) : 'Erreur serveur'))
   return data
 }
