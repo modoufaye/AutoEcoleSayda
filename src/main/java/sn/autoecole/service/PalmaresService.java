@@ -40,8 +40,14 @@ public class PalmaresService {
     private final AutoEcoleConfigRepository configRepo;
     private final EcoleService ecoleService;
 
-    /** Meilleur score d'une séance et les élèves qui l'ont obtenu. */
-    public record Ligne(Long seanceId, String titre, int score, int total, List<String> noms, Set<Long> eleveIds) {}
+    /** Un champion d'une séance : son meilleur score. */
+    public record Champion(Long eleveId, String nom, int score, int total) {}
+
+    /** Les meilleurs élèves d'une séance (au plus CHAMPIONS_PAR_SEANCE), du premier au dernier. */
+    public record Ligne(Long seanceId, String titre, List<Champion> champions) {}
+
+    /** Deux champions par séance : une annonce lisible, même quand beaucoup d'élèves ont réussi. */
+    public static final int CHAMPIONS_PAR_SEANCE = 2;
 
     /** Prénom et nom en entier : « Awa Diop » (espaces en trop retirés). */
     public static String nomCourt(Eleve e) {
@@ -88,18 +94,21 @@ public class PalmaresService {
         parSeance.forEach((seanceId, resultats) -> {
             Seance s = seances.get(seanceId);
             if (s == null) return;
-            double meilleur = resultats.stream().mapToDouble(r -> (double) r.getMeilleurScore() / r.getMeilleurTotal()).max().orElse(0);
-            if (meilleur <= 0) return;
+            // Classement : meilleur score (en %), puis le moins de tentatives (réussi le plus vite),
+            // puis le meilleur dernier score (régularité), puis le nom
             List<ResultatQuizSeance> premiers = resultats.stream()
-                    .filter(r -> Math.abs((double) r.getMeilleurScore() / r.getMeilleurTotal() - meilleur) < 1e-9)
+                    .filter(r -> r.getMeilleurScore() > 0)
                     .filter(r -> eleves.containsKey(r.getEleveId()) && !eleves.get(r.getEleveId()).isArchive())
-                    .sorted(Comparator.comparing(r -> nomCourt(eleves.get(r.getEleveId()))))
+                    .sorted(Comparator.comparingDouble((ResultatQuizSeance r) -> -(double) r.getMeilleurScore() / r.getMeilleurTotal())
+                            .thenComparingInt(ResultatQuizSeance::getTentatives)
+                            .thenComparingDouble(r -> r.getTotal() > 0 ? -(double) r.getScore() / r.getTotal() : 0)
+                            .thenComparing(r -> nomCourt(eleves.get(r.getEleveId()))))
+                    .limit(CHAMPIONS_PAR_SEANCE)
                     .toList();
             if (premiers.isEmpty()) return;
-            ResultatQuizSeance ref = premiers.get(0);
-            lignes.add(new Ligne(seanceId, s.getTitre(), ref.getMeilleurScore(), ref.getMeilleurTotal(),
-                    premiers.stream().map(r -> nomCourt(eleves.get(r.getEleveId()))).toList(),
-                    premiers.stream().map(ResultatQuizSeance::getEleveId).collect(Collectors.toSet())));
+            lignes.add(new Ligne(seanceId, s.getTitre(), premiers.stream()
+                    .map(r -> new Champion(r.getEleveId(), nomCourt(eleves.get(r.getEleveId())), r.getMeilleurScore(), r.getMeilleurTotal()))
+                    .toList()));
         });
         lignes.sort(Comparator.comparing((Ligne l) -> Optional.ofNullable(seances.get(l.seanceId()).getDateHeure()).orElse(LocalDateTime.MIN)).reversed());
         return lignes;
@@ -129,7 +138,9 @@ public class PalmaresService {
         StringBuilder t = new StringBuilder("Bravo aux meilleurs scores aux quiz des séances, ").append(periode).append(" :\n");
         int n = 0;
         for (Ligne l : lignes) {
-            String ligne = "\n• « " + l.titre() + " » : " + String.join(", ", l.noms()) + " (" + l.score() + "/" + l.total() + ")";
+            // « • « Titre » : Awa Diop (10/10), Moussa Ba (9/10) » : chaque champion avec son score
+            String ligne = "\n• « " + l.titre() + " » : " + l.champions().stream()
+                    .map(c -> c.nom() + " (" + c.score() + "/" + c.total() + ")").collect(Collectors.joining(", "));
             if (t.length() + ligne.length() > 1900) { t.append("\n…"); break; }
             t.append(ligne); n++;
         }

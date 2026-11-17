@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 /* Annonce « 🏆 Les champions de la semaine » (PalmaresService) en carte mentale, à la manière
    d'une carte colorée : au centre la semaine, autour une séance par branche (cercle de couleur),
    au bout de chaque branche un cercle par champion, de la couleur de sa séance. Le texte publié
-   sert de source : « • « Titre » : Awa Diop, Moussa Ba (9/10) ». */
+   sert de source : « • « Titre » : Awa Diop (10/10), Moussa Ba (9/10) » (un score par champion) ;
+   les anciennes annonces « • « Titre » : Awa Diop, Moussa Ba (9/10) » (un score commun) restent lues. */
 export const TITRE_CHAMPIONS = '🏆 Les champions de la semaine'
 
 // Couleurs vives et claires (une par séance), avec leur anneau plus foncé
@@ -19,8 +20,18 @@ function lireChampions(contenu) {
   const lignes = contenu.split('\n')
   const seances = []
   for (const l of lignes) {
-    const m = l.match(/^•\s*«\s*(.+?)\s*»\s*:\s*(.+?)\s*\((\d+)\/(\d+)\)\s*$/)
-    if (m) seances.push({ titre: m[1], noms: m[2].split(',').map(n => n.trim()).filter(Boolean), score: +m[3], total: +m[4] })
+    const m = l.match(/^•\s*«\s*(.+?)\s*»\s*:\s*(.+)$/)
+    if (!m) continue
+    const partie = m[2].trim()
+    const avecScores = [...partie.matchAll(/([^,()]+?)\s*\((\d+)\/(\d+)\)/g)]
+    let champions
+    if (avecScores.length > 1 || (avecScores.length === 1 && !partie.slice(0, partie.indexOf('(')).includes(','))) {
+      champions = avecScores.map(x => ({ nom: x[1].trim(), score: +x[2], total: +x[3] }))   // un score par champion
+    } else if (avecScores.length === 1) {
+      const commun = avecScores[0]                                                         // ancien format : score commun
+      champions = partie.slice(0, partie.indexOf('(')).split(',').map(n => n.trim()).filter(Boolean).map(nom => ({ nom, score: +commun[2], total: +commun[3] }))
+    } else continue
+    if (champions.length) seances.push({ titre: m[1], champions, score: champions[0].score, total: champions[0].total, noms: champions.map(c => c.nom) })
   }
   if (!seances.length) return null
   const periode = contenu.match(/du (\d{2}\/\d{2}) au (\d{2}\/\d{2})/)
@@ -51,8 +62,8 @@ function CarteEtoile({ data }) {
   const branches = data.seances.map((s, i) => {
     const a = -Math.PI / 2 + (2 * Math.PI * i) / n
     const sx = cx + anneau.rx * Math.cos(a), sy = cy + anneau.ry * Math.sin(a)
-    const visibles = s.noms.slice(0, MAX_PAR_SEANCE), reste = s.noms.length - visibles.length
-    const enfants = [...visibles.map(nom => ({ nom })), ...(reste > 0 ? [{ plus: reste }] : [])]
+    const visibles = s.champions.slice(0, MAX_PAR_SEANCE), reste = s.champions.length - visibles.length
+    const enfants = [...visibles.map((ch, rang) => ({ nom: ch.nom, note: `${ch.score}/${ch.total}`, rang })), ...(reste > 0 ? [{ plus: reste }] : [])]
     const pas = 0.72                                      // écart angulaire entre deux champions
     return { s, i, sx, sy, enfants: enfants.map((e, k) => {
       const da = (k - (enfants.length - 1) / 2) * pas
@@ -65,7 +76,7 @@ function CarteEtoile({ data }) {
   const m = 12, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m
   const W = Math.max(...xs) + m - x0, H = Math.max(...ys) + m - y0
   return (
-    <svg viewBox={`${x0} ${y0} ${W} ${H}`} className="w-full h-auto" role="img"
+    <svg viewBox={`${x0} ${y0} ${W} ${H}`} className="block w-full h-auto mx-auto" style={{ maxWidth: W }} role="img"
       aria-label={`Champions de la semaine ${data.periode} : ${data.seances.map(s => `${s.titre}, ${s.noms.join(', ')}`).join(' ; ')}`}>
       {branches.map(({ s, i, sx, sy, enfants }) => {
         const [c, f] = COULEURS[i % COULEURS.length]
@@ -81,10 +92,16 @@ function CarteEtoile({ data }) {
                   <circle cx={ex} cy={ey} r={RE} fill={c} />
                   {e.plus ? (
                     <text x={ex} y={ey + 6} textAnchor="middle" fontSize="18" fontWeight="800" fill="#fff">+{e.plus}</text>
-                  ) : couper(e.nom, 11, 3).map((l, j, t) => (
-                    <text key={j} x={ex} y={ey + 4 + (j - (t.length - 1) / 2) * 14} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="#fff"
-                      style={{ letterSpacing: '.04em', textTransform: 'uppercase' }}>{l}</text>
-                  ))}
+                  ) : <>
+                    {couper(e.nom, 12, 2).map((l, j, t) => (
+                      <text key={j} x={ex} y={ey - 3 + (j - (t.length - 1) / 2) * 14} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="#fff"
+                        style={{ letterSpacing: '.04em', textTransform: 'uppercase' }}>{l}</text>
+                    ))}
+                    <text x={ex} y={ey + 25} textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" opacity=".9">{e.note}</text>
+                    {/* rang : 1er / 2e */}
+                    <circle cx={ex + RE * 0.72} cy={ey - RE * 0.72} r="13" fill="#fff" stroke={c} strokeWidth="2.5" />
+                    <text x={ex + RE * 0.72} y={ey - RE * 0.72 + 4.5} textAnchor="middle" fontSize="12" fontWeight="900" fill={f}>{e.rang + 1}</text>
+                  </>}
                   <title>{e.nom || `${e.plus} autre(s) champion(s)`}</title>
                 </g>
               )
@@ -131,11 +148,15 @@ function CarteColonne({ data }) {
                 <span className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black bg-white" style={{ color: f }}>{s.score}/{s.total}</span>
                 <span className="text-xs font-extrabold uppercase tracking-wide text-white leading-tight">{s.titre}</span>
               </div>
-              <div className="w-full flex flex-wrap justify-center gap-3 pt-3 ps-2" style={{ borderLeft: `3px dotted ${c}`, marginLeft: 0 }}>
-                {s.noms.map(nom => (
-                  <div key={nom} className="flex flex-col items-center w-20 text-center">
-                    <span className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ background: c }}>{initiales(nom)}</span>
-                    <span className="text-[11px] font-bold text-slate-700 mt-1 leading-tight">{nom}</span>
+              <div className={`w-full grid ${s.champions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} justify-items-center gap-x-1 gap-y-3 pt-3 ps-2`} style={{ borderLeft: `3px dotted ${c}`, marginLeft: 0 }}>
+                {s.champions.map((ch, rang) => (
+                  <div key={ch.nom} className="flex flex-col items-center w-full min-w-0 text-center">
+                    <span className="relative w-12 h-12 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ background: c }}>
+                      {initiales(ch.nom)}
+                      <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] font-black" style={{ color: f, boxShadow: `0 0 0 2px ${c}` }}>{rang + 1}</span>
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-700 mt-1 leading-tight">{ch.nom}</span>
+                    <span className="text-[10px] font-extrabold" style={{ color: f }}>{ch.score}/{ch.total}</span>
                   </div>
                 ))}
               </div>

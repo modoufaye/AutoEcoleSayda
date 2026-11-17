@@ -601,7 +601,7 @@ export default function Parametres() {
 
             {/* Motivation : annonce hebdomadaire des meilleurs scores aux quiz des séances */}
             <div className="text-sm font-extrabold text-slate-700 mb-1"><i className="bi bi-trophy me-2" />Champions de la semaine</div>
-            <div className="text-xs text-slate-400 mb-3">Chaque lundi à 00 h, une annonce félicite le meilleur score au quiz de chaque séance de la semaine écoulée (prénom et nom), pour tous les élèves.</div>
+            <div className="text-xs text-slate-400 mb-3">Chaque lundi à 00 h, une annonce félicite les deux meilleurs élèves au quiz de chaque séance de la semaine écoulée (meilleur score, puis le moins de tentatives), pour tous les élèves.</div>
             <div className="d-flex flex-wrap align-items-center gap-3 mb-4">
               <label className="d-flex align-items-center gap-2 text-sm fw-semibold mb-0" style={{ cursor: 'pointer' }}>
                 <input type="checkbox" className="form-check-input m-0" checked={form.palmaresHebdo} onChange={e => set('palmaresHebdo', e.target.checked)} />
