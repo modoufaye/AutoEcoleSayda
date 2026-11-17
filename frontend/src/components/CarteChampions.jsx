@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 /* Annonce « 🏆 Les champions de la semaine » (PalmaresService) en carte mentale, à la manière
-   d'une carte colorée : au centre la semaine, autour une séance par branche (cercle de couleur),
-   au bout de chaque branche un cercle par champion, de la couleur de sa séance. Le texte publié
+   d'une carte colorée : au centre la semaine, autour une séance par branche (un cercle de couleur
+   avec son titre en gras, puis ses 3 meilleurs élèves et leur score). Le texte publié
    sert de source : « • « Titre » : Awa Diop (10/10), Moussa Ba (9/10) » (un score par champion) ;
    les anciennes annonces « • « Titre » : Awa Diop, Moussa Ba (9/10) » (un score commun) restent lues. */
 export const TITRE_CHAMPIONS = '🏆 Les champions de la semaine'
@@ -12,7 +12,6 @@ const COULEURS = [
   ['#f0628a', '#d24a72'], ['#ffc43d', '#e0a51f'], ['#3fc9a8', '#2aa98b'], ['#44a3e3', '#2d86c4'],
   ['#fb9a3c', '#de7d22'], ['#9c7a8f', '#7e5f72'], ['#3fd3e0', '#25b2bf'], ['#4a7fd4', '#3263b3'],
 ]
-const MAX_PAR_SEANCE = 3   // au-delà : « +N »
 
 /** Lit le texte de l'annonce : période, séances (titre, score, champions), phrases d'avant et d'après. */
 function lireChampions(contenu) {
@@ -51,84 +50,74 @@ function couper(texte, n, max) {
   return lignes
 }
 
-const initiales = nom => nom.split(/\s+/).filter(Boolean).slice(0, 2).map(m => m[0]).join('').toUpperCase()
+const MEDAILLES = ['🥇', '🥈', '🥉']
+/* Nom raccourci pour tenir dans le cercle : « Ndeye Coumba Traoré » → « Ndeye C. Traoré » si trop long */
+const nomCourt = (nom, n) => {
+  if (nom.length <= n) return nom
+  const m = nom.split(/\s+/)
+  const court = m.length > 2 ? `${m[0]} ${m.slice(1, -1).map(x => x[0] + '.').join(' ')} ${m[m.length - 1]}` : nom
+  return court.length <= n ? court : court.slice(0, n - 1) + '…'
+}
 
-/* Grand écran : carte en étoile (SVG) */
+/* Grand écran : carte en étoile (SVG). Une séance = un cercle : titre en gras, puis ses 3 meilleurs. */
 function CarteEtoile({ data }) {
-  const cx = 0, cy = 0, n = data.seances.length
-  const RS = 68, RE = 46, D = 158                       // rayons séance / élève, distance séance → élève
-  const anneau = { rx: 300, ry: 230 }
-  // Séances sur une ellipse autour du centre ; leurs champions en éventail autour d'elles, vers l'extérieur
-  const branches = data.seances.map((s, i) => {
+  const n = data.seances.length
+  const R = 104, RC = 112                                  // rayons : séance, centre
+  // Séances autour du centre, sans se toucher : l'anneau grandit avec leur nombre
+  const base = Math.max(300, (n * (2 * R + 30)) / (2 * Math.PI))
+  const anneau = { rx: base * 1.12, ry: base * (n <= 4 ? 0.78 : 0.9) }
+  const pos = data.seances.map((_, i) => {
     const a = -Math.PI / 2 + (2 * Math.PI * i) / n
-    const sx = cx + anneau.rx * Math.cos(a), sy = cy + anneau.ry * Math.sin(a)
-    const visibles = s.champions.slice(0, MAX_PAR_SEANCE), reste = s.champions.length - visibles.length
-    const enfants = [...visibles.map((ch, rang) => ({ nom: ch.nom, note: `${ch.score}/${ch.total}`, rang })), ...(reste > 0 ? [{ plus: reste }] : [])]
-    const pas = 0.72                                      // écart angulaire entre deux champions
-    return { s, i, sx, sy, enfants: enfants.map((e, k) => {
-      const da = (k - (enfants.length - 1) / 2) * pas
-      return { ...e, x: sx + D * Math.cos(a + da), y: sy + D * Math.sin(a + da) }
-    }) }
+    return [anneau.rx * Math.cos(a), anneau.ry * Math.sin(a)]
   })
-  // Cadre ajusté au dessin
-  const xs = branches.flatMap(b => [b.sx - RS, b.sx + RS, ...b.enfants.flatMap(e => [e.x - RE, e.x + RE])]).concat([-120, 120])
-  const ys = branches.flatMap(b => [b.sy - RS, b.sy + RS, ...b.enfants.flatMap(e => [e.y - RE, e.y + RE])]).concat([-120, 120])
-  const m = 12, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m
+  const xs = pos.flatMap(([x]) => [x - R, x + R]).concat([-RC, RC]), ys = pos.flatMap(([, y]) => [y - R, y + R]).concat([-RC, RC])
+  const m = 14, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m
   const W = Math.max(...xs) + m - x0, H = Math.max(...ys) + m - y0
   return (
     <svg viewBox={`${x0} ${y0} ${W} ${H}`} className="block w-full h-auto mx-auto" style={{ maxWidth: W }} role="img"
-      aria-label={`Champions de la semaine ${data.periode} : ${data.seances.map(s => `${s.titre}, ${s.noms.join(', ')}`).join(' ; ')}`}>
-      {branches.map(({ s, i, sx, sy, enfants }) => {
+      aria-label={`Champions de la semaine ${data.periode} : ${data.seances.map(s => `${s.titre}, ${s.champions.map(c => `${c.nom} ${c.score}/${c.total}`).join(', ')}`).join(' ; ')}`}>
+      {/* branches pointillées : centre → séance */}
+      {pos.map(([x, y], i) => (
+        <line key={i} x1={0} y1={0} x2={x} y2={y} stroke={COULEURS[i % COULEURS.length][0]} strokeWidth="3.5" strokeDasharray="2 7" strokeLinecap="round" />
+      ))}
+      {data.seances.map((s, i) => {
         const [c, f] = COULEURS[i % COULEURS.length]
+        const [x, y] = pos[i]
+        const titre = couper(s.titre, 15, 2)
+        const champions = s.champions.slice(0, 3)
+        // Bloc centré verticalement : titre (2 lignes max), trait, puis un champion par ligne
+        const hauteur = titre.length * 17 + 12 + champions.length * 19
+        const haut = y - hauteur / 2
         return (
           <g key={i}>
-            {/* tronc : centre → séance */}
-            <line x1={cx} y1={cy} x2={sx} y2={sy} stroke={c} strokeWidth="3.5" strokeDasharray="2 7" strokeLinecap="round" />
-            {enfants.map((e, k) => {
-              const ex = e.x, ey = e.y
-              return (
-                <g key={k}>
-                  <line x1={sx} y1={sy} x2={ex} y2={ey} stroke={c} strokeWidth="3" strokeDasharray="2 6" strokeLinecap="round" />
-                  <circle cx={ex} cy={ey} r={RE} fill={c} />
-                  {e.plus ? (
-                    <text x={ex} y={ey + 6} textAnchor="middle" fontSize="18" fontWeight="800" fill="#fff">+{e.plus}</text>
-                  ) : <>
-                    {couper(e.nom, 12, 2).map((l, j, t) => (
-                      <text key={j} x={ex} y={ey - 3 + (j - (t.length - 1) / 2) * 14} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="#fff"
-                        style={{ letterSpacing: '.04em', textTransform: 'uppercase' }}>{l}</text>
-                    ))}
-                    <text x={ex} y={ey + 25} textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" opacity=".9">{e.note}</text>
-                    {/* rang : 1er / 2e */}
-                    <circle cx={ex + RE * 0.72} cy={ey - RE * 0.72} r="13" fill="#fff" stroke={c} strokeWidth="2.5" />
-                    <text x={ex + RE * 0.72} y={ey - RE * 0.72 + 4.5} textAnchor="middle" fontSize="12" fontWeight="900" fill={f}>{e.rang + 1}</text>
-                  </>}
-                  <title>{e.nom || `${e.plus} autre(s) champion(s)`}</title>
-                </g>
-              )
-            })}
-            {/* séance */}
-            <circle cx={sx} cy={sy} r={RS} fill={c} stroke={f} strokeWidth="5" />
-            {couper(s.titre, 13, 3).map((l, j, t) => (
-              <text key={j} x={sx} y={sy - 4 + (j - (t.length - 1) / 2) * 16} textAnchor="middle" fontSize="13.5" fontWeight="800" fill="#fff"
-                style={{ letterSpacing: '.04em', textTransform: 'uppercase' }}>{l}</text>
+            <circle cx={x} cy={y} r={R} fill={c} stroke={f} strokeWidth="5" />
+            {titre.map((l, j) => (
+              <text key={j} x={x} y={haut + 13 + j * 17} textAnchor="middle" fontSize="15" fontWeight="900" fill="#fff"
+                style={{ letterSpacing: '.03em', textTransform: 'uppercase' }}>{l}</text>
             ))}
-            <text x={sx} y={sy + 22 + (couper(s.titre, 13, 3).length - 1) * 8} textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff" opacity=".95">
-              {s.score}/{s.total}
-            </text>
+            <line x1={x - 44} x2={x + 44} y1={haut + titre.length * 17 + 3} y2={haut + titre.length * 17 + 3} stroke="#fff" strokeOpacity=".55" strokeWidth="1.5" />
+            {champions.map((ch, k) => (
+              <text key={k} x={x} y={haut + titre.length * 17 + 12 + 14 + k * 19} textAnchor="middle" fontSize="12.5" fill="#fff">
+                <tspan>{MEDAILLES[k]} </tspan>
+                <tspan fontWeight="700">{nomCourt(ch.nom, 15)}</tspan>
+                <tspan fontWeight="800" opacity=".9"> {ch.score}/{ch.total}</tspan>
+              </text>
+            ))}
+            <title>{`${s.titre} : ${s.champions.map(ch => `${ch.nom} (${ch.score}/${ch.total})`).join(', ')}`}</title>
           </g>
         )
       })}
       {/* centre */}
-      <circle cx={cx} cy={cy} r="112" fill="#fff" stroke="#1f2937" strokeWidth="6" />
-      <text x={cx} y={cy - 30} textAnchor="middle" fontSize="30">🏆</text>
-      <text x={cx} y={cy + 8} textAnchor="middle" fontSize="19" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
-      <text x={cx} y={cy + 31} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
-      {data.periode && <text x={cx} y={cy + 56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
+      <circle cx={0} cy={0} r={RC} fill="#fff" stroke="#1f2937" strokeWidth="6" />
+      <text x={0} y={-30} textAnchor="middle" fontSize="30">🏆</text>
+      <text x={0} y={8} textAnchor="middle" fontSize="19" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
+      <text x={0} y={31} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
+      {data.periode && <text x={0} y={56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
     </svg>
   )
 }
 
-/* Téléphone : la même carte, déroulée en colonne (une branche par séance) */
+/* Téléphone : la même carte en colonne ; une séance = une pastille ronde, titre en gras puis ses 3 meilleurs */
 function CarteColonne({ data }) {
   return (
     <div className="flex flex-col items-center">
@@ -138,32 +127,27 @@ function CarteColonne({ data }) {
         <div className="text-[11px] font-bold tracking-wider" style={{ color: '#1f2937' }}>DE LA SEMAINE</div>
         {data.periode && <div className="text-[10px] text-slate-500 mt-0.5">{data.periode}</div>}
       </div>
-      <div className="w-full flex flex-col">
-        {data.seances.map((s, i) => {
-          const [c, f] = COULEURS[i % COULEURS.length]
-          return (
-            <div key={i} className="flex flex-col items-center">
-              <div className="h-6" style={{ borderLeft: `3px dotted ${c}` }} />
-              <div className="w-full flex items-center gap-3 rounded-full ps-1.5 pe-4 py-1.5" style={{ background: c, boxShadow: `inset 0 0 0 3px ${f}` }}>
-                <span className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-black bg-white" style={{ color: f }}>{s.score}/{s.total}</span>
-                <span className="text-xs font-extrabold uppercase tracking-wide text-white leading-tight">{s.titre}</span>
-              </div>
-              <div className={`w-full grid ${s.champions.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} justify-items-center gap-x-1 gap-y-3 pt-3 ps-2`} style={{ borderLeft: `3px dotted ${c}`, marginLeft: 0 }}>
-                {s.champions.map((ch, rang) => (
-                  <div key={ch.nom} className="flex flex-col items-center w-full min-w-0 text-center">
-                    <span className="relative w-12 h-12 rounded-full flex items-center justify-center text-sm font-black text-white" style={{ background: c }}>
-                      {initiales(ch.nom)}
-                      <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center text-[10px] font-black" style={{ color: f, boxShadow: `0 0 0 2px ${c}` }}>{rang + 1}</span>
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-700 mt-1 leading-tight">{ch.nom}</span>
-                    <span className="text-[10px] font-extrabold" style={{ color: f }}>{ch.score}/{ch.total}</span>
+      {data.seances.map((s, i) => {
+        const [c, f] = COULEURS[i % COULEURS.length]
+        return (
+          <div key={i} className="flex flex-col items-center w-full">
+            <div className="h-6" style={{ borderLeft: `3px dotted ${c}` }} />
+            <div className="w-full px-3.5 py-3 text-center text-white" style={{ background: c, borderRadius: 28, boxShadow: `inset 0 0 0 4px ${f}` }}>
+              <div className="text-sm font-black uppercase tracking-wide leading-tight">{s.titre}</div>
+              <div className="mx-auto my-2 w-16" style={{ borderTop: '1.5px solid rgba(255,255,255,.55)' }} />
+              <div className="flex flex-col gap-0.5">
+                {s.champions.slice(0, 3).map((ch, k) => (
+                  <div key={k} className="flex items-baseline gap-1.5 text-xs leading-snug text-left">
+                    <span className="flex-shrink-0">{MEDAILLES[k]}</span>
+                    <b className="flex-1 min-w-0 truncate" title={ch.nom}>{nomCourt(ch.nom, 16)}</b>
+                    <span className="font-extrabold opacity-90 whitespace-nowrap">{ch.score}/{ch.total}</span>
                   </div>
                 ))}
               </div>
             </div>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

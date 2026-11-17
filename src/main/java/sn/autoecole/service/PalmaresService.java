@@ -46,8 +46,8 @@ public class PalmaresService {
     /** Les meilleurs élèves d'une séance (au plus CHAMPIONS_PAR_SEANCE), du premier au dernier. */
     public record Ligne(Long seanceId, String titre, List<Champion> champions) {}
 
-    /** Deux champions par séance : une annonce lisible, même quand beaucoup d'élèves ont réussi. */
-    public static final int CHAMPIONS_PAR_SEANCE = 2;
+    /** Trois champions par séance : une annonce lisible, même quand beaucoup d'élèves ont réussi. */
+    public static final int CHAMPIONS_PAR_SEANCE = 3;
 
     /** Prénom et nom en entier : « Awa Diop » (espaces en trop retirés). */
     public static String nomCourt(Eleve e) {
