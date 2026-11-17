@@ -67,7 +67,7 @@ function CarteEtoile({ data }) {
   const [survol, setSurvol] = useState(null)
   // Séances sur un cercle autour du centre : même distance entre deux voisines. Le rayon grandit
   // avec leur nombre pour garder au moins ECART entre deux cercles, et une branche visible.
-  const base = Math.max(RC + R + 56, n > 1 ? (2 * R + ECART) / (2 * Math.sin(Math.PI / n)) : 0)
+  const base = Math.max(RC + R + 110, n > 1 ? (2 * R + ECART) / (2 * Math.sin(Math.PI / n)) : 0)
   const pos = data.seances.map((_, i) => {
     const a = -Math.PI / 2 + (2 * Math.PI * i) / n
     return [base * Math.cos(a), base * Math.sin(a)]
@@ -99,14 +99,14 @@ function CarteEtoile({ data }) {
         // Bloc centré verticalement : titre (2 lignes max), trait, puis un champion par ligne
         const hauteur = titre.length * 17 + 12 + champions.length * 19
         const haut = y - hauteur / 2
-        // Survol : le cercle glisse vers le centre (sans le recouvrir) et grossit
-        const d = Math.hypot(x, y) || 1, recul = Math.min(40, Math.max(0, d - (RC + R * 1.15) - 6))
+        // Survol : le cercle glisse vers le centre jusqu'à le toucher, et grossit
+        const d = Math.hypot(x, y) || 1, recul = Math.max(0, d - (RC + R * 1.12) - 4)
         const actif = survol === i
         return (
           <g key={i} onMouseEnter={() => setSurvol(i)} onMouseLeave={() => setSurvol(v => (v === i ? null : v))}
             style={{ cursor: 'default', transformBox: 'view-box', transformOrigin: `${x}px ${y}px`,
               transform: actif ? `translate(${(-x / d) * recul}px, ${(-y / d) * recul}px) scale(1.15)` : 'none',
-              transition: 'transform .35s cubic-bezier(.2,.8,.2,1)', filter: actif ? 'drop-shadow(0 10px 18px rgba(15,34,64,.28))' : 'none' }}>
+              transition: 'transform .45s cubic-bezier(.2,.8,.2,1)', filter: actif ? 'drop-shadow(0 10px 18px rgba(15,34,64,.28))' : 'none' }}>
             <circle cx={x} cy={y} r={R} fill={c} stroke={f} strokeWidth="5" />
             {titre.map((l, j) => (
               <text key={j} x={x} y={haut + 13 + j * 17} textAnchor="middle" fontSize="15" fontWeight="900" fill="#fff"
