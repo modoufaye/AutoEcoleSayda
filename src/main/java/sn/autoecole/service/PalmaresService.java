@@ -49,6 +49,9 @@ public class PalmaresService {
     /** Trois champions par séance : une annonce lisible, même quand beaucoup d'élèves ont réussi. */
     public static final int CHAMPIONS_PAR_SEANCE = 3;
 
+    /** Longueur maximale du texte de l'annonce (bien au-delà d'une semaine chargée). */
+    public static final int LONGUEUR_MAX = 8000;
+
     /** Prénom et nom en entier : « Awa Diop » (espaces en trop retirés). */
     public static String nomCourt(Eleve e) {
         String prenom = e.getPrenom() == null ? "" : e.getPrenom().trim();
@@ -141,7 +144,8 @@ public class PalmaresService {
             // « • « Titre » : Awa Diop (10/10), Moussa Ba (9/10) » : chaque champion avec son score
             String ligne = "\n• « " + l.titre() + " » : " + l.champions().stream()
                     .map(c -> c.nom() + " (" + c.score() + "/" + c.total() + ")").collect(Collectors.joining(", "));
-            if (t.length() + ligne.length() > 1900) { t.append("\n…"); break; }
+            // Champ TEXT en base : la limite ne sert qu'à garder une annonce raisonnable (3 champions par séance)
+            if (t.length() + ligne.length() > LONGUEUR_MAX) { t.append("\n…"); break; }
             t.append(ligne); n++;
         }
         t.append("\n\nContinuez comme ça, et à la semaine prochaine ! 💪");

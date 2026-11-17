@@ -202,8 +202,10 @@ public class AnnonceController {
         Annonce a = repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Annonce introuvable"));
         if (!supprimable(a, u)) throw new BusinessException("Seul l'auteur de l'annonce, ou l'administration, peut la modifier");
         String titre = texte(body.get("titre"), 150, "Donnez un titre à l'annonce");
+        // L'annonce des champions peut dépasser 2000 caractères : elle reste modifiable
+        int max = sn.autoecole.service.PalmaresService.TITRE_ANNONCE.equals(a.getTitre()) ? sn.autoecole.service.PalmaresService.LONGUEUR_MAX : 2000;
         String contenu = a.getAudio() != null && (body.get("contenu") == null || body.get("contenu").isBlank()) ? ""
-                : texte(body.get("contenu"), 2000, "Écrivez le message de l'annonce");
+                : texte(body.get("contenu"), max, "Écrivez le message de l'annonce");
         if (!titre.equals(a.getTitre()) || !contenu.equals(a.getContenu())) {
             a.setTitre(titre); a.setContenu(contenu); a.setModifieLe(LocalDateTime.now());
             repo.save(a);

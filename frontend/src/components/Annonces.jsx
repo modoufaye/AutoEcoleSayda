@@ -161,7 +161,7 @@ function EditionAnnonce({ a, onFini, onAnnuler }) {
   return (
     <div className="space-y-2">
       <input className="form-control fw-bold" maxLength={150} value={titre} aria-label="Titre de l'annonce" onChange={e => setTitre(e.target.value)} />
-      <textarea className="form-control" rows={4} maxLength={2000} value={contenu} aria-label="Texte de l'annonce" style={{ resize: 'vertical' }}
+      <textarea className="form-control" rows={4} maxLength={a.titre === TITRE_CHAMPIONS ? 8000 : 2000} value={contenu} aria-label="Texte de l'annonce" style={{ resize: 'vertical' }}
         placeholder={a.audio ? 'Texte facultatif (annonce avec audio)' : "Message de l'annonce"} onChange={e => setContenu(e.target.value)} />
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onAnnuler} className="btn btn-light btn-sm fw-bold rounded-pill px-3">Annuler</button>

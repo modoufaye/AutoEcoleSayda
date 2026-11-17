@@ -11,6 +11,7 @@ export const TITRE_CHAMPIONS = '🏆 Les champions de la semaine'
 const COULEURS = [
   ['#f0628a', '#d24a72'], ['#ffc43d', '#e0a51f'], ['#3fc9a8', '#2aa98b'], ['#44a3e3', '#2d86c4'],
   ['#fb9a3c', '#de7d22'], ['#9c7a8f', '#7e5f72'], ['#3fd3e0', '#25b2bf'], ['#4a7fd4', '#3263b3'],
+  ['#8bc34a', '#6fa232'], ['#e57373', '#c85a5a'], ['#ba68c8', '#9a4fa8'], ['#26a69a', '#1b8a7f'],
 ]
 
 /** Lit le texte de l'annonce : période, séances (titre, score, champions), phrases d'avant et d'après. */
@@ -62,7 +63,7 @@ const nomCourt = (nom, n) => {
 /* Grand écran : carte en étoile (SVG). Une séance = un cercle : titre en gras, puis ses 3 meilleurs. */
 function CarteEtoile({ data }) {
   const n = data.seances.length
-  const R = 104, RC = 112                                  // rayons : séance, centre
+  const R = 122, RC = 112                                  // rayons : séance, centre
   // Séances autour du centre, sans se toucher : l'anneau grandit avec leur nombre
   const base = Math.max(300, (n * (2 * R + 30)) / (2 * Math.PI))
   const anneau = { rx: base * 1.12, ry: base * (n <= 4 ? 0.78 : 0.9) }
@@ -83,7 +84,7 @@ function CarteEtoile({ data }) {
       {data.seances.map((s, i) => {
         const [c, f] = COULEURS[i % COULEURS.length]
         const [x, y] = pos[i]
-        const titre = couper(s.titre, 15, 2)
+        const titre = couper(s.titre, 18, 2)
         const champions = s.champions.slice(0, 3)
         // Bloc centré verticalement : titre (2 lignes max), trait, puis un champion par ligne
         const hauteur = titre.length * 17 + 12 + champions.length * 19
@@ -95,11 +96,11 @@ function CarteEtoile({ data }) {
               <text key={j} x={x} y={haut + 13 + j * 17} textAnchor="middle" fontSize="15" fontWeight="900" fill="#fff"
                 style={{ letterSpacing: '.03em', textTransform: 'uppercase' }}>{l}</text>
             ))}
-            <line x1={x - 44} x2={x + 44} y1={haut + titre.length * 17 + 3} y2={haut + titre.length * 17 + 3} stroke="#fff" strokeOpacity=".55" strokeWidth="1.5" />
+            <line x1={x - 50} x2={x + 50} y1={haut + titre.length * 17 + 3} y2={haut + titre.length * 17 + 3} stroke="#fff" strokeOpacity=".55" strokeWidth="1.5" />
             {champions.map((ch, k) => (
               <text key={k} x={x} y={haut + titre.length * 17 + 12 + 14 + k * 19} textAnchor="middle" fontSize="12.5" fill="#fff">
                 <tspan>{MEDAILLES[k]} </tspan>
-                <tspan fontWeight="700">{nomCourt(ch.nom, 15)}</tspan>
+                <tspan fontWeight="700">{nomCourt(ch.nom, 24)}</tspan>
                 <tspan fontWeight="800" opacity=".9"> {ch.score}/{ch.total}</tspan>
               </text>
             ))}
@@ -139,7 +140,7 @@ function CarteColonne({ data }) {
                 {s.champions.slice(0, 3).map((ch, k) => (
                   <div key={k} className="flex items-baseline gap-1.5 text-xs leading-snug text-left">
                     <span className="flex-shrink-0">{MEDAILLES[k]}</span>
-                    <b className="flex-1 min-w-0 truncate" title={ch.nom}>{nomCourt(ch.nom, 16)}</b>
+                    <b className="flex-1 min-w-0 break-words">{ch.nom}</b>
                     <span className="font-extrabold opacity-90 whitespace-nowrap">{ch.score}/{ch.total}</span>
                   </div>
                 ))}
