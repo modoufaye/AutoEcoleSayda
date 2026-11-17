@@ -81,7 +81,7 @@ public class PalmaresService {
      * Meilleurs scores des séances publiées, pour les quiz faits dans [debut, fin).
      * seanceIds nul : toutes les séances. Triées par date de séance (la plus récente d'abord).
      */
-    public List<Ligne> meilleurs(Collection<Long> seanceIds, LocalDateTime debut, LocalDateTime fin) {
+    public List<Ligne> meilleurs(Collection<Long> seanceIds, LocalDateTime debut, LocalDateTime fin, Set<String> exclus) {
         Map<Long, List<ResultatQuizSeance>> parSeance = resultatRepo.findAll().stream()
                 .filter(r -> r.getMeilleurTotal() > 0 && r.getDerniereTentative() != null)
                 .filter(r -> !r.getDerniereTentative().isBefore(debut) && r.getDerniereTentative().isBefore(fin))
@@ -103,6 +103,7 @@ public class PalmaresService {
             List<ResultatQuizSeance> premiers = resultats.stream()
                     .filter(r -> r.getMeilleurScore() > 0)
                     .filter(r -> eleves.containsKey(r.getEleveId()) && !eleves.get(r.getEleveId()).isArchive())
+                    .filter(r -> !exclus.contains(cleNom(nomCourt(eleves.get(r.getEleveId())))))   // déjà félicité une autre semaine
                     .sorted(Comparator.comparingDouble((ResultatQuizSeance r) -> -(double) r.getMeilleurScore() / r.getMeilleurTotal())
                             .thenComparingInt(ResultatQuizSeance::getTentatives)
                             .thenComparingDouble(r -> r.getTotal() > 0 ? -(double) r.getScore() / r.getTotal() : 0)
@@ -141,6 +142,34 @@ public class PalmaresService {
         publierSemainePassee();
     }
 
+    /** Nom comparable : minuscules, espaces simples. */
+    private static String cleNom(String nom) {
+        return nom == null ? "" : nom.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    }
+
+    /** Ligne d'une annonce : « • « Titre » : Awa Diop (10/10), Moussa Ba (9/10) » ou, avant, « … : Awa Diop, Moussa Ba (9/10) ». */
+    private static final java.util.regex.Pattern LIGNE_ANNONCE = java.util.regex.Pattern.compile("^•\\s*«.+?»\\s*:\\s*(.+)$");
+
+    /**
+     * Élèves déjà félicités dans les annonces des champions publiées (sauf celle de la période en
+     * cours) : leurs noms tels qu'écrits dans l'annonce. Supprimer une annonce les rend de nouveau
+     * éligibles. Deux élèves homonymes comptent comme un seul.
+     */
+    Set<String> dejaFelicites(String periodeCourante) {
+        Set<String> noms = new HashSet<>();
+        for (Annonce a : annonceRepo.findAll()) {
+            if (!TITRE_ANNONCE.equals(a.getTitre()) || a.getContenu() == null || a.getContenu().contains(periodeCourante + " :")) continue;
+            for (String ligne : a.getContenu().split("\n")) {
+                var m = LIGNE_ANNONCE.matcher(ligne.trim());
+                if (!m.matches()) continue;
+                for (String morceau : m.group(1).split(","))
+                    noms.add(cleNom(morceau.replaceAll("\\(\\d+/\\d+\\)", "")));
+            }
+        }
+        noms.remove("");
+        return noms;
+    }
+
     /** Titres des séries d'examen et des annales (contenu/seriesExamen.js, contenu/annales.js). */
     private static final Map<String, String> TITRES_SERIES = new LinkedHashMap<>();
     static {
@@ -153,7 +182,7 @@ public class PalmaresService {
      * même classement que les séances (meilleur score en %, puis le moins de tentatives, puis le nom).
      * Séries d'abord (B1 à B4), puis annales.
      */
-    public List<Ligne> meilleursSeries(LocalDateTime debut, LocalDateTime fin) {
+    public List<Ligne> meilleursSeries(LocalDateTime debut, LocalDateTime fin, Set<String> exclus) {
         Map<String, List<ProgressionCode>> parSerie = progressionRepo.findAll().stream()
                 .filter(p -> TITRES_SERIES.containsKey(p.getChapitre()))               // examen blanc seulement
                 .filter(p -> p.getTotal() > 0 && p.getMeilleurScore() > 0 && p.getDerniereTentative() != null)
@@ -166,6 +195,7 @@ public class PalmaresService {
         TITRES_SERIES.forEach((chapitre, titre) -> {
             List<ProgressionCode> premiers = parSerie.getOrDefault(chapitre, List.of()).stream()
                     .filter(p -> eleves.containsKey(p.getEleveId()) && !eleves.get(p.getEleveId()).isArchive())
+                    .filter(p -> !exclus.contains(cleNom(nomCourt(eleves.get(p.getEleveId())))))   // déjà félicité une autre semaine
                     .sorted(Comparator.comparingDouble((ProgressionCode p) -> -(double) p.getMeilleurScore() / p.getTotal())
                             .thenComparingInt(ProgressionCode::getTentatives)
                             .thenComparing(p -> nomCourt(eleves.get(p.getEleveId()))))
@@ -186,8 +216,12 @@ public class PalmaresService {
     @Transactional
     public int publier(LocalDateTime debut, LocalDateTime fin) {
         // Séances d'abord, puis séries d'examen et annales (examen blanc)
-        List<Ligne> lignes = new ArrayList<>(meilleurs(null, debut, fin));
-        lignes.addAll(meilleursSeries(debut, fin));
+        // Un élève n'est félicité qu'une seule semaine : ceux des annonces précédentes passent la main
+        // (dans une même semaine, il peut figurer dans plusieurs séances)
+        String periodeCourante = "du " + debut.format(JOUR) + " au " + fin.minusDays(1).format(JOUR);
+        Set<String> exclus = dejaFelicites(periodeCourante);
+        List<Ligne> lignes = new ArrayList<>(meilleurs(null, debut, fin, exclus));
+        lignes.addAll(meilleursSeries(debut, fin, exclus));
         if (lignes.isEmpty()) { log.info("Palmarès : aucun quiz du {} au {}, pas d'annonce", debut, fin); return 0; }
         // Une seule annonce par semaine : déjà publiée pour cette période (contenu daté), on ne refait rien
         String periode = "du " + debut.format(JOUR) + " au " + fin.minusDays(1).format(JOUR);
