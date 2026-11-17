@@ -80,7 +80,7 @@ const nomCourt = (nom, n) => {
 function CarteEtoile({ data }) {
   const n = data.seances.length
   const star = lePlusPresent(data.seances)
-  const R = 122, RC = star ? 145 : 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
+  const R = 122, RC = 230, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
   const ZOOM = 230 / R                                     // au survol : rayon de 230 (au lieu de 122)
   const [survol, setSurvol] = useState(null)
   // Séances sur un cercle autour du centre : même distance entre deux voisines. Le rayon grandit
@@ -104,6 +104,8 @@ function CarteEtoile({ data }) {
       ))}
       {/* centre */}
       <circle cx={0} cy={0} r={RC} fill="#fff" stroke="#1f2937" strokeWidth="6" />
+      {/* textes du centre agrandis avec le cercle (prévus pour un rayon de 145, ou 112 sans élève vedette) */}
+      <g transform={`scale(${RC / (star ? 145 : 112)})`}>
       {star ? (
         <>
           <text x={0} y={-66} textAnchor="middle" fontSize="26">🏆</text>
@@ -125,6 +127,7 @@ function CarteEtoile({ data }) {
           {data.periode && <text x={0} y={56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
         </>
       )}
+      </g>
       {ordre.map(i => {
         const s = data.seances[i]
         const [c, f] = COULEURS[i % COULEURS.length]
