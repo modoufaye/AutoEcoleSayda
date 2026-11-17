@@ -88,10 +88,9 @@ export default function SuiviPedagogique() {
               </div>
             )
           })}
-          <div className="text-[11px] text-slate-400"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances : seulement celles qui ont un quiz, sur celles reçues ; séries et annales : sur celles faites.</div>
         </div>
 
-        {/* Colonne de droite : élèves par niveau, puis à accompagner */}
+        {/* Colonne de droite : élèves par niveau, puis la note */}
         <div>
         {/* Élèves par niveau */}
         {d.eleves > 0 && (
@@ -116,12 +115,14 @@ export default function SuiviPedagogique() {
             </div>
           </div>
         )}
+        <div className="text-[11px] text-slate-400 mt-3"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances : seulement celles qui ont un quiz, sur celles reçues ; séries et annales : sur celles faites.</div>
+        </div>
 
-        {/* À accompagner en priorité : taux le plus faible, au moins 3 éléments */}
+        {/* À accompagner en priorité (sous les deux colonnes) : taux le plus faible, au moins 3 éléments */}
         {d.aAccompagner.length > 0 && (
-          <div className="mt-5">
+          <div className="lg:col-span-2">
             <div className="text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2"><i className="bi bi-life-preserver me-1" style={{ color: '#f97316' }} />À accompagner en priorité</div>
-            <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
               {d.aAccompagner.map(e => {
                 const lien = waLink(e.telephone)
                 return (
@@ -142,7 +143,6 @@ export default function SuiviPedagogique() {
             </div>
           </div>
         )}
-        </div>
       </div>
     </div>
   )
