@@ -217,6 +217,15 @@ const SECTIONS_SEANCES = [
 /* Ajouter un ou plusieurs élèves à plusieurs séances d'un coup (ex. thème 1 validé : 2.1, 2.2, 2.3 et la
    révision du thème 2). N'en retire jamais personne. Un moniteur ne voit que ses séances et celles de
    l'administration ; une séance de conduite seule n'accepte que les admis au code et le perfectionnement. */
+/* Bouton « Tout cocher » / « Tout décocher » (pastille) */
+function BoutonTout({ tous, onClick, libelle }) {
+  return (
+    <button type="button" onClick={onClick} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer"
+      style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f' }}>
+      <i className={`bi bi-${tous ? 'x-lg' : 'check2-all'} me-1`} />{libelle ? libelle(tous) : tous ? 'Tout décocher' : 'Tout cocher'}
+    </button>
+  )
+}
 const ordreTitre = (a, b) => (a.titre || '').localeCompare(b.titre || '', 'fr', { numeric: true })
 function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait }) {
   const [envoi, setEnvoi] = useState(false)
@@ -243,13 +252,31 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
   const conduiteSeule = s => genreSeance(s) === 'conduite'
   const proposees = seances.filter(s => isAdmin || !s.parAdministration || s.statut === 'PUBLIE')
   const basculer = id => setEtat(x => ({ ...x, seanceIds: x.seanceIds.includes(id) ? x.seanceIds.filter(i => i !== id) : [...x.seanceIds, id] }))
+  // Séances cochables : celles où les élèves choisis ne sont pas déjà tous
+  const cochables = liste => liste.filter(s => !(choisis.length > 0 && choisis.every(e => s.eleves.some(x => x.id === e.id)))).map(s => s.id)
+  // Tout cocher / tout décocher un groupe de séances (ou toutes)
+  const basculerTout = ids => setEtat(x => {
+    const tous = ids.length > 0 && ids.every(id => x.seanceIds.includes(id))
+    return { ...x, seanceIds: tous ? x.seanceIds.filter(id => !ids.includes(id)) : [...new Set([...x.seanceIds, ...ids])] }
+  })
+  const toutesCochables = cochables(proposees)
+  // Cocher d'un coup les élèves concernés : le code pour le permis (pas le perfectionnement), la
+  // conduite pour les admis au code et le perfectionnement (seuls acceptés en séance de conduite)
+  const groupes = [
+    { cle: 'code', nom: 'Code', icone: 'signpost-2', ids: eleves.filter(e => !e.perfectionnement).map(e => String(e.id)),
+      aide: 'Élèves du permis (cours de code)' },
+    { cle: 'conduite', nom: 'Conduite', icone: 'car-front', ids: eleves.filter(e => e.admisCode || e.perfectionnement).map(e => String(e.id)),
+      aide: 'Admis au code et perfectionnement (séances de conduite)' },
+  ]
+  const tousCoches = ids => ids.length > 0 && ids.every(id => etat.eleveIds.includes(id))
+  const basculerGroupe = ids => setEtat(x => ({ ...x, eleveIds: tousCoches(ids) ? x.eleveIds.filter(id => !ids.includes(id)) : [...new Set([...x.eleveIds, ...ids])] }))
   const valider = async () => {
     if (!etat.eleveIds.length) return toast('Choisissez au moins un élève', 'warning')
     if (!etat.seanceIds.length) return toast('Cochez au moins une séance', 'warning')
     setEnvoi(true)
     try {
       const r = await api('POST', '/moniteur/seances/ajouter-eleves', { eleveIds: etat.eleveIds.map(Number), seanceIds: etat.seanceIds })
-      toast(r.ajouts > 0 ? `${r.ajouts} ajout(s) dans ${r.seances} séance(s)` : 'Rien à ajouter : déjà présents, ou non admis au code pour une séance de conduite', r.ajouts > 0 ? 'success' : 'warning')
+      toast(r.ajouts > 0 ? `${r.ajouts} ajout(s) dans ${r.seances} séance(s)` : 'Rien à ajouter : déjà présents, non admis au code (séance de conduite) ou en perfectionnement (séance de code)', r.ajouts > 0 ? 'success' : 'warning')
       if (r.ajouts > 0) onFait()
     } catch (e) { toast(e.message, 'danger') }
     finally { setEnvoi(false) }
@@ -261,7 +288,20 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
       piedGauche="Les élèves sont seulement ajoutés : personne n'est retiré des séances.">
       <Etape n={1} icon="person" titre="Élève(s)">
         {/* Un clic sur une classe coche tous ses élèves (parmi ceux proposés ici) */}
-        <div className="mb-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          {groupes.filter(g => g.ids.length > 0).map(g => (
+            <button key={g.cle} type="button" onClick={() => basculerGroupe(g.ids)} title={g.aide}
+              className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer"
+              style={{ borderRadius: 999, background: tousCoches(g.ids) ? '#1e3a5f' : '#eef2f7', color: tousCoches(g.ids) ? '#fff' : '#1e3a5f' }}>
+              <i className={`bi bi-${tousCoches(g.ids) ? 'x-lg' : g.icone} me-1`} />{tousCoches(g.ids) ? `Décocher ${g.nom.toLowerCase()}` : `${g.nom} (${g.ids.length})`}
+            </button>
+          ))}
+          {etat.eleveIds.length > 0 && (
+            <button type="button" onClick={() => setEtat(x => ({ ...x, eleveIds: [] }))} className="px-3 py-1.5 text-xs font-bold border-0 cursor-pointer"
+              style={{ borderRadius: 999, background: '#fef2f2', color: '#b91c1c' }}>
+              <i className="bi bi-x-lg me-1" />Tout décocher
+            </button>
+          )}
           <BoutonsClasses proposes={eleves.map(e => e.id)}
             onCocher={ids => setEtat(x => ({ ...x, eleveIds: [...new Set([...x.eleveIds, ...ids.map(String)])] }))} />
         </div>
@@ -269,17 +309,33 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
           multiple cochesEnTete placeholder="Nom, prénom ou téléphone…" hauteur={220} />
       </Etape>
       <Etape n={2} icon="camera-video" titre="Séances">
+        {toutesCochables.length > 0 && (
+          <div className="mb-2">
+            <BoutonTout tous={toutesCochables.every(id => etat.seanceIds.includes(id))} onClick={() => basculerTout(toutesCochables)}
+              libelle={n => (n ? 'Tout décocher' : `Tout cocher (${toutesCochables.length})`)} />
+          </div>
+        )}
         {SECTIONS_SEANCES.map(sec => {
           const liste = proposees.filter(s => genreSeance(s) === sec.key).sort(ordreTitre)
           if (!liste.length) return null
+          const ici = cochables(liste)
           return (
             <div key={sec.key} className="mb-3">
-              <div className="text-xs font-extrabold text-slate-500 mb-1"><i className={`bi bi-${sec.icone} me-1`} />{sec.titre}</div>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs font-extrabold text-slate-500"><i className={`bi bi-${sec.icone} me-1`} />{sec.titre}</span>
+                {ici.length > 0 && (
+                  <button type="button" onClick={() => basculerTout(ici)} className="text-xs font-bold border-0 bg-transparent p-0 cursor-pointer" style={{ color: '#1d4ed8' }}>
+                    {ici.every(id => etat.seanceIds.includes(id)) ? 'Tout décocher' : 'Tout cocher'}
+                  </button>
+                )}
+              </div>
               <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
                 {liste.map(s => {
                   const recus = choisis.filter(e => s.eleves.some(x => x.id === e.id)).length   // élèves choisis déjà dans la séance
                   const dedans = choisis.length > 0 && recus === choisis.length
+                  // Ignorés à l'ajout : non admis au code (conduite seule), perfectionnement (code seul)
                   const refuses = conduiteSeule(s) ? choisis.filter(e => !e.admisCode && !e.perfectionnement) : []
+                  const perfIgnores = genreSeance(s) === 'code' ? choisis.filter(e => e.perfectionnement) : []
                   const coche = etat.seanceIds.includes(s.id)
                   return (
                     <label key={s.id} className="px-3 py-2 m-0" style={{ display: 'flex', alignItems: 'center', gap: '.75rem', width: '100%', cursor: dedans ? 'default' : 'pointer', borderTop: '1px solid #f1f5f9', background: coche ? '#f0fdf4' : dedans ? '#f8fafc' : '#fff' }}>
@@ -292,6 +348,7 @@ function AjoutPlusieursSeances({ etat, setEtat, eleves, seances, isAdmin, onFait
                           {!dedans && choisis.length > 1 && <b style={{ color: recus ? '#0f766e' : '#64748b' }}> · déjà envoyée à {recus}/{choisis.length}</b>}
                           {etatQuiz(s, dedans) && <b style={{ color: etatQuiz(s, dedans).c }}> · {etatQuiz(s, dedans).t}</b>}
                           {refuses.length > 0 && <b style={{ color: '#b45309' }}> · {refuses.length === choisis.length ? 'non admis au code' : `${refuses.length} non admis au code, ignoré(s)`}</b>}
+                          {perfIgnores.length > 0 && <b style={{ color: '#b45309' }}> · {perfIgnores.length === choisis.length ? 'perfectionnement : pas de cours de code' : `${perfIgnores.length} en perfectionnement, ignoré(s)`}</b>}
                         </span>
                       </span>
                     </label>

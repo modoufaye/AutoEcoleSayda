@@ -7,6 +7,7 @@ import { EnteteListe, ListeVide, ListeChargement, Pastille, BoutonRond, BoutonAj
 import { useBureaux } from '../bureaux'
 import { useClasses } from '../classes'
 import { useEnregistreur, BarreEnregistrement, LecteurVocal, minSec } from './Vocal'
+import CarteChampions, { TITRE_CHAMPIONS } from './CarteChampions'
 
 /* Annonces de l'auto-école. Le personnel (super admin, administrateurs, secrétariat, moniteurs)
    écrit à tout le monde, aux élèves (tous, d'un bureau, d'un moniteur) ou au personnel ; un moniteur
@@ -213,7 +214,9 @@ export default function Annonces({ onLues }) {
                     <span className="font-extrabold" style={{ color: '#1e3a5f' }}>{a.titre}</span>
                     {!a.lue && <Pastille couleur="#b45309" fond="#fef3c7">Nouveau</Pastille>}
                   </div>
-                  {a.contenu && <div className="text-sm text-slate-700 mt-1" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{a.contenu}</div>}
+                  {a.contenu && (a.titre === TITRE_CHAMPIONS
+                    ? <CarteChampions contenu={a.contenu} />   // champions de la semaine : carte mentale colorée
+                    : <div className="text-sm text-slate-700 mt-1" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{a.contenu}</div>)}
                   </>}
                   {a.audio && <div className="mt-2 p-2 rounded-xl inline-block" style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
                     <LecteurVocal chemin={`/annonces/${a.id}/audio`} duree={a.audioDuree} libelle="Audio" />

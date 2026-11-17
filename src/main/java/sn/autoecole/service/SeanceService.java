@@ -111,9 +111,12 @@ public class SeanceService {
                     || (s.getStatut() == StatutSeance.PUBLIE && ADMINISTRATION.contains(s.getMoniteur().getRole()));
             if (!permise) continue;
             boolean conduiteSeule = !s.getProgramme().isEmpty() && s.getProgramme().stream().allMatch(SeanceService::conduite);
+            // Code seul : le perfectionnement (conduite seule, déjà titulaire du permis) n'est pas concerné
+            boolean codeSeul = !s.getProgramme().isEmpty() && s.getProgramme().stream().noneMatch(SeanceService::conduite);
             Set<Long> deja = s.getEleves().stream().map(Eleve::getId).collect(Collectors.toSet());
             List<Eleve> nouveaux = eleves.stream().filter(e -> !deja.contains(e.getId()))
-                    .filter(e -> !conduiteSeule || admisCode.contains(e.getId()) || e.estPerfectionnement()).toList();
+                    .filter(e -> !conduiteSeule || admisCode.contains(e.getId()) || e.estPerfectionnement())
+                    .filter(e -> !codeSeul || !e.estPerfectionnement()).toList();
             if (nouveaux.isEmpty()) continue;
             s.getEleves().addAll(nouveaux);
             seanceRepo.save(s);
