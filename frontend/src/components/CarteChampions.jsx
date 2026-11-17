@@ -63,17 +63,20 @@ const nomCourt = (nom, n) => {
 /* Grand écran : carte en étoile (SVG). Une séance = un cercle : titre en gras, puis ses 3 meilleurs. */
 function CarteEtoile({ data }) {
   const n = data.seances.length
-  const R = 122, RC = 112                                  // rayons : séance, centre
-  // Séances autour du centre, sans se toucher : l'anneau grandit avec leur nombre
-  const base = Math.max(300, (n * (2 * R + 30)) / (2 * Math.PI))
-  const anneau = { rx: base * 1.12, ry: base * (n <= 4 ? 0.78 : 0.9) }
+  const R = 122, RC = 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
+  const [survol, setSurvol] = useState(null)
+  // Séances sur un cercle autour du centre : même distance entre deux voisines. Le rayon grandit
+  // avec leur nombre pour garder au moins ECART entre deux cercles, et une branche visible.
+  const base = Math.max(RC + R + 56, n > 1 ? (2 * R + ECART) / (2 * Math.sin(Math.PI / n)) : 0)
   const pos = data.seances.map((_, i) => {
     const a = -Math.PI / 2 + (2 * Math.PI * i) / n
-    return [anneau.rx * Math.cos(a), anneau.ry * Math.sin(a)]
+    return [base * Math.cos(a), base * Math.sin(a)]
   })
   const xs = pos.flatMap(([x]) => [x - R, x + R]).concat([-RC, RC]), ys = pos.flatMap(([, y]) => [y - R, y + R]).concat([-RC, RC])
-  const m = 14, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m
+  const m = 30, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m   // marge : place pour l'agrandissement au survol
   const W = Math.max(...xs) + m - x0, H = Math.max(...ys) + m - y0
+  // Le cercle survolé est dessiné en dernier : il passe devant ses voisins
+  const ordre = data.seances.map((_, i) => i).sort((a, b) => (a === survol) - (b === survol))
   return (
     <svg viewBox={`${x0} ${y0} ${W} ${H}`} className="block w-full h-auto mx-auto" style={{ maxWidth: W }} role="img"
       aria-label={`Champions de la semaine ${data.periode} : ${data.seances.map(s => `${s.titre}, ${s.champions.map(c => `${c.nom} ${c.score}/${c.total}`).join(', ')}`).join(' ; ')}`}>
@@ -81,7 +84,14 @@ function CarteEtoile({ data }) {
       {pos.map(([x, y], i) => (
         <line key={i} x1={0} y1={0} x2={x} y2={y} stroke={COULEURS[i % COULEURS.length][0]} strokeWidth="3.5" strokeDasharray="2 7" strokeLinecap="round" />
       ))}
-      {data.seances.map((s, i) => {
+      {/* centre */}
+      <circle cx={0} cy={0} r={RC} fill="#fff" stroke="#1f2937" strokeWidth="6" />
+      <text x={0} y={-30} textAnchor="middle" fontSize="30">🏆</text>
+      <text x={0} y={8} textAnchor="middle" fontSize="19" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
+      <text x={0} y={31} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
+      {data.periode && <text x={0} y={56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
+      {ordre.map(i => {
+        const s = data.seances[i]
         const [c, f] = COULEURS[i % COULEURS.length]
         const [x, y] = pos[i]
         const titre = couper(s.titre, 18, 2)
@@ -89,8 +99,14 @@ function CarteEtoile({ data }) {
         // Bloc centré verticalement : titre (2 lignes max), trait, puis un champion par ligne
         const hauteur = titre.length * 17 + 12 + champions.length * 19
         const haut = y - hauteur / 2
+        // Survol : le cercle glisse vers le centre (sans le recouvrir) et grossit
+        const d = Math.hypot(x, y) || 1, recul = Math.min(40, Math.max(0, d - (RC + R * 1.15) - 6))
+        const actif = survol === i
         return (
-          <g key={i}>
+          <g key={i} onMouseEnter={() => setSurvol(i)} onMouseLeave={() => setSurvol(v => (v === i ? null : v))}
+            style={{ cursor: 'default', transformBox: 'view-box', transformOrigin: `${x}px ${y}px`,
+              transform: actif ? `translate(${(-x / d) * recul}px, ${(-y / d) * recul}px) scale(1.15)` : 'none',
+              transition: 'transform .35s cubic-bezier(.2,.8,.2,1)', filter: actif ? 'drop-shadow(0 10px 18px rgba(15,34,64,.28))' : 'none' }}>
             <circle cx={x} cy={y} r={R} fill={c} stroke={f} strokeWidth="5" />
             {titre.map((l, j) => (
               <text key={j} x={x} y={haut + 13 + j * 17} textAnchor="middle" fontSize="15" fontWeight="900" fill="#fff"
@@ -108,12 +124,6 @@ function CarteEtoile({ data }) {
           </g>
         )
       })}
-      {/* centre */}
-      <circle cx={0} cy={0} r={RC} fill="#fff" stroke="#1f2937" strokeWidth="6" />
-      <text x={0} y={-30} textAnchor="middle" fontSize="30">🏆</text>
-      <text x={0} y={8} textAnchor="middle" fontSize="19" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
-      <text x={0} y={31} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
-      {data.periode && <text x={0} y={56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
     </svg>
   )
 }
