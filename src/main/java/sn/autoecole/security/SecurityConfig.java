@@ -134,6 +134,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/pedagogie").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
+                // Discussions moniteur ↔ auto-école : personnel seulement
+                .requestMatchers("/api/discussions-equipe", "/api/discussions-equipe/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 // Toutes les autres routes nécessitent une authentification
                 .anyRequest().authenticated()
             )

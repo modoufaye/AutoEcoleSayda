@@ -45,12 +45,12 @@ function EditionBulle({ texte, onEnregistrer, onAnnuler }) {
   )
 }
 
-function Bulles({ messages, convId, maxHeight = '55vh', onModifie }) {
+export function Bulles({ messages, convId, maxHeight = '55vh', onModifie, base = '/conversations' }) {
   const bas = useRef(null)
   const [edition, setEdition] = useState(null)   // id du message en cours de modification
   useEffect(() => { bas.current?.scrollIntoView({ block: 'nearest' }) }, [messages.length])
   const enregistrer = async (m, texte) => {
-    await api('PUT', `/conversations/${convId}/messages/${m.id}`, { texte })
+    await api('PUT', `${base}/${convId}/messages/${m.id}`, { texte })
     setEdition(null)
     toast('Message modifié')
     await onModifie?.()
@@ -63,7 +63,7 @@ function Bulles({ messages, convId, maxHeight = '55vh', onModifie }) {
           <div className="max-w-[80%] px-3 py-2 text-sm" style={{ borderRadius: m.deMoi ? '1rem 1rem .25rem 1rem' : '1rem 1rem 1rem .25rem',
             background: m.deMoi ? 'linear-gradient(135deg,#d4a017,#f0bb2a)' : '#fff', color: m.deMoi ? '#1e3a5f' : '#334155', border: m.deMoi ? 'none' : '1px solid #e2e8f0' }}>
             {!m.deMoi && <div className="text-[11px] font-bold mb-0.5" style={{ color: '#1d4ed8' }}>{m.auteur}</div>}
-            {m.audio ? <LecteurVocal chemin={`/conversations/${convId}/messages/${m.id}/audio`} duree={m.audioDuree} />
+            {m.audio ? <LecteurVocal chemin={`${base}/${convId}/messages/${m.id}/audio`} duree={m.audioDuree} />
               : edition === m.id ? <EditionBulle texte={m.texte} onEnregistrer={t => enregistrer(m, t)} onAnnuler={() => setEdition(null)} />
               : <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.texte}</div>}
             {edition !== m.id && (
@@ -88,7 +88,7 @@ function Bulles({ messages, convId, maxHeight = '55vh', onModifie }) {
 /* Zone de saisie : Entrée envoie, Maj + Entrée passe à la ligne. onEnvoyer(texte) renvoie une promesse.
    Texte vide : le bouton micro enregistre un message vocal (onEnvoyerAudio(fichier, duree)), comme
    sur WhatsApp ; 🗑️ le jette, ➤ l'envoie. */
-function Saisie({ onEnvoyer, onEnvoyerAudio }) {
+export function Saisie({ onEnvoyer, onEnvoyerAudio }) {
   const [texte, setTexte] = useState('')
   const [envoi, setEnvoi] = useState(false)
   const enreg = useEnregistreur(async (fichier, duree) => {

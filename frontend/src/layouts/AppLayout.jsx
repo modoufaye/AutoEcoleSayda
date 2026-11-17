@@ -25,6 +25,7 @@ import Journal from '../components/Journal'
 import Mediatheque from '../components/Mediatheque'
 import Annonces from '../components/Annonces'
 import Messages from '../components/Messages'
+import MessengerBulle from '../components/MessengerBulle'
 import HoteConfirmation from '../components/Confirmation'
 import { useEcole } from '../ecole'
 import { compterSeancesAFaire } from '../seancesAFaire'
@@ -143,6 +144,7 @@ export default function AppLayout() {
   // toutes les 30 secondes (un message peut arriver pendant qu'on est sur une autre page)
   const [nonLues, setNonLues] = useState(0)
   const [messagesNonLus, setMessagesNonLus] = useState(0)
+  const [messagesElevesNonLus, setMessagesElevesNonLus] = useState(0)   // personnel : seulement ceux des élèves (pastille « Élèves »)
   const [seancesAFaire, setSeancesAFaire] = useState(0)   // élève : séances dont le quiz reste à valider
   // Dernier nombre de messages non lus connu : null tant que rien n'est chargé (pas de son à la connexion)
   const dernierNonLus = useRef(null)
@@ -157,6 +159,7 @@ export default function AppLayout() {
         if (dernierNonLus.current !== null && n > dernierNonLus.current) sonNouveauMessage()
         dernierNonLus.current = n
         setMessagesNonLus(n)
+        setMessagesElevesNonLus(r?.eleves ?? n)
         window.dispatchEvent(new CustomEvent('messages-non-lus', { detail: n }))
       }).catch(() => {})
     }
@@ -166,7 +169,7 @@ export default function AppLayout() {
     window.addEventListener('messages-lus', relire)
     return () => { clearInterval(t); window.removeEventListener('messages-lus', relire) }
   }, [user, section])
-  const pastilles = { annonces: nonLues, eleves: messagesNonLus, messages: messagesNonLus, 'seances-eleve': seancesAFaire }
+  const pastilles = { annonces: nonLues, eleves: messagesElevesNonLus, messages: messagesNonLus, 'seances-eleve': seancesAFaire }
   // Téléphone : le menu est replié ; un point sur ☰ signale qu'une rubrique a du nouveau
   const aDuNouveau = sections.some(s => pastilles[s.key] > 0 && section !== s.key)
   // Élève : « Messages » toujours dans le menu, entre « Mon Espace » et « Cours Code » (pastille des non lus)
@@ -456,6 +459,9 @@ export default function AppLayout() {
       </div>
 
       <ToastContainer toasts={toasts} />
+
+      {/* Bulle de discussions (type Messenger), sur toutes les pages */}
+      {!mdpObligatoire && <MessengerBulle user={user} nonLus={messagesNonLus} />}
 
       {/* Modal changement de mot de passe */}
       {showMdp && (

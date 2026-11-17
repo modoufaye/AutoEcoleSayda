@@ -45,6 +45,7 @@ public class ConversationController {
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
     private final EcoleService ecoleService;
+    private final sn.autoecole.service.DiscussionEquipeService discussionEquipeService;
 
     private final sn.autoecole.service.VocalService vocalService;
     private static final long VOCAL_MAX_OCTETS = 15L * 1024 * 1024;   // ~5 min en opus, largement
@@ -115,7 +116,10 @@ public class ConversationController {
     @Transactional(readOnly = true)
     public Map<String, Long> totalNonLus(Authentication auth) {
         Lecteur l = lecteur(auth);
-        return Map.of("nombre", mesConversations(l).stream().mapToLong(c -> nonLus(c, l)).sum());
+        // eleves : conversations avec les élèves ; equipe : discussions moniteur ↔ auto-école ; nombre : total
+        long eleves = mesConversations(l).stream().mapToLong(c -> nonLus(c, l)).sum();
+        long equipe = discussionEquipeService.totalNonLus(l.user());
+        return Map.of("nombre", eleves + equipe, "eleves", eleves, "equipe", equipe);
     }
 
     /** Messages de la conversation ; la lire marque les messages reçus comme lus (de son côté). */
