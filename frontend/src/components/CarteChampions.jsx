@@ -64,6 +64,7 @@ const nomCourt = (nom, n) => {
 function CarteEtoile({ data }) {
   const n = data.seances.length
   const R = 122, RC = 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
+  const ZOOM = 1.55                                        // agrandissement au survol
   const [survol, setSurvol] = useState(null)
   // Séances sur un cercle autour du centre : même distance entre deux voisines. Le rayon grandit
   // avec leur nombre pour garder au moins ECART entre deux cercles, et une branche visible.
@@ -99,14 +100,22 @@ function CarteEtoile({ data }) {
         // Bloc centré verticalement : titre (2 lignes max), trait, puis un champion par ligne
         const hauteur = titre.length * 17 + 12 + champions.length * 19
         const haut = y - hauteur / 2
-        // Survol : le cercle glisse vers le centre jusqu'à le toucher, et grossit
-        const d = Math.hypot(x, y) || 1, recul = Math.max(0, d - (RC + R * 1.12) - 4)
-        const actif = survol === i
+        // Survol : le cercle se rapproche du centre et grossit nettement pour qu'on lise bien ses
+        // champions ; les autres s'estompent. Transformation écrite autour du centre du cercle
+        // (translate · scale · translate) : même rendu dans tous les navigateurs, Safari compris.
+        const actif = survol === i, estompe = survol != null && !actif
+        const d = Math.hypot(x, y) || 1, k = actif ? ZOOM : 1
+        const vers = actif ? Math.max(0, d - Math.max(R * ZOOM * 0.55, d * 0.45)) : 0   // distance parcourue vers le centre
+        const tx = x - (x / d) * vers, ty = y - (y / d) * vers
         return (
           <g key={i} onMouseEnter={() => setSurvol(i)} onMouseLeave={() => setSurvol(v => (v === i ? null : v))}
-            style={{ cursor: 'default', transformBox: 'view-box', transformOrigin: `${x}px ${y}px`,
-              transform: actif ? `translate(${(-x / d) * recul}px, ${(-y / d) * recul}px) scale(1.15)` : 'none',
-              transition: 'transform .45s cubic-bezier(.2,.8,.2,1)', filter: actif ? 'drop-shadow(0 10px 18px rgba(15,34,64,.28))' : 'none' }}>
+            style={{ cursor: 'zoom-in', transformBox: 'view-box', transformOrigin: '0 0',
+              transform: `translate(${tx}px, ${ty}px) scale(${k}) translate(${-x}px, ${-y}px)`,
+              transition: 'transform .6s cubic-bezier(.22,.9,.3,1)',
+              filter: actif ? 'drop-shadow(0 14px 24px rgba(15,34,64,.32))' : 'none' }}>
+            {/* fond opaque : une séance estompée cache toujours les pointillés derrière elle */}
+            <circle cx={x} cy={y} r={R + 2.5} fill="#fbfcfe" />
+            <g style={{ opacity: estompe ? 0.3 : 1, transition: 'opacity .4s ease' }}>
             <circle cx={x} cy={y} r={R} fill={c} stroke={f} strokeWidth="5" />
             {titre.map((l, j) => (
               <text key={j} x={x} y={haut + 13 + j * 17} textAnchor="middle" fontSize="15" fontWeight="900" fill="#fff"
@@ -120,6 +129,7 @@ function CarteEtoile({ data }) {
                 <tspan fontWeight="800" opacity=".9"> {ch.score}/{ch.total}</tspan>
               </text>
             ))}
+            </g>
             <title>{`${s.titre} : ${s.champions.map(ch => `${ch.nom} (${ch.score}/${ch.total})`).join(', ')}`}</title>
           </g>
         )
