@@ -236,9 +236,8 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
                       </div>
                     ))}
                   </div>
-                  <Link to="/" className="inline-flex items-center gap-2 mt-8 px-6 py-3 rounded-full text-sm font-bold text-white"
-                    style={{ background: '#1e3a5f', textDecoration: 'none' }}>
-                    <i className="bi bi-house" />Retour à l'accueil
+                  <Link to="/" className="bouton-connexion bouton-retour mt-8">
+                    <i className="bi bi-arrow-left fleche" /><span>Retour à l'accueil</span><i className="bi bi-house-door-fill" />
                   </Link>
                 </div>
               ) : (

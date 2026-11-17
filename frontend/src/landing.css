@@ -56,3 +56,10 @@
   .bouton-connexion { padding: .45rem .9rem; font-size: .8rem; }
   .bouton-connexion .fleche { display: none; }
 }
+/* « Retour à l'accueil » : même bouton, la flèche part vers la gauche */
+.bouton-retour { padding: .55rem 1rem .55rem 1rem; }
+.bouton-retour:hover .fleche { transform: translateX(-3px); }
+@media (max-width: 767.98px) { .bouton-retour .fleche { display: inline-block; } }
+/* Page de connexion : en haut à droite ; sur téléphone, au-dessus de la carte (sans cacher le logo) */
+.retour-login { position: fixed; top: 49px; right: 24px; z-index: 50; }
+@media (max-width: 767.98px) { .retour-login { top: 6px; right: 12px; padding: .35rem .8rem; font-size: .78rem; } }

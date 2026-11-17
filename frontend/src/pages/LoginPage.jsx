@@ -82,26 +82,10 @@ export default function LoginPage() {
       </div>
 
       {/* ── Lien retour (coin haut-droit) ── */}
-      <Link
-        to="/"
-        className="flex items-center gap-2 text-sm font-semibold no-underline transition-all"
-        style={{
-          position: 'fixed',
-          top: 49,
-          right: 24,
-          zIndex: 50,
-          color: '#93c5fd',
-          background: 'rgba(255,255,255,.08)',
-          border: '1px solid rgba(255,255,255,.14)',
-          padding: '8px 18px',
-          borderRadius: '999px',
-          backdropFilter: 'blur(6px)',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,.16)'; e.currentTarget.style.color = '#fff' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = '#93c5fd' }}
-      >
-        <i className="bi bi-arrow-left" style={{ fontSize: '.9rem' }} />
-        Retour à l'accueil
+      <Link to="/" className="bouton-connexion bouton-retour retour-login">
+        <i className="bi bi-arrow-left fleche" />
+        <span>Retour à l'accueil</span>
+        <i className="bi bi-house-door-fill" />
       </Link>
 
       {/* ── Carte principale ── */}
