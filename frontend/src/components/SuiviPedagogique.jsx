@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { waLink } from '../utils'
+import { waLink, ROLE_BASE } from '../utils'
 import { EnteteListe } from './ListeModerne'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
@@ -23,6 +25,10 @@ const pc = (n, t) => (t ? Math.round(100 * n / t) : 0)
    code — part des séances de code, séries et annales assimilées (70 % ou plus au moins une fois),
    élèves par niveau, et ceux à accompagner en premier. */
 export default function SuiviPedagogique() {
+  // Clic sur un nom : la fiche de l'élève, comme depuis la liste
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const ouvrirFiche = e => navigate(`${ROLE_BASE[user?.role] || '/dashboard'}/eleves/${e.id}`)
   const [d, setD] = useState(null)
   const [trace, setTrace] = useState(false)
   useEffect(() => {
@@ -101,17 +107,26 @@ export default function SuiviPedagogique() {
                 <div key={c.cle} style={{ width: `${100 * c.nombre / d.eleves}%`, background: c.couleur, transition: 'width .8s' }} title={`${c.nom} : ${c.nombre}`} />
               ))}
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              {cats.map(c => (
-                <div key={c.cle} className="rounded-xl px-3 py-2" style={{ background: c.fond }}>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700"><i className={`bi bi-${c.icone}`} style={{ color: c.couleur }} />{c.nom}</div>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
+            {/* Téléphone : une ligne par niveau, nombre à droite ; plus large : cases 2 × 2 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+              {cats.map(c => {
+                const nombre = (
+                  <span className="whitespace-nowrap">
                     <span className="text-lg font-black" style={{ color: ENCRE }}>{c.nombre}</span>
-                    <span className="text-xs text-slate-500">{pc(c.nombre, d.eleves)} %</span>
+                    <span className="text-xs text-slate-500 ms-1.5">{pc(c.nombre, d.eleves)} %</span>
+                  </span>
+                )
+                return (
+                  <div key={c.cle} className="rounded-xl px-3 py-2 flex items-center gap-3 sm:block" style={{ background: c.fond }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700"><i className={`bi bi-${c.icone}`} style={{ color: c.couleur }} />{c.nom}</div>
+                      <div className="hidden sm:block mt-0.5">{nombre}</div>
+                      <div className="text-[11px] text-slate-500">{c.aide}</div>
+                    </div>
+                    <div className="sm:hidden">{nombre}</div>
                   </div>
-                  <div className="text-[11px] text-slate-500">{c.aide}</div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -128,7 +143,10 @@ export default function SuiviPedagogique() {
                 return (
                   <div key={e.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: '#f8fafc' }}>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-800 truncate" title={e.nom}>{e.nom}</div>
+                      <button type="button" onClick={() => ouvrirFiche(e)} title={`Ouvrir la fiche de ${e.nom}`}
+                          className="block max-w-full text-left text-sm font-bold text-slate-800 truncate border-0 bg-transparent p-0 cursor-pointer hover:underline" style={{ color: ENCRE }}>
+                          {e.nom}
+                        </button>
                       <div className="text-[11px] text-slate-500"><b style={{ color: '#c2410c' }}>{e.assimilees}/{e.faites}</b> assimilé{e.assimilees > 1 ? 's' : ''} ({pc(e.assimilees, e.faites)} %)</div>
                     </div>
                     {lien && (

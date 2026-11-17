@@ -37,7 +37,7 @@ function Anneau({ lieux, total, actif, setActif, couleur, libelle, sousTotal }) 
   })
   const choisi = lieux.find(l => l.lieu === actif)
   return (
-    <div className="relative flex-shrink-0 w-full select-none" style={{ maxWidth: 230 }}>
+    <div className="relative flex-shrink-0 w-full select-none max-w-[190px] sm:max-w-[230px]">
       <svg viewBox="0 0 200 200" className="w-full" role="img" aria-label="Élèves par lieu d'inscription">
         <circle cx="100" cy="100" r={r} fill="none" stroke="#eef2f7" strokeWidth="20" />
         <g transform="rotate(-90 100 100)">{parts}</g>
@@ -172,7 +172,7 @@ export default function RepartitionLocalites() {
                         <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
                           style={i === 0 ? { background: '#f0bb2a', color: ENCRE } : { background: '#e2e8f0', color: '#475569' }}>{i + 1}</span>
                         <i className={`bi bi-${lieu === EN_LIGNE ? 'globe2' : 'building'} flex-shrink-0`} style={{ color: bureaux.couleur(lieu) }} />
-                        <span className="flex-1 min-w-0 font-bold text-sm text-slate-800 truncate" title={bureaux.libelle(lieu)}>{bureaux.libelle(lieu)}</span>
+                        <span className="flex-1 min-w-0 font-bold text-sm text-slate-800 leading-tight line-clamp-2" title={bureaux.libelle(lieu)}>{bureaux.libelle(lieu)}</span>
                         <span className="text-base font-black whitespace-nowrap" style={{ color: ENCRE }}>{pourcent(nombre, d.total)} %</span>
                       </div>
                       <div className="flex items-center gap-2.5 mt-1.5 ps-[34px]">

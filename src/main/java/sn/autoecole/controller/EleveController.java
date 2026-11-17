@@ -52,32 +52,12 @@ public class EleveController {
     private final SeanceService   seanceService;
     private final sn.autoecole.repository.ExamenRepository examenRepository;
     private final sn.autoecole.repository.ProgressionCodeRepository progressionRepository;
+    private final sn.autoecole.repository.PublicationSerieRepository publicationSerieRepository;
 
     /** Élèves admis à l'examen du code (au moins un examen CODE « Admis ») : prêts pour la conduite. */
     @GetMapping("/admis-code")
     public List<Long> admisCode() {
         return examenRepository.eleveIdsParResultat(sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS);
-    }
-
-    /** Séries d'examen et annales faites par élève (au moins une tentative), par mode :
-        id -> {series, annales} (examens blancs) et {seriesEntrainement, annalesEntrainement},
-        plus les mêmes clés suffixées « Assimilees » (réussies au moins une fois). */
-    @GetMapping("/series-faites")
-    public Map<Long, Map<String, Long>> seriesFaites() {
-        Map<Long, Map<String, Long>> r = new java.util.HashMap<>();
-        for (var p : progressionRepository.findAll()) {
-            String ch = p.getChapitre();
-            if (p.getTentatives() <= 0 || ch == null) continue;
-            String suffixe = "";
-            if (ch.startsWith(ProgressionCodeController.ENTRAINEMENT)) { ch = ch.substring(ProgressionCodeController.ENTRAINEMENT.length()); suffixe = "Entrainement"; }
-            String cle = ch.startsWith("serie-") ? "series" : ch.startsWith("annale-") ? "annales" : null;
-            if (cle == null) continue;
-            var parCle = r.computeIfAbsent(p.getEleveId(), k -> new java.util.HashMap<>());
-            parCle.merge(cle + suffixe, 1L, Long::sum);
-            // Assimilée : au moins 70 % obtenus une fois (même règle que les quiz de séance)
-            if (p.isReussi()) parCle.merge(cle + suffixe + "Assimilees", 1L, Long::sum);
-        }
-        return r;
     }
 
     /** Séances de code publiées par élève (id -> nombre) : le compteur « code » de la liste. */
@@ -86,10 +66,51 @@ public class EleveController {
         return seanceService.seancesCodeParEleve();
     }
 
-    /** Séances de code assimilées par élève (id -> nombre) : quiz de la séance réussi au moins une fois. */
-    @GetMapping("/seances-code-assimilees")
-    public Map<Long, Long> seancesCodeAssimilees() {
-        return seanceService.seancesCodeAssimileesParEleve();
+    /**
+     * Suivi du code dans la liste des élèves : assimilées sur total, chaque séance ou série comptée
+     * une seule fois (validée trois fois = une). id -> { codeTotal, codeAssimilees, et pour séries et
+     * annales, en entraînement et en examen blanc : seriesEntrainementTotal, seriesEntrainementAssimilees,
+     * seriesTotal, seriesAssimilees, annales… }. Total des séances : celles avec quiz reçues ; total des
+     * séries : celles publiées pour l'élève dans ce mode, plus celles qu'il a faites sans publication.
+     */
+    @GetMapping("/suivi-code")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Map<Long, Map<String, Long>> suiviCode() {
+        Map<Long, Map<String, java.util.Set<String>>> total = new java.util.HashMap<>(), ok = new java.util.HashMap<>();
+        for (var p : publicationSerieRepository.findAll()) {
+            String cle = cleSerie(p.getSerie(), "ENTRAINEMENT".equals(p.getMode()));
+            if (cle == null) continue;
+            for (Eleve e : p.getEleves())
+                total.computeIfAbsent(e.getId(), k -> new java.util.HashMap<>()).computeIfAbsent(cle, k -> new java.util.HashSet<>()).add(p.getSerie());
+        }
+        for (var p : progressionRepository.findAll()) {
+            String ch = p.getChapitre();
+            if (ch == null) continue;
+            boolean entr = ch.startsWith(ProgressionCodeController.ENTRAINEMENT);
+            String serie = entr ? ch.substring(ProgressionCodeController.ENTRAINEMENT.length()) : ch;
+            String cle = cleSerie(serie, entr);
+            if (cle == null) continue;
+            if (p.getTentatives() > 0)
+                total.computeIfAbsent(p.getEleveId(), k -> new java.util.HashMap<>()).computeIfAbsent(cle, k -> new java.util.HashSet<>()).add(serie);
+            if (p.isReussi())
+                ok.computeIfAbsent(p.getEleveId(), k -> new java.util.HashMap<>()).computeIfAbsent(cle, k -> new java.util.HashSet<>()).add(serie);
+        }
+        Map<Long, Map<String, Long>> r = new java.util.HashMap<>();
+        total.forEach((id, m) -> m.forEach((cle, set) -> r.computeIfAbsent(id, k -> new java.util.HashMap<>()).put(cle + "Total", (long) set.size())));
+        ok.forEach((id, m) -> m.forEach((cle, set) -> r.computeIfAbsent(id, k -> new java.util.HashMap<>()).put(cle + "Assimilees", (long) set.size())));
+        seanceService.quizCodeParEleve().forEach((id, c) -> {
+            var m = r.computeIfAbsent(id, k -> new java.util.HashMap<>());
+            m.put("codeTotal", c[0]);
+            m.put("codeAssimilees", c[2]);
+        });
+        return r;
+    }
+
+    /** « series » / « seriesEntrainement » / « annales » / « annalesEntrainement », ou null. */
+    private static String cleSerie(String serie, boolean entrainement) {
+        if (serie == null) return null;
+        String base = serie.startsWith("serie-") ? "series" : serie.startsWith("annale-") ? "annales" : null;
+        return base == null ? null : base + (entrainement ? "Entrainement" : "");
     }
 
     @GetMapping

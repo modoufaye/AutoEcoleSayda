@@ -266,6 +266,7 @@ public class DashboardService {
                 d.put("reste", reste);
                 d.put("paye", paye);
                 d.put("total", e.getMontantTotal());
+                d.put("perfectionnement", e.estPerfectionnement());   // la fiche s'ouvre dans son onglet
                 doivent.add(d);
             }
         }

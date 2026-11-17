@@ -1026,17 +1026,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   // Élèves admis à l'examen du code : prêts pour les cours de conduite
   const [admisCode, setAdmisCode] = useState(() => new Set())
   useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
-  // Séances de code publiées par élève : les cours de code passent par les séances, pas par les leçons
-  const [seancesCode, setSeancesCode] = useState({})
   // Total payé par élève (gestion seulement) : reliquat ou « Tout payé » dans la liste
   const [totauxPayes, setTotauxPayes] = useState(null)
-  useEffect(() => { api('GET', '/eleves/seances-code').then(m => setSeancesCode(m || {})).catch(() => {}) }, [])
-  // Séances de code assimilées (quiz réussi au moins une fois, 70 % ou plus)
-  const [codeAssimile, setCodeAssimile] = useState({})
-  useEffect(() => { api('GET', '/eleves/seances-code-assimilees').then(m => setCodeAssimile(m || {})).catch(() => {}) }, [])
-  // Séries d'examen et annales faites par élève (Travaux Dirigés)
-  const [seriesFaites, setSeriesFaites] = useState({})
-  useEffect(() => { api('GET', '/eleves/series-faites').then(m => setSeriesFaites(m || {})).catch(() => {}) }, [])
+  // Suivi du code par élève : séances (avec quiz), séries et annales assimilées sur total,
+  // chacune comptée une seule fois même validée plusieurs fois
+  const [suiviCode, setSuiviCode] = useState({})
+  useEffect(() => { api('GET', '/eleves/suivi-code').then(m => setSuiviCode(m || {})).catch(() => {}) }, [])
   const [messagesNonLus, setMessagesNonLus] = useState({})   // élève → messages privés non lus
   const [archives, setArchives]   = useState(!!memo.archives)
   const loadReq = useRef(0)
@@ -2210,23 +2205,23 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     {e.typeFormation === 'PERFECTIONNEMENT'
                       ? <span className="font-semibold" style={{ color: '#a16207' }}>{e.boiteVitesse === 'AUTOMATIQUE' ? 'Automatique' : 'Manuelle'}</span>
                       : (() => {
-                          const ok = codeAssimile[e.id] || 0, faites = Math.max(ok, e.nombreLeconsCode + (seancesCode[e.id] || 0))   // jamais « 2/1 »
+                          const sc = suiviCode[e.id] || {}, ok = sc.codeAssimilees || 0, total = Math.max(ok, sc.codeTotal || 0)
                           return (
-                            <span className="whitespace-nowrap" title={`Séances de code : ${ok} assimilée(s) (quiz réussi à 70 % ou plus) sur ${faites}`}>
-                              <i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} />Code : <b>{ok}</b>/{faites} assimilée{ok > 1 ? 's' : ''}
+                            <span className="whitespace-nowrap" title={`Séances de code : ${ok} assimilée(s) (quiz réussi à 70 % ou plus, chaque séance comptée une fois) sur ${total} reçue(s) avec quiz`}>
+                              <i className="bi bi-signpost-2 me-1" style={{ color: '#2563eb' }} />Code : <b>{ok}</b>/{total} assimilée{ok > 1 ? 's' : ''}
                             </span>
                           )
                         })()}
                     {/* Permis : séries d'examen et annales faites ; la conduite n'apparaît qu'après l'admission au code */}
                     {e.typeFormation !== 'PERFECTIONNEMENT' && (() => {
-                      const sf = seriesFaites[e.id] || {}
-                      // Assimilées (70 % ou plus au moins une fois) / faites, en entraînement et en examen blanc
+                      const sc = suiviCode[e.id] || {}
+                      // Assimilées (70 % ou plus, chacune une seule fois) / total publiées ou faites, par mode
                       const ligne = (icone, couleur, nom, cle) => {
-                        const entr = sf[`${cle}Entrainement`] || 0, entrOk = sf[`${cle}EntrainementAssimilees`] || 0
-                        const blanc = sf[cle] || 0, blancOk = sf[`${cle}Assimilees`] || 0
+                        const entrOk = sc[`${cle}EntrainementAssimilees`] || 0, entr = Math.max(entrOk, sc[`${cle}EntrainementTotal`] || 0)
+                        const blancOk = sc[`${cle}Assimilees`] || 0, blanc = Math.max(blancOk, sc[`${cle}Total`] || 0)
                         return (
                           <span className="basis-full whitespace-nowrap"
-                            title={`${nom} assimilées (70 % ou plus) : ${entrOk} sur ${entr} en entraînement, ${blancOk} sur ${blanc} en examen blanc`}>
+                            title={`${nom} assimilées (70 % ou plus, chacune comptée une fois) : ${entrOk} sur ${entr} en entraînement, ${blancOk} sur ${blanc} en examen blanc`}>
                             <i className={`bi bi-${icone} me-1`} style={{ color: couleur }} />{nom} : <b>{entrOk}</b>/{entr} entr. · <b>{blancOk}</b>/{blanc} blanc
                           </span>
                         )

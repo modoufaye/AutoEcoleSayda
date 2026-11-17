@@ -139,7 +139,7 @@ export default function InscriptionsParMois() {
         </div>
         {/* Chiffres de l'année : total en tête (sur toute la largeur au téléphone), puis moyenne,
             meilleur mois, permis et perfectionnement (avec leur part du total) */}
-        <div className="px-5 pb-5 pt-3 grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="px-5 pb-5 pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
           {[
             { v: total, l: `Inscrit${total > 1 ? 's' : ''} en ${annee}`, icone: 'people-fill', c: '#1e3a5f', fond: '#e8eef6', tete: true },
             { v: moyenne, l: 'Par mois en moyenne', sous: partiel >= 0 ? 'mois terminés' : null, icone: 'calendar3-range', c: '#0f766e', fond: '#e6f6f3' },
@@ -147,17 +147,31 @@ export default function InscriptionsParMois() {
             { v: total - perf, l: 'Permis', part: total ? Math.round(100 * (total - perf) / total) : 0, icone: 'card-heading', c: '#2a78d6', fond: '#e8f1fc' },
             { v: perf, l: 'Perfectionnement', part: total ? Math.round(100 * perf / total) : 0, icone: 'speedometer2', c: '#eb6834', fond: '#fdeee7' },
           ].map(t => (
-            <div key={t.l} className={`relative overflow-hidden rounded-2xl p-3.5 flex flex-col gap-2.5 ${t.tete ? 'col-span-2 lg:col-span-1' : ''}`}
+            <div key={t.l} className={`relative overflow-hidden rounded-2xl p-3 sm:p-3.5 flex flex-col gap-2 sm:gap-2.5 ${t.tete ? 'sm:col-span-2 lg:col-span-1' : ''}`}
               style={{ background: '#fff', border: '1px solid #eef2f7', boxShadow: '0 1px 4px rgba(15,34,64,.05)' }}>
-              <div className="flex items-center justify-between gap-2">
+              {/* Téléphone : une ligne compacte (icône, chiffre et libellé, part à droite) */}
+              <div className="flex items-center gap-3 sm:hidden">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: t.fond, color: t.c }}>
+                  <i className={`bi bi-${t.icone}`} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xl font-black leading-none tabular-nums" style={{ color: '#1e3a5f' }}>{t.v}</div>
+                  <div className="text-xs font-semibold text-slate-500 mt-0.5">{t.l}</div>
+                  {t.sous && <div className="text-[11px] font-bold mt-0.5" style={{ color: t.c }}>{t.sous}</div>}
+                </div>
+                {t.part != null && (
+                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: t.fond, color: t.c }}>{t.part} %</span>
+                )}
+              </div>
+              <div className="hidden sm:flex items-center justify-between gap-2">
                 <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: t.fond, color: t.c }}>
                   <i className={`bi bi-${t.icone}`} />
                 </span>
                 {t.part != null && (
-                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full" style={{ background: t.fond, color: t.c }}>{t.part} %</span>
+                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: t.fond, color: t.c }}>{t.part} %</span>
                 )}
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <div className="text-2xl font-black leading-none tabular-nums" style={{ color: '#1e3a5f' }}>{t.v}</div>
                 <div className="text-xs font-semibold text-slate-500 mt-1">{t.l}</div>
                 {t.sous && <div className="text-[11px] font-bold mt-0.5" style={{ color: t.c }}>{t.sous}</div>}

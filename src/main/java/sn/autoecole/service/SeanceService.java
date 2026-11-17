@@ -160,17 +160,6 @@ public class SeanceService {
         return r;
     }
 
-    /** Séances de code assimilées par élève (quiz réussi au moins une fois, 70 % ou plus) : id -> nombre. */
-    @Transactional(readOnly = true)
-    public Map<Long, Long> seancesCodeAssimileesParEleve() {
-        Set<Long> code = seanceRepo.findByStatut(StatutSeance.PUBLIE).stream()
-                .filter(s -> s.getProgramme().isEmpty() || s.getProgramme().stream().anyMatch(p -> !conduite(p)))
-                .map(Seance::getId).collect(Collectors.toSet());
-        return resultatRepo.findAll().stream()
-                .filter(r -> r.isReussi() && code.contains(r.getSeanceId()))
-                .collect(Collectors.groupingBy(ResultatQuizSeance::getEleveId, Collectors.counting()));
-    }
-
     @Transactional(readOnly = true)
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)

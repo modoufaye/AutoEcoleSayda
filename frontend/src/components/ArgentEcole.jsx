@@ -1,7 +1,9 @@
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import { useEcole } from '../ecole'
-import { fmtMontant, waLink } from '../utils'
+import { fmtMontant, waLink, ROLE_BASE } from '../utils'
 import { EnteteListe } from './ListeModerne'
 import SelecteurAnnee from './SelecteurAnnee'
 
@@ -39,6 +41,10 @@ function Tuile({ icone, couleur, titre, valeur, detail }) {
    des élèves, répartis par montant restant, avec les plus gros à relancer par WhatsApp.
    masquer : montants cachés (bouton œil du tableau de bord, partage d'écran). */
 export default function ArgentEcole({ masquer = false }) {
+  // Clic sur un nom : la fiche de l'élève, comme depuis la liste
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const ouvrirFiche = e => navigate(`${ROLE_BASE[user?.role] || '/dashboard'}/${e.perfectionnement ? 'perfectionnement' : 'eleves'}/${e.id}`)
   const ecole = useEcole()
   const anneeCourante = new Date().getFullYear()
   const [annee, setAnnee] = useState(String(anneeCourante))
@@ -179,55 +185,70 @@ export default function ArgentEcole({ masquer = false }) {
           <div className="rounded-2xl px-4 py-3 mb-4 flex items-center gap-3" style={{ background: 'linear-gradient(135deg,#fff7ed,#ffedd5)', border: '1px solid #fed7aa' }}>
             <span className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#f97316', color: '#fff' }}><i className="bi bi-piggy-bank-fill" /></span>
             <div className="min-w-0">
-              <div className="text-xl font-black" style={{ color: ENCRE }}>{m(d.totalReste)}</div>
+              <div className="text-lg sm:text-xl font-black whitespace-nowrap" style={{ color: ENCRE }}>{m(d.totalReste)}</div>
               <div className="text-xs text-slate-600">à encaisser aujourd'hui, élèves en cours</div>
             </div>
           </div>
 
           {/* Barre empilée : élèves par montant restant */}
           {avecPrix > 0 && (
-            <>
-              <div className="flex h-3.5 rounded-full overflow-hidden gap-[2px]" role="img" aria-label="Élèves par montant restant">
-                {tranches.filter(t => t.nombre > 0).map(t => (
-                  <div key={t.cle} style={{ width: `${100 * t.nombre / avecPrix}%`, background: t.couleur, transition: 'width .8s' }} title={`${t.nom} : ${t.nombre} élève(s)`} />
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {tranches.map(t => (
-                  <div key={t.cle} className="rounded-xl px-3 py-2" style={{ background: t.fond }}>
-                    <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#334155' }}>
-                      <i className={`bi bi-${t.icone}`} style={{ color: t.couleur }} />{t.nom}
-                    </div>
-                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                      <span className="text-lg font-black" style={{ color: ENCRE }}>{t.nombre}</span>
-                      <span className="text-xs text-slate-500">élève{t.nombre > 1 ? 's' : ''}</span>
-                    </div>
-                    {t.cle !== 'solde' && t.nombre > 0 && <div className="text-[11px] text-slate-500">{m(t.montant)}</div>}
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="flex h-3.5 rounded-full overflow-hidden gap-[2px]" role="img" aria-label="Élèves par montant restant">
+              {tranches.filter(t => t.nombre > 0).map(t => (
+                <div key={t.cle} style={{ width: `${100 * t.nombre / avecPrix}%`, background: t.couleur, transition: 'width .8s' }} title={`${t.nom} : ${t.nombre} élève(s)`} />
+              ))}
+            </div>
           )}
-
           {d.sansPrix > 0 && (
             <div className="text-[11px] text-slate-400 mt-3"><i className="bi bi-info-circle me-1" />{d.sansPrix} élève{d.sansPrix > 1 ? 's' : ''} sans prix de formation renseigné : non compté{d.sansPrix > 1 ? 's' : ''} ici.</div>
           )}
           </div>
 
-          {/* À relancer en priorité : les plus gros reliquats, rappel WhatsApp prêt */}
+          {/* Colonne de droite : élèves par montant restant */}
+          {avecPrix > 0 && (
+            <>
+              {/* Téléphone : une ligne par tranche, nombre à droite ; plus large : cases 2 × 2 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 content-start">
+                {tranches.map(t => {
+                  const nombre = (
+                    <span className="whitespace-nowrap">
+                      <span className="text-lg font-black" style={{ color: ENCRE }}>{t.nombre}</span>
+                      <span className="text-xs text-slate-500 ms-1.5">élève{t.nombre > 1 ? 's' : ''}</span>
+                    </span>
+                  )
+                  return (
+                    <div key={t.cle} className="rounded-xl px-3 py-2 flex items-center gap-3 sm:block" style={{ background: t.fond }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: '#334155' }}>
+                          <i className={`bi bi-${t.icone}`} style={{ color: t.couleur }} />{t.nom}
+                        </div>
+                        <div className="hidden sm:block mt-0.5">{nombre}</div>
+                        {t.cle !== 'solde' && t.nombre > 0 && <div className="text-[11px] text-slate-500">{m(t.montant)}</div>}
+                      </div>
+                      <div className="sm:hidden">{nombre}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {/* À relancer en priorité (sous les deux colonnes) : les plus gros reliquats, rappel WhatsApp prêt */}
           {d.aRelancer.length > 0 && (
-            <div>
+            <div className="lg:col-span-2">
               <div className="text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2"><i className="bi bi-bell-fill me-1" style={{ color: '#f97316' }} />À relancer en priorité</div>
-              <div className="flex flex-col gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
                 {d.aRelancer.map(e => {
                   const lien = waLink(e.telephone, rappel(e))
                   return (
                     <div key={e.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl" style={{ background: '#f8fafc' }}>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-slate-800 truncate" title={e.nom}>{e.nom}</div>
+                        <button type="button" onClick={() => ouvrirFiche(e)} title={`Ouvrir la fiche de ${e.nom}`}
+                          className="block max-w-full text-left text-sm font-bold text-slate-800 truncate border-0 bg-transparent p-0 cursor-pointer hover:underline" style={{ color: ENCRE }}>
+                          {e.nom}
+                        </button>
                         <div className="flex flex-wrap items-baseline gap-x-1.5 text-[11px] text-slate-500 leading-snug">
                           <b className="text-[13px] font-black whitespace-nowrap" style={{ color: '#c2410c' }}>reste {m(e.reste)}</b>
-                          <span className="whitespace-nowrap">payé {m(e.paye)} sur {m(e.total)}</span>
+                          <span>payé {m(e.paye)} sur {m(e.total)}</span>
                         </div>
                       </div>
                       {lien && (
