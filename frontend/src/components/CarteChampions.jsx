@@ -80,7 +80,7 @@ const nomCourt = (nom, n) => {
 function CarteEtoile({ data }) {
   const n = data.seances.length
   const star = lePlusPresent(data.seances)
-  const R = 122, RC = star ? 130 : 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
+  const R = 122, RC = star ? 145 : 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
   const ZOOM = 230 / R                                     // au survol : rayon de 230 (au lieu de 122)
   const [survol, setSurvol] = useState(null)
   // Séances sur un cercle autour du centre : même distance entre deux voisines. Le rayon grandit
