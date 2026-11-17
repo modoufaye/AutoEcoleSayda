@@ -52,6 +52,22 @@ function couper(texte, n, max) {
 }
 
 const MEDAILLES = ['🥇', '🥈', '🥉']
+
+/* L'élève qui monte le plus souvent sur un podium (au moins 2 fois) : départage par le nombre de
+   médailles d'or, puis par le score moyen. Rien si personne n'apparaît deux fois. */
+function lePlusPresent(seances) {
+  const t = new Map()
+  for (const s of seances) {
+    s.champions.slice(0, 3).forEach((c, k) => {
+      const cle = c.nom.toLowerCase().replace(/\s+/g, ' ')
+      const e = t.get(cle) || { nom: c.nom, fois: 0, ors: 0, part: 0 }
+      e.fois++; if (k === 0) e.ors++; e.part += c.total ? c.score / c.total : 0
+      t.set(cle, e)
+    })
+  }
+  const best = [...t.values()].sort((a, b) => b.fois - a.fois || b.ors - a.ors || b.part / b.fois - a.part / a.fois)[0]
+  return best && best.fois >= 2 ? best : null
+}
 /* Nom raccourci pour tenir dans le cercle : « Ndeye Coumba Traoré » → « Ndeye C. Traoré » si trop long */
 const nomCourt = (nom, n) => {
   if (nom.length <= n) return nom
@@ -63,7 +79,8 @@ const nomCourt = (nom, n) => {
 /* Grand écran : carte en étoile (SVG). Une séance = un cercle : titre en gras, puis ses 3 meilleurs. */
 function CarteEtoile({ data }) {
   const n = data.seances.length
-  const R = 122, RC = 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
+  const star = lePlusPresent(data.seances)
+  const R = 122, RC = star ? 130 : 112, ECART = 22                      // rayons : séance, centre ; écart minimal entre deux séances
   const ZOOM = 230 / R                                     // au survol : rayon de 230 (au lieu de 122)
   const [survol, setSurvol] = useState(null)
   // Séances sur un cercle autour du centre : même distance entre deux voisines. Le rayon grandit
@@ -87,10 +104,27 @@ function CarteEtoile({ data }) {
       ))}
       {/* centre */}
       <circle cx={0} cy={0} r={RC} fill="#fff" stroke="#1f2937" strokeWidth="6" />
-      <text x={0} y={-30} textAnchor="middle" fontSize="30">🏆</text>
-      <text x={0} y={8} textAnchor="middle" fontSize="19" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
-      <text x={0} y={31} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
-      {data.periode && <text x={0} y={56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
+      {star ? (
+        <>
+          <text x={0} y={-66} textAnchor="middle" fontSize="26">🏆</text>
+          <text x={0} y={-34} textAnchor="middle" fontSize="18" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
+          <text x={0} y={-14} textAnchor="middle" fontSize="14" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
+          {data.periode && <text x={0} y={5} textAnchor="middle" fontSize="12" fill="#64748b">{data.periode}</text>}
+          <line x1={-62} x2={62} y1={19} y2={19} stroke="#e2e8f0" strokeWidth="1.5" />
+          {/* L'élève le plus souvent sur le podium */}
+          <text x={0} y={38} textAnchor="middle" fontSize="11" fontWeight="800" fill="#b45309" style={{ letterSpacing: '.08em' }}>⭐ LE PLUS DE PODIUMS</text>
+          <text x={0} y={61} textAnchor="middle" fontSize="17" fontWeight="900" fill="#1f2937">{nomCourt(star.nom, 20)}</text>
+          <text x={0} y={81} textAnchor="middle" fontSize="12" fill="#64748b">{star.fois} séances{star.ors ? ` · ${star.ors} 🥇` : ''}</text>
+          <title>{`${star.nom} : sur le podium de ${star.fois} séances`}</title>
+        </>
+      ) : (
+        <>
+          <text x={0} y={-30} textAnchor="middle" fontSize="30">🏆</text>
+          <text x={0} y={8} textAnchor="middle" fontSize="19" fontWeight="800" fill="#1f2937" style={{ letterSpacing: '.06em' }}>CHAMPIONS</text>
+          <text x={0} y={31} textAnchor="middle" fontSize="15" fontWeight="700" fill="#1f2937" style={{ letterSpacing: '.06em' }}>DE LA SEMAINE</text>
+          {data.periode && <text x={0} y={56} textAnchor="middle" fontSize="13" fill="#64748b">{data.periode}</text>}
+        </>
+      )}
       {ordre.map(i => {
         const s = data.seances[i]
         const [c, f] = COULEURS[i % COULEURS.length]
@@ -140,13 +174,21 @@ function CarteEtoile({ data }) {
 
 /* Téléphone : la même carte en colonne ; une séance = une pastille ronde, titre en gras puis ses 3 meilleurs */
 function CarteColonne({ data }) {
+  const star = lePlusPresent(data.seances)
   return (
     <div className="flex flex-col items-center">
-      <div className="w-36 h-36 rounded-full flex flex-col items-center justify-center text-center bg-white" style={{ border: '5px solid #1f2937' }}>
+      <div className={`${star ? 'w-48 h-48' : 'w-36 h-36'} rounded-full flex flex-col items-center justify-center text-center bg-white`} style={{ border: '5px solid #1f2937' }}>
         <div className="text-2xl leading-none">🏆</div>
         <div className="text-sm font-extrabold tracking-wider mt-1" style={{ color: '#1f2937' }}>CHAMPIONS</div>
         <div className="text-[11px] font-bold tracking-wider" style={{ color: '#1f2937' }}>DE LA SEMAINE</div>
         {data.periode && <div className="text-[10px] text-slate-500 mt-0.5">{data.periode}</div>}
+        {star && (
+          <div className="mt-1.5 pt-1.5 px-3 max-w-full" style={{ borderTop: '1.5px solid #e2e8f0' }}>
+            <div className="text-[9px] font-extrabold tracking-wider" style={{ color: '#b45309' }}>⭐ LE PLUS DE PODIUMS</div>
+            <div className="text-sm font-black leading-tight" style={{ color: '#1f2937' }}>{nomCourt(star.nom, 20)}</div>
+            <div className="text-[10px] text-slate-500">{star.fois} séances{star.ors ? ` · ${star.ors} 🥇` : ''}</div>
+          </div>
+        )}
       </div>
       {data.seances.map((s, i) => {
         const [c, f] = COULEURS[i % COULEURS.length]
