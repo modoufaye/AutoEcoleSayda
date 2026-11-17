@@ -388,8 +388,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const openCreate = () => {
     setEditId(null)
     setDejaDansSeance([])
-    // Nouvelle séance (cours de code par défaut) : tous les élèves cochés, admis au code compris
-    setForm({ ...defaultForm(), eleveIds: eleves.map(e => e.id) })
+    // Nouvelle séance (cours de code par défaut) : tous les élèves du permis cochés, admis au code
+    // compris ; pas le perfectionnement (conduite seule)
+    setForm({ ...defaultForm(), eleveIds: eleves.filter(e => !e.perfectionnement).map(e => e.id) })
     setCoursChoisi('code')
     setErr('')
     setView('editor')
@@ -508,7 +509,9 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
     const titre = form.titre.trim() || 'Séance de cours'
     setSaving(true); setErr('')
     try {
-      const payload = { ...form, titre, statut, blocs: form.blocs.map((b, i) => ({ ...b, ordre: i })) }
+      // Cours de code : les élèves en perfectionnement cochés auparavant en sont retirés
+      const eleveIds = seanceConduite ? form.eleveIds : form.eleveIds.filter(id => !eleves.some(e => e.id === id && e.perfectionnement))
+      const payload = { ...form, eleveIds, titre, statut, blocs: form.blocs.map((b, i) => ({ ...b, ordre: i })) }
       if (editId) await api('PUT',  `/moniteur/seances/${editId}`, payload)
       else        await api('POST', '/moniteur/seances', payload)
       load()
@@ -551,7 +554,8 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
      conduite » est choisi dans Cours à publier. Un élève déjà dans la séance reste affiché. */
   const seanceConduite = coursChoisi === 'conduite' || form.programme.some(p => p.chapitre.startsWith('conduite-'))
   const peutConduite = e => e.admisCode || e.perfectionnement
-  const elevesAssignables = seanceConduite ? eleves.filter(e => peutConduite(e) || dejaDansSeance.includes(e.id)) : eleves
+  // Cours de code : le perfectionnement (conduite seule) n'est pas proposé, même s'il y était déjà
+  const elevesAssignables = seanceConduite ? eleves.filter(e => peutConduite(e) || dejaDansSeance.includes(e.id)) : eleves.filter(e => !e.perfectionnement)
   const nonProposes = eleves.length - elevesAssignables.length
   // Passage à la conduite : les élèves cochés qui n'y ont pas droit sont décochés
   const choisirCours = k => {

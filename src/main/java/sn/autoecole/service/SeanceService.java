@@ -89,7 +89,9 @@ public class SeanceService {
         Set<Long> voulus = eleveIds == null ? Set.of() : new HashSet<>(eleveIds);
         s.getEleves().removeIf(e -> miens.contains(e.getId()) && !voulus.contains(e.getId()));
         Set<Long> deja = s.getEleves().stream().map(Eleve::getId).collect(Collectors.toSet());
-        s.getEleves().addAll(eleveRepo.findAllById(voulus.stream().filter(x -> miens.contains(x) && !deja.contains(x)).toList()));
+        boolean codeSeul = codeSeul(s);
+        s.getEleves().addAll(eleveRepo.findAllById(voulus.stream().filter(x -> miens.contains(x) && !deja.contains(x)).toList())
+                .stream().filter(e -> !codeSeul || !e.estPerfectionnement()).toList());
         return toResponse(seanceRepo.save(s));
     }
 
@@ -99,6 +101,11 @@ public class SeanceService {
      * ses élèves, dans ses séances et celles publiées par l'administration. Séances de conduite seule :
      * seulement les admis au code et le perfectionnement. Renvoie { ajouts, seances } (séances changées).
      */
+    /** Séance de cours de code seul (programme sans aucune partie de conduite). */
+    private static boolean codeSeul(Seance s) {
+        return !s.getProgramme().isEmpty() && s.getProgramme().stream().noneMatch(SeanceService::conduite);
+    }
+
     public Map<String, Integer> ajouterAPlusieurs(List<Long> seanceIds, List<Long> eleveIds, String email, boolean gestion, Set<Long> admisCode) {
         if (seanceIds == null || seanceIds.isEmpty() || eleveIds == null || eleveIds.isEmpty())
             throw new BusinessException("Choisissez au moins un élève et une séance");
@@ -332,12 +339,14 @@ public class SeanceService {
         s.setStatut(req.statut() != null && !req.statut().isBlank()
                 ? StatutSeance.valueOf(req.statut()) : StatutSeance.BROUILLON);
 
+        s.setProgramme(programme(req.programme()));
+
         if (req.eleveIds() != null) {
             s.getEleves().clear();
-            s.getEleves().addAll(eleveRepo.findAllById(req.eleveIds()));
+            // Cours de code seul : le perfectionnement (conduite seule) n'y est pas inscrit
+            boolean codeSeul = codeSeul(s);
+            s.getEleves().addAll(eleveRepo.findAllById(req.eleveIds()).stream().filter(e -> !codeSeul || !e.estPerfectionnement()).toList());
         }
-
-        s.setProgramme(programme(req.programme()));
 
         s.getBlocs().clear();
         if (req.blocs() != null) {
