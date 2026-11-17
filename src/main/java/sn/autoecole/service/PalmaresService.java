@@ -39,6 +39,7 @@ public class PalmaresService {
     private final AnnonceRepository annonceRepo;
     private final AutoEcoleConfigRepository configRepo;
     private final EcoleService ecoleService;
+    private final ProgressionCodeRepository progressionRepo;
 
     /** Un champion d'une séance : son meilleur score. */
     public record Champion(Long eleveId, String nom, int score, int total) {}
@@ -114,7 +115,21 @@ public class PalmaresService {
                     .toList()));
         });
         lignes.sort(Comparator.comparing((Ligne l) -> Optional.ofNullable(seances.get(l.seanceId()).getDateHeure()).orElse(LocalDateTime.MIN)).reversed());
-        return lignes;
+        // Séances au même titre : on ajoute leur date (« Les panneaux de danger · 10/11 »), et un numéro
+        // si la date est la même aussi (« Les panneaux de danger · 10/11 (2) »)
+        Map<String, List<Ligne>> parTitre = lignes.stream().collect(Collectors.groupingBy(Ligne::titre));
+        Map<String, Integer> vus = new HashMap<>();
+        return lignes.stream().map(l -> {
+            if (parTitre.get(l.titre()).size() < 2) return l;
+            LocalDateTime d = seances.get(l.seanceId()).getDateHeure();
+            String date = d != null ? " · " + d.format(JOUR) : "";
+            long memeDate = parTitre.get(l.titre()).stream().filter(x -> Objects.equals(
+                    Optional.ofNullable(seances.get(x.seanceId()).getDateHeure()).map(t -> t.format(JOUR)).orElse(""),
+                    d != null ? d.format(JOUR) : "")).count();
+            String cle = l.titre() + date;
+            String numero = memeDate > 1 ? " (" + vus.merge(cle, 1, Integer::sum) + ")" : "";
+            return new Ligne(l.seanceId(), l.titre() + date + numero, l.champions());
+        }).toList();
     }
 
     /** Chaque lundi à 00 h (Dakar) : annonce des champions de la semaine écoulée. */
@@ -126,19 +141,59 @@ public class PalmaresService {
         publierSemainePassee();
     }
 
+    /** Titres des séries d'examen et des annales (contenu/seriesExamen.js, contenu/annales.js). */
+    private static final Map<String, String> TITRES_SERIES = new LinkedHashMap<>();
+    static {
+        for (String b : List.of("b1", "b2", "b3", "b4")) TITRES_SERIES.put("serie-" + b, "Série d'examen " + b.toUpperCase() + " · examen blanc");
+        for (String b : List.of("b1", "b2")) TITRES_SERIES.put("annale-" + b, "Annale · catalogue " + b.toUpperCase() + " · examen blanc");
+    }
+
+    /**
+     * Champions des séries d'examen et des annales passées en examen blanc dans [debut, fin) :
+     * même classement que les séances (meilleur score en %, puis le moins de tentatives, puis le nom).
+     * Séries d'abord (B1 à B4), puis annales.
+     */
+    public List<Ligne> meilleursSeries(LocalDateTime debut, LocalDateTime fin) {
+        Map<String, List<ProgressionCode>> parSerie = progressionRepo.findAll().stream()
+                .filter(p -> TITRES_SERIES.containsKey(p.getChapitre()))               // examen blanc seulement
+                .filter(p -> p.getTotal() > 0 && p.getMeilleurScore() > 0 && p.getDerniereTentative() != null)
+                .filter(p -> !p.getDerniereTentative().isBefore(debut) && p.getDerniereTentative().isBefore(fin))
+                .collect(Collectors.groupingBy(ProgressionCode::getChapitre));
+        if (parSerie.isEmpty()) return List.of();
+        Set<Long> ids = parSerie.values().stream().flatMap(List::stream).map(ProgressionCode::getEleveId).collect(Collectors.toSet());
+        Map<Long, Eleve> eleves = eleveRepo.findAllById(ids).stream().collect(Collectors.toMap(Eleve::getId, Function.identity()));
+        List<Ligne> lignes = new ArrayList<>();
+        TITRES_SERIES.forEach((chapitre, titre) -> {
+            List<ProgressionCode> premiers = parSerie.getOrDefault(chapitre, List.of()).stream()
+                    .filter(p -> eleves.containsKey(p.getEleveId()) && !eleves.get(p.getEleveId()).isArchive())
+                    .sorted(Comparator.comparingDouble((ProgressionCode p) -> -(double) p.getMeilleurScore() / p.getTotal())
+                            .thenComparingInt(ProgressionCode::getTentatives)
+                            .thenComparing(p -> nomCourt(eleves.get(p.getEleveId()))))
+                    .limit(CHAMPIONS_PAR_SEANCE)
+                    .toList();
+            if (premiers.isEmpty()) return;
+            lignes.add(new Ligne(null, titre, premiers.stream()
+                    .map(p -> new Champion(p.getEleveId(), nomCourt(eleves.get(p.getEleveId())), p.getMeilleurScore(), p.getTotal()))
+                    .toList()));
+        });
+        return lignes;
+    }
+
     /**
      * Publie l'annonce pour [debut, fin) ; rien s'il n'y a eu aucun quiz, ni si elle a déjà été
      * publiée aujourd'hui. Renvoie le nombre de séances félicitées (0 : rien publié).
      */
     @Transactional
     public int publier(LocalDateTime debut, LocalDateTime fin) {
-        List<Ligne> lignes = meilleurs(null, debut, fin);
+        // Séances d'abord, puis séries d'examen et annales (examen blanc)
+        List<Ligne> lignes = new ArrayList<>(meilleurs(null, debut, fin));
+        lignes.addAll(meilleursSeries(debut, fin));
         if (lignes.isEmpty()) { log.info("Palmarès : aucun quiz du {} au {}, pas d'annonce", debut, fin); return 0; }
         // Une seule annonce par semaine : déjà publiée pour cette période (contenu daté), on ne refait rien
         String periode = "du " + debut.format(JOUR) + " au " + fin.minusDays(1).format(JOUR);
         boolean deja = annonceRepo.findAll().stream().anyMatch(a -> TITRE_ANNONCE.equals(a.getTitre()) && a.getContenu() != null && a.getContenu().contains(periode + " :"));
         if (deja) return 0;
-        StringBuilder t = new StringBuilder("Bravo aux meilleurs scores aux quiz des séances, ").append(periode).append(" :\n");
+        StringBuilder t = new StringBuilder("Bravo aux meilleurs scores aux quiz des séances, aux séries d'examen et aux annales, ").append(periode).append(" :\n");
         int n = 0;
         for (Ligne l : lignes) {
             // « • « Titre » : Awa Diop (10/10), Moussa Ba (9/10) » : chaque champion avec son score

@@ -36,7 +36,7 @@ function lireChampions(contenu) {
   if (!seances.length) return null
   const periode = contenu.match(/du (\d{2}\/\d{2}) au (\d{2}\/\d{2})/)
   const fin = lignes.map(l => l.trim()).filter(l => l && !l.startsWith('•') && l !== '…').slice(-1)[0]
-  return { seances, periode: periode ? `du ${periode[1]} au ${periode[2]}` : '', fin: fin && !fin.startsWith('Bravo') ? fin : '', tronque: contenu.includes('\n…') }
+  return { seances, series: /séries d'examen|annales/.test(lignes[0] || ''), periode: periode ? `du ${periode[1]} au ${periode[2]}` : '', fin: fin && !fin.startsWith('Bravo') ? fin : '', tronque: contenu.includes('\n…') }
 }
 
 /* Coupe un texte en lignes d'au plus n caractères (mots entiers), au plus max lignes. */
@@ -133,12 +133,12 @@ function CarteColonne({ data }) {
         return (
           <div key={i} className="flex flex-col items-center w-full">
             <div className="h-6" style={{ borderLeft: `3px dotted ${c}` }} />
-            <div className="w-full px-3.5 py-3 text-center text-white" style={{ background: c, borderRadius: 28, boxShadow: `inset 0 0 0 4px ${f}` }}>
+            <div className="w-full px-3 py-3 text-center text-white" style={{ background: c, borderRadius: 24, boxShadow: `inset 0 0 0 4px ${f}` }}>
               <div className="text-sm font-black uppercase tracking-wide leading-tight">{s.titre}</div>
               <div className="mx-auto my-2 w-16" style={{ borderTop: '1.5px solid rgba(255,255,255,.55)' }} />
               <div className="flex flex-col gap-0.5">
                 {s.champions.slice(0, 3).map((ch, k) => (
-                  <div key={k} className="flex items-baseline gap-1.5 text-xs leading-snug text-left">
+                  <div key={k} className="flex items-baseline gap-1.5 text-[13px] leading-snug text-left">
                     <span className="flex-shrink-0">{MEDAILLES[k]}</span>
                     <b className="flex-1 min-w-0 break-words">{ch.nom}</b>
                     <span className="font-extrabold opacity-90 whitespace-nowrap">{ch.score}/{ch.total}</span>
@@ -167,8 +167,9 @@ export default function CarteChampions({ contenu }) {
   if (!data) return <div className="text-sm text-slate-700 mt-1" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{contenu}</div>
   return (
     <div ref={boite} className="mt-2">
-      <div className="text-sm text-slate-700">Bravo aux meilleurs scores aux quiz des séances{data.periode ? `, ${data.periode}` : ''} !</div>
-      <div className="mt-2 rounded-2xl p-2 sm:p-4" style={{ background: '#fbfcfe', border: '1px solid #eef2f7' }}>
+      <div className="text-sm text-slate-700">Bravo aux meilleurs scores aux quiz des séances{data.series ? ", aux séries d'examen et aux annales" : ''}{data.periode ? `, ${data.periode}` : ''} !</div>
+      {/* Téléphone : la carte s'étend sous l'icône de l'annonce (3 rem) pour laisser la place aux noms */}
+      <div className={`mt-2 rounded-2xl ${large ? 'p-4' : 'p-1.5 -ms-12'}`} style={{ background: '#fbfcfe', border: '1px solid #eef2f7' }}>
         {large ? <CarteEtoile data={data} /> : <CarteColonne data={data} />}
       </div>
       {data.tronque && <div className="text-[11px] text-slate-400 mt-1">D'autres séances ont aussi leurs champions.</div>}
