@@ -68,6 +68,11 @@ public class EleveRequest {
     @PositiveOrZero(message = "Le montant total doit être positif")
     private BigDecimal montantTotal;
 
+    /** Perfectionnement : nombre de séances de conduite prévues (demandé par le formulaire d'inscription). */
+    @Min(value = 1, message = "Au moins une séance de conduite")
+    @Max(value = 200, message = "Nombre de séances trop élevé")
+    private Integer seancesConduitePrevues;
+
     /** Formule choisie (libellé) ; absente : montant saisi librement. */
     @Size(max = 80, message = "Formule trop longue")
     private String formule;

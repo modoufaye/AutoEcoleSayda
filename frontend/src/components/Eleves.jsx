@@ -76,9 +76,18 @@ function optionsPermis(tarifs, categorie) {
     contenu: f.contenu || [],
   }))
 }
+/* Séances de conduite prévues d'un élève en perfectionnement : le nombre enregistré, sinon celui de sa
+   formule (« 15 cours · automatique » → 15) pour les élèves inscrits avant ce champ ; null si inconnu. */
+const conduitePrevue = e => {
+  if (e.typeFormation !== 'PERFECTIONNEMENT') return null
+  if (e.seancesConduitePrevues) return e.seancesConduitePrevues
+  const m = (e.formule || '').match(/(\d+)\s*cours/)
+  return m ? Number(m[1]) : null
+}
+
 function optionsPerfectionnement(formules, boite) {
   return (formules || []).filter(f => f.boite === boite && Number(f.montant) > 0).map(f => ({
-    libelle: `${f.cours} cours · ${boite === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}`, titre: `${f.cours} cours`,
+    libelle: `${f.cours} cours · ${boite === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}`, titre: `${f.cours} cours`, cours: Number(f.cours),
     montant: Number(f.montant), acompte: Number(f.acompte),
     detail: Number(f.tranche2) > 0 ? `${sepMille(f.acompte)} + ${sepMille(f.tranche2)}` : 'En une fois',
   }))
@@ -136,6 +145,7 @@ const EMPTY = {
   nom: '', prenom: '', dateNaissance: '', dateInscription: '', telephone: '',
   adresse: '', site: '', lieuInscription: '', numeroCni: '', categoriePermis: '', statut: 'EN_COURS', moniteurId: '', photoUrl: '',
   montantAvance: '', montantTotal: '', moyenAcompte: 'ESPECES', formule: '',
+  seancesConduitePrevues: '',   // perfectionnement : séances de conduite prévues
   // PERMIS (code + conduite) ou PERFECTIONNEMENT (conduite seule, boîte manuelle ou automatique)
   typeFormation: 'PERMIS', boiteVitesse: '',
   docCertResidence: false, docCniLegalisee: false, docGroupeSanguin: false,
@@ -1186,7 +1196,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
 
   // Formule choisie : total et acompte pré-remplis (l'acompte seulement à l'inscription)
   const choisirFormule = (o) => setForm(fm => o
-    ? { ...fm, formule: o.libelle, montantTotal: String(o.montant), ...(editId ? {} : { montantAvance: String(o.acompte) }) }
+    ? { ...fm, formule: o.libelle, montantTotal: String(o.montant), ...(editId ? {} : { montantAvance: String(o.acompte) }),
+        // Perfectionnement : la formule donne le nombre de séances de conduite (modifiable)
+        ...(o.cours ? { seancesConduitePrevues: String(o.cours) } : {}) }
     : { ...fm, formule: '' })
 
   const openModal = (eleve = null, typeFormation = 'PERMIS') => {
@@ -1199,6 +1211,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
         numeroCni: eleve.numeroCni || '', categoriePermis: eleve.categoriePermis, statut: eleve.statut,
         moniteurId: eleve.moniteur?.id || '', photoUrl: eleve.photoUrl || '',
         montantTotal: eleve.montantTotal ?? '', formule: eleve.formule || '',
+        seancesConduitePrevues: conduitePrevue(eleve) ?? '',
         typeFormation: eleve.typeFormation || 'PERMIS', boiteVitesse: eleve.boiteVitesse || '',
         docCertResidence: eleve.docCertResidence || false,
         docCniLegalisee: eleve.docCniLegalisee || false,
@@ -1228,6 +1241,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       !perf && !form.categoriePermis && 'catégorie de permis', perf && !form.boiteVitesse && 'boîte de vitesses',
       !form.dateInscription && "date d'inscription",
       perf ? !form.lieuInscription && "lieu d'inscription" : !form.site && 'bureau',
+      perf && !editId && !(parseInt(form.seancesConduitePrevues, 10) > 0) && 'nombre de séances de conduite',
     ].filter(Boolean)
     if (manquants.length) {
       toast(`Champ${manquants.length > 1 ? 's' : ''} obligatoire${manquants.length > 1 ? 's' : ''} : ${manquants.join(', ')}`, 'warning'); return
@@ -1251,6 +1265,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       montantAvance: form.montantAvance ? parseFloat(form.montantAvance) : null,
       montantTotal: form.montantTotal !== '' ? parseFloat(form.montantTotal) : null,
       formule: form.formule || null,
+      seancesConduitePrevues: perf && parseInt(form.seancesConduitePrevues, 10) > 0 ? parseInt(form.seancesConduitePrevues, 10) : null,
       // Perfectionnement : catégorie B fixée par le serveur ; permis : pas de boîte
       categoriePermis: perf ? null : form.categoriePermis, boiteVitesse: perf ? form.boiteVitesse : null }
     try {
@@ -1680,6 +1695,14 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     </button>
                   ))}
                 </div>
+                {/* Séances de conduite prévues : remplies par la formule (Paiement), modifiables */}
+                <label className={labelCls}>Séances de conduite {!editId && <span className="text-red-500">*</span>}</label>
+                <div className="flex items-center gap-3 mb-4">
+                  <input type="number" min="1" max="200" inputMode="numeric" className={inputCls} style={{ maxWidth: 140 }}
+                    value={form.seancesConduitePrevues} placeholder="Ex. 15"
+                    onChange={e => set('seancesConduitePrevues', e.target.value.replace(/\D/g, '').slice(0, 3))} />
+                  <span className="text-xs text-slate-500">Rempli par la formule choisie (étape Paiement), modifiable.</span>
+                </div>
                 <label className={labelCls}>Lieu d'inscription <span className="text-red-500">*</span></label>
                 <div className="flex flex-wrap gap-2">
                   {bureaux.lieux.map(l => (
@@ -1898,9 +1921,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                     ? { label: 'Formation', value: `Perfectionnement · boîte ${s.boiteVitesse === 'AUTOMATIQUE' ? 'automatique' : 'manuelle'}` }
                     : { label: 'Catégorie', value: s.categoriePermis },
                   { label: 'Formule', value: s.formule },
+                  conduitePrevue(s)
+                    ? { label: 'Séances de conduite', value: `${s.nombreLeconsConduite || 0} faite(s) sur ${conduitePrevue(s)} prévue(s)` } : null,
                   { label: 'Moniteur',  value: s.moniteur ? `${s.moniteur.prenom} ${s.moniteur.nom}` : 'Aucun' },
                   { label: "Lieu d'inscription", value: s.lieuInscription ? LABELS[s.lieuInscription] : null },
-                ].map(({ label, value }) => value ? (
+                ].filter(Boolean).map(({ label, value }) => value ? (
                   <div key={label} className="flex items-center justify-between px-5 py-2.5">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</span>
                     <span className="text-sm text-slate-700 font-medium text-right max-w-[55%]">{value}</span>
@@ -2224,7 +2249,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                       </>
                     })()}
                     {(e.typeFormation === 'PERFECTIONNEMENT' || admisCode.has(e.id)) &&
-                      <span title="Leçons de conduite"><i className="bi bi-car-front me-1" style={{ color: '#15803d' }} /><b>{e.nombreLeconsConduite}</b> conduite</span>}
+                      <span title={conduitePrevue(e) ? `Séances de conduite : ${e.nombreLeconsConduite} faite(s) sur ${conduitePrevue(e)} prévue(s)`
+                        : e.typeFormation === 'PERFECTIONNEMENT' ? 'Nombre de séances prévues inconnu : renseignez-le avec « Modifier » dans la fiche' : 'Séances de conduite faites'}>
+                        <i className="bi bi-car-front me-1" style={{ color: '#15803d' }} />Conduite : <b>{e.nombreLeconsConduite}</b>
+                        {conduitePrevue(e) ? `/${conduitePrevue(e)}` : e.typeFormation === 'PERFECTIONNEMENT' && <b style={{ color: '#d97706' }}>/?</b>}
+                      </span>}
                     <IndiceCode eleve={e} admis={admisCode.has(e.id)} />
                   </div>
                   {archives && e.dateArchivage && <div className="text-slate-400 mt-1">Archivé le {fmtDate(e.dateArchivage)}</div>}

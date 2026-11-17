@@ -103,6 +103,10 @@ public class Eleve {
     @Builder.Default
     private int nombreLeconsConduite = 0;
 
+    // Perfectionnement : nombre de séances de conduite prévues (celui de la formule, ou saisi) ; null pour le permis
+    @Column(name = "seances_conduite_prevues")
+    private Integer seancesConduitePrevues;
+
     // ── Documents dossier ───────────────────────────────────
     @Column(name = "doc_cert_residence", columnDefinition = "boolean default false")
     @Builder.Default private boolean docCertResidence = false;

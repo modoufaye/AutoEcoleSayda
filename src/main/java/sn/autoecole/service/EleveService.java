@@ -261,6 +261,9 @@ public class EleveService {
             if (request.getBoiteVitesse() == null)
                 throw new BusinessException("Choisissez la boîte de vitesses (manuelle ou automatique)");
             eleve.setBoiteVitesse(request.getBoiteVitesse());
+            // Séances de conduite prévues (demandées par le formulaire d'inscription ; l'import Excel
+            // ne les connaît pas) : absentes = inchangées
+            if (request.getSeancesConduitePrevues() != null) eleve.setSeancesConduitePrevues(request.getSeancesConduitePrevues());
             eleve.setCategoriePermis(CategoriePermis.B);
             eleve.setDocCertResidence(false); eleve.setDocCniLegalisee(false); eleve.setDocGroupeSanguin(false);
             eleve.setDocVisiteMedicale(false); eleve.setDocPhotos(false); eleve.setDocTimbre(false);
@@ -269,6 +272,7 @@ public class EleveService {
             if (request.getCategoriePermis() == null)
                 throw new BusinessException("La catégorie de permis est obligatoire");
             eleve.setBoiteVitesse(null);
+            eleve.setSeancesConduitePrevues(null);
         }
     }
 
