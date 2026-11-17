@@ -9,3 +9,50 @@
   --color-accent: #f97316;
   --font-family-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
+
+/* ── Barre du haut : liens en pastilles et bouton « Se connecter » ── */
+.nav-pastille {
+  position: relative;
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .5rem .95rem;
+  border-radius: 999px;
+  font-size: .875rem; font-weight: 600;
+  color: #475569;
+  text-decoration: none !important;
+  transition: color .2s ease, background .2s ease, transform .2s ease;
+}
+.nav-pastille i { font-size: .85rem; color: #94a3b8; transition: color .2s ease, transform .25s ease; }
+.nav-pastille::after {
+  content: ''; position: absolute; left: 50%; bottom: 3px;
+  width: 0; height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, #d4a017, #f0bb2a);
+  transform: translateX(-50%);
+  transition: width .25s ease;
+}
+.nav-pastille:hover { color: #1e3a5f; background: rgba(30, 58, 95, .08); transform: translateY(-1px); }
+.nav-pastille:hover i { color: #d4a017; transform: scale(1.15); }
+.nav-pastille:hover::after { width: 18px; }
+.nav-pastille.actif { color: #1e3a5f; background: rgba(212, 160, 23, .12); }
+.nav-pastille.actif i { color: #d4a017; }
+.nav-pastille.actif::after { width: 22px; }
+
+.bouton-connexion {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .55rem 1.1rem .55rem .95rem;
+  border-radius: 999px;
+  font-size: .875rem; font-weight: 700;
+  color: #fff !important;
+  text-decoration: none !important;
+  background: linear-gradient(135deg, #1e3a5f, #2a4f7c);
+  box-shadow: 0 4px 14px rgba(30, 58, 95, .28), inset 0 0 0 2px rgba(240, 187, 42, .55);
+  transition: transform .2s ease, box-shadow .2s ease;
+  white-space: nowrap;
+}
+.bouton-connexion i { font-size: 1rem; }
+.bouton-connexion .fleche { font-size: .85rem; transition: transform .2s ease; }
+.bouton-connexion:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(30, 58, 95, .35), inset 0 0 0 2px #f0bb2a; }
+.bouton-connexion:hover .fleche { transform: translateX(3px); }
+@media (max-width: 767.98px) {
+  .bouton-connexion { padding: .45rem .9rem; font-size: .8rem; }
+  .bouton-connexion .fleche { display: none; }
+}

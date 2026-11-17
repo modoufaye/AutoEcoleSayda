@@ -65,12 +65,6 @@ const ArrowIcon = () => (
   </svg>
 )
 
-const PlayIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M8 5v14l11-7z" />
-  </svg>
-)
-
 // ── Données ────────────────────────────────────────────────────────────────
 const SERVICES = [
   {
@@ -122,10 +116,10 @@ const AVANTAGES = [
 ]
 
 const NAV_LINKS = [
-  { label: 'Accueil', href: '#accueil' },
-  { label: 'Services', href: '#services' },
-  { label: 'Pourquoi nous', href: '#avantages' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'Accueil', href: '#accueil', icone: 'house-door-fill' },
+  { label: 'Services', href: '#services', icone: 'grid-fill' },
+  { label: 'Pourquoi nous', href: '#avantages', icone: 'star-fill' },
+  { label: 'Contact', href: '#contact', icone: 'telephone-fill' },
 ]
 
 // ── Composant principal ────────────────────────────────────────────────────
@@ -154,12 +148,30 @@ export default function LandingPage() {
 // ── Navbar ─────────────────────────────────────────────────────────────────
 function Navbar() {
   const ecole = useEcole()
+  // Rubrique visible à l'écran : son lien est mis en avant pendant le défilement
+  const [actif, setActif] = useState('#accueil')
+  useEffect(() => {
+    const suivre = () => {
+      const y = window.scrollY + 120
+      let courant = '#accueil'
+      for (const l of NAV_LINKS) {
+        const el = document.querySelector(l.href)
+        if (el && el.getBoundingClientRect().top + window.scrollY <= y) courant = l.href
+      }
+      // Tout en bas de la page : le contact (pied de page)
+      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) courant = '#contact'
+      setActif(courant)
+    }
+    suivre()
+    window.addEventListener('scroll', suivre, { passive: true })
+    return () => window.removeEventListener('scroll', suivre)
+  }, [])
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="#accueil" className="flex items-center gap-2 no-underline">
+          <a href="#accueil" className="flex items-center gap-2 no-underline" style={{ textDecoration: 'none' }}>
             <div className="w-9 h-9 bg-[#1e3a5f] rounded-lg flex items-center justify-center text-white">
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                 <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
@@ -171,30 +183,20 @@ function Navbar() {
           </a>
 
           {/* Menu desktop */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-1 nav-pastilles">
             {NAV_LINKS.map(l => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="text-sm text-slate-600 hover:text-[#1e3a5f] font-medium transition-colors no-underline"
-              >
-                {l.label}
+              <a key={l.href} href={l.href} className={`nav-pastille${actif === l.href ? ' actif' : ''}`} aria-current={actif === l.href ? 'true' : undefined}>
+                <i className={`bi bi-${l.icone}`} />
+                <span>{l.label}</span>
               </a>
             ))}
           </div>
 
           {/* CTA */}
-          <Link
-            to="/login"
-            className="hidden md:inline-flex items-center gap-2 bg-[#1e3a5f] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-[#142a47] transition-all duration-200 no-underline shadow-sm"
-          >
-            <span>Espace Élève</span>
-            <PlayIcon />
-          </Link>
-
-          {/* Mobile menu btn */}
-          <Link to="/login" className="md:hidden bg-[#1e3a5f] text-white text-xs font-semibold px-4 py-2 rounded-full no-underline">
-            Connexion
+          <Link to="/login" className="bouton-connexion">
+            <i className="bi bi-person-circle" />
+            <span>Se connecter</span>
+            <i className="bi bi-arrow-right fleche" />
           </Link>
         </div>
       </div>
