@@ -37,6 +37,7 @@ const STATUT_STYLE = {
 
 
 // « 08:30 » ↔ minutes depuis minuit (durée d'une leçon)
+const PLACES_CRENEAU = 3   // élèves d'un moniteur sur un même créneau (comme les réservations)
 const minutes = h => { const [a, b] = (h || '0:0').split(':').map(Number); return a * 60 + b }
 const heure = m => `${String(Math.floor(Math.min(m, 1439) / 60)).padStart(2, '0')}:${String(Math.min(m, 1439) % 60).padStart(2, '0')}`
 
@@ -111,6 +112,46 @@ export default function Lecons({ onBack }) {
   const pucesVehicules = vehicules.map(v => ({ id: v.id, titre: `${v.marque} ${v.modele}`, sous: v.immatriculation,
     badge: v.categorie ? `Permis ${v.categorie}` : null, mots: [v.immatriculation, v.marque, v.modele] }))
 
+  /* Conflits du créneau choisi avec les leçons déjà planifiées (annulées exclues) : moniteur pris
+     sur un autre horaire qui chevauche, créneau au-delà de 3 élèves, véhicule avec un autre
+     moniteur, élève déjà en leçon. Une alerte, pas un blocage : on peut planifier quand même. */
+  const conflits = () => {
+    const { date, heureDebut, heureFin, moniteurId, vehiculeId } = form
+    if (!date || !heureDebut || !heureFin || minutes(heureFin) <= minutes(heureDebut)) return []
+    const d = minutes(heureDebut), f = minutes(heureFin)
+    const hh = l => `${l.heureDebut?.slice(0, 5)}–${l.heureFin?.slice(0, 5)}`
+    const nomM = m => m ? `${m.prenom} ${m.nom}` : 'le moniteur'
+    const nomV = v => v ? `${v.marque} ${v.modele} (${v.immatriculation})` : 'un autre véhicule'
+    const autres = list.filter(l => l.id !== editId && l.statut !== 'ANNULEE' && l.date === date
+      && minutes(l.heureDebut?.slice(0, 5)) < f && d < minutes(l.heureFin?.slice(0, 5)))
+    const memeCreneau = l => l.heureDebut?.slice(0, 5) === heureDebut && l.heureFin?.slice(0, 5) === heureFin
+    const alertes = []
+    if (moniteurId) {
+      const m = autres.filter(l => String(l.moniteur?.id) === String(moniteurId))
+      const moniteur = m[0]?.moniteur || moniteurs.find(x => String(x.id) === String(moniteurId))
+      const decalees = m.filter(l => !memeCreneau(l))
+      if (decalees.length) alertes.push({ icone: 'person-badge', texte: `Moniteur déjà pris : ${nomM(moniteur)} a déjà ${decalees.length > 1 ? `${decalees.length} leçons` : 'une leçon'} à ${[...new Set(decalees.map(hh))].join(', ')}.` })
+      const groupe = m.filter(memeCreneau)
+      const total = groupe.length + (editId ? 1 : Math.max(1, form.eleveIds.length))
+      if (total > PLACES_CRENEAU) alertes.push({ icone: 'people-fill', texte: `Créneau complet : ${nomM(moniteur)} aurait ${total} élèves de ${heureDebut} à ${heureFin} (${PLACES_CRENEAU} au plus ; ${groupe.length} déjà planifié${groupe.length > 1 ? 's' : ''}).` })
+      const autreVehicule = vehiculeId && groupe.find(l => l.vehicule && String(l.vehicule.id) !== String(vehiculeId))
+      if (autreVehicule) alertes.push({ icone: 'car-front', texte: `Sur ce créneau, ${nomM(moniteur)} conduit déjà avec ${nomV(autreVehicule.vehicule)}.` })
+    }
+    if (vehiculeId) {
+      const v = autres.filter(l => String(l.vehicule?.id) === String(vehiculeId) && String(l.moniteur?.id) !== String(moniteurId))
+      if (v.length) alertes.push({ icone: 'car-front-fill', texte: `Véhicule déjà pris : ${nomV(v[0].vehicule)} est avec ${[...new Set(v.map(l => `${nomM(l.moniteur)} (${hh(l)})`))].join(', ')}.` })
+    }
+    const ids = (editId ? [form.eleveId] : form.eleveIds).filter(Boolean).map(String)
+    const occupes = autres.filter(l => ids.includes(String(l.eleve?.id)))
+    if (occupes.length) alertes.push({ icone: 'person-exclamation', texte: `Élève déjà en leçon à cette heure : ${occupes.map(l => `${l.eleve.prenom} ${l.eleve.nom} (${hh(l)}, ${nomM(l.moniteur)})`).join(', ')}.` })
+    return alertes
+  }
+  // Conflit signalé : un second clic sur Planifier confirme ; tout changement du formulaire réarme l'alerte
+  const [forcer, setForcer] = useState(false)
+  const formulaire = JSON.stringify(form)
+  const [dernierFormulaire, setDernierFormulaire] = useState(formulaire)
+  if (dernierFormulaire !== formulaire) { setDernierFormulaire(formulaire); setForcer(false) }
+
   const save = async () => {
     const { date, heureDebut, heureFin, eleveId, eleveIds, moniteurId, type, vehiculeId } = form
     const ids = editId ? [eleveId].filter(Boolean) : eleveIds
@@ -119,6 +160,10 @@ export default function Lecons({ onBack }) {
     }
     if (type === 'CONDUITE' && !vehiculeId) {
       toast('Un véhicule est obligatoire pour une leçon de conduite', 'warning'); return
+    }
+    if (conflits().length && !forcer) {
+      setForcer(true)
+      toast('Conflit sur ce créneau : vérifiez les alertes, puis cliquez à nouveau pour planifier quand même', 'warning'); return
     }
     const data = {
       date, heureDebut, heureFin,
@@ -343,6 +388,7 @@ export default function Lecons({ onBack }) {
       {showModal && (() => {
         const nbEleves = editId ? (form.eleveId ? 1 : 0) : form.eleveIds.length
         const duree = minutes(form.heureFin) - minutes(form.heureDebut)
+        const alertes = conflits()
         return (
           <FenetreModerne
             surTitre="Cours de conduite"
@@ -353,9 +399,12 @@ export default function Lecons({ onBack }) {
               form.heureDebut && form.heureFin && ['clock', `${form.heureDebut} – ${form.heureFin}`],
               nbEleves > 0 && ['people-fill', nbEleves > 1 ? `${nbEleves} élèves` : '1 élève'],
             ]}
-            piedGauche={!editId && nbEleves > 1 ? `Une leçon par élève : ${nbEleves} leçons, même créneau` : undefined}
-            libelleSave={editId ? 'Enregistrer' : nbEleves > 1 ? `Planifier ${nbEleves} leçons` : 'Planifier'}
+            piedGauche={alertes.length
+              ? <span className="font-bold" style={{ color: '#c2410c' }}><i className="bi bi-exclamation-triangle-fill me-1" />{alertes.length > 1 ? `${alertes.length} conflits` : '1 conflit'} sur ce créneau (voir sous l'horaire)</span>
+              : !editId && nbEleves > 1 ? `Une leçon par élève : ${nbEleves} leçons, même créneau` : undefined}
+            libelleSave={alertes.length && forcer ? (editId ? 'Enregistrer quand même' : 'Planifier quand même') : editId ? 'Enregistrer' : nbEleves > 1 ? `Planifier ${nbEleves} leçons` : 'Planifier'}
             onClose={() => setShowModal(false)} onSave={save}>
+
 
             <Etape n={1} icon="people" titre={editId ? 'Élève' : 'Élèves · un ou plusieurs'}>
               {editId
@@ -401,6 +450,23 @@ export default function Lecons({ onBack }) {
                   options={[[60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h']].map(([v, label]) => ({ v, label, icon: 'stopwatch', color: '#b45309', bg: '#fffbeb' }))} />
               </div>
             </Etape>
+
+            {/* Alertes de conflit, sous l'horaire : mises à jour à chaque changement */}
+            {alertes.length > 0 && (
+              <div className="rounded-2xl px-4 py-3" role="alert" style={{ background: '#fff7ed', border: '1.5px solid #fdba74' }}>
+                <div className="flex items-center gap-2 text-sm font-extrabold" style={{ color: '#c2410c' }}>
+                  <i className="bi bi-exclamation-triangle-fill" />Attention : créneau déjà occupé
+                </div>
+                <ul className="mt-1.5 mb-0 ps-0 list-none space-y-1">
+                  {alertes.map((a, i) => (
+                    <li key={i} className="flex gap-2 text-[13px]" style={{ color: '#9a3412' }}>
+                      <i className={`bi bi-${a.icone} flex-shrink-0 mt-0.5`} /><span>{a.texte}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-[11px] mt-1.5" style={{ color: '#b45309' }}>Changez l'heure, le moniteur ou le véhicule, ou planifiez quand même.</div>
+              </div>
+            )}
 
             <Etape n={4} icon="chat-left-text" titre="Observations">
               <textarea className={champCls} rows={2} value={form.observations} placeholder="Ex. Créneaux, manœuvres, parcours d'examen… (facultatif)"
