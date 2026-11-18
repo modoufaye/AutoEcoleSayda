@@ -226,7 +226,8 @@ public class PalmaresService {
         // Un élève n'est félicité qu'une seule semaine : ceux des annonces précédentes passent la main
         // (dans une même semaine, il peut figurer dans plusieurs séances)
         String periodeCourante = "du " + debut.format(JOUR) + " au " + fin.minusDays(1).format(JOUR);
-        Set<String> exclus = dejaFelicites(periodeCourante);
+        // Démo : peu d'élèves, tous peuvent revenir chaque semaine
+        Set<String> exclus = demo ? Set.of() : dejaFelicites(periodeCourante);
         List<Ligne> lignes = new ArrayList<>(meilleurs(null, debut, fin, exclus));
         lignes.addAll(meilleursSeries(debut, fin, exclus));
         if (lignes.isEmpty()) { log.info("Palmarès : aucun quiz du {} au {}, pas d'annonce", debut, fin); return 0; }
