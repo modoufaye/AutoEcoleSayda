@@ -44,11 +44,18 @@ public class PalmaresService {
     /** Un champion d'une séance : son meilleur score. */
     public record Champion(Long eleveId, String nom, int score, int total) {}
 
-    /** Les meilleurs élèves d'une séance (au plus CHAMPIONS_PAR_SEANCE), du premier au dernier. */
+    /** Les meilleurs élèves d'une séance (au plus championsParSeance()), du premier au dernier. */
     public record Ligne(Long seanceId, String titre, List<Champion> champions) {}
 
     /** Trois champions par séance : une annonce lisible, même quand beaucoup d'élèves ont réussi. */
     public static final int CHAMPIONS_PAR_SEANCE = 3;
+
+    /** Installation de démonstration : deux champions de plus par séance (5). */
+    @org.springframework.beans.factory.annotation.Value("${DEMO_DONNEES:false}")
+    private boolean demo;
+
+    /** Nombre de champions par séance : 3, ou 5 sur la démo. */
+    public int championsParSeance() { return demo ? CHAMPIONS_PAR_SEANCE + 2 : CHAMPIONS_PAR_SEANCE; }
 
     /** Longueur maximale du texte de l'annonce (bien au-delà d'une semaine chargée). */
     public static final int LONGUEUR_MAX = 8000;
@@ -108,7 +115,7 @@ public class PalmaresService {
                             .thenComparingInt(ResultatQuizSeance::getTentatives)
                             .thenComparingDouble(r -> r.getTotal() > 0 ? -(double) r.getScore() / r.getTotal() : 0)
                             .thenComparing(r -> nomCourt(eleves.get(r.getEleveId()))))
-                    .limit(CHAMPIONS_PAR_SEANCE)
+                    .limit(championsParSeance())
                     .toList();
             if (premiers.isEmpty()) return;
             lignes.add(new Ligne(seanceId, s.getTitre(), premiers.stream()
@@ -199,7 +206,7 @@ public class PalmaresService {
                     .sorted(Comparator.comparingDouble((ProgressionCode p) -> -(double) p.getMeilleurScore() / p.getTotal())
                             .thenComparingInt(ProgressionCode::getTentatives)
                             .thenComparing(p -> nomCourt(eleves.get(p.getEleveId()))))
-                    .limit(CHAMPIONS_PAR_SEANCE)
+                    .limit(championsParSeance())
                     .toList();
             if (premiers.isEmpty()) return;
             lignes.add(new Ligne(null, titre, premiers.stream()

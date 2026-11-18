@@ -10,6 +10,7 @@ import java.util.Optional;
 public interface MessagePriveRepository extends JpaRepository<MessagePrive, Long> {
     List<MessagePrive> findByConversationIdOrderByEnvoyeLeAscIdAsc(Long conversationId);
     Optional<MessagePrive> findFirstByConversationIdOrderByEnvoyeLeDescIdDesc(Long conversationId);
+    boolean existsByTexte(String texte);
     long countByConversationIdAndCote(Long conversationId, MessagePrive.Cote cote);
     long countByConversationIdAndCoteAndEnvoyeLeAfter(Long conversationId, MessagePrive.Cote cote, LocalDateTime apres);
 }

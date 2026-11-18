@@ -237,7 +237,7 @@ export default function InscriptionEnLigne() {  const [infos, setInfos] = useSta
                     ))}
                   </div>
                   <Link to="/" className="bouton-connexion bouton-retour mt-8">
-                    <i className="bi bi-arrow-left fleche" /><span>Retour à l'accueil</span><i className="bi bi-house-door-fill" />
+                    <span>Retour à l'accueil</span><i className="bi bi-house-door-fill" />
                   </Link>
                 </div>
               ) : (

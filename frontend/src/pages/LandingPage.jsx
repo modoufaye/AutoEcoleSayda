@@ -196,7 +196,6 @@ function Navbar() {
           <Link to="/login" className="bouton-connexion">
             <i className="bi bi-person-circle" />
             <span>Se connecter</span>
-            <i className="bi bi-arrow-right fleche" />
           </Link>
         </div>
       </div>

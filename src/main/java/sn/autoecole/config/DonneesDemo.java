@@ -53,6 +53,10 @@ public class DonneesDemo implements CommandLineRunner {
     private final ProgressionCodeRepository progressionRepo;
     private final AnnonceRepository annonceRepo;
     private final PasswordEncoder encoder;
+    private final ConversationRepository conversationRepo;
+    private final MessagePriveRepository messagePriveRepo;
+    private final DiscussionEquipeRepository discussionEquipeRepo;
+    private final MessageEquipeRepository messageEquipeRepo;
 
     private final Random hasard = new Random(2026);   // toujours les mêmes données
     private final LocalDate aujourdhui = LocalDate.now();
@@ -61,7 +65,12 @@ public class DonneesDemo implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         if (!actif) return;
-        if (eleveRepo.count() > 0) { log.info("Démo : des élèves existent déjà, aucune donnée ajoutée"); return; }
+        if (eleveRepo.count() > 0) log.info("Démo : des élèves existent déjà, aucune donnée ajoutée");
+        else donnees();
+        discussions();   // ajoutées aussi à une démo déjà installée (une seule fois)
+    }
+
+    private void donnees() {
 
         User admin = userRepo.findAllByRole(RoleUser.SUPER_ADMIN).stream().findFirst().orElse(null);
         reglages();
@@ -394,5 +403,135 @@ public class DonneesDemo implements CommandLineRunner {
         annonceRepo.save(Annonce.builder().titre(titre).contenu(contenu).cible(cible).valeur(valeur)
                 .auteurId(admin != null ? admin.getId() : null).auteurNom(auteur).auteurRole(RoleUser.SUPER_ADMIN)
                 .creeLe(aujourdhui.minusDays(ilYa).atTime(9, 30)).build());
+    }
+
+    // ── Discussions (bulle de messagerie) ──────────────────────────────────────
+
+    /** Premier message des discussions de démo : s'il existe, elles sont déjà là (rien n'est recréé). */
+    private static final String REPERE_DISCUSSIONS = "Bonjour, est-ce que je peux payer la deuxième tranche par Wave ?";
+
+    /**
+     * Quelques discussions réalistes : élèves ↔ auto-école, élèves ↔ leur moniteur, moniteurs ↔
+     * auto-école ; certaines avec des messages non lus, pour montrer la pastille de la bulle.
+     */
+    private void discussions() {
+        if (messagePriveRepo.existsByTexte(REPERE_DISCUSSIONS)) return;
+        Map<String, Eleve> eleves = new HashMap<>();
+        eleveRepo.findAll().forEach(e -> eleves.putIfAbsent(e.getPrenom() + " " + e.getNom(), e));
+        Map<String, Moniteur> moniteurs = new HashMap<>();
+        moniteurRepo.findAll().forEach(m -> moniteurs.putIfAbsent(m.getPrenom() + " " + m.getNom(), m));
+        String ecole = configRepo.findAll().stream().findFirst().map(AutoEcoleConfig::getNom).filter(n -> n != null && !n.isBlank()).orElse("Auto-École");
+        LocalDateTime t = LocalDateTime.now();
+
+        // Élève ↔ auto-école : { élève, il y a (heures), « E » élève / « A » auto-école, texte }…
+        ecole(eleves.get("Awa Diop"), ecole, t, false, new Object[][]{
+            {50, "E", REPERE_DISCUSSIONS},
+            {49, "A", "Bonjour Awa ! Oui, envoyez le montant au 70 000 10 00 puis transmettez-nous la capture : on enregistre le paiement aussitôt."},
+            {47, "E", "C'est fait, je viens de vous envoyer la capture. Merci !"},
+            {46, "A", "Bien reçu, merci. Votre reçu est disponible dans « Mes paiements »."},
+        });
+        ecole(eleves.get("Moussa Ba"), ecole, t, false, new Object[][]{
+            {30, "E", "Bonsoir, la date de mon examen de code est-elle fixée ?"},
+            {28, "A", "Bonsoir Moussa, oui : mardi prochain à 8 h au centre d'examen de Thiès. Pensez à votre carte d'identité."},
+            {27, "E", "Merci beaucoup, je serai là 👍"},
+        });
+        ecole(eleves.get("Fatou Sow"), ecole, t, true, new Object[][]{
+            {3, "E", "Bonjour, je ne pourrai pas venir à la séance de code de samedi. Est-ce que je peux la rattraper la semaine prochaine ?"},
+        });
+        ecole(eleves.get("Astou Lo"), ecole, t, false, new Object[][]{
+            {20, "A", "Bonjour Astou, bienvenue en perfectionnement ! Votre première séance de conduite est jeudi à 10 h."},
+            {18, "E", "Merci ! Je viens avec mon permis ?"},
+            {17, "A", "Oui, apportez-le, ainsi que votre livret. Bonne séance !"},
+        });
+
+        // Élève ↔ son moniteur : « E » élève / « M » moniteur
+        moniteur(eleves.get("Awa Diop"), t, true, new Object[][]{
+            {26, "E", "Bonjour, on se retrouve où demain pour la conduite ?"},
+            {25, "M", "Bonjour Awa, devant le bureau Thiès Centre à 9 h. Apportez votre livret."},
+            {24, "E", "D'accord, à demain !"},
+            {2, "M", "Bravo pour aujourd'hui, les créneaux étaient bien maîtrisés. La prochaine fois, on travaille les ronds-points 🚗"},
+        });
+        moniteur(eleves.get("Cheikh Mbaye"), t, false, new Object[][]{
+            {40, "M", "Rappel : séance de conduite jeudi à 15 h, avec la Yaris (boîte automatique)."},
+            {39, "E", "Bien noté, merci !"},
+        });
+
+        // Moniteur ↔ auto-école : « M » moniteur / « A » auto-école
+        equipe(moniteurs.get("Ibrahima Sarr"), ecole, t, false, new Object[][]{
+            {22, "M", "Bonjour, la Peugeot 208 fait un bruit au freinage. On peut la faire vérifier ?"},
+            {21, "A", "Merci de prévenir. Elle part au garage demain matin (vidange et plaquettes). Prenez la Clio en attendant."},
+            {21, "M", "Parfait, merci."},
+        });
+        equipe(moniteurs.get("Aïssatou Ndiaye"), ecole, t, true, new Object[][]{
+            {6, "A", "Bonjour Aïssatou, pouvez-vous prendre deux élèves de plus samedi matin ?"},
+            {1, "M", "Oui, je suis disponible de 8 h à 12 h. Envoyez-moi leurs noms."},
+        });
+        log.info("Démo : discussions d'exemple ajoutées");
+    }
+
+    private User compteDe(String telephone) {
+        return telephone == null ? null : userRepo.findByEmailIgnoreCase(telephone).orElse(null);
+    }
+
+    /** nonLu : le dernier message n'est pas encore lu par son destinataire. */
+    private void ecole(Eleve e, String ecole, LocalDateTime t, boolean nonLu, Object[][] msgs) {
+        if (e == null) return;
+        Conversation c = conversationRepo.findFirstByEleveIdAndTypeAndMoniteurIdIsNull(e.getId(), Conversation.Type.ECOLE)
+                .orElseGet(() -> conversationRepo.save(Conversation.builder().eleve(e).type(Conversation.Type.ECOLE).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
+        User admin = userRepo.findAllByRole(RoleUser.SUPER_ADMIN).stream().findFirst().orElse(null);
+        User eleve = compteDe(e.getTelephone());
+        prives(c, msgs, t, nonLu, eleve, admin, ecole);
+    }
+
+    private void moniteur(Eleve e, LocalDateTime t, boolean nonLu, Object[][] msgs) {
+        if (e == null || e.getMoniteur() == null) return;
+        Moniteur m = e.getMoniteur();
+        Conversation c = conversationRepo.findFirstByEleveIdAndTypeAndMoniteurId(e.getId(), Conversation.Type.MONITEUR, m.getId())
+                .orElseGet(() -> conversationRepo.save(Conversation.builder().eleve(e).type(Conversation.Type.MONITEUR).moniteurId(m.getId()).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
+        prives(c, msgs, t, nonLu, compteDe(e.getTelephone()), compteDe(m.getTelephone()), m.getPrenom() + " " + m.getNom());
+    }
+
+    private void prives(Conversation c, Object[][] msgs, LocalDateTime t, boolean nonLu, User eleve, User equipe, String nomEquipe) {
+        LocalDateTime dernier = null;
+        MessagePrive.Cote coteDernier = null;
+        for (Object[] x : msgs) {
+            LocalDateTime le = t.minusHours((int) x[0]).minusMinutes(hasard.nextInt(50));
+            boolean deEleve = "E".equals(x[1]);
+            MessagePrive.Cote cote = deEleve ? MessagePrive.Cote.ELEVE : MessagePrive.Cote.EQUIPE;
+            messagePriveRepo.save(MessagePrive.builder().conversationId(c.getId()).cote(cote)
+                    .auteurId(deEleve ? (eleve == null ? null : eleve.getId()) : (equipe == null ? null : equipe.getId()))
+                    .auteurNom(deEleve ? null : nomEquipe).texte((String) x[2]).envoyeLe(le).build());
+            dernier = le; coteDernier = cote;
+        }
+        c.setDernierMessageLe(dernier);
+        // Tout est lu, sauf (nonLu) le dernier message par son destinataire
+        LocalDateTime avant = dernier.minusMinutes(1);
+        c.setEleveLuLe(nonLu && coteDernier == MessagePrive.Cote.EQUIPE ? avant : dernier);
+        c.setEquipeLuLe(nonLu && coteDernier == MessagePrive.Cote.ELEVE ? avant : dernier);
+        conversationRepo.save(c);
+    }
+
+    private void equipe(Moniteur m, String ecole, LocalDateTime t, boolean nonLu, Object[][] msgs) {
+        if (m == null) return;
+        DiscussionEquipe d = discussionEquipeRepo.findFirstByMoniteurId(m.getId())
+                .orElseGet(() -> discussionEquipeRepo.save(DiscussionEquipe.builder().moniteurId(m.getId()).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
+        User compteMoniteur = compteDe(m.getTelephone());
+        User admin = userRepo.findAllByRole(RoleUser.SUPER_ADMIN).stream().findFirst().orElse(null);
+        LocalDateTime dernier = null;
+        MessageEquipe.Cote coteDernier = null;
+        for (Object[] x : msgs) {
+            LocalDateTime le = t.minusHours((int) x[0]).minusMinutes(hasard.nextInt(50));
+            boolean deMoniteur = "M".equals(x[1]);
+            MessageEquipe.Cote cote = deMoniteur ? MessageEquipe.Cote.MONITEUR : MessageEquipe.Cote.ECOLE;
+            messageEquipeRepo.save(MessageEquipe.builder().discussionId(d.getId()).cote(cote)
+                    .auteurId(deMoniteur ? (compteMoniteur == null ? null : compteMoniteur.getId()) : (admin == null ? null : admin.getId()))
+                    .auteurNom(deMoniteur ? m.getPrenom() + " " + m.getNom() : ecole).texte((String) x[2]).envoyeLe(le).build());
+            dernier = le; coteDernier = cote;
+        }
+        d.setDernierMessageLe(dernier);
+        LocalDateTime avant = dernier.minusMinutes(1);
+        d.setMoniteurLuLe(nonLu && coteDernier == MessageEquipe.Cote.ECOLE ? avant : dernier);
+        d.setEcoleLuLe(nonLu && coteDernier == MessageEquipe.Cote.MONITEUR ? avant : dernier);
+        discussionEquipeRepo.save(d);
     }
 }

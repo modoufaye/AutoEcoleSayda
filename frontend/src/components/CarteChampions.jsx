@@ -52,13 +52,15 @@ function couper(texte, n, max) {
 }
 
 const MEDAILLES = ['🥇', '🥈', '🥉']
+// Au-delà du podium (démo : 5 champions par séance) : « 4. », « 5. »
+const rang = k => MEDAILLES[k] || `${k + 1}.`
 
 /* L'élève qui monte le plus souvent sur un podium (au moins 2 fois) : départage par le nombre de
    médailles d'or, puis par le score moyen. Rien si personne n'apparaît deux fois. */
 function lePlusPresent(seances) {
   const t = new Map()
   for (const s of seances) {
-    s.champions.slice(0, 3).forEach((c, k) => {
+    s.champions.slice(0, 3).forEach((c, k) => {   // podium : les 3 premiers
       const cle = c.nom.toLowerCase().replace(/\s+/g, ' ')
       const e = t.get(cle) || { nom: c.nom, fois: 0, ors: 0, part: 0 }
       e.fois++; if (k === 0) e.ors++; e.part += c.total ? c.score / c.total : 0
@@ -133,7 +135,7 @@ function CarteEtoile({ data }) {
         const [c, f] = COULEURS[i % COULEURS.length]
         const [x, y] = pos[i]
         const titre = couper(s.titre, 18, 2)
-        const champions = s.champions.slice(0, 3)
+        const champions = s.champions.slice(0, 5)
         // Bloc centré verticalement : titre (2 lignes max), trait, puis un champion par ligne
         const hauteur = titre.length * 17 + 12 + champions.length * 19
         const haut = y - hauteur / 2
@@ -161,7 +163,7 @@ function CarteEtoile({ data }) {
             <line x1={x - 50} x2={x + 50} y1={haut + titre.length * 17 + 3} y2={haut + titre.length * 17 + 3} stroke="#fff" strokeOpacity=".55" strokeWidth="1.5" />
             {champions.map((ch, k) => (
               <text key={k} x={x} y={haut + titre.length * 17 + 12 + 14 + k * 19} textAnchor="middle" fontSize="12.5" fill="#fff">
-                <tspan>{MEDAILLES[k]} </tspan>
+                <tspan>{rang(k)} </tspan>
                 <tspan fontWeight="700">{nomCourt(ch.nom, 24)}</tspan>
                 <tspan fontWeight="800" opacity=".9"> {ch.score}/{ch.total}</tspan>
               </text>
@@ -202,9 +204,9 @@ function CarteColonne({ data }) {
               <div className="text-sm font-black uppercase tracking-wide leading-tight">{s.titre}</div>
               <div className="mx-auto my-2 w-16" style={{ borderTop: '1.5px solid rgba(255,255,255,.55)' }} />
               <div className="flex flex-col gap-0.5">
-                {s.champions.slice(0, 3).map((ch, k) => (
+                {s.champions.slice(0, 5).map((ch, k) => (
                   <div key={k} className="flex items-baseline gap-1.5 text-[13px] leading-snug text-left">
-                    <span className="flex-shrink-0">{MEDAILLES[k]}</span>
+                    <span className="flex-shrink-0">{rang(k)}</span>
                     <b className="flex-1 min-w-0 break-words">{ch.nom}</b>
                     <span className="font-extrabold opacity-90 whitespace-nowrap">{ch.score}/{ch.total}</span>
                   </div>

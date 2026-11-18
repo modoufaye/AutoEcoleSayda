@@ -83,7 +83,6 @@ export default function LoginPage() {
 
       {/* ── Lien retour (coin haut-droit) ── */}
       <Link to="/" className="bouton-connexion bouton-retour retour-login">
-        <i className="bi bi-arrow-left fleche" />
         <span>Retour à l'accueil</span>
         <i className="bi bi-house-door-fill" />
       </Link>
