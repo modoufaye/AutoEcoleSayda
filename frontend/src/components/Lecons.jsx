@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { fmtDate, fmtTime, correspond } from '../utils'
 import { toast } from './Toast'
+import PlanningSemaine from './PlanningSemaine'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
@@ -58,6 +59,9 @@ export default function Lecons({ onBack }) {
   const [eleves, setEleves]       = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [vehicules, setVehicules] = useState([])
+  // Personnel : planning en liste, ou vue semaine (grille jours × heures par moniteur)
+  const [vue, setVue] = useState(() => { try { return localStorage.getItem('lecons-vue') || 'liste' } catch { return 'liste' } })
+  const changerVue = v => { setVue(v); try { localStorage.setItem('lecons-vue', v) } catch { /* stockage indisponible */ } }
 
   const load = async () => {
     setLoading(true)
@@ -73,7 +77,7 @@ export default function Lecons({ onBack }) {
   useEffect(() => { load() }, [])
   useEffect(() => { setPage(1) }, [site, search])
 
-  const openModal = async (l = null) => {
+  const openModal = async (l = null, preset = null) => {
     const [ev, mo, ve] = await Promise.all([
       api('GET', '/eleves'), api('GET', '/moniteurs/actifs'), api('GET', '/vehicules/disponibles')
     ])
@@ -91,7 +95,8 @@ export default function Lecons({ onBack }) {
         observations: l.observations || '',
       })
     } else {
-      setEditId(null); setForm(EMPTY)
+      // Vue semaine : une place libre ouvre le formulaire à ce jour, cette heure et ce moniteur
+      setEditId(null); setForm(preset ? { ...EMPTY, ...preset } : EMPTY)
     }
     setShowModal(true)
   }
@@ -194,8 +199,27 @@ export default function Lecons({ onBack }) {
         )}
       </BarreFiltres>
 
+      {/* Personnel : liste ou semaine */}
+      {!isEleve && (
+        <div className="flex gap-1 p-1 w-full sm:w-auto sm:inline-flex" style={{ background: '#eef2f7', borderRadius: 999 }}>
+          {[['liste', 'list-ul', 'Liste'], ['semaine', 'calendar-week', 'Semaine']].map(([v, icone, nom]) => (
+            <button key={v} type="button" onClick={() => changerVue(v)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-1.5 text-sm font-extrabold border-0 cursor-pointer"
+              style={{ borderRadius: 999, ...(vue === v ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }) }}>
+              <i className={`bi bi-${icone}`} />{nom}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!isEleve && vue === 'semaine' && (
+        <PlanningSemaine lecons={list.filter(l => !site || l.eleve?.site === site)}
+          moniteurTelephone={user?.role === 'MONITEUR' ? user?.email : null}
+          onPlanifier={preset => openModal(null, preset)} onLecon={l => openModal(l)} />
+      )}
+
       {/* ── Tableau : bandeau bleu nuit souligné d'or, comme « Véhicules » ── */}
-      <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
+      {(isEleve || vue === 'liste') && <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }}>
         <EnteteListe icone={isEleve ? 'car-front-fill' : 'calendar2-check-fill'} titre="Cours Conduite"
           sousTitre={isEleve ? 'Formation pratique à la conduite' : 'Planning des leçons'} nombre={filtered.length} />
 
@@ -313,7 +337,7 @@ export default function Lecons({ onBack }) {
           </table>
         </div>
         <Pagination page={page} setPage={setPage} total={filtered.length} pageSize={PAGE_SIZE} />
-      </div>
+      </div>}
 
       {/* ── Modal planifier / modifier ───────────────────────── */}
       {showModal && (() => {
