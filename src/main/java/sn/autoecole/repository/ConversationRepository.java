@@ -12,4 +12,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     List<Conversation> findByTypeAndMoniteurId(Conversation.Type type, Long moniteurId);
     Optional<Conversation> findFirstByEleveIdAndTypeAndMoniteurIdIsNull(Long eleveId, Conversation.Type type);
     Optional<Conversation> findFirstByEleveIdAndTypeAndMoniteurId(Long eleveId, Conversation.Type type, Long moniteurId);
+    List<Conversation> findByTypeAndAgentId(Conversation.Type type, Long agentId);
+    Optional<Conversation> findFirstByEleveIdAndTypeAndAgentId(Long eleveId, Conversation.Type type, Long agentId);
+    List<Conversation> findByTypeAndAgentIdIsNull(Conversation.Type type);
 }

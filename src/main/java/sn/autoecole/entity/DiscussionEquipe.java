@@ -6,12 +6,12 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Discussion privée entre un moniteur et l'auto-école (boîte partagée du super admin, des
- * administrateurs et du secrétariat). Une seule par moniteur. moniteurLuLe / ecoleLuLe : dernière
+ * Discussion privée entre un moniteur et une personne de l'auto-école (agentId : super admin,
+ * administrateur ou secrétaire ; elle seule la voit). Une seule par moniteur et par personne. moniteurLuLe / ecoleLuLe : dernière
  * lecture de chaque côté (messages non lus).
  */
 @Entity
-@Table(name = "discussions_equipe", uniqueConstraints = @UniqueConstraint(name = "uk_discussion_equipe_moniteur", columnNames = "moniteur_id"))
+@Table(name = "discussions_equipe")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class DiscussionEquipe {
 
@@ -21,6 +21,9 @@ public class DiscussionEquipe {
 
     @Column(name = "moniteur_id", nullable = false)
     private Long moniteurId;
+
+    @Column(name = "agent_id")
+    private Long agentId;
 
     @Column(nullable = false)
     private LocalDateTime creeLe;

@@ -476,11 +476,12 @@ public class DonneesDemo implements CommandLineRunner {
     /** nonLu : le dernier message n'est pas encore lu par son destinataire. */
     private void ecole(Eleve e, String ecole, LocalDateTime t, boolean nonLu, Object[][] msgs) {
         if (e == null) return;
-        Conversation c = conversationRepo.findFirstByEleveIdAndTypeAndMoniteurIdIsNull(e.getId(), Conversation.Type.ECOLE)
-                .orElseGet(() -> conversationRepo.save(Conversation.builder().eleve(e).type(Conversation.Type.ECOLE).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
         User admin = userRepo.findAllByRole(RoleUser.SUPER_ADMIN).stream().findFirst().orElse(null);
+        Long agent = admin == null ? null : admin.getId();
+        Conversation c = conversationRepo.findFirstByEleveIdAndTypeAndAgentId(e.getId(), Conversation.Type.ECOLE, agent)
+                .orElseGet(() -> conversationRepo.save(Conversation.builder().eleve(e).type(Conversation.Type.ECOLE).agentId(agent).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
         User eleve = compteDe(e.getTelephone());
-        prives(c, msgs, t, nonLu, eleve, admin, ecole);
+        prives(c, msgs, t, nonLu, eleve, admin, admin == null ? ecole : admin.getNom());
     }
 
     private void moniteur(Eleve e, LocalDateTime t, boolean nonLu, Object[][] msgs) {
@@ -513,10 +514,11 @@ public class DonneesDemo implements CommandLineRunner {
 
     private void equipe(Moniteur m, String ecole, LocalDateTime t, boolean nonLu, Object[][] msgs) {
         if (m == null) return;
-        DiscussionEquipe d = discussionEquipeRepo.findFirstByMoniteurId(m.getId())
-                .orElseGet(() -> discussionEquipeRepo.save(DiscussionEquipe.builder().moniteurId(m.getId()).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
-        User compteMoniteur = compteDe(m.getTelephone());
         User admin = userRepo.findAllByRole(RoleUser.SUPER_ADMIN).stream().findFirst().orElse(null);
+        Long agent = admin == null ? null : admin.getId();
+        DiscussionEquipe d = discussionEquipeRepo.findFirstByMoniteurIdAndAgentId(m.getId(), agent)
+                .orElseGet(() -> discussionEquipeRepo.save(DiscussionEquipe.builder().moniteurId(m.getId()).agentId(agent).creeLe(t.minusHours((int) msgs[0][0] + 1)).build()));
+        User compteMoniteur = compteDe(m.getTelephone());
         LocalDateTime dernier = null;
         MessageEquipe.Cote coteDernier = null;
         for (Object[] x : msgs) {
@@ -525,7 +527,7 @@ public class DonneesDemo implements CommandLineRunner {
             MessageEquipe.Cote cote = deMoniteur ? MessageEquipe.Cote.MONITEUR : MessageEquipe.Cote.ECOLE;
             messageEquipeRepo.save(MessageEquipe.builder().discussionId(d.getId()).cote(cote)
                     .auteurId(deMoniteur ? (compteMoniteur == null ? null : compteMoniteur.getId()) : (admin == null ? null : admin.getId()))
-                    .auteurNom(deMoniteur ? m.getPrenom() + " " + m.getNom() : ecole).texte((String) x[2]).envoyeLe(le).build());
+                    .auteurNom(deMoniteur ? m.getPrenom() + " " + m.getNom() : admin == null ? ecole : admin.getNom()).texte((String) x[2]).envoyeLe(le).build());
             dernier = le; coteDernier = cote;
         }
         d.setDernierMessageLe(dernier);

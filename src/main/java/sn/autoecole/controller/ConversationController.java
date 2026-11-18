@@ -67,14 +67,15 @@ public class ConversationController {
         if (l.estEleve()) return c.getEleve().getId().equals(l.eleve().getId());
         if (l.user().getRole() == RoleUser.MONITEUR)
             return c.getType() == Conversation.Type.MONITEUR && l.moniteur() != null && l.moniteur().getId().equals(c.getMoniteurId());
-        return ECOLE.contains(l.user().getRole()) && c.getType() == Conversation.Type.ECOLE;
+        // Auto-école : privée, seulement la personne à qui l'élève écrit (ou qui a écrit à l'élève)
+        return ECOLE.contains(l.user().getRole()) && c.getType() == Conversation.Type.ECOLE && l.user().getId().equals(c.getAgentId());
     }
 
     private List<Conversation> mesConversations(Lecteur l) {
         if (l.estEleve()) return conversations.findByEleveId(l.eleve().getId());
         if (l.user().getRole() == RoleUser.MONITEUR)
             return l.moniteur() == null ? List.of() : conversations.findByTypeAndMoniteurId(Conversation.Type.MONITEUR, l.moniteur().getId());
-        return ECOLE.contains(l.user().getRole()) ? conversations.findByType(Conversation.Type.ECOLE) : List.of();
+        return ECOLE.contains(l.user().getRole()) ? conversations.findByTypeAndAgentId(Conversation.Type.ECOLE, l.user().getId()) : List.of();
     }
 
     private long nonLus(Conversation c, Lecteur l) {
@@ -84,10 +85,10 @@ public class ConversationController {
                 : messages.countByConversationIdAndCoteAndEnvoyeLeAfter(c.getId(), autre, lu);
     }
 
-    /** Pour l'élève : le nom de l'auto-école ou celui du moniteur ; pour l'équipe : le nom de l'élève. */
+    /** Pour l'élève : la personne de l'auto-école ou le moniteur ; pour l'équipe : le nom de l'élève. */
     private String interlocuteur(Conversation c, Lecteur l) {
         if (!l.estEleve()) return c.getEleve().getPrenom() + " " + c.getEleve().getNom();
-        if (c.getType() == Conversation.Type.ECOLE) return ecoleService.nom();
+        if (c.getType() == Conversation.Type.ECOLE) return discussionEquipeService.nomAgent(c.getAgentId());
         return moniteurRepository.findById(c.getMoniteurId()).map(m -> "Moniteur · " + m.getPrenom() + " " + m.getNom()).orElse("Votre moniteur");
     }
 
@@ -145,7 +146,7 @@ public class ConversationController {
             if (l.moniteur() == null || eleve.getMoniteur() == null || !eleve.getMoniteur().getId().equals(l.moniteur().getId()))
                 throw new BusinessException("Vous écrivez seulement à vos élèves");
             c = conversations.findFirstByEleveIdAndTypeAndMoniteurId(eleveId, Conversation.Type.MONITEUR, l.moniteur().getId());
-        } else c = conversations.findFirstByEleveIdAndTypeAndMoniteurIdIsNull(eleveId, Conversation.Type.ECOLE);
+        } else c = conversations.findFirstByEleveIdAndTypeAndAgentId(eleveId, Conversation.Type.ECOLE, l.user().getId());
         if (c.isEmpty()) {
             Map<String, Object> vide = new LinkedHashMap<>();
             vide.put("id", null); vide.put("messages", List.of()); vide.put("nonLus", 0);
@@ -188,7 +189,7 @@ public class ConversationController {
         if (texte.length() > 2000) throw new BusinessException("Message trop long (2 000 caractères au plus)");
         LocalDateTime maintenant = LocalDateTime.now();
         MessagePrive m = messages.save(MessagePrive.builder().conversationId(c.getId()).cote(l.cote()).auteurId(l.user().getId())
-                .auteurNom(l.user().getRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : l.user().getNom())   // comme pour les cours publiés
+                .auteurNom(l.user().getNom())
                 .texte(texte).envoyeLe(maintenant).build());
         c.setDernierMessageLe(maintenant);
         if (l.estEleve()) c.setEleveLuLe(maintenant); else c.setEquipeLuLe(maintenant);
@@ -229,7 +230,7 @@ public class ConversationController {
         String nom = vocalService.enregistrer(file, sn.autoecole.service.VocalService.MESSAGES, VOCAL_MAX_OCTETS);
         LocalDateTime maintenant = LocalDateTime.now();
         MessagePrive m = messages.save(MessagePrive.builder().conversationId(c.getId()).cote(l.cote()).auteurId(l.user().getId())
-                .auteurNom(l.user().getRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : l.user().getNom())
+                .auteurNom(l.user().getNom())
                 .texte("").audio(nom).audioDuree(duree == null ? null : Math.max(0, Math.min(duree, 3600)))
                 .envoyeLe(maintenant).build());
         c.setDernierMessageLe(maintenant);
@@ -252,22 +253,35 @@ public class ConversationController {
         return s == null ? "" : String.format(" (%d:%02d)", s / 60, s % 60);
     }
 
+    /** Personnel de l'auto-école à qui écrire (élève, moniteur) : nom et service, sans soi-même. */
+    @GetMapping("/destinataires")
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> destinataires(Authentication auth) {
+        User moi = (User) auth.getPrincipal();
+        return discussionEquipeService.agents().stream().filter(u -> !u.getId().equals(moi.getId())).map(u -> {
+            Map<String, Object> v = new LinkedHashMap<>();
+            v.put("id", u.getId()); v.put("nom", u.getNom()); v.put("service", sn.autoecole.service.DiscussionEquipeService.libelle(u.getRole()));
+            return v;
+        }).toList();
+    }
+
     /**
-     * Ouvre (ou retrouve) une conversation. Élève : { type: ECOLE | MONITEUR } (son moniteur).
-     * Auto-école : { eleveId } ; moniteur : { eleveId } d'un de ses élèves.
+     * Ouvre (ou retrouve) une conversation. Élève : { type: ECOLE, agentId } (la personne de
+     * l'auto-école choisie) ou { type: MONITEUR } (son moniteur). Auto-école : { eleveId } ;
+     * moniteur : { eleveId } d'un de ses élèves.
      */
     @PostMapping
     @Transactional
     public Map<String, Object> ouvrir(@RequestBody Map<String, String> body, Authentication auth) {
         Lecteur l = lecteur(auth);
-        Eleve eleve; Conversation.Type type; Long moniteurId = null;
+        Eleve eleve; Conversation.Type type; Long moniteurId = null, agentId = null;
         if (l.estEleve()) {
             eleve = l.eleve();
             type = "MONITEUR".equals(body.get("type")) ? Conversation.Type.MONITEUR : Conversation.Type.ECOLE;
             if (type == Conversation.Type.MONITEUR) {
                 if (eleve.getMoniteur() == null) throw new BusinessException("Aucun moniteur ne vous est encore attribué");
                 moniteurId = eleve.getMoniteur().getId();
-            }
+            } else agentId = discussionEquipeService.agentValide(body.get("agentId")).getId();
         } else {
             Long eleveId;
             try { eleveId = Long.valueOf(String.valueOf(body.get("eleveId"))); } catch (NumberFormatException e) { throw new BusinessException("Choisissez l'élève"); }
@@ -276,14 +290,14 @@ public class ConversationController {
                 if (l.moniteur() == null || eleve.getMoniteur() == null || !eleve.getMoniteur().getId().equals(l.moniteur().getId()))
                     throw new BusinessException("Vous écrivez seulement à vos élèves");
                 type = Conversation.Type.MONITEUR; moniteurId = l.moniteur().getId();
-            } else type = Conversation.Type.ECOLE;
+            } else { type = Conversation.Type.ECOLE; agentId = l.user().getId(); }
         }
-        Long mid = moniteurId;
+        Long mid = moniteurId, aid = agentId;
         Optional<Conversation> existante = type == Conversation.Type.ECOLE
-                ? conversations.findFirstByEleveIdAndTypeAndMoniteurIdIsNull(eleve.getId(), type)
+                ? conversations.findFirstByEleveIdAndTypeAndAgentId(eleve.getId(), type, aid)
                 : conversations.findFirstByEleveIdAndTypeAndMoniteurId(eleve.getId(), type, mid);
         Eleve e = eleve; Conversation.Type t = type;
-        Conversation c = existante.orElseGet(() -> conversations.save(Conversation.builder().eleve(e).type(t).moniteurId(mid).creeLe(LocalDateTime.now()).build()));
+        Conversation c = existante.orElseGet(() -> conversations.save(Conversation.builder().eleve(e).type(t).moniteurId(mid).agentId(aid).creeLe(LocalDateTime.now()).build()));
         return Map.of("id", c.getId(), "titre", interlocuteur(c, l));
     }
 

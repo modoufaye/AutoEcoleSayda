@@ -6,9 +6,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * Conversation privée d'un élève : avec l'auto-école (ECOLE, boîte partagée par le super admin, les
- * administrateurs et le secrétariat) ou avec son moniteur (MONITEUR). Une seule par élève et par
- * interlocuteur. eleveLuLe / equipeLuLe : dernière lecture de chaque côté (messages non lus).
+ * Conversation privée d'un élève : avec une personne de l'auto-école (ECOLE : super admin,
+ * administrateur ou secrétaire, agentId, que l'élève choisit ; elle seule la voit) ou avec son
+ * moniteur (MONITEUR). Une seule par élève et par interlocuteur. eleveLuLe / equipeLuLe : dernière lecture de chaque côté (messages non lus).
  */
 @Entity
 @Table(name = "conversations", uniqueConstraints = @UniqueConstraint(name = "uk_conversation", columnNames = {"eleve_id", "type", "moniteur_id"}))
@@ -28,6 +28,10 @@ public class Conversation {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private Type type;
+
+    /** Compte de la personne de l'auto-école (conversation ECOLE) : elle seule voit la conversation. */
+    @Column(name = "agent_id")
+    private Long agentId;
 
     /** Fiche du moniteur (conversation MONITEUR seulement). */
     @Column(name = "moniteur_id")

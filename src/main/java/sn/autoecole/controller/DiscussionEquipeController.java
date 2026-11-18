@@ -52,14 +52,12 @@ public class DiscussionEquipeController {
         return moniteurRepository.findById(id).map(m -> m.getPrenom() + " " + m.getNom()).orElse("Moniteur");
     }
 
-    /** Pour l'auto-école : « Moniteur · Prénom Nom » ; pour le moniteur : le nom de l'auto-école. */
+    /** Pour l'auto-école : « Moniteur · Prénom Nom » ; pour le moniteur : la personne de l'auto-école. */
     private String interlocuteur(DiscussionEquipe d, User u) {
-        return service.estEcole(u) ? "Moniteur · " + nomMoniteur(d.getMoniteurId()) : ecoleService.nom();
+        return service.estEcole(u) ? "Moniteur · " + nomMoniteur(d.getMoniteurId()) : service.nomAgent(d.getAgentId());
     }
 
-    private String auteurNom(User u) {
-        return u.getRole() == RoleUser.SUPER_ADMIN ? ecoleService.nom() : u.getNom();
-    }
+    private String auteurNom(User u) { return u.getNom(); }
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -102,13 +100,14 @@ public class DiscussionEquipeController {
                 }).toList();
     }
 
-    /** Ouvre (ou retrouve) la discussion. Moniteur : la sienne ; auto-école : { moniteurId }. */
+    /** Ouvre (ou retrouve) la discussion. Auto-école : { moniteurId } ; moniteur : { agentId } (à qui il écrit). */
     @PostMapping
     @Transactional
     public Map<String, Object> ouvrir(@RequestBody(required = false) Map<String, String> body, Authentication auth) {
         User u = user(auth);
-        Long moniteurId;
+        Long moniteurId, agentId;
         if (service.estEcole(u)) {
+            agentId = u.getId();
             try { moniteurId = Long.valueOf(String.valueOf(body == null ? null : body.get("moniteurId"))); }
             catch (NumberFormatException e) { throw new BusinessException("Choisissez le moniteur"); }
             if (moniteurRepository.findById(moniteurId).isEmpty()) throw new ResourceNotFoundException("Moniteur introuvable");
@@ -116,10 +115,11 @@ public class DiscussionEquipeController {
             Moniteur m = service.moniteur(u);
             if (m == null) throw new BusinessException("Fiche moniteur introuvable pour ce compte");
             moniteurId = m.getId();
+            agentId = service.agentValide(body == null ? null : body.get("agentId")).getId();
         }
-        Long mid = moniteurId;
-        DiscussionEquipe d = discussions.findFirstByMoniteurId(mid)
-                .orElseGet(() -> discussions.save(DiscussionEquipe.builder().moniteurId(mid).creeLe(LocalDateTime.now()).build()));
+        Long mid = moniteurId, aid = agentId;
+        DiscussionEquipe d = discussions.findFirstByMoniteurIdAndAgentId(mid, aid)
+                .orElseGet(() -> discussions.save(DiscussionEquipe.builder().moniteurId(mid).agentId(aid).creeLe(LocalDateTime.now()).build()));
         return Map.of("id", d.getId(), "titre", interlocuteur(d, u));
     }
 

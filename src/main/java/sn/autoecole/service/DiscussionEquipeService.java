@@ -31,7 +31,34 @@ public class DiscussionEquipeService {
     private final MessageEquipeRepository messages;
     private final MoniteurRepository moniteurRepository;
 
+    private final sn.autoecole.repository.UserRepository userRepository;
+
     public boolean estEcole(User u) { return ECOLE.contains(u.getRole()); }
+
+    /** Personnel de l'auto-école à qui écrire (comptes actifs : super admin, administrateurs, secrétariat). */
+    public List<User> agents() {
+        return ECOLE.stream().flatMap(r -> userRepository.findAllByRole(r).stream())
+                .filter(User::isActif)
+                .sorted(java.util.Comparator.comparing((User x) -> x.getRole() == RoleUser.SECRETAIRE ? 1 : 0).thenComparing(x -> String.valueOf(x.getNom()).toLowerCase()))
+                .toList();
+    }
+
+    public static String libelle(RoleUser r) {
+        return r == RoleUser.SUPER_ADMIN ? "Direction" : r == RoleUser.ADMIN ? "Administration" : "Secrétariat";
+    }
+
+    /** « Fatou Diop · Secrétariat » : la personne de l'auto-école d'une discussion. */
+    public String nomAgent(Long agentId) {
+        return agentId == null ? "L'auto-école" : userRepository.findById(agentId).map(x -> x.getNom() + " · " + libelle(x.getRole())).orElse("L'auto-école");
+    }
+
+    /** Destinataire choisi par un élève ou un moniteur : un compte actif du personnel. */
+    public User agentValide(Object id) {
+        Long v;
+        try { v = Long.valueOf(String.valueOf(id)); } catch (NumberFormatException e) { throw new sn.autoecole.exception.BusinessException("Choisissez à qui écrire"); }
+        return userRepository.findById(v).filter(x -> estEcole(x) && x.isActif())
+                .orElseThrow(() -> new sn.autoecole.exception.BusinessException("Choisissez à qui écrire"));
+    }
 
     /** Fiche du moniteur connecté (null pour les autres comptes). */
     public Moniteur moniteur(User u) {
@@ -41,17 +68,15 @@ public class DiscussionEquipeService {
     public MessageEquipe.Cote cote(User u) { return estEcole(u) ? MessageEquipe.Cote.ECOLE : MessageEquipe.Cote.MONITEUR; }
 
     public boolean accessible(DiscussionEquipe d, User u) {
-        if (estEcole(u)) return true;
+        if (estEcole(u)) return u.getId().equals(d.getAgentId());   // privée : seulement la personne choisie
         Moniteur m = moniteur(u);
         return m != null && m.getId().equals(d.getMoniteurId());
     }
 
     public List<DiscussionEquipe> mesDiscussions(User u) {
-        if (estEcole(u)) return discussions.findAll();
+        if (estEcole(u)) return discussions.findByAgentId(u.getId());
         Moniteur m = moniteur(u);
-        if (m == null) return List.of();
-        Optional<DiscussionEquipe> d = discussions.findFirstByMoniteurId(m.getId());
-        return d.map(List::of).orElse(List.of());
+        return m == null ? List.of() : discussions.findByMoniteurId(m.getId());
     }
 
     public long nonLus(DiscussionEquipe d, User u) {

@@ -46,11 +46,18 @@ function Nouvelle({ role, onDemarrer }) {
   const ecole = ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'].includes(role)
   const [eleves, setEleves] = useState(role === 'ELEVE' ? [] : null)
   const [moniteurs, setMoniteurs] = useState(ecole ? null : [])
+  // Élève, moniteur : la personne de l'auto-école à qui écrire (discussion privée avec elle seule)
+  const [agents, setAgents] = useState(ecole ? [] : null)
   const [q, setQ] = useState('')
   useEffect(() => {
     if (role !== 'ELEVE') api('GET', '/moniteur/seances/eleves').then(setEleves).catch(() => setEleves([]))
     if (ecole) api('GET', '/discussions-equipe/moniteurs').then(setMoniteurs).catch(() => setMoniteurs([]))
+    else api('GET', '/conversations/destinataires').then(setAgents).catch(() => setAgents([]))
   }, [role, ecole])
+  const titreAuto = <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 px-3 pt-2 pb-1">L'auto-école</div>
+  const listeAgents = demarrerAgent => agents === null
+    ? <div className="py-3 text-center"><span className="spinner-border spinner-border-sm text-secondary" /></div>
+    : agents.map(a => ligne(`a${a.id}`, a.service === 'Secrétariat' ? 'person-workspace' : 'building', '#1d4ed8', '#dbeafe', a.nom, a.service, () => demarrerAgent(a.id)))
   const ligne = (cle, icone, couleur, fond, titre, sous, onClick) => (
     <button key={cle} type="button" onClick={onClick} className="w-full flex items-center gap-3 px-3 py-2.5 text-left border-0 bg-transparent cursor-pointer rounded-xl hover:bg-slate-100">
       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: fond, color: couleur }}><i className={`bi bi-${icone}`} /></div>
@@ -61,8 +68,10 @@ function Nouvelle({ role, onDemarrer }) {
     </button>
   )
   if (role === 'ELEVE') return (
-    <div className="p-2">
-      {ligne('ecole', 'building', '#1d4ed8', '#dbeafe', "L'auto-école", 'Administration et secrétariat', () => onDemarrer('/conversations', { type: 'ECOLE' }))}
+    <div className="p-2 overflow-y-auto">
+      {titreAuto}
+      {listeAgents(id => onDemarrer('/conversations', { type: 'ECOLE', agentId: id }))}
+      <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 px-3 pt-3 pb-1">Conduite</div>
       {ligne('moniteur', 'person-badge', '#15803d', '#dcfce7', 'Mon moniteur', 'Pour vos séances de conduite', () => onDemarrer('/conversations', { type: 'MONITEUR' }))}
     </div>
   )
@@ -75,7 +84,7 @@ function Nouvelle({ role, onDemarrer }) {
           placeholder={ecole ? 'Chercher un élève ou un moniteur…' : 'Chercher un élève…'} aria-label="Chercher à qui écrire" autoFocus />
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-2">
-        {role === 'MONITEUR' && ligne('ecole', 'building', '#1d4ed8', '#dbeafe', "L'auto-école", 'Administration et secrétariat', () => onDemarrer('/discussions-equipe', {}))}
+        {role === 'MONITEUR' && <>{titreAuto}{listeAgents(id => onDemarrer('/discussions-equipe', { agentId: id }))}</>}
         {ecole && filtreM.length > 0 && <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 px-3 pt-2 pb-1">Moniteurs</div>}
         {ecole && filtreM.map(m => ligne(`m${m.id}`, 'person-badge', '#7c3aed', '#ede9fe', m.nom, 'Moniteur', () => onDemarrer('/discussions-equipe', { moniteurId: m.id })))}
         <div className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 px-3 pt-2 pb-1">{role === 'MONITEUR' ? 'Mes élèves' : 'Élèves'}</div>

@@ -182,6 +182,30 @@ function ChoixEleve({ onChoisir, onAnnuler }) {
   )
 }
 
+/* Élève : la personne de l'auto-école à qui écrire (seule elle verra la conversation). */
+function ChoixAgent({ onChoisir, onAnnuler }) {
+  const [agents, setAgents] = useState(null)
+  useEffect(() => { api('GET', '/conversations/destinataires').then(setAgents).catch(() => setAgents([])) }, [])
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
+      <EnteteListe icone="building" titre="Écrire à l'auto-école" sousTitre="À qui voulez-vous écrire ? Seule cette personne lira vos messages." />
+      <div className="p-4 space-y-2">
+        {agents === null ? <ListeChargement /> : agents.length === 0 ? <div className="text-sm text-slate-400 px-1 py-2">Personne n'est disponible pour le moment</div>
+          : agents.map(a => (
+            <button key={a.id} type="button" onClick={() => onChoisir(a.id)} className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left bg-white cursor-pointer"
+              style={{ borderRadius: '.75rem', border: '1px solid #eef2f7' }}>
+              <span className="font-bold text-sm" style={{ color: '#1e3a5f' }}>{a.nom}</span>
+              <span className="text-xs font-bold px-2 py-0.5" style={{ borderRadius: 999, background: '#dbeafe', color: '#1d4ed8' }}>{a.service}</span>
+            </button>
+          ))}
+        <div className="flex justify-end">
+          <button type="button" onClick={onAnnuler} className="px-4 py-1.5 text-sm font-bold cursor-pointer" style={{ borderRadius: 999, border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569' }}>Annuler</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Messages({ onLus, conversationId, onOuvrir, onFermer }) {
   const { user } = useAuth()
   const eleve = user?.role === 'ELEVE'
@@ -270,12 +294,14 @@ export default function Messages({ onLus, conversationId, onOuvrir, onFermer }) 
       {!ouverte && (
         <div className="flex flex-wrap justify-end gap-2">
           {eleve ? <>
-            <BoutonAjout icone="building" onClick={() => demarrer({ type: 'ECOLE' })}>Écrire à l’auto-école</BoutonAjout>
+            <BoutonAjout icone="building" onClick={() => setChoix(true)}>Écrire à l’auto-école</BoutonAjout>
             <BoutonAjout vert icone="person-badge" onClick={() => demarrer({ type: 'MONITEUR' })}>Écrire à mon moniteur</BoutonAjout>
           </> : !choix && <BoutonAjout onClick={() => setChoix(true)}>Conversation</BoutonAjout>}
         </div>
       )}
-      {choix && !ouverte && <ChoixEleve onChoisir={id => demarrer({ eleveId: id })} onAnnuler={() => setChoix(false)} />}
+      {choix && !ouverte && (eleve
+        ? <ChoixAgent onChoisir={id => demarrer({ type: 'ECOLE', agentId: id })} onAnnuler={() => setChoix(false)} />
+        : <ChoixEleve onChoisir={id => demarrer({ eleveId: id })} onAnnuler={() => setChoix(false)} />)}
       <div className="grid gap-4 lg:grid-cols-[340px_1fr] items-start">
         {liste}
         {fil}
