@@ -81,6 +81,7 @@ export default function Lecons({ onBack }) {
   const [eleves, setEleves]       = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [vehicules, setVehicules] = useState([])
+  const [versionSemaines, setVersionSemaines] = useState(0)   // semaine ouverte ou fermée : la vue semaine se relit
   // Personnel : planning en liste, ou vue semaine (grille jours × heures par moniteur)
   const [vue, setVue] = useState(() => { try { return localStorage.getItem('lecons-vue') || 'liste' } catch { return 'liste' } })
   const changerVue = v => { setVue(v); try { localStorage.setItem('lecons-vue', v) } catch { /* stockage indisponible */ } }
@@ -283,7 +284,7 @@ export default function Lecons({ onBack }) {
       </BarreFiltres>
 
       {/* Personnel : ouverture des semaines aux réservations des élèves (bouton : administration, secrétariat) */}
-      {!isEleve && <OuvertureReservations peutOuvrir={['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'].includes(user?.role)} />}
+      {!isEleve && <OuvertureReservations peutOuvrir={['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'].includes(user?.role)} onChange={() => setVersionSemaines(n => n + 1)} />}
 
       {/* Personnel : liste ou semaine */}
       {!isEleve && (
@@ -299,7 +300,7 @@ export default function Lecons({ onBack }) {
       )}
 
       {!isEleve && vue === 'semaine' && (
-        <PlanningSemaine lecons={list.filter(l => !site || l.eleve?.site === site)}
+        <PlanningSemaine lecons={list.filter(l => !site || l.eleve?.site === site)} version={versionSemaines}
           moniteurTelephone={user?.role === 'MONITEUR' ? user?.email : null}
           onPlanifier={preset => openModal(null, preset)} onLecon={l => openModal(l)} />
       )}

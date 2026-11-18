@@ -16,6 +16,13 @@ const RESERVE = "Réservé par l'élève"
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const lundiDe = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x }
 const plusJours = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
+const versDate = s => { const [a, m, j] = s.split('-').map(Number); return new Date(a, m - 1, j) }
+// « 12:00 » → « 12h – 13h » : chaque ligne de la grille dit l'heure de début et de fin du créneau (1 h)
+const plage = h => {
+  const [a, m] = h.split(':').map(Number), f = a * 60 + m + 60
+  const txt = (x, y) => `${x}h${y ? String(y).padStart(2, '0') : ''}`
+  return `${txt(a, m)} – ${txt(Math.floor(f / 60), f % 60)}`
+}
 const court = d => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 const nomEntier = e => e ? `${e.prenom || ''} ${e.nom || ''}`.trim() : 'Élève'
 
@@ -60,10 +67,19 @@ function Case({ lecons, passe, large, onLibre, onLecon }) {
   )
 }
 
-export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier, onLecon }) {
+export default function PlanningSemaine({ lecons, version, moniteurTelephone, onPlanifier, onLecon }) {
   const [moniteurs, setMoniteurs] = useState(null)
   const [moniteurId, setMoniteurId] = useState(null)
-  const [lundi, setLundi] = useState(() => lundiDe(new Date()))
+  /* Seules les semaines ouvertes aux réservations (par l'administration ou le secrétariat) se
+     parcourent : par défaut la semaine en cours si elle est ouverte, sinon la prochaine ouverte. */
+  const [ouvertes, setOuvertes] = useState(null)
+  useEffect(() => { api('GET', '/semaines-reservation/ouvertes').then(l => setOuvertes((l || []).map(String))).catch(() => setOuvertes([])) }, [version])
+  const [lundiVu, setLundiVu] = useState(null)
+  const courante = iso(lundiDe(new Date()))
+  const defaut = ouvertes?.length ? (ouvertes.includes(courante) ? courante : ouvertes.find(x => x > courante) || ouvertes[ouvertes.length - 1]) : null
+  const lundiIso = lundiVu && ouvertes?.includes(lundiVu) ? lundiVu : defaut
+  const lundi = lundiIso ? versDate(lundiIso) : lundiDe(new Date())
+  const rang = ouvertes && lundiIso ? ouvertes.indexOf(lundiIso) : -1
   const [jourTel, setJourTel] = useState(() => (new Date().getDay() + 6) % 7)   // téléphone : un jour à la fois
   useEffect(() => { api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => setMoniteurs([])) }, [])
   // Moniteur connecté : son planning d'abord ; sinon le premier moniteur
@@ -90,7 +106,7 @@ export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier
   const libresJour = jour => heures.filter(h => HEURES.includes(h) && !passe(jour, h)).reduce((s, h) => s + Math.max(0, PLACES - cellule(jour, h).length), 0)
   const elevesJour = jour => miennes.filter(l => l.date === iso(jour)).length
   const libresSemaine = jours.reduce((s, j) => s + libresJour(j), 0)
-  const cetteSemaine = iso(lundi) === iso(lundiDe(new Date()))
+  const surCourante = lundiIso === courante
   const planifier = (jour, h) => onPlanifier({ date: iso(jour), heureDebut: h, heureFin: `${String(+h.slice(0, 2) + 1).padStart(2, '0')}:${h.slice(3)}`, moniteurId: String(choisi) })
 
   const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
@@ -100,16 +116,24 @@ export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier
       <div className="flex flex-wrap items-center gap-3 px-4 py-3" style={{ background: 'linear-gradient(135deg,#0f2240,#1e3a5f)', borderBottom: '3px solid #d4a017' }}>
         <i className="bi bi-calendar-week-fill text-xl" style={{ color: '#f0bb2a' }} />
         <div className="flex-1 min-w-0">
-          <div className="font-extrabold text-white">Semaine du {court(lundi)} au {court(plusJours(lundi, 5))}</div>
+          <div className="font-extrabold text-white">{lundiIso ? <>Semaine du {court(lundi)} au {court(plusJours(lundi, 5))}{surCourante && <span className="ms-2 text-[11px] font-bold px-2 py-0.5 align-middle" style={{ borderRadius: 999, background: '#f0bb2a', color: BLEU }}>en cours</span>}</> : 'Aucune semaine ouverte'}</div>
           <div className="text-xs" style={{ color: '#cbd5e1' }}>{miennes.length} leçon{miennes.length > 1 ? 's' : ''} · {libresSemaine} place{libresSemaine > 1 ? 's' : ''} libre{libresSemaine > 1 ? 's' : ''} à venir</div>
         </div>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => setLundi(plusJours(lundi, -7))} aria-label="Semaine précédente" className="w-9 h-9 border-0 flex items-center justify-center cursor-pointer" style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff' }}><i className="bi bi-chevron-left" /></button>
-          {!cetteSemaine && <button type="button" onClick={() => setLundi(lundiDe(new Date()))} className="h-9 px-3 border-0 text-xs font-bold cursor-pointer" style={{ borderRadius: 999, background: '#f0bb2a', color: BLEU }}>Cette semaine</button>}
-          <button type="button" onClick={() => setLundi(plusJours(lundi, 7))} aria-label="Semaine suivante" className="w-9 h-9 border-0 flex items-center justify-center cursor-pointer" style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff' }}><i className="bi bi-chevron-right" /></button>
+          {/* Semaine ouverte précédente / suivante (les semaines fermées sont sautées) */}
+          <button type="button" onClick={() => setLundiVu(ouvertes[rang - 1])} disabled={rang <= 0} aria-label="Semaine ouverte précédente" className="w-9 h-9 border-0 flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default" style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff' }}><i className="bi bi-chevron-left" /></button>
+          {ouvertes?.includes(courante) && !surCourante && <button type="button" onClick={() => setLundiVu(courante)} className="h-9 px-3 border-0 text-xs font-bold cursor-pointer" style={{ borderRadius: 999, background: '#f0bb2a', color: BLEU }}>Cette semaine</button>}
+          <button type="button" onClick={() => setLundiVu(ouvertes[rang + 1])} disabled={rang < 0 || rang >= (ouvertes?.length || 0) - 1} aria-label="Semaine ouverte suivante" className="w-9 h-9 border-0 flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default" style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff' }}><i className="bi bi-chevron-right" /></button>
         </div>
       </div>
 
+      {ouvertes !== null && !ouvertes.length ? (
+        <div className="px-6 py-10 text-center text-sm text-slate-500">
+          <i className="bi bi-lock-fill text-2xl" style={{ color: '#94a3b8' }} />
+          <div className="mt-2 font-bold" style={{ color: BLEU }}>Aucune semaine n'est encore ouverte aux réservations</div>
+          <div className="mt-1">Ouvrez la semaine en cours ou la suivante dans « Réservations des élèves », au-dessus.</div>
+        </div>
+      ) : (
       <div className="p-4 space-y-4">
         {/* Moniteurs : un planning chacun */}
         <div className="flex flex-wrap gap-1.5">
@@ -135,7 +159,7 @@ export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier
         {choisi && (
           <>
             {/* Ordinateur : grille complète (heures en lignes, jours en colonnes) */}
-            <div className="hidden lg:grid gap-x-2 gap-y-1.5" style={{ gridTemplateColumns: `56px repeat(${jours.length}, minmax(0, 1fr))` }}>
+            <div className="hidden lg:grid gap-x-2 gap-y-1.5" style={{ gridTemplateColumns: `88px repeat(${jours.length}, minmax(0, 1fr))` }}>
               <div />
               {jours.map((j, i) => {
                 const auj = iso(j) === iso(maintenant)
@@ -149,7 +173,7 @@ export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier
               {heures.map(h => (
                 <div key={h} className="contents">
                   {h === '15:00' && <div className="col-span-full h-2" />}
-                  <div className="text-xs font-extrabold text-slate-500 flex items-center justify-end pe-1">{h.replace(':00', ' h')}</div>
+                  <div className="text-xs font-extrabold text-slate-500 flex items-center justify-end pe-1 whitespace-nowrap">{plage(h)}</div>
                   {jours.map((j, i) => (
                     <Case key={i} lecons={cellule(j, h)} passe={passe(j, h)} onLibre={() => planifier(j, h)} onLecon={onLecon} />
                   ))}
@@ -170,7 +194,7 @@ export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier
               </div>
               {jours[jourTel] && heures.map(h => (
                 <div key={h} className="flex items-center gap-2">
-                  <div className="w-11 flex-shrink-0 text-xs font-extrabold text-slate-500 text-right">{h.replace(':00', ' h')}</div>
+                  <div className="w-[74px] flex-shrink-0 text-xs font-extrabold text-slate-500 text-right whitespace-nowrap">{plage(h)}</div>
                   <div className="flex-1 min-w-0">
                     <Case large lecons={cellule(jours[jourTel], h)} passe={passe(jours[jourTel], h)} onLibre={() => planifier(jours[jourTel], h)} onLecon={onLecon} />
                   </div>
@@ -180,6 +204,7 @@ export default function PlanningSemaine({ lecons, moniteurTelephone, onPlanifier
           </>
         )}
       </div>
+      )}
     </div>
   )
 }

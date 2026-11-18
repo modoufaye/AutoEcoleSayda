@@ -11,7 +11,7 @@ const jour = s => { const [a, m, j] = s.split('-').map(Number); return new Date(
 const court = d => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 const quand = s => new Date(s).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-export default function OuvertureReservations({ peutOuvrir }) {
+export default function OuvertureReservations({ peutOuvrir, onChange }) {
   const [semaines, setSemaines] = useState(null)
   const [envoi, setEnvoi] = useState(null)
   useEffect(() => { api('GET', '/semaines-reservation').then(setSemaines).catch(() => setSemaines([])) }, [])
@@ -30,6 +30,7 @@ export default function OuvertureReservations({ peutOuvrir }) {
     try {
       setSemaines(await api(s.ouverte ? 'DELETE' : 'POST', `/semaines-reservation/${s.lundi}`))
       toast(s.ouverte ? 'Réservations fermées' : 'Réservations ouvertes aux élèves')
+      onChange?.()
     } catch (e) { toast(e.message, 'danger') }
     finally { setEnvoi(null) }
   }

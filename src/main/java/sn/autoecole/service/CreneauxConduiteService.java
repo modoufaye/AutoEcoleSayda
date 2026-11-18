@@ -72,6 +72,10 @@ public class CreneauxConduiteService {
         return semainesPossibles().stream().filter(semainesRepository::existsByLundi).toList();
     }
 
+    public List<LocalDate> toutesLesSemainesOuvertes() {
+        return semainesRepository.findAll().stream().map(sn.autoecole.entity.SemaineReservation::getLundi).sorted().toList();
+    }
+
     /** Personnel : état des deux semaines (ouverte ou non, par qui, quand). */
     public List<Map<String, Object>> etatSemaines() {
         List<Map<String, Object>> l = new ArrayList<>();

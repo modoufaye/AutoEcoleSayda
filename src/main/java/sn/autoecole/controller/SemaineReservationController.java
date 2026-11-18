@@ -29,6 +29,13 @@ public class SemaineReservationController {
         return creneaux.etatSemaines();
     }
 
+    /** Toutes les semaines ouvertes un jour (leurs lundis, de la plus ancienne à la plus récente) : la vue semaine du planning. */
+    @GetMapping("/ouvertes")
+    @Transactional(readOnly = true)
+    public List<LocalDate> ouvertes() {
+        return creneaux.toutesLesSemainesOuvertes();
+    }
+
     @PostMapping("/{lundi}")
     @Transactional
     public List<Map<String, Object>> ouvrir(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate lundi, Authentication auth) {
