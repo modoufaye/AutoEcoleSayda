@@ -69,6 +69,17 @@ export default function CreneauxConduite({ onChange }) {
     </div>
   )
 
+  // Aucune semaine ouverte par l'auto-école : l'élève attend l'ouverture
+  if (p.fermee) return (
+    <div className="rounded-2xl px-4 py-4 flex items-start gap-3" style={{ background: '#fff', border: '1px solid #eef2f7', boxShadow: '0 2px 12px rgba(15,34,64,.07)' }}>
+      <i className="bi bi-lock-fill text-xl" style={{ color: '#94a3b8' }} />
+      <div>
+        <div className="font-extrabold text-[#1e3a5f]">Réserver mes leçons de conduite</div>
+        <div className="text-sm text-slate-500">{p.fermee}</div>
+      </div>
+    </div>
+  )
+
   const complet = p.joursReserves >= p.joursMax
   const reserver = async (jour, c) => {
     if (envoi) return
@@ -119,11 +130,11 @@ export default function CreneauxConduite({ onChange }) {
       <div className="px-4 sm:px-5 py-4 space-y-4">
         {/* Semaine en cours / suivante */}
         <div className="flex gap-1 p-1 w-full sm:w-fit" style={{ background: '#eef2f7', borderRadius: 999 }}>
-          {p.semaines.map((s, i) => (
+          {p.semaines.map(s => (
             <button key={s} type="button" onClick={() => setSemaine(s)}
               className="flex-1 sm:flex-none px-2 sm:px-4 py-2 text-[13px] sm:text-sm font-extrabold border-0 cursor-pointer whitespace-nowrap"
               style={{ borderRadius: 999, ...(p.semaine === s ? { background: '#fff', color: '#1e3a5f', boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }) }}>
-              {i === 0 ? 'Cette semaine' : 'Semaine prochaine'}
+              {s === p.semaineCourante ? 'Cette semaine' : 'Semaine prochaine'}
             </button>
           ))}
         </div>

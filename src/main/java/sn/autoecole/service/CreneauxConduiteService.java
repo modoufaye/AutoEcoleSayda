@@ -43,6 +43,7 @@ public class CreneauxConduiteService {
 
     private final LeconRepository leconRepository;
     private final ExamenRepository examenRepository;
+    private final sn.autoecole.repository.SemaineReservationRepository semainesRepository;
 
     private static LocalDate aujourdhui() { return LocalDate.now(PalmaresService.DAKAR); }
     private static LocalDateTime maintenant() { return LocalDateTime.now(PalmaresService.DAKAR); }
@@ -60,20 +61,59 @@ public class CreneauxConduiteService {
         return null;
     }
 
-    /** Semaines ouvertes à la réservation : la semaine en cours et la suivante (leurs lundis). */
-    public List<LocalDate> semaines() {
+    /** Semaines réservables en principe : la semaine en cours et la suivante (leurs lundis). */
+    public List<LocalDate> semainesPossibles() {
         LocalDate l = lundi(aujourdhui());
         return List.of(l, l.plusWeeks(1));
     }
 
+    /** Semaines ouvertes à la réservation : parmi les possibles, celles que l'auto-école a ouvertes. */
+    public List<LocalDate> semaines() {
+        return semainesPossibles().stream().filter(semainesRepository::existsByLundi).toList();
+    }
+
+    /** Personnel : état des deux semaines (ouverte ou non, par qui, quand). */
+    public List<Map<String, Object>> etatSemaines() {
+        List<Map<String, Object>> l = new ArrayList<>();
+        for (LocalDate lundi : semainesPossibles()) {
+            Map<String, Object> v = new LinkedHashMap<>();
+            v.put("lundi", lundi);
+            v.put("courante", lundi.equals(lundi(aujourdhui())));
+            semainesRepository.findFirstByLundi(lundi).ifPresentOrElse(s -> {
+                v.put("ouverte", true); v.put("ouverteLe", s.getOuverteLe()); v.put("ouvertePar", s.getOuvertePar());
+            }, () -> v.put("ouverte", false));
+            l.add(v);
+        }
+        return l;
+    }
+
+    /** Ouvre une semaine (la semaine en cours ou la suivante) aux réservations des élèves. */
+    public void ouvrirSemaine(LocalDate jour, String par) {
+        LocalDate lundi = lundi(jour);
+        if (!semainesPossibles().contains(lundi))
+            throw new BusinessException("Seules la semaine en cours et la suivante peuvent être ouvertes");
+        if (semainesRepository.existsByLundi(lundi)) return;
+        semainesRepository.save(sn.autoecole.entity.SemaineReservation.builder().lundi(lundi).ouverteLe(maintenant()).ouvertePar(par).build());
+    }
+
+    /** Referme une semaine : plus de nouvelle réservation (celles déjà faites restent). */
+    public void fermerSemaine(LocalDate jour) {
+        semainesRepository.findFirstByLundi(lundi(jour)).ifPresent(semainesRepository::delete);
+    }
+
     public Map<String, Object> planning(Eleve e, LocalDate debut) {
-        LocalDate lundi = debut == null ? semaines().get(0) : lundi(debut);
+        List<LocalDate> ouvertes = semaines();
+        LocalDate lundi = debut != null ? lundi(debut) : ouvertes.isEmpty() ? lundi(aujourdhui()) : ouvertes.get(0);
         Map<String, Object> r = new LinkedHashMap<>();
         String refus = refus(e);
         Moniteur m = e.getMoniteur();
         r.put("refus", refus);
         r.put("semaine", lundi);
-        r.put("semaines", semaines());
+        r.put("semaines", ouvertes);
+        r.put("semaineCourante", lundi(aujourdhui()));
+        // Aucune semaine ouverte par l'auto-école : l'élève attend l'ouverture
+        if (ouvertes.isEmpty()) r.put("fermee", "Les réservations ne sont pas encore ouvertes : l'auto-école les ouvre chaque semaine, après avoir vu les disponibilités des moniteurs.");
+        r.put("ouverte", ouvertes.contains(lundi));
         r.put("placesParCreneau", PLACES);
         r.put("joursMax", JOURS_MAX);
         if (m != null) {
@@ -128,7 +168,8 @@ public class CreneauxConduiteService {
         if (date == null || heure == null) throw new BusinessException("Choisissez un jour et une heure");
         if (!MATIN.contains(heure) && !SOIR.contains(heure)) throw new BusinessException("Ce créneau n'existe pas");
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) throw new BusinessException("Pas de conduite le dimanche");
-        if (!semaines().contains(lundi(date))) throw new BusinessException("Vous pouvez réserver la semaine en cours et la suivante seulement");
+        if (!semainesPossibles().contains(lundi(date))) throw new BusinessException("Vous pouvez réserver la semaine en cours et la suivante seulement");
+        if (!semaines().contains(lundi(date))) throw new BusinessException("Les réservations de cette semaine ne sont pas encore ouvertes par l'auto-école");
         if (!LocalDateTime.of(date, heure).isAfter(maintenant())) throw new BusinessException("Ce créneau est déjà passé");
 
         LocalDate lundi = lundi(date);

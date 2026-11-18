@@ -134,6 +134,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/pedagogie").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
+                // Ouverture des semaines aux réservations : lecture par le personnel, ouverture par l'administration et le secrétariat
+                .requestMatchers(HttpMethod.GET, "/api/semaines-reservation").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
+                .requestMatchers("/api/semaines-reservation/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Discussions moniteur ↔ auto-école : personnel seulement
                 .requestMatchers("/api/discussions-equipe", "/api/discussions-equipe/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 // Toutes les autres routes nécessitent une authentification
