@@ -96,7 +96,10 @@ export default function Lecons({ onBack }) {
     setShowModal(true)
   }
 
-  const pucesEleves = eleves.map(e => ({ id: e.id, titre: `${e.prenom} ${e.nom}`, sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro',
+  // Leçon de conduite : seulement les élèves en perfectionnement et ceux du permis admis au code
+  // (l'élève d'une leçon déjà planifiée reste proposé)
+  const conduitePossible = e => e.typeFormation === 'PERFECTIONNEMENT' || admisCode.has(e.id) || (editId && String(e.id) === String(form.eleveId))
+  const pucesEleves = eleves.filter(e => form.type !== 'CONDUITE' || conduitePossible(e)).map(e => ({ id: e.id, titre: `${e.prenom} ${e.nom}`, sous: e.telephone ? afficherTelephone(e.telephone) : 'Pas de numéro',
     // Permis : l'indice « code admis » dit si l'élève peut déjà faire la conduite
     badge: e.typeFormation === 'PERFECTIONNEMENT' ? 'Perfectionnement' : `Permis ${e.categoriePermis || ''} · ${admisCode.has(e.id) ? 'code admis ✓' : 'code à passer'}`, mots: [e.prenom, e.nom, e.telephone] }))
   const pucesMoniteurs = moniteurs.map(m => ({ id: m.id, titre: `${m.prenom} ${m.nom}`, sous: m.telephone, mots: [m.prenom, m.nom, m.telephone] }))

@@ -29,6 +29,14 @@ public class LeconService {
     private final EleveRepository eleveRepository;
     private final MoniteurRepository moniteurRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final sn.autoecole.repository.ExamenRepository examenRepository;
+
+    /** Leçon de conduite : élève en perfectionnement, ou du permis déjà admis au code. */
+    private void verifierConduite(Eleve eleve, TypeLecon type) {
+        if (type != TypeLecon.CONDUITE || eleve.estPerfectionnement()) return;
+        if (!examenRepository.existsByEleveIdAndTypeAndResultat(eleve.getId(), sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS))
+            throw new BusinessException(eleve.getPrenom() + " " + eleve.getNom() + " n'a pas encore le code : leçons de conduite après l'examen du code");
+    }
 
     public List<Lecon> listerTous() {
         return leconRepository.findAll();
@@ -74,6 +82,7 @@ public class LeconService {
         if (eleve.estPerfectionnement() && request.getType() == TypeLecon.CODE) {
             throw new BusinessException("Élève en perfectionnement : leçons de conduite uniquement");
         }
+        verifierConduite(eleve, request.getType());
 
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
@@ -110,6 +119,8 @@ public class LeconService {
         if (eleve.estPerfectionnement() && request.getType() == TypeLecon.CODE) {
             throw new BusinessException("Élève en perfectionnement : leçons de conduite uniquement");
         }
+        // Une leçon déjà planifiée garde son élève ; seul un nouvel élève (ou un passage en conduite) est vérifié
+        if (!eleve.getId().equals(lecon.getEleve().getId()) || lecon.getType() != request.getType()) verifierConduite(eleve, request.getType());
 
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
