@@ -31,6 +31,7 @@ public class CoursController {
     private boolean aAcces(Authentication auth) {
         if (auth == null) return false;
         if (aRole(auth, "ROLE_SUPER_ADMIN") || aRole(auth, "ROLE_ADMIN")) return true;
+        if (aRole(auth, "ROLE_SECRETAIRE")) return true;   // secrétariat : consultation seulement (voir verifierEcriture)
         if (!aRole(auth, "ROLE_MONITEUR")) return false;
         return moniteurRepository.findFirstByTelephone(auth.getName())
                 .map(m -> Boolean.TRUE.equals(m.getAccesCoursCode()))
@@ -43,6 +44,12 @@ public class CoursController {
 
     private void verifierAcces(Authentication auth) {
         if (!aAcces(auth)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cours de code non disponibles pour ce compte");
+    }
+
+    /** Ajouter, modifier, supprimer un cours : pas le secrétariat (il consulte seulement). */
+    private void verifierEcriture(Authentication auth) {
+        verifierAcces(auth);
+        if (aRole(auth, "ROLE_SECRETAIRE")) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Le secrétariat consulte les cours sans les modifier");
     }
 
     /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. Les élèves en permis
@@ -89,7 +96,7 @@ public class CoursController {
 
     @PostMapping
     public ResponseEntity<Cours> create(@RequestBody Map<String, String> body, Authentication auth) {
-        verifierAcces(auth);
+        verifierEcriture(auth);
         String titre = body.get("titre");
         if (titre == null || titre.isBlank())
             return ResponseEntity.badRequest().build();
@@ -107,7 +114,7 @@ public class CoursController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Cours> update(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
-        verifierAcces(auth);
+        verifierEcriture(auth);
         return coursRepository.findById(id).map(cours -> {
             if (body.containsKey("titre")       && body.get("titre") != null) cours.setTitre(body.get("titre").trim());
             if (body.containsKey("description")) cours.setDescription(body.get("description"));
@@ -122,7 +129,7 @@ public class CoursController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
-        verifierAcces(auth);
+        verifierEcriture(auth);
         if (!coursRepository.existsById(id)) return ResponseEntity.notFound().build();
         coursRepository.deleteById(id);
         return ResponseEntity.noContent().build();
