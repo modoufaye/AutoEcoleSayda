@@ -47,6 +47,7 @@ public class SeanceService {
     private final EleveRepository eleveRepo;
     private final MoniteurRepository moniteurRepo;
     private final ResultatQuizSeanceRepository resultatRepo;
+    private final sn.autoecole.repository.ExamenRepository examenRepo;
 
     private static final double SEUIL = 0.7;
 
@@ -185,15 +186,42 @@ public class SeanceService {
         return r;
     }
 
-    /* Séances ouvertes à un élève : toutes les séances publiées, dès sa connexion (sans attendre
-       d'y être inscrit) ; en perfectionnement (conduite seule), celles qui publient de la conduite. */
+    /* Ce qu'un élève reçoit des séances publiées, dès sa connexion (sans attendre d'y être inscrit) :
+       perfectionnement → la conduite seule ; permis pas encore admis au code → le code seul (la
+       conduite vient après l'admission, comme l'onglet « Cours Conduite ») ; permis admis → tout. */
+    private enum Recoit { CODE, CONDUITE, TOUT }
+
+    private Recoit recoit(Eleve eleve) {
+        if (eleve.estPerfectionnement()) return Recoit.CONDUITE;
+        return examenRepo.existsByEleveIdAndTypeAndResultat(eleve.getId(), sn.autoecole.enums.TypeExamen.CODE,
+                sn.autoecole.enums.ResultatExamen.ADMIS) ? Recoit.TOUT : Recoit.CODE;
+    }
+
+    private static boolean ouverteA(Seance s, Recoit r) {
+        if (s.getStatut() != StatutSeance.PUBLIE) return false;
+        return switch (r) {
+            case CONDUITE -> s.getProgramme().stream().anyMatch(SeanceService::conduite);
+            case CODE -> s.getProgramme().isEmpty() || s.getProgramme().stream().anyMatch(p -> !conduite(p));
+            case TOUT -> true;
+        };
+    }
+
     private boolean ouverteA(Seance s, Eleve eleve) {
-        return s.getStatut() == StatutSeance.PUBLIE
-                && (!eleve.estPerfectionnement() || s.getProgramme().stream().anyMatch(SeanceService::conduite));
+        return ouverteA(s, recoit(eleve));
+    }
+
+    /** Les parties de la séance que l'élève voit. */
+    private static List<PartieCode> parties(List<PartieCode> programme, Recoit r) {
+        return switch (r) {
+            case CONDUITE -> programme.stream().filter(SeanceService::conduite).toList();
+            case CODE -> programme.stream().filter(p -> !conduite(p)).toList();
+            case TOUT -> programme;
+        };
     }
 
     private List<Seance> seancesOuvertes(Eleve eleve) {
-        return seanceRepo.findByStatutOrderByDateHeureDesc(StatutSeance.PUBLIE).stream().filter(s -> ouverteA(s, eleve)).toList();
+        Recoit r = recoit(eleve);
+        return seanceRepo.findByStatutOrderByDateHeureDesc(StatutSeance.PUBLIE).stream().filter(s -> ouverteA(s, r)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -268,7 +296,7 @@ public class SeanceService {
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
         if (!ouverteA(s, eleve)) throw new BusinessException("Séance non accessible");
-        if (s.getProgramme().isEmpty() || (eleve.estPerfectionnement() && s.getProgramme().stream().noneMatch(SeanceService::conduite)))
+        if (parties(s.getProgramme(), recoit(eleve)).isEmpty())
             throw new BusinessException("Cette séance n'a pas de quiz");
         if (total <= 0 || total > 80 || score < 0 || score > total) throw new BusinessException("Résultat invalide");
         ResultatQuizSeance r = resultatRepo.findBySeanceIdAndEleveId(s.getId(), eleve.getId())
@@ -296,10 +324,10 @@ public class SeanceService {
         Map<Long, ResultatQuizSeance> resultats = new LinkedHashMap<>();
         resultatRepo.findByEleveId(eleve.getId()).forEach(r -> resultats.put(r.getSeanceId(), r));
         List<Map<String, Object>> liste = new ArrayList<>();
+        Recoit recu = recoit(eleve);
         for (Seance s : seancesOuvertes(eleve)) {
-            List<PartieCode> programme = eleve.estPerfectionnement()
-                    ? s.getProgramme().stream().filter(SeanceService::conduite).toList() : s.getProgramme();
-            if (eleve.estPerfectionnement() && programme.isEmpty()) continue;   // il ne la voit pas
+            List<PartieCode> programme = parties(s.getProgramme(), recu);
+            if (recu == Recoit.CONDUITE && programme.isEmpty()) continue;   // il ne la voit pas
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", s.getId());
             m.put("titre", s.getTitre());
@@ -386,11 +414,16 @@ public class SeanceService {
         return p.chapitre() != null && p.chapitre().startsWith("conduite-");
     }
 
-    /** Séance vue par un élève en perfectionnement : seulement les parties de conduite, sans le
-        contenu libre (théorie du code). Les autres élèves la voient en entier. */
+    /** Séance vue par un élève : en perfectionnement, seulement les parties de conduite, sans le
+        contenu libre (théorie du code) ; au permis avant l'admission au code, seulement les parties
+        de code ; une fois admis, en entier. */
     private SeanceResponse pourEleve(Seance s, Eleve eleve) {
         SeanceResponse r = toResponse(s);
-        if (!eleve.estPerfectionnement()) return r;
+        Recoit recu = recoit(eleve);
+        if (recu == Recoit.TOUT) return r;
+        if (recu == Recoit.CODE)
+            return new SeanceResponse(r.id(), r.titre(), r.dateHeure(), r.theme(), r.statut(), r.moniteurId(), r.moniteurNom(),
+                    r.eleves(), r.blocs(), r.programme().stream().filter(p -> !conduite(p)).toList(), r.createdAt(), r.parAdministration());
         return new SeanceResponse(r.id(), r.titre(), r.dateHeure(), r.theme(), r.statut(), r.moniteurId(), r.moniteurNom(),
                 List.of(), List.of(), r.programme().stream().filter(SeanceService::conduite).toList(), r.createdAt(), r.parAdministration());
     }
