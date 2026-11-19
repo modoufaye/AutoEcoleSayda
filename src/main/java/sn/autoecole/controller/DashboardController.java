@@ -59,10 +59,12 @@ public class DashboardController {
         return dashboardService.preparationCode();
     }
 
-    /** Questions de code les plus ratées et séances les plus difficiles (quiz de séance). Gestion, et
-        moniteurs qui font du code (pas ceux de la conduite seule). */
+    /** Questions de code les plus ratées et séances les plus difficiles (quiz de séance). Admins et
+        moniteurs qui font du code (ni le secrétariat, ni les moniteurs de conduite seule). */
     @GetMapping("/questions-ratees")
     public Map<String, Object> questionsRatees(org.springframework.security.core.Authentication auth) {
+        if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SECRETAIRE")))
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Réservé aux admins et aux moniteurs de code");
         boolean moniteur = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_MONITEUR"));
         if (moniteur && moniteurRepository.findFirstByTelephone(auth.getName()).map(m -> "CONDUITE".equals(m.getEnseignement())).orElse(true))
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Réservé aux moniteurs de code");

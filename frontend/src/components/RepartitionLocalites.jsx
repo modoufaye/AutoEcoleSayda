@@ -6,6 +6,8 @@ import SelecteurAnnee from './SelecteurAnnee'
 import SuiviPedagogique from './SuiviPedagogique'
 import PreparationCode from './PreparationCode'
 import QuestionsRatees from './QuestionsRatees'
+import { useAuth } from '../context/AuthContext'
+import { estAdmin } from '../utils'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -83,6 +85,7 @@ function Evolution({ maintenant, avant, reference }) {
 /* Tableau de bord (admin, secrétariat) : élèves par lieu d'inscription — phrase-clé, anneau et
    classement des lieux avec leur évolution sur un an — et, à côté, le suivi pédagogique. */
 export default function RepartitionLocalites() {
+  const { user } = useAuth()
   const bureaux = useBureaux()
   const anneeCourante = new Date().getFullYear()
   const [annee, setAnnee] = useState(String(anneeCourante))
@@ -197,7 +200,8 @@ export default function RepartitionLocalites() {
       {/* Suivi pédagogique (à la place des quartiers), pleine largeur sous les lieux */}
       <PreparationCode />
       <SuiviPedagogique />
-      <QuestionsRatees />
+      {/* Admins seulement (pas le secrétariat) ; les moniteurs de code l'ont sur leur propre tableau de bord */}
+      {estAdmin(user?.role) && <QuestionsRatees />}
     </div>
   )
 }

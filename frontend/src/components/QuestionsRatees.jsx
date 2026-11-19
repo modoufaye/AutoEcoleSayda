@@ -28,9 +28,9 @@ export default function QuestionsRatees() {
     <div className="bg-white rounded-2xl overflow-hidden" style={carte}>
       <EnteteListe icone="question-octagon-fill" titre="Questions les plus ratées"
         sousTitre={`Quiz des séances de code · ${d.eleves} élève${d.eleves > 1 ? 's' : ''} · dernier essai de chacun`} nombre={d.questions.length} />
-      <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Questions */}
-        <div className="lg:col-span-2 min-w-0">
+      <div className="p-5 flex flex-col gap-6">
+        {/* Questions : deux colonnes sur ordinateur */}
+        <div className="min-w-0">
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             <div className="text-xs font-extrabold uppercase tracking-wide text-slate-400"><i className="bi bi-x-octagon me-1" style={{ color: '#dc2626' }} />À reprendre en salle</div>
             <label className="filtre mb-0" style={{ maxWidth: '100%' }}>
@@ -42,7 +42,7 @@ export default function QuestionsRatees() {
             </label>
           </div>
           {filtrees.length === 0 ? <div className="text-sm text-slate-500">Aucune erreur enregistrée pour cette séance.</div> : (
-            <ol className="m-0 p-0 list-none flex flex-col gap-2">
+            <ol className="m-0 p-0 list-none grid grid-cols-1 lg:grid-cols-2 gap-2">
               {visibles.map((q, i) => {
                 const taux = pc(q.rates, q.base)
                 return (
@@ -79,11 +79,11 @@ export default function QuestionsRatees() {
           )}
         </div>
 
-        {/* Séances les plus difficiles */}
-        <div className="min-w-0">
+        {/* Séances les plus difficiles : en dessous, sur toute la largeur */}
+        <div className="min-w-0 pt-5" style={{ borderTop: '1px solid #eef2f7' }}>
           <div className="text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-3"><i className="bi bi-bar-chart-line me-1" style={{ color: '#f97316' }} />Séances les plus difficiles</div>
           {difficiles.length === 0 ? <div className="text-sm text-slate-500">Pas encore assez de quiz faits.</div> : (
-            <div className="flex flex-col gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
               {difficiles.map(s => {
                 const t = pc(s.reussis, s.eleves)
                 return (
@@ -102,7 +102,7 @@ export default function QuestionsRatees() {
               })}
             </div>
           )}
-          <div className="text-[11px] text-slate-400 mt-4"><i className="bi bi-info-circle me-1" />Réussi : 70 % ou plus au quiz au moins une fois. Seules les erreurs du dernier essai de chaque élève sont gardées.</div>
+          <div className="text-[11px] text-slate-400 mt-3"><i className="bi bi-info-circle me-1" />Réussi : 70 % ou plus au quiz au moins une fois. Seules les erreurs du dernier essai de chaque élève sont gardées.</div>
         </div>
       </div>
     </div>
