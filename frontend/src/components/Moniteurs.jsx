@@ -26,7 +26,14 @@ const CATS = [
   { value: 'D', label: 'D', bg: '#d1fae5', color: '#065f46' },
 ]
 const CAT_MAP = Object.fromEntries(CATS.map(c => [c.value, c]))
-const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true, accesCoursCode: false, vehiculeId: '' }
+// Cours dispensés par le moniteur (obligatoire à la création et à la modification)
+const ENSEIGNEMENTS = [
+  { v: 'CODE',     label: 'Code',     icon: 'sign-turn-right-fill', color: '#1d4ed8', bg: '#dbeafe' },
+  { v: 'CONDUITE', label: 'Conduite', icon: 'car-front-fill',       color: '#c2410c', bg: '#ffedd5' },
+  { v: 'LES_DEUX', label: 'Les deux', icon: 'check2-all',           color: '#15803d', bg: '#dcfce7' },
+]
+const ENSEIGNEMENT_LIB = { CODE: 'Code', CONDUITE: 'Conduite', LES_DEUX: 'Code et conduite' }
+const EMPTY = { nom: '', prenom: '', telephone: '', numeroCni: '', numeroPermis: '', dateEmbauche: '', photoUrl: '', categoriesAutorisees: [], actif: true, accesCoursCode: false, vehiculeId: '', enseignement: '' }
 
 /* ── Statut élève styles ──────────────────────────────────── */
 const STATUT_ELEVE = {
@@ -257,7 +264,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
         nom: m.nom, prenom: m.prenom, telephone: m.telephone,
         numeroCni: m.numeroCni || '', numeroPermis: m.numeroPermis || '',
         dateEmbauche: m.dateEmbauche || '', photoUrl: m.photoUrl || '', categoriesAutorisees: m.categoriesAutorisees || [], actif: m.actif, accesCoursCode: !!m.accesCoursCode,
-        vehiculeId: m.vehicule?.id ? String(m.vehicule.id) : ''
+        vehiculeId: m.vehicule?.id ? String(m.vehicule.id) : '', enseignement: m.enseignement || ''
       })
     } else {
       setEditId(null); setForm(EMPTY)
@@ -279,6 +286,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
     if (!form.nom || !form.prenom || !form.telephone) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
     }
+    if (!form.enseignement) { toast('Choisissez les cours dispensés : code, conduite ou les deux', 'warning'); return }
     const data = {
       ...form,
       numeroCni: form.numeroCni || null,
@@ -382,6 +390,10 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
             <div className="col-md-6">
               <Etiquette>Date d'embauche</Etiquette>
               <input type="date" className={champCls} value={form.dateEmbauche} onChange={e => set('dateEmbauche', e.target.value)} />
+            </div>
+            <div className="col-12">
+              <Etiquette>Cours dispensés *</Etiquette>
+              <Choix cols={3} value={form.enseignement} onChange={v => set('enseignement', v)} options={ENSEIGNEMENTS} />
             </div>
             <div className="col-12">
               {/* Ses élèves réservent leurs créneaux de conduite avec ce moniteur et ce véhicule */}
@@ -529,6 +541,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
               { icon: 'credit-card',  label: 'Numéro CNI',      value: selected.numeroCni,                           iconBg: '#f0fdf4', iconColor: '#15803d' },
               { icon: 'card-checklist', label: 'N° Permis',     value: selected.numeroPermis,                        iconBg: '#eef2ff', iconColor: '#4f46e5' },
               { icon: 'calendar-event', label: "Date d'embauche", value: selected.dateEmbauche ? fmtDate(selected.dateEmbauche) : null, iconBg: '#fdf4ff', iconColor: '#9333ea' },
+              { icon: 'mortarboard', label: 'Cours dispensés', value: ENSEIGNEMENT_LIB[selected.enseignement] || 'Non précisé', iconBg: '#fff7ed', iconColor: '#c2410c' },
               { icon: 'car-front', label: 'Véhicule', value: selected.vehicule ? `${[selected.vehicule.marque, selected.vehicule.modele].filter(Boolean).join(' ')} · ${selected.vehicule.immatriculation}` : null, iconBg: '#ecfeff', iconColor: '#0e7490' },
               { icon: 'sign-turn-right', label: 'Cours de code', value: selected.accesCoursCode ? 'Visibles' : 'Masqués',  iconBg: '#eff6ff', iconColor: '#1d4ed8' },
             ].filter(r => r.value).map(({ icon, label, value, iconBg, iconColor }, i, arr) => (
@@ -672,6 +685,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                   <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-2">
                     <span><i className="bi bi-telephone me-1" />{afficherTelephone(m.telephone)}</span>
                     {m.numeroPermis && <span><i className="bi bi-card-checklist me-1" />{m.numeroPermis}</span>}
+                    {m.enseignement && <span><i className="bi bi-mortarboard me-1" />{ENSEIGNEMENT_LIB[m.enseignement]}</span>}
                     {presence && <BadgePresence enLigne={presence.moniteurs.has(m.id)} />}
                   </div>
                 </div>

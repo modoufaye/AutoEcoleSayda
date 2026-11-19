@@ -71,6 +71,7 @@ public class MoniteurService {
                         ? request.getCategoriesAutorisees() : new HashSet<>())
                 .actif(request.getActif() != null ? request.getActif() : true)
                 .accesCoursCode(Boolean.TRUE.equals(request.getAccesCoursCode()))
+                .enseignement(request.getEnseignement())
                 .vehicule(vehicule(request.getVehiculeId()))
                 .build();
         return moniteurRepository.save(moniteur);
@@ -99,6 +100,7 @@ public class MoniteurService {
         if (request.getAccesCoursCode() != null) {
             moniteur.setAccesCoursCode(request.getAccesCoursCode());
         }
+        moniteur.setEnseignement(request.getEnseignement());
         moniteur.setVehicule(vehicule(request.getVehiculeId()));
         return moniteurRepository.save(moniteur);
     }

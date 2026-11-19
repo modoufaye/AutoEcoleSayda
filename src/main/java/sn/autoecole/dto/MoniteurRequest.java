@@ -36,6 +36,10 @@ public class MoniteurRequest {
 
     private Boolean accesCoursCode;
 
+    @NotBlank(message = "Choisissez les cours dispensés : code, conduite ou les deux")
+    @Pattern(regexp = "CODE|CONDUITE|LES_DEUX", message = "Cours dispensés invalides")
+    private String enseignement;
+
     // Véhicule attitré (null : aucun)
     private Long vehiculeId;
 }

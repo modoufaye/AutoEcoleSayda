@@ -64,6 +64,10 @@ public class Moniteur {
     @Column(name = "acces_cours_code")
     private Boolean accesCoursCode;
 
+    // Cours dispensés : CODE, CONDUITE ou LES_DEUX (null pour les moniteurs créés avant ce choix)
+    @Column(name = "enseignement", length = 20)
+    private String enseignement;
+
     // Véhicule attitré : ses élèves réservent leurs créneaux de conduite avec ce moniteur et ce véhicule
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "vehicule_id")
