@@ -142,15 +142,21 @@ public class SeanceService {
         Set<Long> code = seanceRepo.findByStatut(StatutSeance.PUBLIE).stream()
                 .filter(s -> s.getProgramme().isEmpty() || s.getProgramme().stream().anyMatch(p -> !conduite(p)))
                 .map(Seance::getId).collect(Collectors.toSet());
-        return seanceRepo.seanceEleveIds(StatutSeance.PUBLIE).stream()
-                .filter(r -> code.contains((Long) r[0]))
-                .collect(Collectors.groupingBy(r -> (Long) r[1], Collectors.counting()));
+        // Ouvertes à tout élève du permis dès sa connexion : reçues s'il s'est déjà connecté
+        Map<Long, Long> r = new HashMap<>();
+        if (!code.isEmpty())
+            for (Eleve e : eleveRepo.findAll())
+                if (!e.estPerfectionnement() && e.getPremiereConnexionLe() != null) r.put(e.getId(), (long) code.size());
+        return r;
     }
 
     /**
      * Quiz des séances de code, par élève : {reçues, quiz faits, assimilées}. Seules comptent les
      * séances publiées qui ont un quiz (au moins un cours de code au programme) : une séance sans
      * programme ne peut pas être assimilée.
+     * Reçues : toutes les séances publiées sont ouvertes aux élèves du permis dès leur connexion ;
+     * un élève qui s'est déjà connecté les a donc toutes reçues, un élève jamais connecté aucune
+     * (hormis celles dont il a fait le quiz).
      */
     @Transactional(readOnly = true)
     public Map<Long, long[]> quizCodeParEleve() {
@@ -158,8 +164,10 @@ public class SeanceService {
                 .filter(s -> !s.getProgramme().isEmpty() && s.getProgramme().stream().anyMatch(p -> !conduite(p)))
                 .map(Seance::getId).collect(Collectors.toSet());
         Map<Long, long[]> r = new HashMap<>();
-        for (Object[] x : seanceRepo.seanceEleveIds(StatutSeance.PUBLIE))
-            if (avecQuiz.contains((Long) x[0])) r.computeIfAbsent((Long) x[1], k -> new long[3])[0]++;
+        if (!avecQuiz.isEmpty())
+            for (Eleve e : eleveRepo.findAll())
+                if (!e.estPerfectionnement() && e.getPremiereConnexionLe() != null)
+                    r.computeIfAbsent(e.getId(), k -> new long[3])[0] = avecQuiz.size();
         for (ResultatQuizSeance q : resultatRepo.findAll()) {
             if (!avecQuiz.contains(q.getSeanceId()) || q.getTentatives() <= 0) continue;
             long[] c = r.computeIfAbsent(q.getEleveId(), k -> new long[3]);

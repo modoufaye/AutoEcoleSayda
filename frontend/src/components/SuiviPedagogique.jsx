@@ -130,7 +130,7 @@ export default function SuiviPedagogique() {
             </div>
           </div>
         )}
-        <div className="text-[11px] text-slate-400 mt-3"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances : seulement celles qui ont un quiz, sur celles reçues ; séries et annales : sur celles faites.</div>
+        <div className="text-[11px] text-slate-400 mt-3"><i className="bi bi-info-circle me-1" />Assimilé : réussi au moins une fois à 70 % ou plus. Séances reçues : toutes les séances publiées qui ont un quiz, pour chaque élève déjà connecté ; séries et annales : sur celles faites.</div>
         </div>
 
         {/* À accompagner en priorité (sous les deux colonnes) : taux le plus faible, au moins 3 éléments */}
