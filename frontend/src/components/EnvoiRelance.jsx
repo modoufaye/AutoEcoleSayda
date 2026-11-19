@@ -9,20 +9,24 @@ import { FenetreModerne } from './FenetreModerne'
 /* Relance WhatsApp des élèves du permis qui préparent le code et ne travaillent pas :
    jamais connectés (le message contient de nouveaux identifiants, sans risque puisqu'ils ne s'en
    sont jamais servis) ou inactifs depuis 7 jours. Même file que l'envoi des identifiants : un clic
-   par élève ouvre WhatsApp avec le message rempli. Relancés il y a moins de 7 jours : décochés. */
+   par élève ouvre WhatsApp avec le message rempli. Relancés, ou identifiants envoyés (« Envoi
+   groupé », message de bienvenue), il y a moins de 7 jours : décochés, pour éviter deux messages
+   et deux mots de passe différents. */
 
 const GROUPES = [
-  { cle: 'JAMAIS', nom: 'Jamais connectés', icone: 'person-x', aide: 'Le message contient de nouveaux identifiants.' },
+  { cle: 'JAMAIS', nom: 'Jamais connectés', icone: 'person-x', aide: "Le message contient de nouveaux identifiants. Décochés : identifiants envoyés ou relancés il y a moins de 7 jours." },
   { cle: 'INACTIF', nom: 'Inactifs', icone: 'moon', aide: "Le message rappelle où ils en sont, sans changer leur mot de passe." },
 ]
 const recent = d => d && (Date.now() - new Date(d).getTime()) < 7 * 86400000
 const quand = d => d ? fmtDate(String(d).slice(0, 10)) : ''
+// Message récent : relance, ou identifiants tout juste envoyés à un élève jamais connecté
+const dejaContacte = e => recent(e.relanceLe) || (e.groupe === 'JAMAIS' && recent(e.bienvenueEnvoyeeLe))
 
 export default function EnvoiRelance({ donnees, onClose, onRelance }) {
   const ecole = useEcole()
   const [groupe, setGroupe] = useState(donnees.jamais > 0 ? 'JAMAIS' : 'INACTIF')
   const joignables = donnees.eleves.filter(e => waLink(e.telephone))
-  const [coches, setCoches] = useState(() => new Set(joignables.filter(e => !recent(e.relanceLe)).map(e => e.id)))
+  const [coches, setCoches] = useState(() => new Set(joignables.filter(e => !dejaContacte(e)).map(e => e.id)))
   const [file, setFile] = useState(null)
   const [index, setIndex] = useState(0)
   const [envoyes, setEnvoyes] = useState(0)
@@ -84,6 +88,7 @@ export default function EnvoiRelance({ donnees, onClose, onRelance }) {
                   <span className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-slate-400">
                     {e.groupe === 'INACTIF' ? <span>Inactif depuis {e.joursInactif} jours</span> : <span>Inscrit le {quand(e.dateInscription)}</span>}
                     {e.groupe === 'INACTIF' && <span>{e.seancesAssimilees}/{donnees.seancesPubliees} séances</span>}
+                    {e.groupe === 'JAMAIS' && e.bienvenueEnvoyeeLe && <span className="font-bold px-1.5 rounded" style={{ background: recent(e.bienvenueEnvoyeeLe) ? '#dcfce7' : '#f1f5f9', color: recent(e.bienvenueEnvoyeeLe) ? '#15803d' : '#64748b' }}>Identifiants envoyés le {quand(e.bienvenueEnvoyeeLe)}</span>}
                     {e.relanceLe && <span className="font-bold px-1.5 rounded" style={{ background: recent(e.relanceLe) ? '#dbeafe' : '#f1f5f9', color: recent(e.relanceLe) ? '#1d4ed8' : '#64748b' }}>Relancé le {quand(e.relanceLe)}</span>}
                   </span>
                 </span>
