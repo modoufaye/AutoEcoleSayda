@@ -44,6 +44,7 @@ public class CreneauxConduiteService {
     private final LeconRepository leconRepository;
     private final ExamenRepository examenRepository;
     private final sn.autoecole.repository.SemaineReservationRepository semainesRepository;
+    private final sn.autoecole.repository.EleveRepository eleveRepository;
 
     private static LocalDate aujourdhui() { return LocalDate.now(PalmaresService.DAKAR); }
     private static LocalDateTime maintenant() { return LocalDateTime.now(PalmaresService.DAKAR); }
@@ -59,6 +60,37 @@ public class CreneauxConduiteService {
         Moniteur m = e.getMoniteur();
         if (m == null || !m.isActif()) return "Aucun moniteur ne vous est encore attribué. Contactez l'auto-école.";
         return null;
+    }
+
+    /**
+     * Élèves à prévenir de l'ouverture d'une semaine (message WhatsApp) : en formation, qui peuvent
+     * réserver (perfectionnement, ou admis au code, avec un moniteur actif). Pour chacun : s'il a déjà
+     * une leçon de conduite cette semaine-là et s'il s'est déjà connecté à l'application.
+     */
+    public List<Map<String, Object>> elevesAPrevenir(LocalDate jour) {
+        LocalDate debut = lundi(jour), fin = debut.plusDays(6);
+        Set<Long> admis = new HashSet<>(examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS));
+        Set<Long> avecLecon = new HashSet<>();
+        for (Lecon l : leconRepository.findByDateBetween(debut, fin))
+            if (actif(l) && l.getType() == TypeLecon.CONDUITE && l.getEleve() != null) avecLecon.add(l.getEleve().getId());
+        List<Map<String, Object>> r = new ArrayList<>();
+        for (Eleve e : eleveRepository.findByStatutAndArchiveFalse(sn.autoecole.enums.StatutEleve.EN_COURS)) {
+            if (!e.estPerfectionnement() && !admis.contains(e.getId())) continue;
+            Moniteur m = e.getMoniteur();
+            if (m == null || !m.isActif()) continue;
+            Map<String, Object> x = new LinkedHashMap<>();
+            x.put("id", e.getId());
+            x.put("prenom", e.getPrenom());
+            x.put("nom", e.getNom());
+            x.put("telephone", e.getTelephone());
+            x.put("moniteur", m.getPrenom() + " " + m.getNom());
+            x.put("perfectionnement", e.estPerfectionnement());
+            x.put("dejaReserve", avecLecon.contains(e.getId()));
+            x.put("connecte", e.getPremiereConnexionLe() != null);
+            r.add(x);
+        }
+        r.sort(Comparator.comparing((Map<String, Object> x) -> (String) x.get("prenom"), String.CASE_INSENSITIVE_ORDER));
+        return r;
     }
 
     /** Semaines réservables en principe : la semaine en cours et la suivante (leurs lundis). */

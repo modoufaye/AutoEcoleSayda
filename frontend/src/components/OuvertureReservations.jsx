@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { toast } from './Toast'
 import { confirmer } from './confirmer'
+import EnvoiOuvertureReservations from './EnvoiOuvertureReservations'
 
 /* Réservations de conduite des élèves, semaine par semaine : l'administration ou le secrétariat
    ouvre la semaine en cours ou la suivante après avoir vu les disponibilités des moniteurs (les
@@ -14,6 +15,7 @@ const quand = s => new Date(s).toLocaleString('fr-FR', { day: 'numeric', month: 
 export default function OuvertureReservations({ peutOuvrir, onChange }) {
   const [semaines, setSemaines] = useState(null)
   const [envoi, setEnvoi] = useState(null)
+  const [prevenir, setPrevenir] = useState(null)   // { lundi, periode } : envoi WhatsApp aux élèves
   useEffect(() => { api('GET', '/semaines-reservation').then(setSemaines).catch(() => setSemaines([])) }, [])
   if (!semaines?.length) return null
 
@@ -31,6 +33,8 @@ export default function OuvertureReservations({ peutOuvrir, onChange }) {
       setSemaines(await api(s.ouverte ? 'DELETE' : 'POST', `/semaines-reservation/${s.lundi}`))
       toast(s.ouverte ? 'Réservations fermées' : 'Réservations ouvertes aux élèves')
       onChange?.()
+      // Juste ouverte : on propose aussitôt de prévenir les élèves
+      if (!s.ouverte) setPrevenir({ lundi: s.lundi, periode })
     } catch (e) { toast(e.message, 'danger') }
     finally { setEnvoi(null) }
   }
@@ -42,11 +46,11 @@ export default function OuvertureReservations({ peutOuvrir, onChange }) {
         <span className="text-sm font-extrabold" style={{ color: '#1e3a5f' }}>Réservations des élèves</span>
         <span className="text-xs text-slate-400 hidden sm:inline">· ouvertes semaine par semaine, après accord des moniteurs</span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
         {semaines.map(s => {
           const lundi = jour(s.lundi), samedi = new Date(lundi); samedi.setDate(samedi.getDate() + 5)
           return (
-            <div key={s.lundi} className="flex items-center gap-3 px-3 py-2.5" style={{ borderRadius: 14, background: s.ouverte ? '#ecfdf5' : '#f8fafc', border: `1.5px solid ${s.ouverte ? '#a7f3d0' : '#e2e8f0'}` }}>
+            <div key={s.lundi} className="flex items-center gap-2 sm:gap-3 px-3 py-2.5 min-w-0" style={{ borderRadius: 14, background: s.ouverte ? '#ecfdf5' : '#f8fafc', border: `1.5px solid ${s.ouverte ? '#a7f3d0' : '#e2e8f0'}` }}>
               <i className={`bi bi-${s.ouverte ? 'unlock-fill' : 'lock-fill'} text-lg`} style={{ color: s.ouverte ? '#059669' : '#94a3b8' }} />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{s.courante ? 'Cette semaine' : 'Semaine prochaine'} <span className="font-semibold text-slate-500">· {court(lundi)} – {court(samedi)}</span></div>
@@ -54,6 +58,13 @@ export default function OuvertureReservations({ peutOuvrir, onChange }) {
                   {s.ouverte ? `Ouverte${s.ouvertePar ? ` par ${s.ouvertePar}` : ''}${s.ouverteLe ? `, le ${quand(s.ouverteLe)}` : ''}` : 'Fermée : les élèves ne peuvent pas encore réserver'}
                 </div>
               </div>
+              {peutOuvrir && s.ouverte && (
+                <button type="button" title="Prévenir les élèves par WhatsApp" onClick={() => setPrevenir({ lundi: s.lundi, periode: `du ${court(lundi)} au ${court(samedi)}` })}
+                  className="flex-shrink-0 px-3 py-1.5 text-xs font-extrabold cursor-pointer flex items-center gap-1"
+                  style={{ borderRadius: 999, border: 'none', background: '#25d366', color: '#fff' }}>
+                  <i className="bi bi-whatsapp" /><span className="hidden sm:inline">Prévenir</span>
+                </button>
+              )}
               {peutOuvrir && (
                 <button type="button" onClick={() => basculer(s)} disabled={envoi === s.lundi}
                   className="flex-shrink-0 px-3 py-1.5 text-xs font-extrabold cursor-pointer"
@@ -65,6 +76,7 @@ export default function OuvertureReservations({ peutOuvrir, onChange }) {
           )
         })}
       </div>
+      {prevenir && <EnvoiOuvertureReservations lundi={prevenir.lundi} periode={prevenir.periode} onClose={() => setPrevenir(null)} />}
     </div>
   )
 }

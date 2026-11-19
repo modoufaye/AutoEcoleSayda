@@ -78,7 +78,7 @@ export default function EnvoiGroupeIdentifiants({ eleves, ecole, onClose, onEnvo
           {joignables.length === 0 && <div className="text-sm text-slate-500">Aucun élève à qui envoyer ses identifiants dans la liste affichée.</div>}
           <div className="divide-y divide-slate-100">
             {joignables.map(e => (
-              <label key={e.id} className="flex items-center gap-3 py-2 cursor-pointer mb-0">
+              <label key={e.id} className="flex items-center gap-3 py-2 cursor-pointer mb-0" style={{ display: 'flex' }}>
                 <input type="checkbox" className="form-check-input m-0" checked={coches.has(e.id)} onChange={() => basculer(e.id)} />
                 <span className="text-sm font-semibold text-slate-700 flex-1 min-w-0 truncate">{e.prenom} {e.nom}</span>
                 <span className="text-xs text-slate-400 whitespace-nowrap">{afficherTelephone(e.telephone)}</span>

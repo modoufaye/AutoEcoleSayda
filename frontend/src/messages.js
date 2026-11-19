@@ -119,3 +119,19 @@ export function msgRappelExamen(examen, ecole) {
     nom,
   ].join('\n')
 }
+
+/* Ouverture d'une semaine aux réservations de conduite (eleve : { prenom, moniteur, connecte }) */
+export function msgOuvertureReservations(eleve, periode, ecole) {
+  const nom = ecole || nomEcole()
+  const lignes = [
+    `Bonjour ${eleve.prenom} 👋`,
+    '',
+    `🚗 Les réservations de conduite sont ouvertes pour la semaine ${periode}${periode.endsWith('.') ? '' : '.'}`,
+    `Réservez votre heure avec votre moniteur ${eleve.moniteur} dans votre espace élève, onglet « Cours Conduite » : ${window.location.origin}`,
+    '',
+    '⏱️ 3 élèves par heure seulement : réservez vite pour avoir le créneau qui vous arrange.',
+  ]
+  if (!eleve.connecte) lignes.push("Vous n'avez pas vos identifiants ? Répondez à ce message, nous vous les renvoyons.")
+  lignes.push('', `À bientôt au volant ! — ${nom}`)
+  return lignes.join('\n')
+}

@@ -36,6 +36,13 @@ public class SemaineReservationController {
         return creneaux.toutesLesSemainesOuvertes();
     }
 
+    /** Élèves à prévenir par WhatsApp de l'ouverture de cette semaine (administration, secrétariat). */
+    @GetMapping("/{lundi}/eleves")
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> elevesAPrevenir(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate lundi) {
+        return creneaux.elevesAPrevenir(lundi);
+    }
+
     @PostMapping("/{lundi}")
     @Transactional
     public List<Map<String, Object>> ouvrir(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate lundi, Authentication auth) {
