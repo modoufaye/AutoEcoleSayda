@@ -2170,8 +2170,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
         {/* Admin : import Excel et inscription (le moniteur ne fait que consulter ses élèves) */}
         {!isMoniteur && (
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
-            {/* Identifiants à envoyer, parmi les élèves affichés (filtres compris : bureau, statut…) */}
-            {aEnvoyerAffiches.length > 0 && (
+            {/* Identifiants à envoyer, parmi les élèves affichés (filtres compris : bureau, statut…).
+                Onglet Élèves (permis) : remplacé par « Relancer », qui envoie aussi de nouveaux identifiants
+                aux élèves jamais connectés ; reste pour le perfectionnement, que la relance ne vise pas. */}
+            {perfSeul && aEnvoyerAffiches.length > 0 && (
               <div className="col-span-2 sm:col-span-1 grid">
                 <BoutonAjout vert icone="whatsapp" onClick={() => setEnvoiGroupe(true)}>Envoi groupé · {aEnvoyerAffiches.length}</BoutonAjout>
               </div>
