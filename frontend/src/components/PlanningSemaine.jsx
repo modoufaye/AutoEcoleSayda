@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 
 /* Planning des leçons de conduite, vue semaine (administration, secrétariat, moniteurs) : pour un
@@ -80,7 +80,11 @@ export default function PlanningSemaine({ lecons, version, moniteurTelephone, on
   const lundiIso = lundiVu && ouvertes?.includes(lundiVu) ? lundiVu : defaut
   const lundi = lundiIso ? versDate(lundiIso) : lundiDe(new Date())
   const rang = ouvertes && lundiIso ? ouvertes.indexOf(lundiIso) : -1
-  const [jourTel, setJourTel] = useState(() => (new Date().getDay() + 6) % 7)   // téléphone : un jour à la fois
+  const [jourTel, setJourTel] = useState(() => (new Date().getDay() + 6) % 7)   // vue « Jour » : le jour affiché
+  // Ordinateur : grille de la semaine ou un jour à la fois (choix gardé sur cet appareil) ;
+  // téléphone et tablette : toujours un jour à la fois
+  const [affichage, setAffichage] = useState(() => { try { return localStorage.getItem('planning-affichage') === 'jour' ? 'jour' : 'semaine' } catch { return 'semaine' } })
+  const changerAffichage = v => { setAffichage(v); try { localStorage.setItem('planning-affichage', v) } catch { /* stockage indisponible */ } }
   useEffect(() => { api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => setMoniteurs([])) }, [])
   // Moniteur connecté : son planning d'abord ; sinon le premier moniteur
   const choisi = moniteurId ?? moniteurs?.find(m => moniteurTelephone && m.telephone === moniteurTelephone)?.id ?? moniteurs?.[0]?.id ?? null
@@ -99,6 +103,13 @@ export default function PlanningSemaine({ lecons, version, moniteurTelephone, on
   const heures = [...new Set([...HEURES, ...miennes.map(l => l.heureDebut?.slice(0, 5))])].filter(Boolean).sort()
   const dimanche = miennes.some(l => l.date === iso(plusJours(lundi, 6)))
   const jours = Array.from({ length: dimanche ? 7 : 6 }, (_, i) => plusJours(lundi, i))
+  const jourVu = Math.min(jourTel, jours.length - 1)   // dimanche sans leçon : on montre le samedi
+  // Le bouton du jour affiché reste visible dans la rangée qui défile (téléphone)
+  const rangee = useRef(null)
+  useEffect(() => {
+    const r = rangee.current, b = r?.children[jourVu]
+    if (r && b) r.scrollTo({ left: b.offsetLeft - (r.clientWidth - b.offsetWidth) / 2, behavior: 'smooth' })
+  }, [jourVu, choisi, lundiIso])
   const cellule = (jour, h) => miennes.filter(l => l.date === iso(jour) && l.heureDebut?.slice(0, 5) === h)
     .sort((a, b) => nomEntier(a.eleve).localeCompare(nomEntier(b.eleve)))
   const maintenant = new Date()
@@ -148,18 +159,29 @@ export default function PlanningSemaine({ lecons, version, moniteurTelephone, on
             ))}
         </div>
 
-        {/* Légende */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+        {/* Légende, et sur ordinateur le choix Semaine / Jour */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex-1 min-w-0 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
           <span><span className="inline-block w-3 h-3 me-1 align-middle" style={{ borderRadius: 3, background: '#ecfdf5', border: '1px solid #a7f3d0' }} />Réservé par l'élève</span>
           <span><span className="inline-block w-3 h-3 me-1 align-middle" style={{ borderRadius: 3, background: '#eff6ff', border: '1px solid #bfdbfe' }} />Planifié par l'auto-école</span>
           <span><i className="bi bi-check2-circle me-1" />Terminée</span>
           <span>{PLACES} places par heure · cliquez une place libre pour planifier</span>
         </div>
+        <div className="hidden lg:flex gap-1 p-1 bg-slate-100" style={{ borderRadius: 999 }} role="group" aria-label="Affichage du planning">
+          {[['semaine', 'calendar-week', 'Semaine'], ['jour', 'calendar-day', 'Jour']].map(([v, icone, nom]) => (
+            <button key={v} type="button" onClick={() => changerAffichage(v)} aria-pressed={affichage === v}
+              className="flex items-center gap-1.5 px-3 py-1 font-bold border-0 cursor-pointer"
+              style={{ fontSize: 12.5, borderRadius: 999, ...(affichage === v ? { background: '#fff', color: BLEU, boxShadow: '0 1px 4px rgba(0,0,0,.12)' } : { background: 'transparent', color: '#64748b' }) }}>
+              <i className={`bi bi-${icone}`} />{nom}
+            </button>
+          ))}
+        </div>
+        </div>
 
         {choisi && (
           <>
             {/* Ordinateur : grille complète (heures en lignes, jours en colonnes) */}
-            <div className="hidden lg:grid gap-x-2 gap-y-1.5" style={{ gridTemplateColumns: `88px repeat(${jours.length}, minmax(0, 1fr))` }}>
+            <div className={`hidden ${affichage === 'semaine' ? 'lg:grid' : ''} gap-x-2 gap-y-1.5`} style={{ gridTemplateColumns: `88px repeat(${jours.length}, minmax(0, 1fr))` }}>
               <div />
               {jours.map((j, i) => {
                 const auj = iso(j) === iso(maintenant)
@@ -181,22 +203,32 @@ export default function PlanningSemaine({ lecons, version, moniteurTelephone, on
               ))}
             </div>
 
-            {/* Téléphone et tablette : un jour à la fois, noms en entier */}
-            <div className="lg:hidden space-y-3">
-              <div className="flex gap-1 overflow-x-auto pb-1">
-                {jours.map((j, i) => (
-                  <button key={i} type="button" onClick={() => setJourTel(i)} className="flex-shrink-0 flex flex-col items-center px-3 py-1.5 border-0 cursor-pointer"
-                    style={{ borderRadius: 12, background: jourTel === i ? BLEU : '#f1f5f9', color: jourTel === i ? '#fff' : '#475569' }}>
-                    <span className="text-xs font-extrabold">{JOURS[i].slice(0, 3)} {j.getDate()}</span>
-                    <span className="text-[10px] opacity-80">{elevesJour(j)} élève{elevesJour(j) > 1 ? 's' : ''}</span>
-                  </button>
-                ))}
+            {/* Un jour à la fois, noms en entier : toujours sur téléphone et tablette, sur ordinateur
+                avec « Jour ». Flèches ‹ › ou boutons des jours pour passer d'un jour à l'autre. */}
+            <div className={`${affichage === 'semaine' ? 'lg:hidden' : ''} space-y-3`}>
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => setJourTel(jourVu - 1)} disabled={jourVu <= 0} aria-label="Jour précédent"
+                  className="w-9 h-9 flex-shrink-0 border-0 flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default" style={{ borderRadius: 999, background: '#f1f5f9', color: BLEU }}><i className="bi bi-chevron-left" /></button>
+                <div ref={rangee} className="relative flex-1 min-w-0 flex gap-1 overflow-x-auto pb-1 lg:pb-0">
+                  {jours.map((j, i) => {
+                    const auj = iso(j) === iso(maintenant)
+                    return (
+                      <button key={i} type="button" onClick={() => setJourTel(i)} className="flex-shrink-0 lg:flex-1 flex flex-col items-center px-3 py-1.5 border-0 cursor-pointer"
+                        style={{ borderRadius: 12, background: jourVu === i ? BLEU : '#f1f5f9', color: jourVu === i ? '#fff' : '#475569', boxShadow: auj && jourVu !== i ? 'inset 0 -3px 0 #f0bb2a' : 'none' }}>
+                        <span className="text-xs font-extrabold"><span className="lg:hidden">{JOURS[i].slice(0, 3)}</span><span className="hidden lg:inline">{JOURS[i]}</span> {j.getDate()}</span>
+                        <span className="text-[10px] opacity-80">{elevesJour(j)} élève{elevesJour(j) > 1 ? 's' : ''}<span className="hidden lg:inline"> · {libresJour(j)} libre{libresJour(j) > 1 ? 's' : ''}</span></span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <button type="button" onClick={() => setJourTel(jourVu + 1)} disabled={jourVu >= jours.length - 1} aria-label="Jour suivant"
+                  className="w-9 h-9 flex-shrink-0 border-0 flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default" style={{ borderRadius: 999, background: '#f1f5f9', color: BLEU }}><i className="bi bi-chevron-right" /></button>
               </div>
-              {jours[jourTel] && heures.map(h => (
-                <div key={h} className="flex items-center gap-2">
-                  <div className="w-[74px] flex-shrink-0 text-xs font-extrabold text-slate-500 text-right whitespace-nowrap">{plage(h)}</div>
+              {jours[jourVu] && heures.map(h => (
+                <div key={h} className={`flex items-center gap-2 ${h === '15:00' ? 'pt-2' : ''}`}>
+                  <div className="w-[74px] lg:w-[88px] flex-shrink-0 text-xs font-extrabold text-slate-500 text-right whitespace-nowrap">{plage(h)}</div>
                   <div className="flex-1 min-w-0">
-                    <Case large lecons={cellule(jours[jourTel], h)} passe={passe(jours[jourTel], h)} onLibre={() => planifier(jours[jourTel], h)} onLecon={onLecon} />
+                    <Case large lecons={cellule(jours[jourVu], h)} passe={passe(jours[jourVu], h)} onLibre={() => planifier(jours[jourVu], h)} onLecon={onLecon} />
                   </div>
                 </div>
               ))}
