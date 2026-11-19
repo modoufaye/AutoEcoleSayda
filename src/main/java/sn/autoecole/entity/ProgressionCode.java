@@ -1,5 +1,6 @@
 package sn.autoecole.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -37,4 +38,10 @@ public class ProgressionCode {
 
     @Column(name = "derniere_tentative", nullable = false)
     private LocalDateTime derniereTentative;
+
+    /** Séries et annales : questions ratées au dernier essai, une par ligne « numéro|lettres cochées »
+        (« 7|A C », « 3|— » sans réponse), pour les questions les plus ratées du tableau de bord. */
+    @JsonIgnore
+    @Column(columnDefinition = "TEXT")
+    private String erreurs;
 }

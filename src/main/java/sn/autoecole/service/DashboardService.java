@@ -415,6 +415,53 @@ public class DashboardService {
         r.put("eleves", faitsParSeance.values().stream().flatMap(Set::stream).distinct().count());
         r.put("questions", liste.subList(0, Math.min(40, liste.size())));
         r.put("seances", seances);
+        r.putAll(seriesRatees());
+        return r;
+    }
+
+    /**
+     * Séries d'examen et annales : questions ratées au dernier essai (entraînement et examen blanc),
+     * comptées une fois par élève ; base : élèves qui ont fait la série. Le texte des questions est
+     * dans le contenu du site (séries, annales) : on renvoie la série et le numéro.
+     */
+    private Map<String, Object> seriesRatees() {
+        String entr = sn.autoecole.controller.ProgressionCodeController.ENTRAINEMENT;
+        Map<String, Set<Long>> faites = new HashMap<>();
+        Map<String, Set<Long>> rates = new HashMap<>();
+        Map<String, Map<String, Integer>> reponses = new HashMap<>();
+        for (var p : progressionCodeRepository.findAll()) {
+            String ch = p.getChapitre();
+            if (ch == null || p.getTentatives() <= 0) continue;
+            if (ch.startsWith(entr)) ch = ch.substring(entr.length());
+            if (!ch.startsWith("serie-") && !ch.startsWith("annale-")) continue;
+            faites.computeIfAbsent(ch, k -> new HashSet<>()).add(p.getEleveId());
+            if (p.getErreurs() == null) continue;
+            for (String ligne : p.getErreurs().split("\n")) {
+                String[] x = ligne.split("\\|", 2);
+                if (x.length < 2) continue;
+                String cle = ch + "#" + x[0];
+                rates.computeIfAbsent(cle, k -> new HashSet<>()).add(p.getEleveId());
+                reponses.computeIfAbsent(cle, k -> new HashMap<>()).merge(x[1], 1, Integer::sum);
+            }
+        }
+        List<Map<String, Object>> liste = new ArrayList<>();
+        rates.forEach((cle, eleves) -> {
+            String serie = cle.substring(0, cle.indexOf('#'));
+            Map<String, Object> x = new LinkedHashMap<>();
+            x.put("serie", serie);
+            x.put("numero", Integer.parseInt(cle.substring(cle.indexOf('#') + 1)));
+            x.put("rates", eleves.size());
+            x.put("base", faites.getOrDefault(serie, Set.of()).size());
+            x.put("mauvaises", reponses.get(cle).entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(3)
+                    .map(e -> Map.of("reponse", e.getKey(), "fois", e.getValue())).toList());
+            liste.add(x);
+        });
+        liste.sort(Comparator.<Map<String, Object>>comparingInt(x -> -(int) x.get("rates"))
+                .thenComparingDouble(x -> -(double) (int) x.get("rates") / Math.max(1, (int) x.get("base"))));
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("elevesSeries", faites.values().stream().flatMap(Set::stream).distinct().count());
+        r.put("questionsSeries", liste.subList(0, Math.min(60, liste.size())));
         return r;
     }
 

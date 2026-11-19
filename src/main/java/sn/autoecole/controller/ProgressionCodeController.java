@@ -91,6 +91,8 @@ public class ProgressionCodeController {
         p.setReussi(p.isReussi() || score >= Math.ceil(SEUIL * total));
         p.setTentatives(p.getTentatives() + 1);
         p.setDerniereTentative(LocalDateTime.now());
+        // Séries et annales : questions ratées de cet essai (« numéro|lettres »), vérifiées
+        if (cle.contains("serie-") || cle.contains("annale-")) p.setErreurs(erreurs(body.get("erreurs"), total));
         ProgressionCode saved = progressionRepository.save(p);
         // Journal : la note de cet essai, en plus de la meilleure
         String libelle = cle.startsWith(ENTRAINEMENT) ? cle.substring(ENTRAINEMENT.length()).replace('-', ' ') + " » (entraînement)" : cle.replace('-', ' ') + " »";
@@ -98,6 +100,25 @@ public class ProgressionCodeController {
                 + (saved.getMeilleurScore() * total != score * saved.getTotal() ? " (meilleure note " + saved.getMeilleurScore() + "/" + saved.getTotal() + ")" : "")
                 + (saved.isReussi() ? " · validé" : ""));
         return saved;
+    }
+
+    private static final java.util.regex.Pattern ERREUR = java.util.regex.Pattern.compile("^(\\d{1,2})\\|([A-H]( [A-H]){0,7}|—)$");
+
+    /** Liste « numéro|lettres » d'un essai de série : lignes valides seulement, sans doublon. */
+    private static String erreurs(Object brut, int total) {
+        if (!(brut instanceof List<?> l) || l.isEmpty()) return null;
+        java.util.LinkedHashMap<Integer, String> ok = new java.util.LinkedHashMap<>();
+        for (Object o : l) {
+            if (o == null) continue;
+            var m = ERREUR.matcher(o.toString().trim());
+            if (!m.matches()) continue;
+            int n = Integer.parseInt(m.group(1));
+            if (n >= 1 && n <= total) ok.putIfAbsent(n, m.group(2));
+        }
+        if (ok.isEmpty()) return null;
+        StringBuilder sb = new StringBuilder();
+        ok.forEach((n, r) -> sb.append(sb.length() > 0 ? "\n" : "").append(n).append('|').append(r));
+        return sb.toString();
     }
 
     @GetMapping("/api/eleves/{id}/progression-code")

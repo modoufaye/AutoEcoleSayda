@@ -18,7 +18,7 @@ const enonceCourt = q => q.enonce || q.blocs.map(b => b.intro).filter(Boolean).j
 const estScene = v => !!v?.dessin?.startsWith('scene-')
 
 /* Une question : illustration, énoncé, blocs de réponses à cocher (plusieurs lettres possibles). */
-function Question({ q, choix, setChoix, corrige }) {
+export function Question({ q, choix, setChoix, corrige }) {
   const basculer = l => { if (!corrige) setChoix(c => c.includes(l) ? c.filter(x => x !== l) : [...c, l]) }
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: '#0f2240', border: '1px solid #1e3a5f' }}>
@@ -308,12 +308,14 @@ export default function SeriesExamen({ eleve = false, series: toutes = SERIES, e
     const { serie, mode } = partie
     if (!eleve) return
     const score = serie.questions.filter((q, k) => juste(q, reponses[k] || [])).length
+    // Questions ratées (« numéro|lettres cochées ») : questions les plus ratées du tableau de bord
+    const erreurs = serie.questions.map((q, k) => juste(q, reponses[k] || []) ? null : `${k + 1}|${(reponses[k] || []).slice().sort().join(' ') || '—'}`).filter(Boolean)
     // Entraînement : enregistré à part (« entrainement:<série> ») pour le suivi ; la note affichée reste celle de l'examen blanc
     if (mode !== 'examen') {
-      api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length, mode: 'entrainement' }).catch(() => {})
+      api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length, mode: 'entrainement', erreurs }).catch(() => {})
       return
     }
-    try { const p = await api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length }); setNotes(n => ({ ...n, [serie.id]: p })) }
+    try { const p = await api('POST', '/eleve/code/progression', { chapitre: serie.id, score, total: serie.questions.length, erreurs }); setNotes(n => ({ ...n, [serie.id]: p })) }
     catch { toast('Note non enregistrée : vérifiez votre connexion', 'warning') }
   }
   const quitter = () => { setFin(null); fermerVue(); window.scrollTo?.({ top: 0 }) }
