@@ -2019,11 +2019,17 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
               setSelected(maj); setList(l => l.map(x => x.id === maj.id ? maj : x)); setFiltered(l => l.map(x => x.id === maj.id ? maj : x))
             }} />}
 
+            {/* Dossier de l'élève : le fichier déposé au Service des Mines (personnel, permis seulement) */}
+            {!isMoniteur && s.typeFormation !== 'PERFECTIONNEMENT' && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
+
+            {/* Compte élève (personnel) */}
+            {!isMoniteur && <CompteEleveCard eleve={s} />}
+
           </div>
 
           {/* Colonne droite — onglets */}
           {/* Colonne de droite : onglets Leçons / Examens / Paiements / Messages. Elle s'étire à la
-              hauteur de la colonne de gauche (Informations, Suivi de formation, Documents remis). */}
+              hauteur de la colonne de gauche (Informations, Suivi de formation, Documents remis, Dossier, Compte). */}
           <div className="lg:col-span-2 flex flex-col" style={{ gap: '1.25rem' }}>
             <div className="bg-white rounded-2xl overflow-hidden flex-1" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)', minHeight: '260px' }}>
               {/* Onglets */}
@@ -2074,16 +2080,6 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
 
           </div>
         </div>
-
-        {/* Ligne du bas (personnel) : dossier Service des Mines et compte de l'élève */}
-        {!isMoniteur && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-          {/* Dossier de l'élève : le fichier déposé au Service des Mines (permis seulement) */}
-          {s.typeFormation !== 'PERFECTIONNEMENT' && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}
-
-          {/* Compte élève */}
-          <CompteEleveCard eleve={s} />
-        </div>}
 
         {showModal && fenetreEleve()}
       </div>
