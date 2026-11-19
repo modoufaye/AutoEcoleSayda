@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import ComptesBloques from './ComptesBloques'
 import DemandesInscription from './DemandesInscription'
 import RepartitionLocalites from './RepartitionLocalites'
+import QuestionsRatees from './QuestionsRatees'
 import ReussiteExamens from './ReussiteExamens'
 import ArgentEcole from './ArgentEcole'
 import ParcoursEleves from './ParcoursEleves'
@@ -286,6 +287,9 @@ function DashboardMoniteur({ stats, user }) {
           )}
         </div>
       </div>
+
+      {/* Moniteurs de code : questions les plus ratées (le serveur refuse les moniteurs de conduite seule : rien ne s'affiche) */}
+      <QuestionsRatees />
     </div>
   )
 }
