@@ -292,7 +292,8 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
       numeroCni: form.numeroCni || null,
       numeroPermis: form.numeroPermis || null, dateEmbauche: form.dateEmbauche || null,
       photoUrl: form.photoUrl || null,
-      vehiculeId: form.vehiculeId ? Number(form.vehiculeId) : null
+      vehiculeId: form.vehiculeId ? Number(form.vehiculeId) : null,
+      categoriesAutorisees: form.enseignement === 'CODE' ? [] : form.categoriesAutorisees
     }
     try {
       if (editId) { await api('PUT', `/moniteurs/${editId}`, data); toast('Moniteur modifié') }
@@ -353,7 +354,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
         )}
         details={[
           form.telephone && ['telephone', form.telephone],
-          form.categoriesAutorisees.length > 0 && ['award', `Permis ${[...form.categoriesAutorisees].sort().join(', ')}`],
+          form.enseignement !== 'CODE' && form.categoriesAutorisees.length > 0 && ['award', `Permis ${[...form.categoriesAutorisees].sort().join(', ')}`],
           ['circle-fill', form.actif ? 'Actif' : 'Inactif'],
         ]}
         onClose={() => setShowModal(false)} onSave={save}
@@ -424,7 +425,8 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
           </div>
         </Etape>
 
-        <Etape n={3} icon="award" titre="Catégories enseignées">
+        {/* Moniteur de code seul : pas de catégories (le code est commun à tous les permis) */}
+        {form.enseignement !== 'CODE' && <Etape n={3} icon="award" titre="Catégories enseignées">
           <div className="grid grid-cols-4 gap-2">
             {[
               { v: 'A', icon: 'scooter',          sous: 'Moto' },
@@ -445,7 +447,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
             })}
           </div>
           <div className="text-[11px] text-slate-400 mt-2">Plusieurs choix possibles · {form.categoriesAutorisees.length}/4 sélectionnée{form.categoriesAutorisees.length > 1 ? 's' : ''}</div>
-        </Etape>
+        </Etape>}
       </FenetreModerne>
     )
   }
@@ -701,7 +703,7 @@ export default function Moniteurs({ onProfilChange, moniteurId, onOuvrir, onFerm
                       <span key={c} className="w-7 h-7 flex items-center justify-center text-xs font-extrabold"
                         style={{ borderRadius: '.6rem', background: cat.bg, color: cat.color }}>{cat.label}</span>
                     )
-                  }) : <span className="text-xs text-slate-400">Aucune</span>}
+                  }) : <span className="text-xs text-slate-400">{m.enseignement === 'CODE' ? 'Toutes (code)' : 'Aucune'}</span>}
                 </div>
               </div>
 
