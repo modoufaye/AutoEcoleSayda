@@ -223,7 +223,7 @@ function SeriesPassees({ series }) {
   )
 }
 
-/* ─── Onglet Leçons : cours publiés dans les séances, annales et séries passées, puis leçons planifiées ─── */
+/* ─── Onglet Leçons : cours publiés dans les séances, annales et séries passées, puis leçons planifiées s'il y en a ─── */
 function TabLecons({ lecons, seances, series = [] }) {
   return (
     <div>
@@ -235,20 +235,17 @@ function TabLecons({ lecons, seances, series = [] }) {
         <i className="bi bi-journal-bookmark-fill me-1" />Annales et séries d'examen ({series.length})
       </div>
       <SeriesPassees series={series} />
-      <div className="px-4 pt-4 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#475569', borderTop: '1px solid #eef2f7' }}>
-        <i className="bi bi-calendar2-check-fill me-1" />Leçons planifiées ({lecons.length})
-      </div>
-      <TableLecons lecons={lecons} />
+      {/* Leçons planifiées : seulement s'il y en a (les cours passent par les séances publiées) */}
+      {lecons.length > 0 && <>
+        <div className="px-4 pt-4 pb-1 text-[11px] font-extrabold uppercase tracking-wider" style={{ color: '#475569', borderTop: '1px solid #eef2f7' }}>
+          <i className="bi bi-calendar2-check-fill me-1" />Leçons planifiées ({lecons.length})
+        </div>
+        <TableLecons lecons={lecons} />
+      </>}
     </div>
   )
 }
 function TableLecons({ lecons }) {
-  if (!lecons.length) return (
-    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-      <i className="bi bi-calendar-x" style={{ fontSize: '2rem' }} />
-      <div className="mt-2 text-sm">Aucune leçon enregistrée</div>
-    </div>
-  )
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm table-cards">
@@ -861,23 +858,23 @@ function DocumentsRemis({ eleve, onMaj }) {
   }
   const complet = nb === DOCS.length
   return (
-    <div className="bg-white rounded-2xl overflow-hidden lg:col-span-2" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
-        <div className="flex items-center gap-2">
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-slate-100">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
             <i className="bi bi-card-checklist" style={{ color: '#15803d', fontSize: '.8rem' }} />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="font-bold text-slate-700 text-sm leading-tight">Documents remis</div>
             <div className="text-xs text-slate-400">{edition ? 'Cliquez sur un document pour le cocher ou le décocher' : 'Pièces du dossier fournies par l\'élève'}</div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
         <button type="button" onClick={() => setEdition(e => !e)} disabled={envoi !== null}
-          className="px-2.5 py-1 text-xs font-bold cursor-pointer"
+          className="px-2.5 py-1 font-bold cursor-pointer"
           style={edition
-            ? { borderRadius: '.5rem', border: 'none', background: '#1e3a5f', color: '#fff' }
-            : { borderRadius: '.5rem', border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569' }}>
+            ? { fontSize: 12, borderRadius: '.5rem', border: 'none', background: '#1e3a5f', color: '#fff' }
+            : { fontSize: 12, borderRadius: '.5rem', border: '1.5px solid #e2e8f0', background: '#fff', color: '#475569' }}>
           <i className={`bi bi-${edition ? 'check2' : 'pencil'} me-1`} />{edition ? 'Terminé' : 'Modifier'}
         </button>
         <span style={{
@@ -887,18 +884,19 @@ function DocumentsRemis({ eleve, onMaj }) {
         }}>{nb}/{DOCS.length}</span>
         </div>
       </div>
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      {/* Dans la colonne de gauche de la fiche : deux pièces par ligne */}
+      <div className="p-4 grid grid-cols-2 gap-2">
         {DOCS.map(d => {
           const ok = !!eleve[d.key]
           return (
             <button key={d.key} type="button" onClick={() => basculer(d)} disabled={!edition || envoi !== null} aria-pressed={ok}
-              className={`flex items-center gap-2 px-3 py-2 text-sm font-semibold text-left ${edition ? 'cursor-pointer' : ''}`}
-              style={{ borderRadius: '.75rem', border: `1.5px solid ${ok ? '#86efac' : '#e2e8f0'}`, cursor: edition ? 'pointer' : 'default',
+              className={`min-w-0 flex items-center gap-1.5 px-2 py-2 font-semibold text-left ${edition ? 'cursor-pointer' : ''}`}
+              style={{ fontSize: 12.5, overflowWrap: 'anywhere', borderRadius: '.75rem', border: `1.5px solid ${ok ? '#86efac' : '#e2e8f0'}`, cursor: edition ? 'pointer' : 'default',
                 background: ok ? '#f0fdf4' : '#fff', color: ok ? '#15803d' : '#64748b', opacity: envoi && envoi !== d.key ? .6 : 1 }}>
               {envoi === d.key
                 ? <span className="spinner-border spinner-border-sm" style={{ width: '1rem', height: '1rem' }} />
                 : <i className={`bi bi-${ok ? 'check-circle-fill' : 'circle'}`} />}
-              <span className="leading-tight">{d.label}</span>
+              <span className="leading-tight min-w-0">{d.label}</span>
             </button>
           )
         })}
@@ -1971,12 +1969,61 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
               {!s.archive && <BienvenueWhatsApp key={`${s.id}-${s.bienvenueEnvoyeeLe || ''}`} eleve={s} ecole={ecole} peutEnvoyer={!isMoniteur} />}
             </div>
 
+            {/* Suivi formation */}
+            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                  <i className="bi bi-bar-chart-fill" style={{ color: '#16a34a', fontSize: '.8rem' }} />
+                </div>
+                <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
+              </div>
+              <div className={`grid ${s.typeFormation === 'PERFECTIONNEMENT' ? 'grid-cols-1' : 'grid-cols-3'} divide-x divide-slate-100 text-center py-4`}>
+                {/* Leçons faites + séances de cours publiées : le compteur suit les publications */}
+                {(s.typeFormation === 'PERFECTIONNEMENT' ? [
+                  { val: s.nombreLeconsConduite + suivi.conduite,   label: 'Leçons de conduite', color: '#10b981' },
+                ] : [
+                  { val: s.nombreLeconsCode + suivi.code,      label: 'Code',     color: '#1e3a5f' },
+                  { val: s.nombreLeconsConduite + suivi.conduite,   label: 'Conduite', color: '#10b981' },
+                  { val: s.nombreLeconsCode + s.nombreLeconsConduite + suivi.code + suivi.conduite, label: 'Total', color: '#6366f1' },
+                ]).map(({ val, label, color }) => (
+                  <div key={label}>
+                    <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{label}</div>
+                  </div>
+                ))}
+              </div>
+              {!loadingProfile && suivi.avecQuiz > 0 && (
+                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Quiz des séances</span>
+                  <span className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{suivi.quizValides} assimilé{suivi.quizValides > 1 ? 's' : ''} · {suivi.quizPasses}/{suivi.avecQuiz} passé{suivi.quizPasses > 1 ? 's' : ''}</span>
+                </div>
+              )}
+              {!loadingProfile && !isMoniteur && (
+                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
+                  <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
+                </div>
+              )}
+              {!loadingProfile && !isMoniteur && s.montantTotal != null && (
+                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Reliquat</span>
+                  <span className="text-sm font-bold" style={{ color: s.montantTotal - profileData.totalPaye > 0 ? '#b45309' : '#047857' }}>
+                    {fmtMontant(Math.max(0, s.montantTotal - profileData.totalPaye))}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Documents remis (personnel, permis seulement) */}
+            {!isMoniteur && s.typeFormation !== 'PERFECTIONNEMENT' && <DocumentsRemis eleve={s} onMaj={maj => {
+              setSelected(maj); setList(l => l.map(x => x.id === maj.id ? maj : x)); setFiltered(l => l.map(x => x.id === maj.id ? maj : x))
+            }} />}
+
           </div>
 
           {/* Colonne droite — onglets */}
-          {/* Colonne de droite : onglets Leçons / Examens / Paiements, puis le suivi de formation.
-              Elle s'étire à la hauteur de la carte Informations (les onglets prennent la place
-              restante) : les deux colonnes finissent sur la même ligne. */}
+          {/* Colonne de droite : onglets Leçons / Examens / Paiements / Messages. Elle s'étire à la
+              hauteur de la colonne de gauche (Informations, Suivi de formation, Documents remis). */}
           <div className="lg:col-span-2 flex flex-col" style={{ gap: '1.25rem' }}>
             <div className="bg-white rounded-2xl overflow-hidden flex-1" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)', minHeight: '260px' }}>
               {/* Onglets */}
@@ -2025,60 +2072,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
               )}
             </div>
 
-            {/* Suivi formation */}
-            <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-slate-100">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                  <i className="bi bi-bar-chart-fill" style={{ color: '#16a34a', fontSize: '.8rem' }} />
-                </div>
-                <span className="font-bold text-slate-700 text-sm">Suivi de formation</span>
-              </div>
-              <div className={`grid ${s.typeFormation === 'PERFECTIONNEMENT' ? 'grid-cols-1' : 'grid-cols-3'} divide-x divide-slate-100 text-center py-4`}>
-                {/* Leçons faites + séances de cours publiées : le compteur suit les publications */}
-                {(s.typeFormation === 'PERFECTIONNEMENT' ? [
-                  { val: s.nombreLeconsConduite + suivi.conduite,   label: 'Leçons de conduite', color: '#10b981' },
-                ] : [
-                  { val: s.nombreLeconsCode + suivi.code,      label: 'Code',     color: '#1e3a5f' },
-                  { val: s.nombreLeconsConduite + suivi.conduite,   label: 'Conduite', color: '#10b981' },
-                  { val: s.nombreLeconsCode + s.nombreLeconsConduite + suivi.code + suivi.conduite, label: 'Total', color: '#6366f1' },
-                ]).map(({ val, label, color }) => (
-                  <div key={label}>
-                    <div className="text-2xl font-extrabold" style={{ color }}>{val}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{label}</div>
-                  </div>
-                ))}
-              </div>
-              {!loadingProfile && suivi.avecQuiz > 0 && (
-                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Quiz des séances</span>
-                  <span className="text-sm font-bold" style={{ color: '#1e3a5f' }}>{suivi.quizValides} assimilé{suivi.quizValides > 1 ? 's' : ''} · {suivi.quizPasses}/{suivi.avecQuiz} passé{suivi.quizPasses > 1 ? 's' : ''}</span>
-                </div>
-              )}
-              {!loadingProfile && !isMoniteur && (
-                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Encaissé</span>
-                  <span className="text-sm font-bold text-emerald-600">{fmtMontant(profileData.totalPaye)}</span>
-                </div>
-              )}
-              {!loadingProfile && !isMoniteur && s.montantTotal != null && (
-                <div className="border-t border-slate-100 px-5 py-3 flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Reliquat</span>
-                  <span className="text-sm font-bold" style={{ color: s.montantTotal - profileData.totalPaye > 0 ? '#b45309' : '#047857' }}>
-                    {fmtMontant(Math.max(0, s.montantTotal - profileData.totalPaye))}
-                  </span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Ligne du bas (admin) : dossier Service des Mines et compte de l'élève */}
+        {/* Ligne du bas (personnel) : dossier Service des Mines et compte de l'élève */}
         {!isMoniteur && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-          {/* Documents remis (permis seulement) */}
-          {s.typeFormation !== 'PERFECTIONNEMENT' && <DocumentsRemis eleve={s} onMaj={maj => {
-            setSelected(maj); setList(l => l.map(x => x.id === maj.id ? maj : x)); setFiltered(l => l.map(x => x.id === maj.id ? maj : x))
-          }} />}
 
           {/* Dossier de l'élève : le fichier déposé au Service des Mines (permis seulement) */}
           {s.typeFormation !== 'PERFECTIONNEMENT' && <DossierEleve key={`${s.id}-${showModal}`} eleveId={s.id} />}

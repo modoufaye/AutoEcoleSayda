@@ -217,6 +217,13 @@ export default function Carburant() {
   const moi = !gestion ? etat.moniteurs[0] : null
   return (
     <div className="space-y-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      {/* Définitions (en petit, en tête de la page) */}
+      <div className="text-[11px] text-slate-500 leading-snug flex flex-col gap-0.5 px-1">
+        <span><i className="bi bi-wallet2 me-1" style={{ color: '#059669' }} /><b className="text-slate-600">Dotation</b> : somme d'argent remise par l'auto-école au moniteur pour acheter le carburant.</span>
+        <span><i className="bi bi-fuel-pump-fill me-1" style={{ color: '#c2410c' }} /><b className="text-slate-600">Plein</b> : passage à la station déclaré par le moniteur (montant, litres, compteur, photo du reçu) ; une fois validé, il justifie la dotation.</span>
+        <span><i className="bi bi-cash-coin me-1" style={{ color: '#1d4ed8' }} /><b className="text-slate-600">Reste à justifier</b> : dotations reçues moins pleins validés.</span>
+      </div>
+
       {/* Chiffres clés */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <Tuile icone="wallet2" couleur="#059669" fond="#ecfdf5" libelle={gestion ? 'Dotations remises' : 'Reçu'} valeur={fmtMontant(totaux.dotations)} />

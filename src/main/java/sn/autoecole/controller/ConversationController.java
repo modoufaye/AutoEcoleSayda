@@ -48,6 +48,7 @@ public class ConversationController {
     private final sn.autoecole.service.DiscussionEquipeService discussionEquipeService;
 
     private final sn.autoecole.service.VocalService vocalService;
+    private final sn.autoecole.service.PresenceService presence;
     private static final long VOCAL_MAX_OCTETS = 15L * 1024 * 1024;   // ~5 min en opus, largement
 
     private record Lecteur(User user, Eleve eleve, Moniteur moniteur) {
@@ -163,7 +164,8 @@ public class ConversationController {
             if (l.estEleve()) c.setEleveLuLe(LocalDateTime.now()); else c.setEquipeLuLe(LocalDateTime.now());
             conversations.save(c);
         }
-        List<Map<String, Object>> liste = messages.findByConversationIdOrderByEnvoyeLeAscIdAsc(c.getId()).stream().map(m -> {
+        List<MessagePrive> bruts = messages.findByConversationIdOrderByEnvoyeLeAscIdAsc(c.getId());
+        List<Map<String, Object>> liste = bruts.stream().map(m -> {
             Map<String, Object> v = new LinkedHashMap<>();
             v.put("id", m.getId()); v.put("texte", m.getTexte()); v.put("envoyeLe", m.getEnvoyeLe());
             v.put("deMoi", m.getCote() == l.cote());
@@ -174,7 +176,24 @@ public class ConversationController {
             v.put("auteur", m.getCote() == MessagePrive.Cote.ELEVE ? c.getEleve().getPrenom() + " " + c.getEleve().getNom() : m.getAuteurNom());
             return v;
         }).toList();
-        return Map.of("id", c.getId(), "titre", interlocuteur(c, l), "messages", liste);
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("id", c.getId()); r.put("titre", interlocuteur(c, l)); r.put("messages", liste);
+        // Personnel : l'élève est-il en ligne, sinon quand a-t-il été vu pour la dernière fois ?
+        if (!l.estEleve()) {
+            Eleve e = c.getEleve();
+            boolean enLigne = presence.estEnLigne(e.getTelephone());
+            // La plus récente des traces connues : requête depuis le démarrage, activité notée sur la
+            // fiche, dernier message écrit par l'élève, première connexion
+            LocalDateTime dernierMessage = bruts.stream()
+                    .filter(m -> m.getCote() == MessagePrive.Cote.ELEVE).map(MessagePrive::getEnvoyeLe).filter(Objects::nonNull)
+                    .max(Comparator.naturalOrder()).orElse(null);
+            LocalDateTime vu = java.util.stream.Stream.of(presence.vuLe(e.getTelephone()), e.getDerniereActiviteLe(), dernierMessage, e.getPremiereConnexionLe())
+                    .filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("enLigne", enLigne); p.put("vuLe", vu);
+            r.put("presence", p);
+        }
+        return r;
     }
 
     /** Corps : { texte }. */

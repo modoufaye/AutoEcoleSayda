@@ -16,6 +16,15 @@ const heure = d => {
     ? x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     : x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
+/* Sous le nom de l'élève (personnel) : « En ligne » ou l'heure à laquelle il a été vu */
+function vuLe(d) {
+  if (!d) return 'Hors ligne'
+  const x = new Date(d), auj = new Date(), hier = new Date(auj.getTime() - 864e5)
+  const h = x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  if (x.toDateString() === auj.toDateString()) return `Vu aujourd'hui à ${h}`
+  if (x.toDateString() === hier.toDateString()) return `Vu hier à ${h}`
+  return `Vu le ${x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', ...(x.getFullYear() !== auj.getFullYear() ? { year: 'numeric' } : {}) })} à ${h}`
+}
 const initiales = t => t.replace(/^Moniteur · /, '').split(/\s+/).filter(Boolean).slice(0, 2).map(m => m[0]).join('').toUpperCase()
 const BASE = { EQUIPE: '/discussions-equipe' }
 const base = type => BASE[type] || '/conversations'
@@ -185,7 +194,12 @@ export default function MessengerBulle({ user, nonLus = 0 }) {
                 {titreOuvert && <Avatar c={{ ...ouverte, titre: titreOuvert.titre }} role={role} taille={34} />}
                 <div className="flex-1 min-w-0">
                   <div className="font-extrabold text-white truncate text-sm">{titreOuvert ? titreOuvert.titre.replace(/^Moniteur · /, '') : '…'}</div>
-                  {ouverte.type && <div className="text-[11px] truncate" style={{ color: '#cbd5e1' }}>{genre(ouverte, role).nom}</div>}
+                  {titreOuvert?.presence ? (
+                    <div className="text-[11px] truncate flex items-center gap-1.5" style={{ color: titreOuvert.presence.enLigne ? '#86efac' : '#cbd5e1' }}>
+                      {titreOuvert.presence.enLigne && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#22c55e', boxShadow: '0 0 0 3px rgba(34,197,94,.25)' }} />}
+                      {titreOuvert.presence.enLigne ? 'En ligne' : vuLe(titreOuvert.presence.vuLe)}
+                    </div>
+                  ) : ouverte.type && <div className="text-[11px] truncate" style={{ color: '#cbd5e1' }}>{genre(ouverte, role).nom}</div>}
                 </div>
                 <button type="button" onClick={() => setOuvert(false)} aria-label="Fermer" className="w-9 h-9 border-0 flex items-center justify-center cursor-pointer" style={{ borderRadius: 999, background: 'rgba(255,255,255,.12)', color: '#fff' }}>
                   <i className="bi bi-x-lg" />

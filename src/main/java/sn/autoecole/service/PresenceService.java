@@ -30,6 +30,8 @@ public class PresenceService {
     public record Vu(String identifiant, RoleUser role, Instant le) {}
 
     private final Map<Long, Vu> vus = new ConcurrentHashMap<>();
+    /** Dernière requête de chaque compte par identifiant, jamais purgée (« vu à … » dans les discussions). */
+    private final Map<String, Instant> derniereVue = new ConcurrentHashMap<>();
     /** Élèves : dernière activité écrite sur la fiche (au plus une écriture par heure et par élève). */
     private final Map<Long, Instant> activiteNotee = new ConcurrentHashMap<>();
     private static final Duration PAS_ACTIVITE = Duration.ofHours(1);
@@ -37,6 +39,7 @@ public class PresenceService {
 
     public void noter(User u) {
         vus.put(u.getId(), new Vu(u.getEmail(), u.getRole(), Instant.now()));
+        if (u.getEmail() != null) derniereVue.put(u.getEmail(), Instant.now());
         if (u.getRole() != RoleUser.ELEVE) return;
         Instant maintenant = Instant.now(), avant = activiteNotee.get(u.getId());
         if (avant != null && avant.isAfter(maintenant.minus(PAS_ACTIVITE))) return;
@@ -52,6 +55,18 @@ public class PresenceService {
     /** Déconnexion : le compte passe hors ligne tout de suite. */
     public void partir(User u) {
         vus.remove(u.getId());
+    }
+
+    /** Le compte de cet identifiant a-t-il le site ouvert (requête depuis moins de {@link #DELAI}) ? */
+    public boolean estEnLigne(String identifiant) {
+        Instant limite = Instant.now().minus(DELAI);
+        return identifiant != null && vus.values().stream().anyMatch(v -> identifiant.equals(v.identifiant()) && v.le().isAfter(limite));
+    }
+
+    /** Dernière requête connue de ce compte depuis le démarrage du serveur, sinon null. */
+    public LocalDateTime vuLe(String identifiant) {
+        Instant i = identifiant == null ? null : derniereVue.get(identifiant);
+        return i == null ? null : LocalDateTime.ofInstant(i, java.time.ZoneId.systemDefault());
     }
 
     public List<Vu> enLigne() {
