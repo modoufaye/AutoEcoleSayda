@@ -345,6 +345,79 @@ public class DashboardService {
         return r;
     }
 
+    private static final java.util.regex.Pattern QUESTION = java.util.regex.Pattern.compile("^(.*) → (.*) \\(répondu : (.*)\\)$");
+    private static final java.util.regex.Pattern PANNEAU = java.util.regex.Pattern.compile("^« (.*) » confondu avec « (.*) »$");
+
+    /**
+     * Questions de code les plus ratées et séances les plus difficiles, d'après les quiz de séance
+     * (erreurs du dernier essai de chaque élève). Une question est comptée une fois par élève ;
+     * pour chacune : bonne réponse, mauvaises réponses les plus données, séances où elle tombe.
+     * Base du taux : élèves qui ont fait le quiz de ces séances.
+     */
+    public Map<String, Object> questionsRatees() {
+        Map<Long, String> titres = new HashMap<>();
+        seanceRepository.findByStatut(StatutSeance.PUBLIE).forEach(x -> titres.put(x.getId(), x.getTitre()));
+        Map<Long, Set<Long>> faitsParSeance = new HashMap<>();
+        Map<Long, long[]> parSeance = new HashMap<>();          // {élèves, réussis, tentatives}
+        Map<String, Map<String, Object>> questions = new LinkedHashMap<>();
+        Map<String, Set<Long>> elevesParQuestion = new HashMap<>();
+        Map<String, Map<String, Integer>> mauvaises = new HashMap<>();
+        Map<String, Set<Long>> seancesParQuestion = new HashMap<>();
+        for (var r : resultatQuizSeanceRepository.findAll()) {
+            if (r.getTentatives() <= 0 || !titres.containsKey(r.getSeanceId())) continue;
+            faitsParSeance.computeIfAbsent(r.getSeanceId(), k -> new HashSet<>()).add(r.getEleveId());
+            long[] c = parSeance.computeIfAbsent(r.getSeanceId(), k -> new long[3]);
+            c[0]++; if (r.isReussi()) c[1]++; c[2] += r.getTentatives();
+            if (r.getErreurs() == null) continue;
+            for (String ligne : r.getErreurs().split("\n")) {
+                String q, bonne, rep, type;
+                var m = QUESTION.matcher(ligne.trim());
+                var p = PANNEAU.matcher(ligne.trim());
+                if (m.matches()) { q = m.group(1); bonne = m.group(2); rep = m.group(3); type = "QUESTION"; }
+                else if (p.matches()) { q = "« " + p.group(1) + " »"; bonne = p.group(1); rep = p.group(2); type = "CONFUSION"; }
+                else continue;
+                String cle = q + "\u0000" + bonne;
+                questions.computeIfAbsent(cle, k -> {
+                    Map<String, Object> x = new LinkedHashMap<>();
+                    x.put("question", q); x.put("bonne", bonne); x.put("type", type);
+                    return x;
+                });
+                elevesParQuestion.computeIfAbsent(cle, k -> new HashSet<>()).add(r.getEleveId());
+                mauvaises.computeIfAbsent(cle, k -> new HashMap<>()).merge(rep, 1, Integer::sum);
+                seancesParQuestion.computeIfAbsent(cle, k -> new LinkedHashSet<>()).add(r.getSeanceId());
+            }
+        }
+        List<Map<String, Object>> liste = new ArrayList<>();
+        questions.forEach((cle, x) -> {
+            Set<Long> seances = seancesParQuestion.get(cle);
+            Set<Long> base = new HashSet<>();
+            seances.forEach(id -> base.addAll(faitsParSeance.getOrDefault(id, Set.of())));
+            x.put("rates", elevesParQuestion.get(cle).size());
+            x.put("base", base.size());
+            x.put("mauvaises", mauvaises.get(cle).entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(3)
+                    .map(e -> Map.of("reponse", e.getKey(), "fois", e.getValue())).toList());
+            x.put("seances", seances.stream().map(id -> Map.of("id", id, "titre", titres.get(id))).toList());
+            liste.add(x);
+        });
+        liste.sort(Comparator.<Map<String, Object>>comparingInt(x -> -(int) x.get("rates"))
+                .thenComparingDouble(x -> -(double) (int) x.get("rates") / Math.max(1, (int) x.get("base"))));
+        List<Map<String, Object>> seances = new ArrayList<>();
+        parSeance.forEach((id, c) -> {
+            Map<String, Object> x = new LinkedHashMap<>();
+            x.put("id", id); x.put("titre", titres.get(id));
+            x.put("eleves", c[0]); x.put("reussis", c[1]);
+            x.put("tentativesMoyennes", Math.round(10.0 * c[2] / c[0]) / 10.0);
+            seances.add(x);
+        });
+        seances.sort(Comparator.comparingDouble(x -> (double) (long) x.get("reussis") / (long) x.get("eleves")));
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("eleves", faitsParSeance.values().stream().flatMap(Set::stream).distinct().count());
+        r.put("questions", liste.subList(0, Math.min(40, liste.size())));
+        r.put("seances", seances);
+        return r;
+    }
+
     /* Pièces du dossier complet (comme la liste des élèves) : enrôlement et délivrance n'en font pas partie */
     private static final List<Map.Entry<String, java.util.function.Predicate<Eleve>>> PIECES = List.of(
             Map.entry("Certificat de résidence", Eleve::isDocCertResidence),

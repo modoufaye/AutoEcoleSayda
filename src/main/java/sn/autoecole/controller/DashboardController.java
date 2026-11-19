@@ -58,6 +58,12 @@ public class DashboardController {
         return dashboardService.preparationCode();
     }
 
+    /** Questions de code les plus ratées et séances les plus difficiles (quiz de séance). */
+    @GetMapping("/questions-ratees")
+    public Map<String, Object> questionsRatees() {
+        return dashboardService.questionsRatees();
+    }
+
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {
         return dashboardService.localites(annee);

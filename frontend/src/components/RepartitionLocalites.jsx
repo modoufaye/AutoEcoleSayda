@@ -5,6 +5,7 @@ import { EnteteListe } from './ListeModerne'
 import SelecteurAnnee from './SelecteurAnnee'
 import SuiviPedagogique from './SuiviPedagogique'
 import PreparationCode from './PreparationCode'
+import QuestionsRatees from './QuestionsRatees'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -196,6 +197,7 @@ export default function RepartitionLocalites() {
       {/* Suivi pédagogique (à la place des quartiers), pleine largeur sous les lieux */}
       <PreparationCode />
       <SuiviPedagogique />
+      <QuestionsRatees />
     </div>
   )
 }
