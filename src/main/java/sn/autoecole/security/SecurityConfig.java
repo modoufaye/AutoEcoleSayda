@@ -132,6 +132,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/dashboard/finances").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/parcours").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/pedagogie").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
+                .requestMatchers("/api/dashboard/preparation-code").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 .requestMatchers("/api/dashboard/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "MONITEUR", "SECRETAIRE")
 
                 // Ouverture des semaines aux réservations : lecture par le personnel, ouverture par l'administration et le secrétariat

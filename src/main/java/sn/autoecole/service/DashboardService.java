@@ -345,6 +345,64 @@ public class DashboardService {
         return r;
     }
 
+    /* Pièces du dossier complet (comme la liste des élèves) : enrôlement et délivrance n'en font pas partie */
+    private static final List<Map.Entry<String, java.util.function.Predicate<Eleve>>> PIECES = List.of(
+            Map.entry("Certificat de résidence", Eleve::isDocCertResidence),
+            Map.entry("CNI légalisée", Eleve::isDocCniLegalisee),
+            Map.entry("Groupe sanguin", Eleve::isDocGroupeSanguin),
+            Map.entry("Visite médicale", Eleve::isDocVisiteMedicale),
+            Map.entry("Photos", Eleve::isDocPhotos),
+            Map.entry("Timbre", Eleve::isDocTimbre));
+
+    /**
+     * Préparation à l'examen du code, pour chaque élève du permis en cours et pas encore admis :
+     * PRET   = au moins la moitié de la formule payée, dossier complet et 70 % des séances
+     *          publiées (avec quiz) assimilées ;
+     * PRESQUE = moitié payée et dossier complet, séances pas encore à 70 % ;
+     * PAS_ENCORE sinon. Avec, pour chaque critère, ce qui manque.
+     */
+    public Map<String, Object> preparationCode() {
+        Set<Long> admisCode = new HashSet<>(examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS));
+        Map<Long, java.math.BigDecimal> payes = new HashMap<>();
+        for (Object[] r : paiementRepository.totauxPayesParEleve()) payes.put((Long) r[0], (java.math.BigDecimal) r[1]);
+        Map<Long, long[]> quiz = seanceService.quizCodeParEleve();
+        long publiees = seanceService.nombreSeancesAvecQuiz();
+        long requises = (long) Math.ceil(publiees * 0.7);
+        List<Map<String, Object>> eleves = new ArrayList<>();
+        long[] compte = new long[3];
+        for (Eleve e : eleveRepository.findByStatutAndArchiveFalse(StatutEleve.EN_COURS)) {
+            if (e.estPerfectionnement() || admisCode.contains(e.getId())) continue;
+            java.math.BigDecimal prix = e.getMontantTotal(), paye = payes.getOrDefault(e.getId(), java.math.BigDecimal.ZERO);
+            boolean moitie = prix != null && prix.signum() > 0 && paye.multiply(java.math.BigDecimal.valueOf(2)).compareTo(prix) >= 0;
+            List<String> manque = PIECES.stream().filter(p -> !p.getValue().test(e)).map(Map.Entry::getKey).toList();
+            long assimilees = quiz.getOrDefault(e.getId(), new long[3])[2];
+            boolean seances = assimilees >= requises;
+            String indicateur = moitie && manque.isEmpty() ? (seances ? "PRET" : "PRESQUE") : "PAS_ENCORE";
+            compte[indicateur.equals("PRET") ? 0 : indicateur.equals("PRESQUE") ? 1 : 2]++;
+            Map<String, Object> x = new LinkedHashMap<>();
+            x.put("id", e.getId());
+            x.put("nom", ((e.getPrenom() == null ? "" : e.getPrenom()) + " " + (e.getNom() == null ? "" : e.getNom())).trim());
+            x.put("telephone", e.getTelephone());
+            x.put("indicateur", indicateur);
+            x.put("paye", paye);
+            x.put("montantTotal", prix);
+            x.put("moitiePayee", moitie);
+            x.put("piecesManquantes", manque);
+            x.put("seancesAssimilees", assimilees);
+            x.put("seancesRequises", requises);
+            x.put("seancesOk", seances);
+            eleves.add(x);
+        }
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("seancesPubliees", publiees);
+        r.put("seancesRequises", requises);
+        r.put("prets", compte[0]);
+        r.put("presque", compte[1]);
+        r.put("pasEncore", compte[2]);
+        r.put("eleves", eleves);
+        return r;
+    }
+
     /**
      * Suivi pédagogique des élèves du permis en préparation du code (en cours, non archivés, pas
      * encore admis au code) : séances de code, séries et annales assimilées (70 % ou plus au moins

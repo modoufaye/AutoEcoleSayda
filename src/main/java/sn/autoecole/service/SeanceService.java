@@ -158,6 +158,13 @@ public class SeanceService {
      * un élève qui s'est déjà connecté les a donc toutes reçues, un élève jamais connecté aucune
      * (hormis celles dont il a fait le quiz).
      */
+    /** Nombre de séances publiées qui ont un quiz de code (base de l'indicateur « prêt pour le code »). */
+    @Transactional(readOnly = true)
+    public long nombreSeancesAvecQuiz() {
+        return seanceRepo.findByStatut(StatutSeance.PUBLIE).stream()
+                .filter(s -> !s.getProgramme().isEmpty() && s.getProgramme().stream().anyMatch(p -> !conduite(p))).count();
+    }
+
     @Transactional(readOnly = true)
     public Map<Long, long[]> quizCodeParEleve() {
         Set<Long> avecQuiz = seanceRepo.findByStatut(StatutSeance.PUBLIE).stream()

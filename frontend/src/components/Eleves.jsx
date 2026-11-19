@@ -990,8 +990,34 @@ const MOIS_COURANT = () => {
 
 /* Indice « code » : un élève du permis admis à l'examen du code peut passer à la conduite.
    Le perfectionnement (déjà titulaire du permis) n'est pas concerné. */
-function IndiceCode({ eleve, admis, grand = false }) {
+/* Préparation à l'examen du code (gestion) : Prêt = moitié de la formule payée, dossier complet et
+   70 % des séances publiées assimilées ; Presque = moitié payée et dossier complet ; sinon Pas encore. */
+const PREP_CODE = {
+  PRET:       { label: 'Prêt pour le code', icone: 'patch-check', fond: '#dcfce7', couleur: '#15803d' },
+  PRESQUE:    { label: 'Presque prêt',      icone: 'hourglass-bottom', fond: '#fef3c7', couleur: '#b45309' },
+  PAS_ENCORE: { label: 'Pas encore prêt',   icone: 'hourglass-split', fond: '#f1f5f9', couleur: '#64748b' },
+}
+function detailPrepCode(p) {
+  if (!p) return ''
+  const l = [
+    `${p.moitiePayee ? '✓' : '✗'} Moitié de la formule payée${p.montantTotal ? ` (${Number(p.paye).toLocaleString('fr-FR')} / ${Number(p.montantTotal).toLocaleString('fr-FR')} FCFA)` : ' (prix non renseigné)'}`,
+    `${p.piecesManquantes.length === 0 ? '✓ Dossier complet' : `✗ Dossier : manque ${p.piecesManquantes.join(', ')}`}`,
+    `${p.seancesOk ? '✓' : '✗'} Séances assimilées : ${p.seancesAssimilees} sur ${p.seancesRequises} demandées (70 % des publiées)`,
+  ]
+  return l.join('\n')
+}
+
+function IndiceCode({ eleve, admis, grand = false, prep }) {
   if (eleve.typeFormation === 'PERFECTIONNEMENT') return null
+  if (!admis && prep) {
+    const t = PREP_CODE[prep.indicateur] || PREP_CODE.PAS_ENCORE
+    return (
+      <span title={detailPrepCode(prep)}
+        className={`${grand ? 'text-xs px-3 py-1' : 'text-[10px] px-1.5 py-0.5'} font-extrabold rounded-full whitespace-nowrap`} style={{ background: t.fond, color: t.couleur }}>
+        <i className={`bi bi-${t.icone} me-1`} />{t.label}
+      </span>
+    )
+  }
   const style = admis ? { background: '#dcfce7', color: '#15803d' } : { background: '#fef3c7', color: '#b45309' }
   return (
     <span title={admis ? 'Admis à l\'examen du code : peut faire la conduite' : 'Examen du code pas encore réussi'}
@@ -1028,6 +1054,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [formation, setFormation] = useState(memo.formation ?? '')   // '' | PERMIS | PERFECTIONNEMENT
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
+  // Préparation à l'examen du code (gestion) : élève id → { indicateur, critères } ; filtre PRET / PRESQUE / PAS_ENCORE
+  const [prepCode, setPrepCode] = useState({})
+  const [prepFiltre, setPrepFiltre] = useState(isMoniteur ? '' : memo.prepFiltre ?? '')
   const classeFiltre = classeFixe ?? ''   // classe affichée (page Classes) ; plus de filtre de classe dans l'onglet Élèves
   const [messagesSeuls, setMessagesSeuls] = useState(!!memo.messagesSeuls)   // seulement les élèves qui ont écrit (non lus)
   const classes = useClasses()
@@ -1053,16 +1082,16 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, classeFiltre, messagesSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     if (classeFixe) return
     try {
       sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
-        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1100,6 +1129,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (!isMoniteur) {
       try { setMoniteurs(await api('GET', '/moniteurs')) } catch { /* optionnel */ }
       api('GET', '/eleves/totaux-payes').then(m => setTotauxPayes(m || {})).catch(() => {})
+      api('GET', '/dashboard/preparation-code').then(r => setPrepCode(Object.fromEntries((r?.eleves || []).map(x => [x.id, x])))).catch(() => {})
     }
   }
 
@@ -1122,6 +1152,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
+    if (prepFiltre) r = r.filter(e => prepCode[e.id]?.indicateur === prepFiltre)
     if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre) && e.typeFormation !== 'PERFECTIONNEMENT')
     if (messagesSeuls) r = r.filter(e => messagesNonLus[e.id] > 0)
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
@@ -1135,7 +1166,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, prepCode, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
@@ -1839,7 +1870,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                 </span>
               )}
               {s.site && <PastilleBureau code={s.site} />}
-              <IndiceCode eleve={s} admis={admisCode.has(s.id)} grand />
+              <IndiceCode eleve={s} admis={admisCode.has(s.id)} prep={prepCode[s.id]} grand />
               {!isMoniteur && s.archive && (
                 <>
                   <button onClick={() => reactiver(s)}
@@ -2118,6 +2149,15 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
             Code admis · {list.filter(e => admisCode.has(e.id)).length}
           </FiltreBascule>
         )}
+        {/* Gestion : préparation à l'examen du code (paiement, dossier, séances) */}
+        {!perfSeul && !isMoniteur && (
+          <Filtre icone="clipboard2-check" value={prepFiltre} onChange={setPrepFiltre}>
+            <option value="">Examen du code : tous</option>
+            <option value="PRET">Prêts pour le code · {Object.values(prepCode).filter(x => x.indicateur === 'PRET').length}</option>
+            <option value="PRESQUE">Presque prêts · {Object.values(prepCode).filter(x => x.indicateur === 'PRESQUE').length}</option>
+            <option value="PAS_ENCORE">Pas encore prêts · {Object.values(prepCode).filter(x => x.indicateur === 'PAS_ENCORE').length}</option>
+          </Filtre>
+        )}
         {/* Moniteur : bascule sur le mois en cours (l'administration s'appuie sur les classes) */}
         {isMoniteur && (
           <FiltreBascule actif={moisInscription === MOIS_COURANT()} onClick={() => setMoisInscription(m => m ? '' : MOIS_COURANT())} icone="calendar-check">Nouveaux ce mois</FiltreBascule>
@@ -2254,7 +2294,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                         <i className="bi bi-car-front me-1" style={{ color: '#15803d' }} />Conduite : <b>{e.nombreLeconsConduite}</b>
                         {conduitePrevue(e) ? `/${conduitePrevue(e)}` : e.typeFormation === 'PERFECTIONNEMENT' && <b style={{ color: '#d97706' }}>/?</b>}
                       </span>}
-                    <IndiceCode eleve={e} admis={admisCode.has(e.id)} />
+                    <IndiceCode eleve={e} admis={admisCode.has(e.id)} prep={prepCode[e.id]} />
                   </div>
                   {archives && e.dateArchivage && <div className="text-slate-400 mt-1">Archivé le {fmtDate(e.dateArchivage)}</div>}
                   {messagesNonLus[e.id] > 0 && (

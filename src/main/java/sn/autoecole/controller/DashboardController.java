@@ -52,6 +52,12 @@ public class DashboardController {
         return dashboardService.pedagogie();
     }
 
+    /** Préparation à l'examen du code : Prêt / Presque / Pas encore, par élève (paiement, dossier, séances). */
+    @GetMapping("/preparation-code")
+    public Map<String, Object> preparationCode() {
+        return dashboardService.preparationCode();
+    }
+
     @GetMapping("/localites")
     public Map<String, Object> localites(@RequestParam(required = false) Integer annee) {
         return dashboardService.localites(annee);

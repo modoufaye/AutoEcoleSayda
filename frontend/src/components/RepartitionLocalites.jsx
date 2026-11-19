@@ -4,6 +4,7 @@ import { useBureaux, EN_LIGNE } from '../bureaux'
 import { EnteteListe } from './ListeModerne'
 import SelecteurAnnee from './SelecteurAnnee'
 import SuiviPedagogique from './SuiviPedagogique'
+import PreparationCode from './PreparationCode'
 
 const carte = { boxShadow: '0 2px 12px rgba(15,34,64,.07)', border: '1px solid #eef2f7' }
 
@@ -193,6 +194,7 @@ export default function RepartitionLocalites() {
       </div>
 
       {/* Suivi pédagogique (à la place des quartiers), pleine largeur sous les lieux */}
+      <PreparationCode />
       <SuiviPedagogique />
     </div>
   )
