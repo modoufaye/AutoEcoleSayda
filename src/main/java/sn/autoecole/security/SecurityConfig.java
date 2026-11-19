@@ -138,6 +138,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/semaines-reservation", "/api/semaines-reservation/ouvertes").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 .requestMatchers("/api/semaines-reservation/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE")
                 // Discussions moniteur ↔ auto-école : personnel seulement
+                // Carburant : moniteurs (leurs pleins) et gestion (dotations, validation) ; contrôles fins dans le service
+                .requestMatchers("/api/carburant", "/api/carburant/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 .requestMatchers("/api/discussions-equipe", "/api/discussions-equipe/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "SECRETAIRE", "MONITEUR")
                 // Toutes les autres routes nécessitent une authentification
                 .anyRequest().authenticated()

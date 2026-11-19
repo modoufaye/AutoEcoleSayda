@@ -30,6 +30,7 @@ import HoteConfirmation from '../components/Confirmation'
 import { useEcole } from '../ecole'
 import { compterSeancesAFaire } from '../seancesAFaire'
 import Classes from '../components/Classes'
+import Carburant from '../components/Carburant'
 
 const ALL_SECTIONS = [
   { key: 'mon-espace',       label: 'Mon Espace',       icon: 'house-fill',            color: '#60a5fa', roles: ['ELEVE'] },
@@ -42,6 +43,8 @@ const ALL_SECTIONS = [
   { key: 'vehicules',        label: 'Véhicules',        icon: 'car-front-fill',        color: '#2dd4bf', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'SECRETAIRE'] },
   { key: 'cours',            label: 'Cours Code',       icon: 'sign-turn-right-fill',  color: '#fbbf24', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'ELEVE', 'SECRETAIRE'] },
   { key: 'lecons',           label: 'Cours Conduite',   icon: 'calendar2-check',       color: '#f472b6', roles: ['SUPER_ADMIN', 'ADMIN', 'MONITEUR', 'ELEVE', 'SECRETAIRE'] },
+  // Carburant : dotations et pleins des moniteurs de conduite (masqué aux moniteurs de code seul)
+  { key: 'carburant',        label: 'Carburant',        icon: 'fuel-pump-fill',        color: '#fb923c', roles: ['SUPER_ADMIN', 'ADMIN', 'SECRETAIRE', 'MONITEUR'] },
   { key: 'seances-moniteur', label: 'Séances de cours',  icon: 'camera-video-fill',     color: '#c084fc', roles: ['MONITEUR', 'SUPER_ADMIN', 'ADMIN', 'SECRETAIRE'] },
   { key: 'seances-eleve',    label: 'Mes Séances',      icon: 'play-circle-fill',      color: '#06b6d4', roles: ['ELEVE'] },
   { key: 'examens',          label: 'Examens',          icon: 'clipboard2-check-fill', color: '#fb923c', roles: ['SUPER_ADMIN', 'ADMIN', 'ELEVE', 'SECRETAIRE'] },
@@ -64,7 +67,7 @@ const ALL_SECTIONS = [
 const COMPONENTS = {
   'mon-espace': ElevePortail,
   dashboard: Dashboard, eleves: Eleves, moniteurs: Moniteurs,
-  vehicules: Vehicules, lecons: CoursConduite, cours: Cours,
+  vehicules: Vehicules, carburant: Carburant, lecons: CoursConduite, cours: Cours,
   examens: Examens, paiements: Paiements, 'mes-paiements': MesPaiements,
   'seances-moniteur': SeancesMoniteur,
   'seances-eleve': SeancesEleve,
@@ -114,6 +117,12 @@ export default function AppLayout() {
   // Secrétariat : mêmes écrans que l'admin (vue de toutes les séances, Retour…), sans les droits sensibles
   const gestion = estAdmin(user?.role) || user?.role === 'SECRETAIRE'
   // Élève : « Cours Conduite » en perfectionnement, ou au permis une fois admis au code (null : pas encore su)
+  // Moniteur : « Carburant » seulement s'il fait de la conduite (null : pas encore su)
+  const [accesCarburant, setAccesCarburant] = useState(user?.role === 'MONITEUR' ? null : true)
+  useEffect(() => {
+    if (user?.role !== 'MONITEUR') return
+    api('GET', '/carburant/acces').then(r => setAccesCarburant(!!r?.acces)).catch(() => setAccesCarburant(false))
+  }, [user])
   const [accesConduite, setAccesConduite] = useState(user?.role === 'ELEVE' ? null : true)
   useEffect(() => {
     if (!user || estAdmin(user.role)) return
@@ -131,9 +140,9 @@ export default function AppLayout() {
   const CODE_SEUL = ['examens', 'td-eleve']
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false)
-    && !(s.key === 'lecons' && accesConduite === false)
+    && !(s.key === 'lecons' && accesConduite === false) && !(s.key === 'carburant' && accesCarburant === false)
     && !(perfectionnement && CODE_SEUL.includes(s.key)))
-  const sectionsMenuBase = sections.filter(s => (s.key !== 'cours' || accesCours === true) && (s.key !== 'lecons' || accesConduite === true) && !s.horsMenu)
+  const sectionsMenuBase = sections.filter(s => (s.key !== 'cours' || accesCours === true) && (s.key !== 'lecons' || accesConduite === true) && (s.key !== 'carburant' || accesCarburant === true) && !s.horsMenu)
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'
 
