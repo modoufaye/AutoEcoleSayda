@@ -15,6 +15,7 @@ import '../landing.css'
 import GrandePhoto from './GrandePhoto'
 import ImportEleves from './ImportEleves'
 import EnvoiGroupeIdentifiants from './EnvoiGroupeIdentifiants'
+import EnvoiRelance from './EnvoiRelance'
 import { ConversationEleve } from './Messages'
 import ChampTelephone from './ChampTelephone'
 import { afficherTelephone } from '../telephones'
@@ -1078,6 +1079,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [showModal, setShowModal] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [envoiGroupe, setEnvoiGroupe] = useState(false)   // file d'envoi des identifiants (WhatsApp)
+  // Élèves du permis qui ne travaillent pas (jamais connectés, inactifs 7 jours) : relance WhatsApp
+  const [aRelancer, setARelancer] = useState(null)
+  const [relanceOuverte, setRelanceOuverte] = useState(false)
   const [loading, setLoading]     = useState(true)
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
@@ -1129,6 +1133,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (!isMoniteur) {
       try { setMoniteurs(await api('GET', '/moniteurs')) } catch { /* optionnel */ }
       api('GET', '/eleves/totaux-payes').then(m => setTotauxPayes(m || {})).catch(() => {})
+      api('GET', '/eleves/a-relancer').then(setARelancer).catch(() => {})
       api('GET', '/dashboard/preparation-code').then(r => setPrepCode(Object.fromEntries((r?.eleves || []).map(x => [x.id, x])))).catch(() => {})
     }
   }
@@ -2171,6 +2176,11 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                 <BoutonAjout vert icone="whatsapp" onClick={() => setEnvoiGroupe(true)}>Envoi groupé · {aEnvoyerAffiches.length}</BoutonAjout>
               </div>
             )}
+            {!perfSeul && aRelancer?.eleves.length > 0 && (
+              <div className="col-span-2 sm:col-span-1 grid">
+                <BoutonAjout or icone="bell-fill" onClick={() => setRelanceOuverte(true)}>Relancer · {aRelancer.eleves.length}</BoutonAjout>
+              </div>
+            )}
             <BoutonAjout vert icone="file-earmark-spreadsheet-fill" onClick={() => setShowImport(true)}>Importer</BoutonAjout>
             {!perfSeul && <BoutonAjout onClick={() => openModal()}>Élève</BoutonAjout>}
             {/* Perfectionnement : conduite seule, inscription simplifiée (dans son propre onglet) */}
@@ -2336,6 +2346,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
         <EnvoiGroupeIdentifiants eleves={aEnvoyerAffiches} ecole={ecole}
           onEnvoye={(id, le) => setList(l => l.map(e => e.id === id ? { ...e, bienvenueEnvoyeeLe: le } : e))}
           onClose={() => setEnvoiGroupe(false)} />
+      )}
+      {relanceOuverte && aRelancer && (
+        <EnvoiRelance donnees={aRelancer} onClose={() => { setRelanceOuverte(false); api('GET', '/eleves/a-relancer').then(setARelancer).catch(() => {}) }} />
       )}
       {showModal && fenetreEleve()}
     </div>

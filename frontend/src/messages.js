@@ -135,3 +135,44 @@ export function msgOuvertureReservations(eleve, periode, ecole) {
   lignes.push('', `À bientôt au volant ! — ${nom}`)
   return lignes.join('\n')
 }
+
+/* Relance d'un élève qui ne s'est jamais connecté : nouveaux identifiants (sans risque : il ne s'en
+   est jamais servi) et ce qui l'attend. publiees : séances de code publiées avec quiz. */
+export function msgRelanceJamais(eleve, ecole, identifiants, publiees) {
+  const nom = ecole || nomEcole()
+  return [
+    `Bonjour ${eleve.prenom} 👋`,
+    '',
+    `Votre espace élève ${nom} vous attend et vous ne l'avez pas encore ouvert.`,
+    `📚 ${publiees ? `${publiees} séances de code avec leurs quiz` : 'Les séances de code et leurs quiz'}, des séries et des examens blancs corrigés pour réussir l'examen du code du premier coup.`,
+    '',
+    `👉 ${window.location.origin}`,
+    `Identifiant : ${identifiants.identifiant}`,
+    `Mot de passe : ${identifiants.motDePasse}`,
+    '',
+    "15 minutes par jour suffisent pour progresser. Connectez-vous dès aujourd'hui !",
+    `— ${nom}`,
+  ].join('\n')
+}
+
+/* Relance d'un élève inactif depuis plusieurs jours, avec où il en est. */
+export function msgRelanceInactif(eleve, ecole, publiees) {
+  const nom = ecole || nomEcole()
+  const reste = publiees ? Math.max(0, publiees - (eleve.seancesAssimilees || 0)) : 0
+  const lignes = [
+    `Bonjour ${eleve.prenom} 👋`,
+    '',
+    `Cela fait ${eleve.joursInactif} jours que nous ne vous avons pas vu sur votre espace élève ${nom}.`,
+  ]
+  if (publiees) lignes.push(eleve.seancesAssimilees
+    ? `📈 Vous avez déjà réussi ${eleve.seancesAssimilees} séance${eleve.seancesAssimilees > 1 ? 's' : ''} de code sur ${publiees}${reste ? ` : encore ${reste} à faire` : ''}. Continuez !`
+    : `📚 ${publiees} séances de code vous attendent, avec leurs quiz.`)
+  lignes.push(
+    "Un peu chaque jour et l'examen du code sera une formalité.",
+    '',
+    `👉 ${window.location.origin}`,
+    'Mot de passe oublié ? Répondez à ce message.',
+    `— ${nom}`,
+  )
+  return lignes.join('\n')
+}

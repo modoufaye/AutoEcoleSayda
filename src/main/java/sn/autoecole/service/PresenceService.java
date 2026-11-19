@@ -11,14 +11,14 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Qui est en ligne : dernière requête de chaque compte, gardée en mémoire (rien en base).
  * La page ouverte interroge le serveur toutes les 30 secondes (messages non lus) : un compte
  * sans requête depuis {@link #DELAI} est hors ligne. Un redémarrage du serveur remet tout à zéro.
- * La première activité d'un élève est aussi notée sur sa fiche (premiereConnexionLe).
+ * La première et la dernière activité d'un élève sont aussi notées sur sa fiche (premiereConnexionLe,
+ * derniereActiviteLe, celle-ci au plus une fois par heure).
  */
 @Service
 @RequiredArgsConstructor
@@ -30,17 +30,23 @@ public class PresenceService {
     public record Vu(String identifiant, RoleUser role, Instant le) {}
 
     private final Map<Long, Vu> vus = new ConcurrentHashMap<>();
-    /** Comptes élèves déjà vérifiés depuis le démarrage : la fiche n'est lue qu'une fois. */
-    private final Set<Long> elevesVerifies = ConcurrentHashMap.newKeySet();
+    /** Élèves : dernière activité écrite sur la fiche (au plus une écriture par heure et par élève). */
+    private final Map<Long, Instant> activiteNotee = new ConcurrentHashMap<>();
+    private static final Duration PAS_ACTIVITE = Duration.ofHours(1);
     private final EleveRepository eleveRepository;
 
     public void noter(User u) {
         vus.put(u.getId(), new Vu(u.getEmail(), u.getRole(), Instant.now()));
-        if (u.getRole() == RoleUser.ELEVE && elevesVerifies.add(u.getId()))
-            eleveRepository.findFirstByTelephone(u.getEmail()).filter(e -> e.getPremiereConnexionLe() == null).ifPresent(e -> {
-                e.setPremiereConnexionLe(LocalDateTime.now());
-                eleveRepository.save(e);
-            });
+        if (u.getRole() != RoleUser.ELEVE) return;
+        Instant maintenant = Instant.now(), avant = activiteNotee.get(u.getId());
+        if (avant != null && avant.isAfter(maintenant.minus(PAS_ACTIVITE))) return;
+        activiteNotee.put(u.getId(), maintenant);
+        eleveRepository.findFirstByTelephone(u.getEmail()).ifPresent(e -> {
+            LocalDateTime now = LocalDateTime.now();
+            if (e.getPremiereConnexionLe() == null) e.setPremiereConnexionLe(now);
+            e.setDerniereActiviteLe(now);
+            eleveRepository.save(e);
+        });
     }
 
     /** Déconnexion : le compte passe hors ligne tout de suite. */

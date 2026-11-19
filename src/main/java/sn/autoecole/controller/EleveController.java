@@ -53,6 +53,7 @@ public class EleveController {
     private final sn.autoecole.repository.ExamenRepository examenRepository;
     private final sn.autoecole.repository.ProgressionCodeRepository progressionRepository;
     private final sn.autoecole.repository.PublicationSerieRepository publicationSerieRepository;
+    private final sn.autoecole.service.RelanceService relanceService;
 
     /** Élèves admis à l'examen du code (au moins un examen CODE « Admis ») : prêts pour la conduite. */
     @GetMapping("/admis-code")
@@ -287,6 +288,19 @@ public class EleveController {
     public ResponseEntity<Eleve> bienvenueEnvoyee(@PathVariable Long id, Authentication auth) {
         String par = auth.getPrincipal() instanceof User u ? u.getNom() : auth.getName();
         return ResponseEntity.ok(eleveService.noterBienvenueEnvoyee(id, par));
+    }
+
+    /** Élèves à relancer : jamais connectés ou inactifs depuis 7 jours (gestion, SecurityConfig). */
+    @GetMapping("/a-relancer")
+    public Map<String, Object> aRelancer() {
+        return relanceService.aRelancer();
+    }
+
+    /** La relance WhatsApp a été ouverte pour cet élève. */
+    @PostMapping("/{id}/relance")
+    public ResponseEntity<Void> relance(@PathVariable Long id, Authentication auth) {
+        relanceService.noterRelance(id, auth.getPrincipal() instanceof User u ? u.getNom() : auth.getName());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/compte")

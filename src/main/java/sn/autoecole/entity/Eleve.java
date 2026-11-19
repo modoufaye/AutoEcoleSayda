@@ -152,6 +152,17 @@ public class Eleve {
     @Column(name = "premiere_connexion_le")
     private LocalDateTime premiereConnexionLe;
 
+    // Dernière utilisation du compte (PresenceService, notée au plus une fois par heure)
+    @Column(name = "derniere_activite_le")
+    private LocalDateTime derniereActiviteLe;
+
+    // Dernière relance WhatsApp (élève jamais connecté ou inactif) : évite de relancer deux fois de suite
+    @Column(name = "relance_le")
+    private LocalDateTime relanceLe;
+
+    @Column(name = "relance_par", length = 120)
+    private String relancePar;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "moniteur_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "categoriesAutorisees"})
