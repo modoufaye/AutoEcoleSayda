@@ -170,16 +170,23 @@ public class SeanceService {
         return r;
     }
 
+    /* Séances ouvertes à un élève : toutes les séances publiées, dès sa connexion (sans attendre
+       d'y être inscrit) ; en perfectionnement (conduite seule), celles qui publient de la conduite. */
+    private boolean ouverteA(Seance s, Eleve eleve) {
+        return s.getStatut() == StatutSeance.PUBLIE
+                && (!eleve.estPerfectionnement() || s.getProgramme().stream().anyMatch(SeanceService::conduite));
+    }
+
+    private List<Seance> seancesOuvertes(Eleve eleve) {
+        return seanceRepo.findByStatutOrderByDateHeureDesc(StatutSeance.PUBLIE).stream().filter(s -> ouverteA(s, eleve)).toList();
+    }
+
     @Transactional(readOnly = true)
     public List<SeanceResponse> findPublishedForEleve(String email) {
         // Lien entre compte auth (User.email) et profil école (Eleve.email)
         Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
         if (eleve == null) return List.of();
-        // Perfectionnement (conduite seule) : uniquement les séances qui publient de la conduite
-        return seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve).stream()
-                .filter(s -> !eleve.estPerfectionnement() || s.getProgramme().stream().anyMatch(SeanceService::conduite))
-                .map(s -> pourEleve(s, eleve))
-                .toList();
+        return seancesOuvertes(eleve).stream().map(s -> pourEleve(s, eleve)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -187,10 +194,7 @@ public class SeanceService {
         Eleve eleve = eleveRepo.findFirstByTelephone(email).orElse(null);
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
-        if (s.getStatut() != StatutSeance.PUBLIE || eleve == null || !s.getEleves().contains(eleve)
-                || (eleve.estPerfectionnement() && s.getProgramme().stream().noneMatch(SeanceService::conduite))) {
-            throw new BusinessException("Séance non accessible");
-        }
+        if (eleve == null || !ouverteA(s, eleve)) throw new BusinessException("Séance non accessible");
         return pourEleve(s, eleve);
     }
 
@@ -248,8 +252,7 @@ public class SeanceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Profil élève introuvable"));
         Seance s = seanceRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Séance non trouvée"));
-        if (s.getStatut() != StatutSeance.PUBLIE || !s.getEleves().contains(eleve))
-            throw new BusinessException("Séance non accessible");
+        if (!ouverteA(s, eleve)) throw new BusinessException("Séance non accessible");
         if (s.getProgramme().isEmpty() || (eleve.estPerfectionnement() && s.getProgramme().stream().noneMatch(SeanceService::conduite)))
             throw new BusinessException("Cette séance n'a pas de quiz");
         if (total <= 0 || total > 80 || score < 0 || score > total) throw new BusinessException("Résultat invalide");
@@ -278,7 +281,7 @@ public class SeanceService {
         Map<Long, ResultatQuizSeance> resultats = new LinkedHashMap<>();
         resultatRepo.findByEleveId(eleve.getId()).forEach(r -> resultats.put(r.getSeanceId(), r));
         List<Map<String, Object>> liste = new ArrayList<>();
-        for (Seance s : seanceRepo.findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance.PUBLIE, eleve)) {
+        for (Seance s : seancesOuvertes(eleve)) {
             List<PartieCode> programme = eleve.estPerfectionnement()
                     ? s.getProgramme().stream().filter(SeanceService::conduite).toList() : s.getProgramme();
             if (eleve.estPerfectionnement() && programme.isEmpty()) continue;   // il ne la voit pas

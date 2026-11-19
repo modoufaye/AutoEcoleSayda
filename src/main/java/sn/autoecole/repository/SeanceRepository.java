@@ -20,6 +20,7 @@ public interface SeanceRepository extends JpaRepository<Seance, Long> {
     List<Seance> findByStatutAndElevesContainingOrderByDateHeureDesc(StatutSeance statut, Eleve eleve);
     long countByStatut(StatutSeance statut);
     List<Seance> findByStatut(StatutSeance statut);
+    List<Seance> findByStatutOrderByDateHeureDesc(StatutSeance statut);
 
     /** Paires (séance, élève) des séances d'un statut, sans charger les élèves. */
     @Query("select s.id, e.id from Seance s join s.eleves e where s.statut = :statut")

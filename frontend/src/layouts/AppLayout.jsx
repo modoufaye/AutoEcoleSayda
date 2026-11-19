@@ -113,9 +113,12 @@ export default function AppLayout() {
   const [accesCours, setAccesCours] = useState(estAdmin(user?.role) ? true : null)
   // Secrétariat : mêmes écrans que l'admin (vue de toutes les séances, Retour…), sans les droits sensibles
   const gestion = estAdmin(user?.role) || user?.role === 'SECRETAIRE'
+  // Élève : « Cours Conduite » en perfectionnement, ou au permis une fois admis au code (null : pas encore su)
+  const [accesConduite, setAccesConduite] = useState(user?.role === 'ELEVE' ? null : true)
   useEffect(() => {
     if (!user || estAdmin(user.role)) return
-    api('GET', '/cours/acces').then(r => setAccesCours(!!r?.acces)).catch(() => setAccesCours(false))
+    api('GET', '/cours/acces').then(r => { setAccesCours(!!r?.acces); if (user.role === 'ELEVE') setAccesConduite(!!r?.conduite) })
+      .catch(() => { setAccesCours(false); if (user.role === 'ELEVE') setAccesConduite(false) })
   }, [user])
 
   /* Élève en perfectionnement (conduite seule) : ni examens ni travaux dirigés, qui concernent le
@@ -128,8 +131,9 @@ export default function AppLayout() {
   const CODE_SEUL = ['examens', 'td-eleve']
 
   const sections = ALL_SECTIONS.filter(s => s.roles.includes(user?.role) && !(s.key === 'cours' && accesCours === false)
+    && !(s.key === 'lecons' && accesConduite === false)
     && !(perfectionnement && CODE_SEUL.includes(s.key)))
-  const sectionsMenuBase = sections.filter(s => (s.key !== 'cours' || accesCours === true) && !s.horsMenu)
+  const sectionsMenuBase = sections.filter(s => (s.key !== 'cours' || accesCours === true) && (s.key !== 'lecons' || accesConduite === true) && !s.horsMenu)
   const defaultSection = sections[0]?.key || 'dashboard'
   const base = ROLE_BASE[user?.role] || '/dashboard'
 

@@ -25,6 +25,7 @@ public class CoursController {
     private final CoursRepository coursRepository;
     private final MoniteurRepository moniteurRepository;
     private final EleveRepository eleveRepository;
+    private final sn.autoecole.repository.ExamenRepository examenRepository;
 
     /* Cours de code : visibles par l'admin et par les moniteurs à qui l'admin a ouvert l'accès.
        Fermés aux élèves et aux autres moniteurs (contrôlé ici, pas seulement en masquant le menu). */
@@ -55,11 +56,18 @@ public class CoursController {
     /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. Les élèves en permis
         y ont accès pour les thèmes de code (contenu du frontend, progression via /api/eleve/code) ;
         les cours enregistrés ci-dessous leur restent fermés. */
+    /* conduite : onglet « Cours Conduite » de l'élève, ouvert en perfectionnement, et au permis une
+       fois admis à l'examen du code (personnel : toujours). */
     @GetMapping("/acces")
     public Map<String, Boolean> acces(Authentication auth) {
-        boolean eleve = auth != null && aRole(auth, "ROLE_ELEVE") && eleveRepository.findFirstByTelephone(auth.getName())
-                .map(e -> !e.estPerfectionnement()).orElse(false);
-        return Map.of("acces", eleve || aAcces(auth));
+        if (auth != null && aRole(auth, "ROLE_ELEVE")) {
+            var e = eleveRepository.findFirstByTelephone(auth.getName()).orElse(null);
+            if (e == null) return Map.of("acces", false, "conduite", false);
+            boolean conduite = e.estPerfectionnement() || examenRepository.existsByEleveIdAndTypeAndResultat(e.getId(),
+                    sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS);
+            return Map.of("acces", !e.estPerfectionnement(), "conduite", conduite);
+        }
+        return Map.of("acces", aAcces(auth), "conduite", true);
     }
 
     @GetMapping

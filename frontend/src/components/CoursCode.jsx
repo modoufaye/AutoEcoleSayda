@@ -332,8 +332,8 @@ function Parcours({ theme, eleve, progression, ouvertures, onOuvrir, onRetour, g
   const wolof = useAudiosWolof()
   const avecLecon = theme.chapitres   // la révision n'a pas de leçon à expliquer
   const reussi = id => !!progression[id]?.reussi
-  const debloque = i => !eleve || (ouvertures ? !!ouvertures[tous[i].id] || reussi(tous[i].id)
-    : i === 0 || (i < theme.chapitres.length ? reussi(theme.chapitres[i - 1].id) : theme.chapitres.every(c => reussi(c.id))))
+  // Accès total : chaque chapitre (et la révision) est ouvert, dans l'ordre qu'on veut
+  const debloque = i => !eleve || !ouvertures || !!ouvertures[tous[i].id] || reussi(tous[i].id)
   const o = ch => ouvertures?.[ch.id]
   const partiel = ch => !!o(ch) && !o(ch).complet && !reussi(ch.id)
   return (
@@ -385,7 +385,9 @@ export default function CoursCode({ eleve = false, onRetour, chapitre, onOuvrirC
   const [progression, setProgression] = useState({})
   const [ouvertures, setOuvertures] = useState(null)   // élève : ce que ses séances ouvrent (code ou conduite)
   const [ouvertLocal, setOuvertLocal] = useState(null)
-  const parSeances = eleve   // code comme conduite : l'élève ne voit que ce que ses séances publient
+  // Élève : tous les chapitres ouverts dès la connexion (code au permis ; conduite une fois l'onglet
+  // ouvert, après l'admission au code ou en perfectionnement). L'ouverture au fil des séances n'est plus utilisée.
+  const parSeances = false
   const { user } = useAuth()
   const gerer = !eleve && ['SUPER_ADMIN', 'ADMIN', 'MONITEUR'].includes(user?.role)   // dépose les explications en wolof
   const cle = onOuvrirChapitre ? chapitre : ouvertLocal
