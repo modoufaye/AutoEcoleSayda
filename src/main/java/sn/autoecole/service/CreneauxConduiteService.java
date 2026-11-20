@@ -56,11 +56,11 @@ public class CreneauxConduiteService {
         if (e.isArchive()) return "Votre dossier est archivé.";
         if (!e.estPerfectionnement()
                 && !examenRepository.eleveIdsParResultat(TypeExamen.CODE, ResultatExamen.ADMIS).contains(e.getId()))
-            return "Les réservations de conduite s'ouvrent après votre admission à l'examen du code.";
+            return "L'auto-école va vous contacter bientôt pour le démarrage de vos cours de conduite. En attendant, suivez « Apprendre à conduire ».";
         Moniteur m = e.getMoniteur();
-        if (m == null || !m.isActif()) return "Aucun moniteur ne vous est encore attribué. Contactez l'auto-école.";
+        if (m == null || !m.isActif()) return "L'auto-école va vous contacter bientôt pour le démarrage de vos cours de conduite.";
         // Moniteur du code seul : il ne fait pas la conduite
-        if (codeSeul(m)) return "Aucun moniteur de conduite ne vous est encore attribué. Contactez l'auto-école.";
+        if (codeSeul(m)) return "L'auto-école va vous contacter bientôt pour le démarrage de vos cours de conduite.";
         return null;
     }
 
