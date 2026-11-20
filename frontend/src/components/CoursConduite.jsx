@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import Lecons from './Lecons'
 import CreneauxConduite from './CreneauxConduite'
@@ -16,6 +17,14 @@ export default function CoursConduite({ onBack, chapitre, onOuvrirChapitre, onFe
   /* Thème ou chapitre dans l'adresse (…/lecons/<clé>) quand la mise en page le gère : le Retour
      d'Android ou du navigateur revient au thème, puis à la liste, au lieu de quitter la page. */
   const [onglet, setOnglet] = useState('lecons')
+  // Élève qui ne peut pas encore réserver (examen du code passé, résultat attendu) : il arrive sur
+  // « Apprendre à conduire », seul ouvert pour lui
+  useEffect(() => {
+    if (user?.role !== 'ELEVE') return
+    let vivant = true
+    api('GET', '/cours/acces').then(r => { if (vivant && r && r.reservation === false) setOnglet(o => o === 'lecons' ? 'apprendre' : o) }).catch(() => {})
+    return () => { vivant = false }
+  }, [user?.role])
   const [maj, setMaj] = useState(0)   // élève : liste des leçons relue après une réservation
   const vue = chapitre ? 'apprendre' : onglet
   const setVue = v => { setOnglet(v); if (chapitre && v !== 'apprendre') onFermerChapitre?.() }

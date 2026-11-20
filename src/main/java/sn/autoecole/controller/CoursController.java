@@ -56,18 +56,32 @@ public class CoursController {
     /** Le menu « Cours Code » n'est affiché que si ce point d'accès répond true. Les élèves en permis
         y ont accès pour les thèmes de code (contenu du frontend, progression via /api/eleve/code) ;
         les cours enregistrés ci-dessous leur restent fermés. */
-    /* conduite : onglet « Cours Conduite » de l'élève, ouvert en perfectionnement, et au permis une
-       fois admis à l'examen du code (personnel : toujours). */
+    /* conduite : onglet « Cours Conduite » de l'élève (« Apprendre à conduire »), ouvert en
+       perfectionnement, et au permis une fois admis à l'examen du code, ou dès le soir (18 h) d'un
+       examen du code passé dont le résultat est encore attendu : les résultats tardent parfois des
+       jours ou des semaines (personnel : toujours).
+       reservation : réserver des séances de conduite (perfectionnement ou admis au code ; il faut en
+       plus un moniteur de conduite, attribué par le secrétariat). */
     @GetMapping("/acces")
     public Map<String, Boolean> acces(Authentication auth) {
         if (auth != null && aRole(auth, "ROLE_ELEVE")) {
             var e = eleveRepository.findFirstByTelephone(auth.getName()).orElse(null);
             if (e == null) return Map.of("acces", false, "conduite", false);
-            boolean conduite = e.estPerfectionnement() || examenRepository.existsByEleveIdAndTypeAndResultat(e.getId(),
+            boolean reservation = e.estPerfectionnement() || examenRepository.existsByEleveIdAndTypeAndResultat(e.getId(),
                     sn.autoecole.enums.TypeExamen.CODE, sn.autoecole.enums.ResultatExamen.ADMIS);
-            return Map.of("acces", !e.estPerfectionnement(), "conduite", conduite);
+            boolean conduite = reservation || examenCodeEnAttente(e.getId());
+            return Map.of("acces", !e.estPerfectionnement(), "conduite", conduite, "reservation", reservation);
         }
-        return Map.of("acces", aAcces(auth), "conduite", true);
+        return Map.of("acces", aAcces(auth), "conduite", true, "reservation", true);
+    }
+
+    /** Examen du code passé (depuis 18 h le jour même, heure de Dakar), résultat encore attendu. */
+    private boolean examenCodeEnAttente(Long eleveId) {
+        java.time.ZonedDateTime maintenant = java.time.ZonedDateTime.now(sn.autoecole.service.PalmaresService.DAKAR);
+        java.time.LocalDate jour = maintenant.toLocalDate();
+        return examenRepository.findByEleveIdAndType(eleveId, sn.autoecole.enums.TypeExamen.CODE).stream()
+                .anyMatch(x -> x.getResultat() == sn.autoecole.enums.ResultatExamen.EN_ATTENTE && x.getDate() != null
+                        && (x.getDate().isBefore(jour) || (x.getDate().equals(jour) && maintenant.getHour() >= 18)));
     }
 
     @GetMapping
