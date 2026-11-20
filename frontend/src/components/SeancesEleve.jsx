@@ -36,6 +36,8 @@ function BlocViewer({ bloc }) {
   )
   if (bloc.typeBloc === 'VIDEO') return (
     <div className="mb-4">
+      {/* Légende : titre du média de la médiathèque */}
+      {bloc.contenu && <div className="text-sm font-bold mb-1.5" style={{ color: '#1e3a5f' }}><i className="bi bi-camera-video-fill me-1.5" style={{ color: '#dc2626' }} />{bloc.contenu}</div>}
       <video controls className="w-full rounded-2xl" style={{ maxHeight: 400, boxShadow: '0 4px 16px rgba(0,0,0,.1)' }}>
         <source src={bloc.mediaUrl} />
         Votre navigateur ne supporte pas la lecture vidéo.
@@ -43,7 +45,9 @@ function BlocViewer({ bloc }) {
     </div>
   )
   if (bloc.typeBloc === 'AUDIO') return (
-    <div className="mb-4 px-4 py-4 rounded-2xl flex items-center gap-4" style={{ background: '#fdf4ff', border: '1.5px solid #e9d5ff' }}>
+    <div className="mb-4">
+    {bloc.contenu && <div className="text-sm font-bold mb-1.5" style={{ color: '#1e3a5f' }}><i className="bi bi-music-note-beamed me-1.5" style={{ color: '#9333ea' }} />{bloc.contenu}</div>}
+    <div className="px-4 py-4 rounded-2xl flex items-center gap-4" style={{ background: '#fdf4ff', border: '1.5px solid #e9d5ff' }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#9333ea' }}>
         <i className="bi bi-music-note-beamed" style={{ color: '#fff', fontSize: '1.1rem' }} />
       </div>
@@ -51,6 +55,7 @@ function BlocViewer({ bloc }) {
         <source src={bloc.mediaUrl} />
         Votre navigateur ne supporte pas la lecture audio.
       </audio>
+    </div>
     </div>
   )
   return null

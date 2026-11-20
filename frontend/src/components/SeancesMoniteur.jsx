@@ -11,6 +11,7 @@ import { afficherTelephone } from '../telephones'
 import BoutonsClasses from './BoutonsClasses'
 import ChoixPuces from './ChoixPuces'
 import { FenetreModerne, Etape } from './FenetreModerne'
+import AjoutMediatheque from './AjoutMediatheque'
 
 const THEMES = [
   { value: 'FEUX_SIGNALISATION',    label: '🚦 Feux de signalisation' },
@@ -167,7 +168,7 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, 
         {bloc.typeBloc === 'VIDEO' && (
           <div>
             <ChoixMedia type="VIDEO" medias={medias} url={bloc.mediaUrl} uploading={bloc._uploading}
-              onChoisir={m => onUpdate(index, 'mediaUrl', m ? m.url : '')} onFichier={f => onUpload(index, f, 'video')}
+              onChoisir={m => { onUpdate(index, 'mediaUrl', m ? m.url : ''); onUpdate(index, 'contenu', m ? m.titre : '') }} onFichier={f => onUpload(index, f, 'video')}
               accept="video/mp4,video/webm,video/ogg,video/quicktime,.mov"
               fichierCls="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700" />
             {bloc.mediaUrl && !bloc._uploading && (
@@ -182,7 +183,7 @@ function BlocEditor({ bloc, index, total, onUpdate, onRemove, onMove, onUpload, 
         {bloc.typeBloc === 'AUDIO' && (
           <div>
             <ChoixMedia type="AUDIO" medias={medias} url={bloc.mediaUrl} uploading={bloc._uploading}
-              onChoisir={m => onUpdate(index, 'mediaUrl', m ? m.url : '')} onFichier={f => onUpload(index, f, 'audio')}
+              onChoisir={m => { onUpdate(index, 'mediaUrl', m ? m.url : ''); onUpdate(index, 'contenu', m ? m.titre : '') }} onFichier={f => onUpload(index, f, 'audio')}
               accept="audio/*,.m4a,.mp3,.wav,.ogg,.opus,.aac,.flac"
               fichierCls="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700" />
             {bloc.mediaUrl && !bloc._uploading && (
@@ -378,6 +379,7 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
   const [err, setErr]                 = useState('')
   const [selectedSeance, setSelectedSeance] = useState(null)
   const [medias, setMedias] = useState([])   // médiathèque, pour les blocs vidéo et audio
+  const [ajoutMedias, setAjoutMedias] = useState(false)   // fenêtre « Ajouter depuis la médiathèque » (plusieurs d'un coup)
   // Élèves déjà dans la séance ouverte : restent proposés (et cochés) même admis au code
   const [dejaDansSeance, setDejaDansSeance] = useState([])
   const [nouveauxSeuls, setNouveauxSeuls] = useState(false)   // seulement les inscrits des 7 derniers jours
@@ -461,6 +463,16 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
       ...f,
       blocs: [...f.blocs, { typeBloc: type, contenu: '', mediaUrl: '', ordre: f.blocs.length, _uploading: false }],
     }))
+  }
+
+  // Plusieurs médias de la médiathèque : un bloc Vidéo ou Audio chacun, à la fin, titre du média en légende
+  const ajouterMedias = liste => {
+    setForm(f => ({
+      ...f,
+      blocs: [...f.blocs, ...liste.map((m, k) => ({ typeBloc: m.type, contenu: m.titre, mediaUrl: m.url, ordre: f.blocs.length + k, _uploading: false }))],
+    }))
+    setAjoutMedias(false)
+    toast(liste.length > 1 ? `${liste.length} médias ajoutés à la séance` : 'Média ajouté à la séance')
   }
 
   const updateBloc = (i, key, val) => {
@@ -816,7 +828,15 @@ export default function SeancesMoniteur({ isAdmin = false, lectureSeule = false,
                     <i className={`bi bi-${b.icon}`} />+ {b.label}
                   </button>
                 ))}
+                {/* Plusieurs vidéos et audios d'un coup, choisis par thème et par langue */}
+                <button type="button" onClick={() => setAjoutMedias(true)}
+                  className="col-span-2 flex items-center justify-center gap-1.5 text-sm font-bold px-4 cursor-pointer transition-all hover:-translate-y-0.5 whitespace-nowrap"
+                  style={{ minHeight: 40, borderRadius: 999, background: '#fffbeb', color: '#a16207', border: '1.5px solid #fde68a' }}>
+                  <i className="bi bi-collection-play-fill" />+ Plusieurs depuis la médiathèque
+                </button>
               </div>}
+              {ajoutMedias && <AjoutMediatheque medias={medias} dejaDansSeance={form.blocs.map(b => b.mediaUrl).filter(Boolean)}
+                onAjouter={ajouterMedias} onFermer={() => setAjoutMedias(false)} />}
             </div>
           </fieldset>
         </div>
