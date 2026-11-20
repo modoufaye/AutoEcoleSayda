@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Médiathèque : vidéos et audios en français ou en wolof, rangés par le super admin, les
+ * Médiathèque : vidéos et audios en français ou en wolof, rangés par thème par le super admin, les
  * administrateurs et les moniteurs (/api/medias) pour les publier ensuite dans les séances de cours
  * (blocs vidéo et audio). Pas d'accès élève : les élèves les voient dans leurs séances. Chacun
  * modifie ou supprime ses médias, l'administration tous ; un média utilisé dans une séance ne peut
@@ -49,7 +49,7 @@ public class MediaController {
         }).toList();
     }
 
-    /** Corps : { type, langue, titre, description, url }. */
+    /** Corps : { type, langue, theme, titre, description, url }. */
     @PostMapping("/api/medias")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> ajouter(@RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
@@ -65,7 +65,7 @@ public class MediaController {
         return vue(m, true);
     }
 
-    /** Corps : { langue, titre, description } (le fichier ne change pas). */
+    /** Corps : { langue, theme, titre, description } (le fichier ne change pas). */
     @PutMapping("/api/medias/{id}")
     public Map<String, Object> modifier(@PathVariable Long id, @RequestBody Map<String, Object> body, Authentication auth, HttpServletRequest http) {
         Media m = trouverModifiable(id, auth);
@@ -104,6 +104,9 @@ public class MediaController {
         String titre = body.get("titre") == null ? "" : body.get("titre").toString().trim();
         if (titre.isEmpty()) throw new BusinessException("Donnez un titre");
         m.setTitre(titre.length() > 150 ? titre.substring(0, 150) : titre);
+        String theme = body.get("theme") == null ? "" : body.get("theme").toString().trim().replaceAll("\\s+", " ");
+        if (theme.isEmpty()) throw new BusinessException("Indiquez le thème");
+        m.setTheme(theme.length() > 100 ? theme.substring(0, 100) : theme);
         String d = body.get("description") == null ? "" : body.get("description").toString().trim();
         m.setDescription(d.isEmpty() ? null : d.length() > 500 ? d.substring(0, 500) : d);
     }
@@ -119,7 +122,7 @@ public class MediaController {
     private static Map<String, Object> vue(Media m, boolean modifiable) {
         Map<String, Object> v = new LinkedHashMap<>();
         v.put("id", m.getId()); v.put("type", m.getType()); v.put("langue", m.getLangue());
-        v.put("titre", m.getTitre()); v.put("description", m.getDescription()); v.put("url", m.getUrl());
+        v.put("titre", m.getTitre()); v.put("theme", m.getTheme()); v.put("description", m.getDescription()); v.put("url", m.getUrl());
         v.put("auteurNom", m.getAuteurNom()); v.put("creeLe", m.getCreeLe());
         v.put("modifiable", modifiable);
         return v;

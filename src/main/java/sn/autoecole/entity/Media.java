@@ -32,6 +32,10 @@ public class Media {
     @Column(nullable = false, length = 150)
     private String titre;
 
+    /** Thème pédagogique (ex. « Signalisation », « Manœuvres de base ») : regroupe les médias. */
+    @Column(length = 100)
+    private String theme;
+
     @Column(length = 500)
     private String description;
 

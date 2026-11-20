@@ -77,6 +77,7 @@ function ChoixMedia({ type, medias, url, onChoisir, onFichier, uploading, accept
                     <div className="text-sm font-bold truncate" style={{ color: '#1e3a5f' }}>{m.titre}</div>
                     <div className="text-xs text-slate-400 truncate">
                       <span className="font-bold px-1.5 rounded-full me-1" style={{ background: l.fond, color: l.couleur }}>{l.libelle}</span>
+                      {m.theme && <span className="font-bold me-1" style={{ color: '#b45309' }}>{m.theme} ·</span>}
                       {m.auteurNom}
                     </div>
                   </div>
