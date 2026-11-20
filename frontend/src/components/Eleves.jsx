@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, uploadFile, fetchBlob } from '../api'
-import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, waLink, correspond, estAdmin } from '../utils'
+import { fmtDate, fmtTime, fmtMontant, BADGES, LABELS, waLink, correspond, estAdmin, faitConduite } from '../utils'
 import { msgBienvenue } from '../messages'
 import Badge from './Badge'
 import { toast } from './Toast'
@@ -1053,6 +1053,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [formation, setFormation] = useState(memo.formation ?? '')   // '' | PERMIS | PERFECTIONNEMENT
   const [enLigneSeul, setEnLigneSeul] = useState(!!memo.enLigneSeul)   // seulement les élèves connectés (administration)
   const [codeAdmisSeul, setCodeAdmisSeul] = useState(!!memo.codeAdmisSeul)   // seulement les élèves admis au code
+  // Gestion : admis au code sans moniteur de conduite (aucun, inactif ou « Code seul ») : ils ne peuvent pas
+  // encore réserver ; le secrétariat leur attribue un moniteur de conduite
+  const [sansMoniteurConduite, setSansMoniteurConduite] = useState(!isMoniteur && !!memo.sansMoniteurConduite)
   // Préparation à l'examen du code (gestion) : élève id → { indicateur, critères } ; filtre PRET / PRESQUE / PAS_ENCORE
   const [prepCode, setPrepCode] = useState({})
   const [prepFiltre, setPrepFiltre] = useState(isMoniteur ? '' : memo.prepFiltre ?? '')
@@ -1062,6 +1065,8 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
   // Élèves admis à l'examen du code : prêts pour les cours de conduite
   const [admisCode, setAdmisCode] = useState(() => new Set())
+  // En formation (permis), admis au code, sans moniteur de conduite actif : ne peut pas encore réserver ses séances
+  const attendMoniteurConduite = e => e.statut === 'EN_COURS' && e.typeFormation !== 'PERFECTIONNEMENT' && admisCode.has(e.id) && !(e.moniteur?.actif && faitConduite(e.moniteur))
   useEffect(() => { api('GET', '/eleves/admis-code').then(ids => setAdmisCode(new Set(ids || []))).catch(() => {}) }, [])
   // Total payé par élève (gestion seulement) : reliquat ou « Tout payé » dans la liste
   const [totauxPayes, setTotauxPayes] = useState(null)
@@ -1084,16 +1089,16 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, classeFiltre, messagesSeuls, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     if (classeFixe) return
     try {
       sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
-        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1155,6 +1160,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (moisInscription) r = r.filter(e => e.dateInscription?.startsWith(moisInscription))
     if (formation) r = r.filter(e => (e.typeFormation || 'PERMIS') === formation)
     if (codeAdmisSeul) r = r.filter(e => admisCode.has(e.id))
+    if (sansMoniteurConduite) r = r.filter(attendMoniteurConduite)
     if (prepFiltre) r = r.filter(e => prepCode[e.id]?.indicateur === prepFiltre)
     if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre) && e.typeFormation !== 'PERFECTIONNEMENT')
     if (messagesSeuls) r = r.filter(e => messagesNonLus[e.id] > 0)
@@ -1169,7 +1175,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, prepFiltre, prepCode, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, prepCode, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
   const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
@@ -2146,6 +2152,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
         {!perfSeul && (
           <FiltreBascule actif={codeAdmisSeul} onClick={() => setCodeAdmisSeul(x => !x)} icone="patch-check">
             Code admis · {list.filter(e => admisCode.has(e.id)).length}
+          </FiltreBascule>
+        )}
+        {/* Gestion : admis au code qui attendent leur moniteur de conduite (pour réserver leurs séances) */}
+        {!perfSeul && !isMoniteur && (
+          <FiltreBascule actif={sansMoniteurConduite} onClick={() => setSansMoniteurConduite(x => !x)} icone="person-x">
+            Admis sans moniteur de conduite · {list.filter(attendMoniteurConduite).length}
           </FiltreBascule>
         )}
         {/* Gestion : préparation à l'examen du code (paiement, dossier, séances) */}
