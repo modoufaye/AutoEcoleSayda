@@ -82,3 +82,7 @@ export function inscritCetteSemaine(date) {
   const limite = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   return date.slice(0, 10) >= limite
 }
+
+/* Moniteur qui fait la conduite (« Conduite » ou « Les deux », ou pas encore précisé) : seuls
+   ceux-là apparaissent dans les plannings, leçons et choix du moniteur de conduite d'un élève. */
+export const faitConduite = m => !!m && m.enseignement !== 'CODE'

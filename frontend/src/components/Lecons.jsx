@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtDate, fmtTime, correspond } from '../utils'
+import { fmtDate, fmtTime, correspond, faitConduite } from '../utils'
 import { toast } from './Toast'
 import PlanningSemaine from './PlanningSemaine'
 import OuvertureReservations from './OuvertureReservations'
 import { EnteteListe, ListeVide, ListeChargement, BarreFiltres, Recherche, Filtre, BoutonAjout } from './ListeModerne'
 import { confirmer } from './confirmer'
 import { useAuth } from '../context/AuthContext'
-import { FenetreModerne, Etape, Etiquette, Choix } from './FenetreModerne'
+import { FenetreModerne, Etape, Etiquette } from './FenetreModerne'
+import ChoixCreneaux from './ChoixCreneaux'
 import { champCls } from './fenetreStyles'
 import Pagination from './Pagination'
 import ChoixPuces from './ChoixPuces'
@@ -18,30 +19,11 @@ import PastilleBureau from './PastilleBureau'
 
 const PAGE_SIZE = 10
 
-const today = () => new Date().toISOString().split('T')[0]
 // Page « Cours Conduite » : toute nouvelle leçon est une leçon de conduite (pas de champ Type)
 // eleveIds : élèves cochés à la création (une leçon chacun) ; eleveId : l'élève d'une leçon modifiée
-// plusieurs : même horaire répété sur des jours de la semaine (jours : 0 = lundi … 5 = samedi), pendant « semaines » semaines
-const EMPTY = { date: today(), heureDebut: '08:00', heureFin: '10:00', type: 'CONDUITE', eleveId: '', eleveIds: [], moniteurId: '', vehiculeId: '', observations: '',
-  plusieurs: false, jours: [], semaines: 1 }
-const JOURS_COURTS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-const versDate = s => { const [a, m, j] = s.split('-').map(Number); return new Date(a, m - 1, j) }
-const versIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-/* Dates d'une planification sur plusieurs jours : les jours cochés, à partir de la date choisie
-   (comprise), pendant le nombre de semaines voulu ; sans « plusieurs », la seule date choisie. */
-function datesPlanifiees(f) {
-  if (!f.date) return []
-  if (!f.plusieurs) return [f.date]
-  const debut = versDate(f.date)
-  const lundi = new Date(debut); lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7))
-  const dates = []
-  for (let w = 0; w < (f.semaines || 1); w++)
-    for (const j of [...f.jours].sort()) {
-      const d = new Date(lundi); d.setDate(lundi.getDate() + w * 7 + j)
-      if (d >= debut) dates.push(versIso(d))
-    }
-  return dates
-}
+// creneaux : séances choisies dans la grille des réservations [{ date, h }] (3 au plus dans la semaine,
+// une par jour ; une seule pour une leçon modifiée) ; finOrigine : fin d'une ancienne leçon hors grille
+const EMPTY = { type: 'CONDUITE', eleveId: '', eleveIds: [], moniteurId: '', vehiculeId: '', observations: '', creneaux: [], finOrigine: null, creneauOrigine: null }
 
 
 const TYPE_STYLE = {
@@ -59,8 +41,9 @@ const STATUT_STYLE = {
 
 // « 08:30 » ↔ minutes depuis minuit (durée d'une leçon)
 const PLACES_CRENEAU = 3   // élèves d'un moniteur sur un même créneau (comme les réservations)
+// « 09:00 » → « 10:00 » : une séance dure une heure (créneaux de réservation)
+const finCreneau = h => `${String(+h.slice(0, 2) + 1).padStart(2, '0')}:${h.slice(3, 5)}`
 const minutes = h => { const [a, b] = (h || '0:0').split(':').map(Number); return a * 60 + b }
-const heure = m => `${String(Math.floor(Math.min(m, 1439) / 60)).padStart(2, '0')}:${String(Math.min(m, 1439) % 60).padStart(2, '0')}`
 
 export default function Lecons({ onBack }) {
   // Élèves admis à l'examen du code : indiqués dans le choix des élèves d'une leçon
@@ -81,6 +64,8 @@ export default function Lecons({ onBack }) {
   const [eleves, setEleves]       = useState([])
   const [moniteurs, setMoniteurs] = useState([])
   const [vehicules, setVehicules] = useState([])
+  const [ouvertes, setOuvertes] = useState([])     // semaines ouvertes aux réservations (grille des créneaux)
+  const [semaineDepart, setSemaineDepart] = useState(null)
   const [versionSemaines, setVersionSemaines] = useState(0)   // semaine ouverte ou fermée : la vue semaine se relit
   // Personnel : planning en liste, ou vue semaine (grille jours × heures par moniteur)
   const [vue, setVue] = useState(() => { try { return localStorage.getItem('lecons-vue') || 'liste' } catch { return 'liste' } })
@@ -101,16 +86,19 @@ export default function Lecons({ onBack }) {
   useEffect(() => { setPage(1) }, [site, search])
 
   const openModal = async (l = null, preset = null) => {
-    const [ev, mo, ve] = await Promise.all([
-      api('GET', '/eleves'), api('GET', '/moniteurs/actifs'), api('GET', '/vehicules/disponibles')
+    const [ev, mo, ve, ou] = await Promise.all([
+      api('GET', '/eleves'), api('GET', '/moniteurs/actifs'), api('GET', '/vehicules/disponibles'),
+      api('GET', '/semaines-reservation/ouvertes').catch(() => []),
     ])
-    setEleves(ev); setMoniteurs(mo); setVehicules(ve)
+    setEleves(ev); setMoniteurs((mo || []).filter(faitConduite)); setVehicules(ve)   // pas les moniteurs du code seul
+    setOuvertes((ou || []).map(String)); setSemaineDepart(null)
     if (l) {
       setEditId(l.id)
       setForm({
-        date: l.date,
-        heureDebut: l.heureDebut.substring(0, 5),
-        heureFin: l.heureFin.substring(0, 5),
+        ...EMPTY,
+        creneaux: [{ date: l.date, h: l.heureDebut.substring(0, 5) }],
+        finOrigine: l.heureFin.substring(0, 5),
+        creneauOrigine: `${l.date}|${l.heureDebut.substring(0, 5)}`,
         type: l.type,
         eleveId: l.eleve?.id || '',
         moniteurId: l.moniteur?.id || '',
@@ -118,8 +106,10 @@ export default function Lecons({ onBack }) {
         observations: l.observations || '',
       })
     } else {
-      // Vue semaine : une place libre ouvre le formulaire à ce jour, cette heure et ce moniteur
-      setEditId(null); setForm(preset ? { ...EMPTY, ...preset } : EMPTY)
+      // Vue semaine : une place libre ouvre le formulaire avec ce créneau et ce moniteur
+      setEditId(null)
+      setForm(preset ? { ...EMPTY, moniteurId: preset.moniteurId || '', creneaux: preset.date && preset.heureDebut ? [{ date: preset.date, h: preset.heureDebut }] : [] } : EMPTY)
+      if (preset?.date) setSemaineDepart(preset.date)
     }
     setShowModal(true)
   }
@@ -137,8 +127,8 @@ export default function Lecons({ onBack }) {
   /* Conflits du créneau choisi avec les leçons déjà planifiées (annulées exclues) : moniteur pris
      sur un autre horaire qui chevauche, créneau au-delà de 3 élèves, véhicule avec un autre
      moniteur, élève déjà en leçon. Une alerte, pas un blocage : on peut planifier quand même. */
-  const conflitsDuJour = date => {
-    const { heureDebut, heureFin, moniteurId, vehiculeId } = form
+  const conflitsDuJour = (date, heureDebut, heureFin) => {
+    const { moniteurId, vehiculeId } = form
     if (!date || !heureDebut || !heureFin || minutes(heureFin) <= minutes(heureDebut)) return []
     const d = minutes(heureDebut), f = minutes(heureFin)
     const hh = l => `${l.heureDebut?.slice(0, 5)}–${l.heureFin?.slice(0, 5)}`
@@ -168,10 +158,12 @@ export default function Lecons({ onBack }) {
     if (occupes.length) alertes.push({ icone: 'person-exclamation', texte: `Élève déjà en leçon à cette heure : ${occupes.map(l => `${l.eleve.prenom} ${l.eleve.nom} (${hh(l)}, ${nomM(l.moniteur)})`).join(', ')}.` })
     return alertes
   }
-  // Toutes les dates planifiées : chaque alerte précédée de sa date quand il y en a plusieurs
+  // Fin d'une séance : une heure après le début (une ancienne leçon gardée à son horaire garde sa fin)
+  const fin = c => editId && form.finOrigine && `${c.date}|${c.h}` === form.creneauOrigine ? form.finOrigine : finCreneau(c.h)
+  // Toutes les séances choisies : chaque alerte précédée de sa date quand il y en a plusieurs
   const conflits = () => {
-    const dates = editId ? [form.date] : datesPlanifiees(form)
-    return dates.flatMap(d => conflitsDuJour(d).map(a => dates.length > 1 ? { ...a, texte: `${fmtDate(d)} · ${a.texte}` } : a))
+    const cs = form.creneaux
+    return cs.flatMap(c => conflitsDuJour(c.date, c.h, fin(c)).map(a => cs.length > 1 ? { ...a, texte: `${fmtDate(c.date)} · ${a.texte}` } : a))
   }
   // Conflit signalé : un second clic sur Planifier confirme ; tout changement du formulaire réarme l'alerte
   const [forcer, setForcer] = useState(false)
@@ -180,13 +172,10 @@ export default function Lecons({ onBack }) {
   if (dernierFormulaire !== formulaire) { setDernierFormulaire(formulaire); setForcer(false) }
 
   const save = async () => {
-    const { date, heureDebut, heureFin, eleveId, eleveIds, moniteurId, type, vehiculeId } = form
+    const { eleveId, eleveIds, moniteurId, type, vehiculeId, creneaux } = form
     const ids = editId ? [eleveId].filter(Boolean) : eleveIds
-    const dates = editId ? [date] : datesPlanifiees(form)
-    if (!editId && form.plusieurs && !dates.length) {
-      toast('Cochez au moins un jour (à partir de la date choisie)', 'warning'); return
-    }
-    if (!date || !heureDebut || !heureFin || !ids.length || !moniteurId || !type) {
+    if (!creneaux.length) { toast('Choisissez au moins une séance dans la grille', 'warning'); return }
+    if (!ids.length || !moniteurId || !type) {
       toast('Veuillez remplir tous les champs obligatoires', 'warning'); return
     }
     if (type === 'CONDUITE' && !vehiculeId) {
@@ -197,28 +186,28 @@ export default function Lecons({ onBack }) {
       toast('Conflit sur ce créneau : vérifiez les alertes, puis cliquez à nouveau pour planifier quand même', 'warning'); return
     }
     const data = {
-      date, heureDebut, heureFin,
       moniteurId: parseInt(moniteurId),
       vehiculeId: vehiculeId ? parseInt(vehiculeId) : null,
       type,
       observations: form.observations || null,
     }
     if (editId) {
-      try { await api('PUT', `/lecons/${editId}`, { ...data, eleveId: parseInt(eleveId) }); toast('Leçon modifiée'); setShowModal(false); load() }
+      const c = creneaux[0]
+      try { await api('PUT', `/lecons/${editId}`, { ...data, date: c.date, heureDebut: c.h, heureFin: fin(c), eleveId: parseInt(eleveId) }); toast('Leçon modifiée'); setShowModal(false); load() }
       catch (e) { toast(e.message, 'danger') }
       return
     }
     // Plusieurs élèves sur le même créneau : une leçon chacun (même moniteur, même véhicule),
-    // et sur plusieurs jours : une leçon par jour
+    // et une leçon par séance choisie
     const refuses = [], messages = []
     let faites = 0
-    for (const d of dates) {
+    for (const c of creneaux) {
       for (const id of ids) {
-        try { await api('POST', '/lecons', { ...data, date: d, eleveId: parseInt(id) }); faites++ }
+        try { await api('POST', '/lecons', { ...data, date: c.date, heureDebut: c.h, heureFin: finCreneau(c.h), eleveId: parseInt(id) }); faites++ }
         catch (e) {
           const el = eleves.find(x => String(x.id) === String(id))
           if (!refuses.includes(id)) refuses.push(id)
-          messages.push(`${dates.length > 1 ? `${fmtDate(d)} · ` : ''}${el ? `${el.prenom} ${el.nom}` : 'Élève'} : ${e.message}`)
+          messages.push(`${creneaux.length > 1 ? `${fmtDate(c.date)} · ` : ''}${el ? `${el.prenom} ${el.nom}` : 'Élève'} : ${e.message}`)
         }
       }
     }
@@ -226,8 +215,8 @@ export default function Lecons({ onBack }) {
     // Élèves refusés (ex. perfectionnement en leçon de code) : restent cochés pour corriger
     if (refuses.length) {
       toast(messages.slice(0, 4).join(' · ') + (messages.length > 4 ? ` · et ${messages.length - 4} autre(s)` : ''), 'danger')
-      // Sur un seul jour, les élèves refusés restent cochés pour corriger ; sur plusieurs, la fenêtre se ferme (les autres leçons sont faites)
-      if (dates.length > 1 && faites) setShowModal(false); else setForm(f => ({ ...f, eleveIds: refuses }))
+      // Sur une seule séance, les élèves refusés restent cochés pour corriger ; sur plusieurs, la fenêtre se ferme (les autres leçons sont faites)
+      if (creneaux.length > 1 && faites) setShowModal(false); else setForm(f => ({ ...f, eleveIds: refuses }))
     }
     else setShowModal(false)
   }
@@ -429,9 +418,8 @@ export default function Lecons({ onBack }) {
       {/* ── Modal planifier / modifier ───────────────────────── */}
       {showModal && (() => {
         const nbEleves = editId ? (form.eleveId ? 1 : 0) : form.eleveIds.length
-        const dates = editId ? [form.date] : datesPlanifiees(form)
-        const nbLecons = nbEleves * dates.length
-        const duree = minutes(form.heureFin) - minutes(form.heureDebut)
+        const nbSeances = form.creneaux.length
+        const nbLecons = nbEleves * nbSeances
         const alertes = conflits()
         return (
           <FenetreModerne
@@ -439,13 +427,13 @@ export default function Lecons({ onBack }) {
             titre={editId ? 'Modifier la leçon' : 'Planifier une leçon'}
             icone="car-front-fill"
             details={[
-              form.date && ['calendar3', !editId && form.plusieurs ? `${dates.length} jour${dates.length > 1 ? 's' : ''} dès le ${fmtDate(form.date)}` : fmtDate(form.date)],
-              form.heureDebut && form.heureFin && ['clock', `${form.heureDebut} – ${form.heureFin}`],
+              nbSeances === 1 && ['calendar3', `${fmtDate(form.creneaux[0].date)} · ${form.creneaux[0].h} – ${fin(form.creneaux[0])}`],
+              nbSeances > 1 && ['calendar3', `${nbSeances} séances dans la semaine`],
               nbEleves > 0 && ['people-fill', nbEleves > 1 ? `${nbEleves} élèves` : '1 élève'],
             ]}
             piedGauche={alertes.length
-              ? <span className="font-bold" style={{ color: '#c2410c' }}><i className="bi bi-exclamation-triangle-fill me-1" />{alertes.length > 1 ? `${alertes.length} conflits` : '1 conflit'} sur ce créneau (voir sous l'horaire)</span>
-              : !editId && nbLecons > 1 ? (dates.length > 1 ? `Une leçon par élève et par jour : ${nbLecons} leçons` : `Une leçon par élève : ${nbLecons} leçons, même créneau`) : undefined}
+              ? <span className="font-bold" style={{ color: '#c2410c' }}><i className="bi bi-exclamation-triangle-fill me-1" />{alertes.length > 1 ? `${alertes.length} conflits` : '1 conflit'} (voir sous les séances)</span>
+              : !editId && nbLecons > 1 ? (nbSeances > 1 ? `Une leçon par élève et par séance : ${nbLecons} leçons` : `Une leçon par élève : ${nbLecons} leçons, même créneau`) : undefined}
             libelleSave={alertes.length && forcer ? (editId ? 'Enregistrer quand même' : 'Planifier quand même') : editId ? 'Enregistrer' : nbLecons > 1 ? `Planifier ${nbLecons} leçons` : 'Planifier'}
             onClose={() => setShowModal(false)} onSave={save}>
 
@@ -471,92 +459,12 @@ export default function Lecons({ onBack }) {
               </div>
             </Etape>
 
-            <Etape n={3} icon="calendar-event" titre="Date et horaire">
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
-                <div className="col-span-2 sm:col-span-1">
-                  <Etiquette requis>{!editId && form.plusieurs ? 'À partir du' : 'Date'}</Etiquette>
-                  <input type="date" className={champCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-                <div>
-                  <Etiquette requis>Heure début</Etiquette>
-                  {/* Changer le début garde la durée choisie */}
-                  <input type="time" className={champCls} value={form.heureDebut}
-                    onChange={e => { const d = e.target.value; setForm(f => ({ ...f, heureDebut: d, heureFin: duree > 0 && d ? heure(minutes(d) + duree) : f.heureFin })) }} />
-                </div>
-                <div>
-                  <Etiquette requis>Heure fin</Etiquette>
-                  <input type="time" className={champCls} value={form.heureFin} onChange={e => setForm(f => ({ ...f, heureFin: e.target.value }))} />
-                </div>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-slate-500">Durée :</span>
-                <Choix value={duree} onChange={m => setForm(f => ({ ...f, heureFin: heure(minutes(f.heureDebut) + m) }))}
-                  options={[[60, '1 h'], [90, '1 h 30'], [120, '2 h'], [180, '3 h']].map(([v, label]) => ({ v, label, icon: 'stopwatch', color: '#b45309', bg: '#fffbeb' }))} />
-              </div>
-              {/* Création : le même horaire sur plusieurs jours (jours de la semaine, pendant 1 à 8 semaines) */}
-              {!editId && (
-                <div className="mt-4 pt-3" style={{ borderTop: '1px dashed #e2e8f0' }}>
-                  <label className="flex items-center gap-2 text-sm font-bold cursor-pointer" style={{ color: '#1e3a5f' }}>
-                    <input type="checkbox" className="form-check-input m-0 flex-shrink-0" style={{ marginRight: 4 }} checked={form.plusieurs}
-                      onChange={e => {
-                        const on = e.target.checked
-                        // Coché : le jour de la date choisie l'est d'office (s'il est du lundi au samedi)
-                        const j = form.date ? (versDate(form.date).getDay() + 6) % 7 : null
-                        setForm(f => ({ ...f, plusieurs: on, jours: on && !f.jours.length && j !== null && j < 6 ? [j] : f.jours }))
-                      }} />
-                    <i className="bi bi-calendar-range" />Planifier sur plusieurs jours
-                  </label>
-                  {form.plusieurs && (
-                    <div className="mt-3 space-y-3">
-                      <div>
-                        <div className="text-xs font-bold text-slate-500 mb-1.5">Jours (à partir du {form.date ? fmtDate(form.date) : '…'})</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {JOURS_COURTS.map((nom, k) => {
-                            const on = form.jours.includes(k)
-                            return (
-                              <button key={k} type="button" onClick={() => setForm(f => ({ ...f, jours: on ? f.jours.filter(x => x !== k) : [...f.jours, k] }))}
-                                className="px-3 py-1.5 text-sm font-bold cursor-pointer"
-                                style={{ borderRadius: 999, border: `1.5px solid ${on ? '#1e3a5f' : '#e2e8f0'}`, background: on ? '#1e3a5f' : '#fff', color: on ? '#fff' : '#475569' }}>
-                                {nom}
-                              </button>
-                            )
-                          })}
-                          <button type="button" onClick={() => setForm(f => ({ ...f, jours: f.jours.length === 6 ? [] : [0, 1, 2, 3, 4, 5] }))}
-                            className="px-3 py-1.5 text-xs font-bold cursor-pointer" style={{ borderRadius: 999, border: '1.5px dashed #cbd5e1', background: 'transparent', color: '#64748b' }}>
-                            {form.jours.length === 6 ? 'Aucun' : 'Lun → Sam'}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold text-slate-500">Pendant :</span>
-                        <Choix value={form.semaines} onChange={n => setForm(f => ({ ...f, semaines: n }))}
-                          options={[1, 2, 3, 4, 6, 8].map(v => ({ v, label: `${v} semaine${v > 1 ? 's' : ''}`, icon: 'calendar-week', color: '#1d4ed8', bg: '#eff6ff' }))} />
-                      </div>
-                      {/* Aperçu des dates */}
-                      {(() => {
-                        const ds = datesPlanifiees(form)
-                        return ds.length === 0
-                          ? <div className="text-xs text-slate-400">Cochez au moins un jour.</div>
-                          : (
-                            <div>
-                              <div className="text-xs font-bold text-slate-500 mb-1">{ds.length} date{ds.length > 1 ? 's' : ''}{nbEleves ? ` · ${ds.length * nbEleves} leçon${ds.length * nbEleves > 1 ? 's' : ''}` : ''}</div>
-                              <div className="flex flex-wrap gap-1">
-                                {ds.map(d => (
-                                  <span key={d} className="text-[11px] font-semibold px-2 py-0.5" style={{ borderRadius: 999, background: '#f1f5f9', color: '#334155' }}>
-                                    {versDate(d).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                      })()}
-                    </div>
-                  )}
-                </div>
-              )}
+            <Etape n={3} icon="calendar-event" titre={editId ? 'Séance' : 'Séances · jusqu\'à 3 dans la semaine'}>
+              <ChoixCreneaux valeur={form.creneaux} onChange={cs => setForm(f => ({ ...f, creneaux: cs }))} max={editId ? 1 : 3}
+                moniteurId={form.moniteurId} lecons={list} ignorerId={editId} nbEleves={nbEleves} ouvertes={ouvertes} semaineDepart={semaineDepart} />
             </Etape>
 
-            {/* Alertes de conflit, sous l'horaire : mises à jour à chaque changement */}
+            {/* Alertes de conflit, sous les séances : mises à jour à chaque changement */}
             {alertes.length > 0 && (
               <div className="rounded-2xl px-4 py-3" role="alert" style={{ background: '#fff7ed', border: '1.5px solid #fdba74' }}>
                 <div className="flex items-center gap-2 text-sm font-extrabold" style={{ color: '#c2410c' }}>
@@ -569,7 +477,7 @@ export default function Lecons({ onBack }) {
                     </li>
                   ))}
                 </ul>
-                <div className="text-[11px] mt-1.5" style={{ color: '#b45309' }}>Changez l'heure, le moniteur ou le véhicule, ou planifiez quand même.</div>
+                <div className="text-[11px] mt-1.5" style={{ color: '#b45309' }}>Changez de séance, de moniteur ou de véhicule, ou planifiez quand même.</div>
               </div>
             )}
 

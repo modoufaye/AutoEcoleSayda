@@ -4,7 +4,7 @@ import { toast } from './Toast'
 import { confirmer } from './confirmer'
 
 /* Réservation des leçons de conduite par l'élève (CreneauxConduiteService côté serveur) :
-   du lundi au samedi, matin 9 h-13 h et soir 15 h-18 h, créneaux d'une heure, 3 places par heure
+   du lundi au samedi, matin 9 h-13 h et soir 15 h-19 h, créneaux d'une heure, 3 places par heure
    avec son moniteur et le véhicule de ce moniteur. 4 jours au plus par semaine, une heure par jour.
    Annulation possible jusqu'à la veille. */
 

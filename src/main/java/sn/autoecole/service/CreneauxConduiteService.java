@@ -36,7 +36,7 @@ import java.util.*;
 public class CreneauxConduiteService {
 
     public static final List<LocalTime> MATIN = List.of(LocalTime.of(9, 0), LocalTime.of(10, 0), LocalTime.of(11, 0), LocalTime.of(12, 0));
-    public static final List<LocalTime> SOIR = List.of(LocalTime.of(15, 0), LocalTime.of(16, 0), LocalTime.of(17, 0));
+    public static final List<LocalTime> SOIR = List.of(LocalTime.of(15, 0), LocalTime.of(16, 0), LocalTime.of(17, 0), LocalTime.of(18, 0));
     public static final int PLACES = 3;
     public static final int JOURS_MAX = 4;
     static final String MARQUE = "Réservé par l'élève";
@@ -59,12 +59,18 @@ public class CreneauxConduiteService {
             return "Les réservations de conduite s'ouvrent après votre admission à l'examen du code.";
         Moniteur m = e.getMoniteur();
         if (m == null || !m.isActif()) return "Aucun moniteur ne vous est encore attribué. Contactez l'auto-école.";
+        // Moniteur du code seul : il ne fait pas la conduite
+        if (codeSeul(m)) return "Aucun moniteur de conduite ne vous est encore attribué. Contactez l'auto-école.";
         return null;
+    }
+
+    private static boolean codeSeul(Moniteur m) {
+        return "CODE".equals(m.getEnseignement());
     }
 
     /**
      * Élèves à prévenir de l'ouverture d'une semaine (message WhatsApp) : en formation, qui peuvent
-     * réserver (perfectionnement, ou admis au code, avec un moniteur actif). Pour chacun : s'il a déjà
+     * réserver (perfectionnement, ou admis au code, avec un moniteur de conduite actif). Pour chacun : s'il a déjà
      * une leçon de conduite cette semaine-là et s'il s'est déjà connecté à l'application.
      */
     public List<Map<String, Object>> elevesAPrevenir(LocalDate jour) {
@@ -77,7 +83,7 @@ public class CreneauxConduiteService {
         for (Eleve e : eleveRepository.findByStatutAndArchiveFalse(sn.autoecole.enums.StatutEleve.EN_COURS)) {
             if (!e.estPerfectionnement() && !admis.contains(e.getId())) continue;
             Moniteur m = e.getMoniteur();
-            if (m == null || !m.isActif()) continue;
+            if (m == null || !m.isActif() || codeSeul(m)) continue;
             Map<String, Object> x = new LinkedHashMap<>();
             x.put("id", e.getId());
             x.put("prenom", e.getPrenom());

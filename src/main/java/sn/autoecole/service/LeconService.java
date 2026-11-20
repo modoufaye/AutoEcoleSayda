@@ -69,6 +69,9 @@ public class LeconService {
 
         Moniteur moniteur = moniteurRepository.findById(request.getMoniteurId())
                 .orElseThrow(() -> new ResourceNotFoundException("Moniteur", request.getMoniteurId()));
+        // Moniteur du code seul : pas de leçon de conduite
+        if (request.getType() == TypeLecon.CONDUITE && "CODE".equals(moniteur.getEnseignement()))
+            throw new BusinessException(moniteur.getPrenom() + " " + moniteur.getNom() + " enseigne seulement le code : choisissez un moniteur de conduite");
 
         if (!moniteur.isActif()) {
             throw new BusinessException("Le moniteur " + moniteur.getNom() + " n'est pas actif");
@@ -115,6 +118,9 @@ public class LeconService {
                 .orElseThrow(() -> new ResourceNotFoundException("Élève", request.getEleveId()));
         Moniteur moniteur = moniteurRepository.findById(request.getMoniteurId())
                 .orElseThrow(() -> new ResourceNotFoundException("Moniteur", request.getMoniteurId()));
+        // Moniteur du code seul : pas de leçon de conduite
+        if (request.getType() == TypeLecon.CONDUITE && "CODE".equals(moniteur.getEnseignement()))
+            throw new BusinessException(moniteur.getPrenom() + " " + moniteur.getNom() + " enseigne seulement le code : choisissez un moniteur de conduite");
 
         if (eleve.estPerfectionnement() && request.getType() == TypeLecon.CODE) {
             throw new BusinessException("Élève en perfectionnement : leçons de conduite uniquement");

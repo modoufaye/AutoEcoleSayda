@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
+import { faitConduite } from '../utils'
 
 /* Planning des leçons de conduite, vue semaine (administration, secrétariat, moniteurs) : pour un
    moniteur, une grille jours × heures. Chaque heure est une case horizontale découpée en places
@@ -8,7 +9,7 @@ import { api } from '../api'
    planifie une leçon à cette heure ; cliquer un élève ouvre sa leçon. */
 
 const PLACES = 3
-const HEURES = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00']   // créneaux de réservation
+const HEURES = ['09:00', '10:00', '11:00', '12:00', '15:00', '16:00', '17:00', '18:00']   // créneaux de réservation
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 const BLEU = '#1e3a5f'
 const RESERVE = "Réservé par l'élève"
@@ -85,7 +86,7 @@ export default function PlanningSemaine({ lecons, version, moniteurTelephone, on
   // téléphone et tablette : toujours un jour à la fois
   const [affichage, setAffichage] = useState(() => { try { return localStorage.getItem('planning-affichage') === 'jour' ? 'jour' : 'semaine' } catch { return 'semaine' } })
   const changerAffichage = v => { setAffichage(v); try { localStorage.setItem('planning-affichage', v) } catch { /* stockage indisponible */ } }
-  useEffect(() => { api('GET', '/moniteurs/actifs').then(setMoniteurs).catch(() => setMoniteurs([])) }, [])
+  useEffect(() => { api('GET', '/moniteurs/actifs').then(l => setMoniteurs((l || []).filter(faitConduite))).catch(() => setMoniteurs([])) }, [])
   // Moniteur connecté : son planning d'abord ; sinon le premier moniteur
   const choisi = moniteurId ?? moniteurs?.find(m => moniteurTelephone && m.telephone === moniteurTelephone)?.id ?? moniteurs?.[0]?.id ?? null
 
