@@ -229,6 +229,25 @@ export function ListePublications({ genre, publications, onModifier, onAjouterMo
   )
 }
 
+/* Boutons « Tout cocher » / « Tout décocher » : ids sont les lignes cochables, aRetirer celles que
+   l'on décoche (une série devenue « déjà publiée » peut rester cochée sans être cochable). */
+function BoutonsTout({ ids, aRetirer = ids, valeur, onChange }) {
+  const tous = ids.length > 0 && ids.every(id => valeur.includes(id))
+  const aucun = !aRetirer.some(id => valeur.includes(id))
+  const bouton = (libelle, icone, inactif, onClick) => (
+    <button type="button" disabled={inactif} onClick={onClick} className="px-3 py-1.5 text-xs font-bold border-0"
+      style={{ borderRadius: 999, background: '#eef2f7', color: '#1e3a5f', opacity: inactif ? .45 : 1, cursor: inactif ? 'default' : 'pointer' }}>
+      <i className={`bi bi-${icone} me-1`} />{libelle}
+    </button>
+  )
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      {bouton('Tout cocher', 'check2-all', tous || !ids.length, () => onChange([...new Set([...valeur, ...ids])]))}
+      {bouton('Tout décocher', 'x-lg', aucun, () => onChange(valeur.filter(id => !aRetirer.includes(id))))}
+    </span>
+  )
+}
+
 /* Ajouter un ou plusieurs élèves à plusieurs séries d'examen et catalogues d'annales d'un coup, en
    entraînement, en examen blanc ou les deux. N'en retire personne ; une série déjà publiée pour tous
    les élèves choisis, dans tous les modes choisis, est grisée « déjà publiée ». */
@@ -293,7 +312,8 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
       piedGauche="Les élèves sont seulement ajoutés : personne n'est retiré.">
       <Etape n={1} icon="person" titre="Élève(s)">
         {/* Un clic sur une classe coche tous ses élèves */}
-        <div className="mb-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <BoutonsTout ids={items.map(e => String(e.id))} valeur={eleveIds} onChange={setEleveIds} />
           <BoutonsClasses proposes={items.map(e => e.id)} onCocher={ids => setEleveIds(x => [...new Set([...x, ...ids.map(String)])])} />
         </div>
         <ChoixPuces items={items} valeur={eleveIds} onChoisir={setEleveIds} multiple cochesEnTete placeholder="Nom ou téléphone…" hauteur={220} />
@@ -313,9 +333,17 @@ export function AjoutPlusieursSeries({ publications = [], onClose, onFini }) {
         </div>
       </Etape>
       <Etape n={3} icon="journal-bookmark" titre="Séries et annales">
+        <div className="mb-3">
+          <BoutonsTout ids={GROUPES.flatMap(g => g.series.map(x => x.id)).filter(id => !dejaTout(id))}
+            aRetirer={GROUPES.flatMap(g => g.series.map(x => x.id))} valeur={series} onChange={setSeries} />
+        </div>
         {GROUPES.map(g => (
           <div key={g.key} className="mb-3">
-            <div className="text-xs font-extrabold text-slate-500 mb-1">{g.titre}</div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <span className="text-xs font-extrabold text-slate-500">{g.titre}</span>
+              <BoutonsTout ids={g.series.map(x => x.id).filter(id => !dejaTout(id))}
+                aRetirer={g.series.map(x => x.id)} valeur={series} onChange={setSeries} />
+            </div>
             <div className="rounded-xl overflow-hidden" style={{ border: '1.5px solid #e2e8f0' }}>
               {g.series.map(x => {
                 const deja = dejaTout(x.id), coche = series.includes(x.id) && !deja, statuts = statutsModes(x.id)
