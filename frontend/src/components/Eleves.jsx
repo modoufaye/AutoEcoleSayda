@@ -1623,7 +1623,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const fenetreEleve = () => form.typeFormation === 'PERFECTIONNEMENT' ? ModalPerfectionnement() : ModalModerne()
 
   /* ── Fenêtre « Perfectionnement » : conduite seule (boîte manuelle ou automatique).
-     Prénom, nom, téléphone, date et lieu d'inscription, total, acompte et reliquat : pas de
+     Prénom, nom, téléphone, adresse, date et lieu d'inscription, total, acompte et reliquat : pas de
      catégorie de permis, de moniteur, de bureau ni de dossier. Le bureau suit le lieu. ── */
   function ModalPerfectionnement() {
     const inputCls = "w-full px-3.5 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-800 text-sm outline-none focus:border-[#d4a017] transition-all"
@@ -1715,6 +1715,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
                   <div className="col-md-6">
                     <label className={labelCls}>Date d'inscription <span className="text-red-500">*</span></label>
                     <input type="date" className={inputCls} max={today()} value={form.dateInscription} onChange={e => set('dateInscription', e.target.value)} />
+                  </div>
+                  <div className="col-12">
+                    <label className={labelCls}>Adresse</label>
+                    <input className={inputCls} placeholder="Quartier, ville" value={form.adresse} onChange={e => set('adresse', e.target.value)} />
                   </div>
                 </div>
               </>)}
