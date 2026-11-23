@@ -71,7 +71,7 @@ public class EleveController {
      * Suivi du code dans la liste des élèves : assimilées sur total, chaque séance ou série comptée
      * une seule fois (validée trois fois = une). id -> { codeTotal, codeAssimilees, et pour séries et
      * annales, en entraînement et en examen blanc : seriesEntrainementTotal, seriesEntrainementAssimilees,
-     * seriesTotal, seriesAssimilees, annales… }. Total des séances : celles avec quiz reçues ; total des
+     * seriesTotal, seriesAssimilees, annales… }. Total des séances : celles publiées avec quiz ; total des
      * séries : celles publiées pour l'élève dans ce mode, plus celles qu'il a faites sans publication.
      */
     @GetMapping("/suivi-code")
@@ -104,6 +104,12 @@ public class EleveController {
             m.put("codeTotal", c[0]);
             m.put("codeAssimilees", c[2]);
         });
+        // Comme sur la fiche : un élève du permis a toutes les séances publiées, même sans s'être encore connecté
+        long publiees = seanceService.nombreSeancesAvecQuiz();
+        if (publiees > 0)
+            java.util.stream.Stream.concat(eleveService.listerTous().stream(), eleveService.listerArchives().stream())
+                    .filter(e -> !e.estPerfectionnement())
+                    .forEach(e -> r.computeIfAbsent(e.getId(), k -> new java.util.HashMap<>()).merge("codeTotal", publiees, Math::max));
         return r;
     }
 
