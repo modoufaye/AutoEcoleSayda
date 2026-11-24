@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import sn.autoecole.dto.PaiementRequest;
 import sn.autoecole.entity.Paiement;
 import sn.autoecole.enums.StatutPaiement;
+import sn.autoecole.service.PaiementImportService;
 import sn.autoecole.service.PaiementService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class PaiementController {
 
     private final PaiementService paiementService;
+    private final PaiementImportService importService;
 
     @GetMapping
     public ResponseEntity<List<Paiement>> listerTous() {
@@ -49,6 +52,24 @@ public class PaiementController {
     @PostMapping
     public ResponseEntity<Paiement> creer(@Valid @RequestBody PaiementRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(paiementService.creer(request));
+    }
+
+    /**
+     * Versements de plusieurs élèves (2e, 3e tranche…) depuis un fichier Excel. confirmer=false :
+     * analyse seule (rien n'est écrit) ; confirmer=true : enregistre les lignes valides.
+     */
+    @PostMapping("/import")
+    public ResponseEntity<PaiementImportService.Resultat> importer(@RequestParam("file") MultipartFile file,
+                                                                   @RequestParam(defaultValue = "false") boolean confirmer) {
+        return ResponseEntity.ok(importService.importer(file, confirmer));
+    }
+
+    @GetMapping("/import/modele")
+    public ResponseEntity<byte[]> modeleImport() {
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"modele-versements.xlsx\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(importService.modele());
     }
 
     @PutMapping("/{id}")

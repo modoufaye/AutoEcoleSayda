@@ -213,19 +213,19 @@ public class EleveImportService {
     /* ── Valeurs des cellules ───────────────────────────────── */
 
     /** Minuscules, sans accents ni espaces ni ponctuation : « Date \n d’inscription » → « datedinscription ». */
-    private static String simplifier(String s) {
+    static String simplifier(String s) {
         return Normalizer.normalize(s, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
-    private static String texte(Row row, Integer col, DataFormatter fmt) {
+    static String texte(Row row, Integer col, DataFormatter fmt) {
         if (col == null) return "";
         Cell cell = row.getCell(col);
         return cell == null ? "" : fmt.formatCellValue(cell).trim().replaceAll("\\s+", " ");
     }
 
     /** « MOUSTAPHA DADJI » → « Moustapha Dadji ». */
-    private static String prenom(String s) {
+    static String prenom(String s) {
         StringBuilder sb = new StringBuilder();
         for (String mot : s.toLowerCase(Locale.FRENCH).split(" ")) {
             if (mot.isEmpty()) continue;
@@ -254,7 +254,7 @@ public class EleveImportService {
         return null;
     }
 
-    private static MoyenPaiement mode(String s) {
+    static MoyenPaiement mode(String s) {
         String t = simplifier(s);
         if (t.startsWith("espece") || t.equals("cash")) return MoyenPaiement.ESPECES;
         if (t.startsWith("wave")) return MoyenPaiement.WAVE;
@@ -263,11 +263,11 @@ public class EleveImportService {
     }
 
     /** Une formule (ex. =G3*2) vaut son dernier résultat calculé par Excel. */
-    private static CellType type(Cell cell) {
+    static CellType type(Cell cell) {
         return cell.getCellType() == CellType.FORMULA ? cell.getCachedFormulaResultType() : cell.getCellType();
     }
 
-    private static LocalDate date(Cell cell, DataFormatter fmt) {
+    static LocalDate date(Cell cell, DataFormatter fmt) {
         if (cell == null) return null;
         if (type(cell) == CellType.NUMERIC) {
             // Excel stocke les dates en nombre de jours, même quand la cellule n'est pas au format date.
@@ -280,7 +280,7 @@ public class EleveImportService {
         return null;
     }
 
-    private static BigDecimal montant(Cell cell, DataFormatter fmt) {
+    static BigDecimal montant(Cell cell, DataFormatter fmt) {
         if (cell == null) return null;
         if (type(cell) == CellType.NUMERIC) return BigDecimal.valueOf(cell.getNumericCellValue());
         String chiffres = fmt.formatCellValue(cell).replaceAll("[^0-9]", "");

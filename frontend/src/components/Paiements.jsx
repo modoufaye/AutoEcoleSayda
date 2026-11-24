@@ -10,6 +10,7 @@ import { champCls } from './fenetreStyles'
 import { useAuth } from '../context/AuthContext'
 import '../landing.css'
 import { afficherTelephone } from '../telephones'
+import ImportPaiements from './ImportPaiements'
 
 const PAGE_SIZE = 10
 
@@ -43,6 +44,7 @@ export default function Paiements({ onEleveClick }) {
   const [form, setForm]               = useState(EMPTY)
   const [editId, setEditId]           = useState(null)
   const [showModal, setShowModal]     = useState(false)
+  const [showImport, setShowImport]   = useState(false)   // versements de plusieurs élèves (Excel)
   const [loading, setLoading]         = useState(true)
   const [eleves, setEleves]           = useState([])
   const [page, setPage]               = useState(1)
@@ -215,11 +217,18 @@ export default function Paiements({ onEleveClick }) {
                     {totalEncaisse != null ? fmtMontant(totalEncaisse) : '—'}
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                <button onClick={() => setShowImport(true)} title="Versements de plusieurs élèves depuis un fichier Excel"
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-extrabold border-0 cursor-pointer transition-all hover:-translate-y-0.5"
+                  style={{ borderRadius: '.9rem', background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.2)' }}>
+                  <i className="bi bi-file-earmark-spreadsheet-fill" style={{ color: '#86efac' }} />Importer
+                </button>
                 <button onClick={() => openModal()}
                   className="flex items-center gap-2 px-5 py-3 text-sm font-extrabold border-0 cursor-pointer transition-all hover:-translate-y-0.5"
                   style={{ borderRadius: '.9rem', background: 'linear-gradient(135deg,#d4a017,#f0bb2a)', color: '#1e3a5f', boxShadow: '0 6px 16px rgba(212,160,23,.35)' }}>
                   <i className="bi bi-plus-lg" />Paiement
                 </button>
+                </div>
               </div>
             </div>
           </div>
@@ -586,6 +595,7 @@ export default function Paiements({ onEleveClick }) {
           </FenetreModerne>
         )
       })()}
+      {showImport && <ImportPaiements onClose={() => setShowImport(false)} onDone={load} />}
     </div>
   )
 }
