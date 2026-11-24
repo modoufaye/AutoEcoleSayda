@@ -482,6 +482,9 @@ function TabPaiements({ paiements, totalPaye, montantTotal, eleveId, onRefresh, 
 }
 
 /* ─── Message de bienvenue WhatsApp ─────────────────────── */
+// Élève à qui envoyer ses identifiants : pas de message de bienvenue, jamais connecté, pas archivé
+const identifiantsAEnvoyer = e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive
+
 /* Chaque envoi génère de nouveaux identifiants (création du compte ou nouveau mot de passe).
    WhatsApp s'ouvre depuis un lien de la fenêtre de confirmation et non directement après
    l'appel API : les navigateurs mobiles bloquent un window.open qui suit un await.
@@ -1061,6 +1064,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [prepFiltre, setPrepFiltre] = useState(isMoniteur ? '' : memo.prepFiltre ?? '')
   const classeFiltre = classeFixe ?? ''   // classe affichée (page Classes) ; plus de filtre de classe dans l'onglet Élèves
   const [messagesSeuls, setMessagesSeuls] = useState(!!memo.messagesSeuls)   // seulement les élèves qui ont écrit (non lus)
+  const [identifiantsSeuls, setIdentifiantsSeuls] = useState(!!memo.identifiantsSeuls)   // nouveaux élèves sans message de bienvenue
   const classes = useClasses()
   const nomClasse = Object.fromEntries(classes.map(c => [c.id, c.nom]))
   // Élèves admis à l'examen du code : prêts pour les cours de conduite
@@ -1089,16 +1093,16 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
   const [selected, setSelected]   = useState(null)
   const [page, setPage]           = useState(memo.page ?? 1)
   // Signature des filtres : seule une vraie modification ramène à la page 1 (pas le chargement de la liste)
-  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, archives])
+  const signatureFiltres = JSON.stringify([search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, identifiantsSeuls, archives])
   const signaturePrecedente = useRef(memo.signature ?? signatureFiltres)
   useEffect(() => {
     if (classeFixe) return
     try {
       sessionStorage.setItem(cleFiltres(user?.id, formationFixe), JSON.stringify({
-        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, archives, page, signature: signatureFiltres,
+        search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, identifiantsSeuls, archives, page, signature: signatureFiltres,
       }))
     } catch { /* stockage indisponible */ }
-  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, classeFiltre, messagesSeuls, identifiantsSeuls, archives, page, signatureFiltres, user?.id, formationFixe])
   const [profileData, setProfileData] = useState({ lecons: [], seances: [], examens: [], paiements: [], totalPaye: 0 })
   const [loadingProfile, setLoadingProfile] = useState(false)
   const [activeTab, setActiveTab] = useState('lecons')
@@ -1164,6 +1168,7 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
     if (prepFiltre) r = r.filter(e => prepCode[e.id]?.indicateur === prepFiltre)
     if (classeFiltre) r = r.filter(e => String(e.classeId) === String(classeFiltre) && e.typeFormation !== 'PERFECTIONNEMENT')
     if (messagesSeuls) r = r.filter(e => messagesNonLus[e.id] > 0)
+    if (identifiantsSeuls) r = r.filter(identifiantsAEnvoyer)
     if (enLigneSeul && presence) r = r.filter(e => presence.eleves.has(e.id))
     // Derniers ajoutés en haut (ordre de création, pas la date d'inscription : un import peut être daté d'avant)
     setFiltered([...r].sort((a, b) => b.id - a.id))
@@ -1175,10 +1180,10 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
       // Pas tant que la liste est vide (chargement en cours) : la page retenue tomberait à 1.
       setPage(p => Math.min(p, Math.max(1, Math.ceil(r.length / PAGE_SIZE))))
     }
-  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, prepCode, classeFiltre, messagesSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, statut, site, moisInscription, formation, enLigneSeul, codeAdmisSeul, sansMoniteurConduite, prepFiltre, prepCode, classeFiltre, messagesSeuls, identifiantsSeuls, messagesNonLus, admisCode, presence, list, signatureFiltres]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Élèves affichés qui n'ont pas encore reçu leurs identifiants (envoi groupé)
-  const aEnvoyerAffiches = filtered.filter(e => !e.bienvenueEnvoyeeLe && !e.premiereConnexionLe && !e.archive)
+  const aEnvoyerAffiches = filtered.filter(identifiantsAEnvoyer)
 
   const openProfile = async (eleve, initialTab = 'lecons') => {
     setSelected(eleve); setActiveTab(initialTab); setLoadingProfile(true)
@@ -2152,6 +2157,12 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
             Messages non lus · {list.filter(e => messagesNonLus[e.id] > 0).length}
           </FiltreBascule>
         )}
+        {/* Gestion : nouveaux élèves qui n'ont pas encore reçu le message de bienvenue (identifiants) */}
+        {!isMoniteur && !archives && (
+          <FiltreBascule actif={identifiantsSeuls} onClick={() => setIdentifiantsSeuls(x => !x)} icone="whatsapp">
+            Identifiants à envoyer · {list.filter(identifiantsAEnvoyer).length}
+          </FiltreBascule>
+        )}
         {/* Admis au code : peuvent commencer (ou poursuivre) la conduite. Le perfectionnement n'a pas de code. */}
         {!perfSeul && (
           <FiltreBascule actif={codeAdmisSeul} onClick={() => setCodeAdmisSeul(x => !x)} icone="patch-check">
@@ -2182,8 +2193,9 @@ export default function Eleves({ initialEleveId, onOuvrirEleve, onQuitterFiche, 
           <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto sm:ms-auto">
             {/* Identifiants à envoyer, parmi les élèves affichés (filtres compris : bureau, statut…).
                 Onglet Élèves (permis) : remplacé par « Relancer », qui envoie aussi de nouveaux identifiants
-                aux élèves jamais connectés ; reste pour le perfectionnement, que la relance ne vise pas. */}
-            {perfSeul && aEnvoyerAffiches.length > 0 && (
+                aux élèves jamais connectés ; reste pour le perfectionnement, que la relance ne vise pas,
+                et partout quand le filtre « Identifiants à envoyer » est actif. */}
+            {(perfSeul || identifiantsSeuls) && aEnvoyerAffiches.length > 0 && (
               <div className="col-span-2 sm:col-span-1 grid">
                 <BoutonAjout vert icone="whatsapp" onClick={() => setEnvoiGroupe(true)}>Envoi groupé · {aEnvoyerAffiches.length}</BoutonAjout>
               </div>
