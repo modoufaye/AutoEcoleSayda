@@ -41,6 +41,7 @@ export default function Examens({ onEleveClick, onBack }) {
   const [filterResultat, setFilterResultat] = useState('')
   const [filterTentative, setFilterTentative] = useState('')
   const [page, setPage]                     = useState(1)
+  const [pagesDate, setPagesDate]           = useState({})   // page des élèves de chaque date dépliée
   const [ouverts, setOuverts]               = useState(() => new Set())   // dates d'examen dépliées (personnel)
   const [rappelsOuverts, setRappelsOuverts] = useState(false)   // « Rappels à envoyer » repliés par défaut
   const [filterDateDe, setFilterDateDe]     = useState('')
@@ -147,7 +148,7 @@ export default function Examens({ onEleveClick, onBack }) {
     catch (e) { toast(e.message, 'danger') }
   }
 
-  useEffect(() => { setPage(1) }, [search, filterType, filterResultat, filterTentative, filterDateDe, filterDateA])
+  useEffect(() => { setPage(1); setPagesDate({}) }, [search, filterType, filterResultat, filterTentative, filterDateDe, filterDateA])
 
   const tentatives = [...new Set(list.map(e => e.tentative))].sort((a, b) => a - b)
 
@@ -383,6 +384,9 @@ export default function Examens({ onEleveClick, onBack }) {
             const quand = j === 0 ? "Aujourd'hui" : j === 1 ? 'Demain' : j > 1 ? `Dans ${j} jours` : j === -1 ? 'Hier' : `Il y a ${-j} jours`
             const n = k => g.examens.filter(e => e.resultat === k).length
             const types = ['CODE', 'CONDUITE'].filter(t => g.examens.some(e => e.type === t))
+            // Élèves de la date, 10 par page (page ramenée dans les limites si la liste a raccourci)
+            const pageDate = Math.min(pagesDate[g.date] || 1, Math.max(1, Math.ceil(g.examens.length / PAGE_SIZE)))
+            const setPageDate = v => setPagesDate(m => ({ ...m, [g.date]: typeof v === 'function' ? v(pageDate) : v }))
             return (
               <div key={g.date} style={{ borderBottom: '1px solid #eef2f7' }}>
                 {/* En-tête de la date : un clic déplie ou replie les élèves de cet examen */}
@@ -412,7 +416,8 @@ export default function Examens({ onEleveClick, onBack }) {
                   <i className={`bi bi-chevron-${ouvert ? 'up' : 'down'} text-slate-400`} />
                 </button>
                 {ouvert && <div style={{ borderTop: '1px solid #eef2f7' }}>
-                  {g.examens.map(ligne)}
+                  {g.examens.slice((pageDate - 1) * PAGE_SIZE, pageDate * PAGE_SIZE).map(ligne)}
+                  <Pagination page={pageDate} setPage={setPageDate} total={g.examens.length} pageSize={PAGE_SIZE} />
                   {/* Date déjà fixée : on y ajoute d'autres candidats (même date, même épreuve, même message) */}
                   <div className="px-4 sm:px-5 py-3" style={{ background: '#f8fafc' }}>
                     <button type="button" className="filtre filtre-bouton" style={{ minHeight: 36, fontSize: '.82rem', fontWeight: 700, color: '#1e3a5f' }}
